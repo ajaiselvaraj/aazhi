@@ -1,0 +1,8 @@
+
+{
+  "name": "AAZHI - Smart Urban Digital Helpdesk Assistant",
+  "description": "A comprehensive smart city kiosk solution for integrated public utility services, featuring proactive city alerts, hybrid token systems, and AI-assisted accessibility.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
