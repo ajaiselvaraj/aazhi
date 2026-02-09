@@ -66,6 +66,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mobile / Aadhaar</label>
                                 <div className="relative">
                                     <input
+                                        inputMode="numeric"
                                         type="text"
                                         maxLength={10}
                                         className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl font-bold text-lg outline-none focus:border-[#2E3192]"
@@ -94,6 +95,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                             </div>
                             <div>
                                 <input
+                                    inputMode="numeric"
                                     type="text"
                                     maxLength={6}
                                     className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl font-black text-2xl text-center outline-none focus:border-[#2E3192] tracking-[0.5em]"

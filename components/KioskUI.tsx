@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   LayoutGrid, Search, User, FileCheck, HelpCircle, MessageSquare, Send, Bell,
   ArrowRight, Settings, Upload, FileText, Download, CheckCircle, AlertTriangle,
   Brain, Image as ImageIcon, Sparkles, Maximize2, CreditCard, Zap, Droplets,
   Flame, Receipt, ArrowLeft, Smartphone, Info, History, AlertCircle, ShieldCheck,
-  RefreshCw, Users, QrCode, ClipboardCheck, Home, Volume2, VolumeX, Type, Printer
+  RefreshCw, Users, QrCode, ClipboardCheck, Home, Volume2, VolumeX, Type, Printer, Mic, MicOff, PlayCircle, RotateCcw
 } from 'lucide-react';
 import { ViewState, Language, ServiceRequest } from '../types';
-import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, TRANSLATIONS, MOCK_ALERTS } from '../constants';
-import { getSmartHelp, generateCitizenImage } from '../services/geminiService';
+import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, TRANSLATIONS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
+import { getAssistantResponse, generateCitizenImage, AIResponse, AIMenu } from '../services/geminiService';
+import { BillingService, GrievanceService } from '../services/civicService';
 
 // New Components
 import DashboardHome from './kiosk/DashboardHome';
@@ -16,16 +17,31 @@ import ServiceModeSelector from './kiosk/ServiceModeSelector';
 import ServiceFormWizard from './kiosk/ServiceFormWizard';
 import ServiceSuccess from './kiosk/ServiceSuccess';
 import PaymentReceipt from './kiosk/PaymentReceipt';
+import KioskShell from './KioskShell';
+import ElectricityModule from './kiosk/electricity/ElectricityModule';
+import ComplaintsModule from './kiosk/ComplaintsModule';
 
 interface Props {
   language: Language;
   onNavigate: (view: ViewState) => void;
   onLogout: () => void;
   isPrivacyShield: boolean;
+  timer: number;
+  onTogglePrivacy: () => void;
+  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai';
 }
 
-const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield }) => {
-  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai'>('home');
+interface ChatMessage {
+  id: string;
+  sender: 'user' | 'bot';
+  text: string;
+  voiceText?: string;
+  action?: any;
+  menu?: AIMenu; // New: Structure Menu Data
+}
+
+const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home' }) => {
+  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai'>(initialTab);
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
   const t = TRANSLATIONS[language];
 
@@ -33,11 +49,13 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isLargeText, setIsLargeText] = useState(false);
 
-  // States
+  // AI & Chat States
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [aiQuery, setAiQuery] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [isThinkingMode, setIsThinkingMode] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // States for Image Gen (Legacy)
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [imagePrompt, setImagePrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -55,20 +73,141 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [submissionStep, setSubmissionStep] = useState<'select' | 'flow_choice' | 'form' | 'success'>('select');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [serviceMode, setServiceMode] = useState<'SELF' | 'COUNTER'>('SELF');
+  const [fetchedBill, setFetchedBill] = useState<any>(null);
 
   const ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
 
-  const handleAiSearch = async () => {
-    if (!aiQuery) return;
+  // Initialize Chat with Welcome Message on Load
+  useEffect(() => {
+    if (chatHistory.length === 0) {
+      handleAiSearch("start"); // Trigger initial welcome flow
+    }
+  }, []);
+
+  // Scroll to bottom of chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, activeTab]);
+
+  // Handle Voice Speak
+  const speakText = (text: string) => {
+    if (!isVoiceEnabled || !window.speechSynthesis) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = language === Language.HINDI ? 'hi-IN' : 'en-IN'; // Basic lang support
+    utterance.rate = 0.9; // Accessibility: Speak slowly
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleAiSearch = async (queryOverride?: string) => {
+    const query = queryOverride || aiQuery;
+    if (!query.trim()) return;
+
+    // Only show user message if it's NOT a system trigger like 'start'
+    if (query !== 'start') {
+      const userMsg: ChatMessage = { id: Date.now().toString(), sender: 'user', text: query };
+      setChatHistory(prev => [...prev, userMsg]);
+    }
+
+    setAiQuery('');
     setIsAiLoading(true);
-    const result = await getSmartHelp(aiQuery, language, isThinkingMode ? 'thinking' : 'fast');
-    setAiResponse(result || "No response received.");
-    setIsAiLoading(false);
-    if (isVoiceEnabled) {
-      // Mock TTS
-      console.log("Speaking: " + result);
+
+    try {
+      const response: AIResponse = await getAssistantResponse(query, language, isVoiceEnabled);
+
+      const botMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: 'bot',
+        text: response.text,
+        voiceText: response.voice,
+        action: response.actions ? response.actions[0] : undefined,
+        menu: response.menu // Capture menu options
+      };
+
+      setChatHistory(prev => [...prev, botMsg]);
+
+      // Auto-speak if voice is enabled
+      if (isVoiceEnabled && response.voice) {
+        speakText(response.voice);
+      }
+
+      // Handle Actions
+      if (response.actions) {
+        response.actions.forEach(action => {
+          if (action.type === 'NAVIGATE') {
+            setTimeout(() => {
+              setActiveTab(action.payload as any);
+              if (action.payload === 'billing') setBillingStep('select');
+              if (action.payload === 'services') setSubmissionStep('select');
+            }, 1500);
+          }
+        });
+      }
+
+    } catch (e) {
+      console.error(e);
+      setChatHistory(prev => [...prev, { id: Date.now().toString(), sender: 'bot', text: "Service temporarily unavailable." }]);
+    } finally {
+      setIsAiLoading(false);
     }
   };
+
+  const handleMenuOptionClick = (optionId: string, label: string) => {
+    // Simulate user typing the number or label
+    handleAiSearch(optionId);
+  };
+
+  const handleResetChat = () => {
+    setChatHistory([]);
+    setAiQuery('');
+    setTimeout(() => handleAiSearch("start"), 100);
+  };
+
+  // Voice Input State
+  const [isListening, setIsListening] = useState(false);
+
+  // Handle Voice Input
+  const handleVoiceInput = () => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      if (isListening) {
+        setIsListening(false);
+        return;
+      }
+
+      setIsListening(true);
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+
+      recognition.lang = language === Language.HINDI ? 'hi-IN' : 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setAiQuery(transcript);
+        setIsListening(false);
+        setTimeout(() => handleAiSearch(transcript), 500); // Auto-submit after voice
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } else {
+      alert("Voice input is not supported in this browser.");
+    }
+  };
+
+  /* ... (further down in the file) ... */
+
+
 
   const handleGenerateImage = async () => {
     if (!imagePrompt) return;
@@ -100,23 +239,36 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const handleFetchBill = () => {
     if (!consumerNumber || mobileNumber.length !== 10) return;
     setIsFetchingBill(true);
+
+    // Simulate network delay then fetch real data
     setTimeout(() => {
+      const unpaidBills = BillingService.getUnpaidBills(MOCK_USER_PROFILE);
+      /* In real app, filter by service type and consumer number entered */
+      const bill = unpaidBills.find(b => b.consumerId === consumerNumber) || unpaidBills[0];
+
+      setFetchedBill(bill);
       setBillingStep('details');
       setIsFetchingBill(false);
     }, 1500);
   };
 
   const handlePayBill = () => {
+    if (!fetchedBill) return;
     setIsFetchingBill(true);
+
+    BillingService.payBill(fetchedBill.id);
+
     const txnId = 'TXN' + Date.now();
     setReceiptDetails({
       serviceName: selectedBillService.name,
       consumerId: consumerNumber,
-      amount: '₹1,452.00',
+      consumerName: "Arun Kumar",
+      amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount),
       txnId: txnId,
       date: new Date().toLocaleString(),
       mode: 'UPI'
     });
+
     setTimeout(() => {
       setBillingStep('success');
       setIsFetchingBill(false);
@@ -136,115 +288,54 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   return (
-    <>
-      <div className={`print:hidden flex flex-col h-screen bg-slate-50 relative ${isLargeText ? 'text-lg' : ''}`}>
-        {/* City Alerts Marquee/Panel */}
-        <div className="bg-slate-900 overflow-hidden shrink-0 flex items-center h-10 px-4 border-b border-white/5 relative">
-          <div className="flex items-center gap-2 mr-4 shrink-0 z-20 bg-slate-900 h-full pr-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-            <span className="text-[10px] font-black text-white uppercase tracking-widest">LIVE CITY ALERTS:</span>
-          </div>
-          <div className="flex-1 h-full overflow-hidden relative flex items-center">
-            <div className="flex gap-4 animate-marquee whitespace-nowrap absolute left-0 w-max">
-              {MOCK_ALERTS.map(alert => (
-                <div key={alert.id} className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                  <AlertCircle size={12} className={alert.severity === 'Critical' ? 'text-red-500' : 'text-blue-500'} />
-                  <span>[{alert.ward === 'Global' ? 'Global' : `Ward ${alert.ward}`}] {alert.message} &nbsp;<span className="text-slate-700">|</span></span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+    <KioskShell
+      activeTab={activeTab}
+      onNavigate={(id) => {
+        setActiveTab(id as any);
+        if (id === 'services') setSubmissionStep('select');
+        if (id === 'billing') setBillingStep('select');
+      }}
+      onLogout={onLogout}
+      userName={MOCK_USER_PROFILE.name}
+      alerts={MOCK_ALERTS}
+      language={language}
+      timer={timer}
+      isPrivacyShield={isPrivacyShield}
+      onTogglePrivacy={onTogglePrivacy}
+    >
+      <div className={`h-full ${isLargeText ? 'text-lg' : ''} print:hidden`}>
 
-        {/* Header with Accessibility Controls */}
-        <header className="bg-blue-900 text-white p-6 shadow-lg flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-blue-900 font-bold text-xl shadow-inner">A</div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight">{APP_CONFIG.TITLE}</h1>
-              <p className="text-xs text-blue-200 uppercase tracking-widest font-bold">{APP_CONFIG.SUBTITLE}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-6 pr-24">
-            {/* Accessibility Toggles */}
-            <div className="hidden sm:flex items-center gap-2 bg-blue-800/50 p-1 rounded-xl border border-blue-700">
-              <button
-                onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                className={`p-2 rounded-lg transition ${isVoiceEnabled ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-300 hover:text-white'}`}
-                title="Toggle Voice Assistant"
-              >
-                {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-              </button>
-              <button
-                onClick={() => setIsLargeText(!isLargeText)}
-                className={`p-2 rounded-lg transition ${isLargeText ? 'bg-white text-blue-900 shadow-sm' : 'text-blue-300 hover:text-white'}`}
-                title="Toggle Large Text"
-              >
-                <Type size={18} />
-              </button>
-            </div>
+        {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
+        {activeTab === 'home' && (
+          <DashboardHome
+            alerts={MOCK_ALERTS}
+            onNavigate={(tab) => {
+              setActiveTab(tab as any);
+              if (tab === 'services') setSubmissionStep('select');
+              if (tab === 'billing') setBillingStep('select');
+            }}
+            language={language}
+          />
+        )}
 
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-black uppercase text-blue-300 tracking-widest">Kiosk: Coimbatore-Central-02</p>
-              <p className="text-[10px] opacity-75 font-bold">Secure Public Session Active</p>
-            </div>
-            <button onClick={onLogout} className="bg-red-500 hover:bg-red-600 px-6 py-2 rounded-xl font-black text-xs uppercase transition shadow-lg active:scale-95">
-              {t.logout}
-            </button>
-          </div>
-        </header>
-
-        {/* Navigation Tabs */}
-        <nav className="bg-white border-b px-8 py-2 flex gap-4 overflow-x-auto shrink-0 no-scrollbar">
-          {[
-            { id: 'home', label: 'Home', icon: Home },
-            { id: 'services', label: t.adminRequests, icon: LayoutGrid },
-            { id: 'billing', label: 'Billing Hub', icon: CreditCard },
-            { id: 'complaints', label: t.adminComplaints, icon: AlertTriangle },
-            { id: 'status', label: 'History', icon: FileCheck },
-            { id: 'ai', label: 'Sahayika AI', icon: HelpCircle },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as any);
-                setSubmissionStep('select');
-                resetBilling();
-              }}
-              className={`flex items-center gap-2 px-6 py-4 border-b-4 transition-all whitespace-nowrap font-black text-sm uppercase tracking-wider ${activeTab === tab.id ? 'border-blue-600 text-blue-600 bg-blue-50/50' : 'border-transparent text-gray-400 hover:text-gray-800'}`}
-            >
-              <tab.icon size={20} /> {tab.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-
-          {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
-          {activeTab === 'home' && (
-            <DashboardHome
-              alerts={MOCK_ALERTS}
-              onNavigate={(tab) => {
-                setActiveTab(tab as any);
-                if (tab === 'services') setSubmissionStep('select');
-                if (tab === 'billing') setBillingStep('select');
-              }}
-            />
-          )}
-
-          {/* VIEW 2: SERVICES (Feature 2, 3, 4, 7) */}
-          {activeTab === 'services' && (
-            <div className="max-w-6xl mx-auto h-full">
-              {submissionStep === 'select' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-10">
-                  {DEPARTMENTS.map((dept) => (
+        {/* VIEW 2: SERVICES (Feature 2, 3, 4, 7) */}
+        {activeTab === 'services' && (
+          <div className="max-w-6xl mx-auto h-full">
+            {submissionStep === 'select' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-10">
+                {DEPARTMENTS.map((dept) => {
+                  let deptName = dept.name;
+                  if (dept.id === 'eb') deptName = t.deptEB || dept.name;
+                  else if (dept.id === 'water') deptName = t.deptWater || dept.name;
+                  else if (dept.id === 'gas') deptName = t.deptGas || dept.name;
+                  else if (dept.id === 'municipal') deptName = t.deptMunicipal || dept.name;
+                  return (
                     <div key={dept.id} className="bg-white p-6 rounded-3xl shadow-sm border hover:border-blue-500 transition-all group">
                       <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
                           <FileText size={20} />
                         </div>
-                        {dept.name}
+                        {deptName}
                       </h3>
                       <div className="space-y-3">
                         {dept.services.map((svc) => (
@@ -258,79 +349,87 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                         ))}
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Feature 2: Hybrid Flow Selection */}
+            {submissionStep === 'flow_choice' && selectedService && (
+              <ServiceModeSelector
+                serviceName={selectedService}
+                onSelect={(mode) => {
+                  setServiceMode(mode);
+                  setSubmissionStep('form');
+                }}
+                onBack={() => setSubmissionStep('select')}
+                language={language}
+              />
+            )}
+
+            {/* Feature 4 & 7: Smart Wizard & Document Assistance */}
+            {submissionStep === 'form' && selectedService && (
+              <ServiceFormWizard
+                serviceName={selectedService}
+                mode={serviceMode}
+                onCancel={() => setSubmissionStep('flow_choice')}
+                onSubmit={handleServiceSubmit}
+                language={language}
+              />
+            )}
+
+            {/* Feature 3: QR Handoff */}
+            {submissionStep === 'success' && selectedService && (
+              <ServiceSuccess
+                serviceName={selectedService}
+                token={`TKT-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`}
+                mobile="98765 43210" // In a real app, this comes from state
+                onFinish={finishSubmission}
+                language={language}
+              />
+            )}
+          </div>
+        )}
+
+        {/* VIEW 3: BILLING */}
+        {activeTab === 'billing' && (
+          <div className="max-w-4xl mx-auto">
+            {billingStep === 'select' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <div className="text-center">
+                  <h2 className="text-4xl font-black text-slate-900 mb-3">{t.navPayBills || "Pay Bills"}</h2>
+                  <p className="text-slate-500 text-lg">{t.oneTap || "One-tap utility payments for a smarter life."}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    { id: 'elec', name: t.power || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t.consumerLabel || 'Consumer Number', providerLabel: t.deptEB || 'Electricity Board / DISCOM' },
+                    { id: 'water', name: t.water || 'Water', icon: Droplets, color: 'blue', consumerLabel: t.connectionId || 'Connection ID', providerLabel: t.deptMunicipal || 'Municipality / Corp' },
+                    { id: 'gas', name: t.gas || 'Gas', icon: Flame, color: 'orange', consumerLabel: t.customerId || 'Customer ID', providerLabel: t.deptGas || 'Gas Provider / PNG' }
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setSelectedBillService(item as any);
+                        setBillingStep('form');
+                      }}
+                      className="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-blue-400 transition-all flex flex-col items-center group relative overflow-hidden"
+                    >
+                      <div className={`w-24 h-24 bg-${item.color}-50 text-${item.color}-600 rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition duration-500`}>
+                        <item.icon size={48} />
+                      </div>
+                      <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
+                      <p className="text-[10px] text-slate-400 mt-3 font-black uppercase tracking-[0.2em]">Select Service</p>
+                    </button>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Feature 2: Hybrid Flow Selection */}
-              {submissionStep === 'flow_choice' && selectedService && (
-                <ServiceModeSelector
-                  serviceName={selectedService}
-                  onSelect={(mode) => {
-                    setServiceMode(mode);
-                    setSubmissionStep('form');
-                  }}
-                  onBack={() => setSubmissionStep('select')}
-                />
-              )}
-
-              {/* Feature 4 & 7: Smart Wizard & Document Assistance */}
-              {submissionStep === 'form' && selectedService && (
-                <ServiceFormWizard
-                  serviceName={selectedService}
-                  mode={serviceMode}
-                  onCancel={() => setSubmissionStep('flow_choice')}
-                  onSubmit={handleServiceSubmit}
-                />
-              )}
-
-              {/* Feature 3: QR Handoff */}
-              {submissionStep === 'success' && selectedService && (
-                <ServiceSuccess
-                  serviceName={selectedService}
-                  token={`TKT-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`}
-                  mobile="98765 43210" // In a real app, this comes from state
-                  onFinish={finishSubmission}
-                />
-              )}
-            </div>
-          )}
-
-          {/* VIEW 3: BILLING (Unchanged mostly, just accessible classes check) */}
-          {activeTab === 'billing' && (
-            <div className="max-w-4xl mx-auto">
-              {billingStep === 'select' && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-                  <div className="text-center">
-                    <h2 className="text-4xl font-black text-slate-900 mb-3">Pay Bills</h2>
-                    <p className="text-slate-500 text-lg">One-tap utility payments for a smarter life.</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {[
-                      { id: 'elec', name: 'Electricity', icon: Zap, color: 'amber', consumerLabel: 'Consumer Number', providerLabel: 'Electricity Board / DISCOM' },
-                      { id: 'water', name: 'Water', icon: Droplets, color: 'blue', consumerLabel: 'Connection ID', providerLabel: 'Municipality / Corp' },
-                      { id: 'gas', name: 'Gas', icon: Flame, color: 'orange', consumerLabel: 'Customer ID', providerLabel: 'Gas Provider / PNG' }
-                    ].map((item) => (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setSelectedBillService(item as any);
-                          setBillingStep('form');
-                        }}
-                        className="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-blue-400 transition-all flex flex-col items-center group relative overflow-hidden"
-                      >
-                        <div className={`w-24 h-24 bg-${item.color}-50 text-${item.color}-600 rounded-[2rem] flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition duration-500`}>
-                          <item.icon size={48} />
-                        </div>
-                        <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
-                        <p className="text-[10px] text-slate-400 mt-3 font-black uppercase tracking-[0.2em]">Select Service</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {billingStep === 'form' && selectedBillService && (
+            {billingStep === 'form' && selectedBillService && (
+              // If Electricity, use Module, else generic form
+              selectedBillService.id === 'elec' ? (
+                <ElectricityModule onBack={resetBilling} language={language} />
+              ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
                   <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-10 hover:text-blue-600 transition">
                     <ArrowLeft size={16} /> Change Utility
@@ -368,6 +467,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       </label>
                       <div className="relative group">
                         <input
+                          inputMode="numeric"
                           type="text"
                           maxLength={10}
                           value={mobileNumber}
@@ -388,176 +488,256 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     </button>
                   </div>
                 </div>
-              )}
+              )
+            )}
 
-              {billingStep === 'details' && selectedBillService && (
-                <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden max-w-2xl mx-auto animate-in slide-in-from-bottom-12">
-                  <div className="bg-slate-900 p-10 text-white">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-4">Official Bill Preview</p>
-                    <div className="flex justify-between items-end">
-                      <div>
-                        <h2 className={`text-6xl font-black mb-2 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>₹1,452.00</h2>
-                        <div className="flex items-center gap-2 text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                          <AlertCircle size={14} className="text-orange-400" /> Due Date: 25 May, 2024
+            {billingStep === 'details' && selectedBillService && (
+              <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden max-w-2xl mx-auto animate-in slide-in-from-bottom-12">
+                <div className="bg-slate-900 p-10 text-white">
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-4">Official Bill Preview</p>
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <h2 className={`text-6xl font-black mb-2 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>
+                        {fetchedBill ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount) : '--'}
+                      </h2>
+                      <div className="flex items-center gap-2 text-slate-300 font-bold uppercase tracking-widest text-[10px]">
+                        <AlertCircle size={14} className="text-orange-400" /> Due Date: {fetchedBill ? fetchedBill.dueDate : '--'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-10 space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Consumer Name</p>
+                      <p className={`font-black text-xl text-slate-900 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>Arun Kumar</p>
+                      <p className="text-xs text-slate-500 font-bold mt-1">ID: {consumerNumber}</p>
+                    </div>
+                    <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{selectedBillService.providerLabel}</p>
+                      <p className="font-black text-xl text-slate-900">
+                        {selectedBillService.id === 'elec' ? 'TANGEDCO (DISCOM)' : 'Coimbatore Corp'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-8">
+                    <div className="flex justify-between items-center text-2xl font-black text-slate-900">
+                      <span>TOTAL PAYABLE</span>
+                      <span className={isPrivacyShield ? 'privacy-sensitive' : ''}>
+                        {fetchedBill ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount) : '--'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-6 pt-4">
+                    <button onClick={() => setBillingStep('form')} className="flex-1 bg-slate-100 text-slate-500 p-6 rounded-2xl font-black transition">Edit</button>
+                    <button
+                      onClick={handlePayBill}
+                      className="flex-[2] bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-2xl shadow-blue-100"
+                    >
+                      Confirm & Pay
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {billingStep === 'success' && (
+              <div className="max-w-xl mx-auto text-center py-10">
+                <div className="bg-white p-12 rounded-[4rem] shadow-2xl border border-slate-100">
+                  <div className="w-24 h-24 bg-green-50 text-green-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
+                    <CheckCircle size={56} />
+                  </div>
+                  <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Payment Success!</h2>
+                  <div className="bg-slate-50 p-8 rounded-[2.5rem] text-left space-y-5 mb-10 mt-10">
+                    <div className="flex justify-between items-center border-b pb-4">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Utility</span>
+                      <span className="text-slate-900 font-black">{selectedBillService?.name}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 uppercase">Amount</span>
+                      <span className="text-blue-600 font-black text-xl">₹1,452.00</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={handlePrintReceipt}
+                      className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
+                    >
+                      <Printer size={20} /> Print Receipt
+                    </button>
+                    <button onClick={resetBilling} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">Return Home</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 4: AI & ASSISTANT (Updated) */}
+        {activeTab === 'ai' && (
+          <div className="max-w-4xl mx-auto h-full flex flex-col bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-10">
+            <div className="bg-indigo-900 p-6 flex items-center justify-between gap-4 text-white relative overflow-hidden">
+              {/* Background Pattern */}
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Brain size={150} />
+              </div>
+
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center border-4 border-indigo-200 shadow-lg">
+                  <MessageSquare size={32} className="text-indigo-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-2xl tracking-tight">SUVIDHA AI</h3>
+                  <div className="flex items-center gap-2 opacity-80">
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    <p className="text-[10px] uppercase font-black tracking-[0.2em]">Online • Voice Enabled</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 relative z-10">
+                {/* Reset Chat */}
+                <button
+                  onClick={handleResetChat}
+                  className="flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border bg-indigo-800 text-indigo-300 border-indigo-700 hover:bg-white hover:text-indigo-900 hover:border-white"
+                >
+                  <RotateCcw size={18} />
+                  <span className="text-xs uppercase tracking-wider">New Chat</span>
+                </button>
+
+                {/* Voice Toggle */}
+                <button
+                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${isVoiceEnabled ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-800 text-indigo-300 border-indigo-700'}`}
+                >
+                  {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                  <span className="text-xs uppercase tracking-wider">{isVoiceEnabled ? 'Voice ON' : 'Voice OFF'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col p-6 overflow-hidden bg-slate-50">
+              <div className="flex-1 overflow-y-auto space-y-6 pr-4">
+                {chatHistory.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`
+                      max-w-[80%] p-6 rounded-3xl relative
+                      ${msg.sender === 'user'
+                        ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-200'
+                        : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-sm'}
+                    `}>
+                      <p className={`font-bold text-lg leading-relaxed whitespace-pre-line`}>{msg.text}</p>
+
+                      {/* NEW: Render Dynamic Numeric Menu if available */}
+                      {msg.menu && (
+                        <div className="mt-6 space-y-3">
+                          <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-2">{msg.menu.heading}</p>
+                          {msg.menu.options.map(opt => (
+                            <button
+                              key={opt.id}
+                              onClick={() => handleMenuOptionClick(opt.id, opt.label)}
+                              className={`w-full text-left bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 p-4 rounded-xl flex items-center justify-between transition group ${msg.sender === 'user' ? 'bg-blue-700 border-blue-500 text-white' : ''}`}
+                            >
+                              <span className="font-bold">{opt.label}</span>
+                              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-200 text-slate-600 text-sm font-black group-hover:bg-indigo-600 group-hover:text-white transition">{opt.id}</span>
+                            </button>
+                          ))}
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      )}
 
-                  <div className="p-10 space-y-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Consumer Name</p>
-                        <p className={`font-black text-xl text-slate-900 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>Arun Kumar</p>
-                        <p className="text-xs text-slate-500 font-bold mt-1">ID: {consumerNumber}</p>
-                      </div>
-                      <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{selectedBillService.providerLabel}</p>
-                        <p className="font-black text-xl text-slate-900">
-                          {selectedBillService.id === 'elec' ? 'TANGEDCO (DISCOM)' : 'Coimbatore Corp'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-100 pt-8">
-                      <div className="flex justify-between items-center text-2xl font-black text-slate-900">
-                        <span>TOTAL PAYABLE</span>
-                        <span className={isPrivacyShield ? 'privacy-sensitive' : ''}>₹1,452.00</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-6 pt-4">
-                      <button onClick={() => setBillingStep('form')} className="flex-1 bg-slate-100 text-slate-500 p-6 rounded-2xl font-black transition">Edit</button>
-                      <button
-                        onClick={handlePayBill}
-                        className="flex-[2] bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-2xl shadow-blue-100"
-                      >
-                        Confirm & Pay
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {billingStep === 'success' && (
-                <div className="max-w-xl mx-auto text-center py-10">
-                  <div className="bg-white p-12 rounded-[4rem] shadow-2xl border border-slate-100">
-                    <div className="w-24 h-24 bg-green-50 text-green-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
-                      <CheckCircle size={56} />
-                    </div>
-                    <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Payment Success!</h2>
-                    <div className="bg-slate-50 p-8 rounded-[2.5rem] text-left space-y-5 mb-10 mt-10">
-                      <div className="flex justify-between items-center border-b pb-4">
-                        <span className="text-[10px] font-black text-slate-400 uppercase">Utility</span>
-                        <span className="text-slate-900 font-black">{selectedBillService?.name}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black text-slate-400 uppercase">Amount</span>
-                        <span className="text-blue-600 font-black text-xl">₹1,452.00</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-4">
-                      <button
-                        onClick={handlePrintReceipt}
-                        className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
-                      >
-                        <Printer size={20} /> Print Receipt
-                      </button>
-                      <button onClick={resetBilling} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">Return Home</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* VIEW 4: AI (Unchanged) */}
-          {activeTab === 'ai' && (
-            <div className="max-w-4xl mx-auto h-full flex flex-col bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-10">
-              <div className="bg-indigo-600 p-6 text-white flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center border border-white/30"><MessageSquare size={28} /></div>
-                  <div>
-                    <h3 className="font-black text-2xl tracking-tight">Smart Sahayika AI</h3>
-                    <p className="text-[10px] text-indigo-100 uppercase font-black tracking-[0.2em]">Guided Kiosk Assistant</p>
-                  </div>
-                </div>
-                <div className="flex bg-black/20 p-1.5 rounded-2xl border border-white/10">
-                  <button onClick={() => setAiSubTab('chat')} className={`px-6 py-3 rounded-xl text-xs font-black transition ${aiSubTab === 'chat' ? 'bg-white text-indigo-600' : 'text-white'}`}>GUIDE</button>
-                  <button onClick={() => setAiSubTab('imagine')} className={`px-6 py-3 rounded-xl text-xs font-black transition ${aiSubTab === 'imagine' ? 'bg-white text-indigo-600' : 'text-white'}`}>IMAGINE</button>
-                </div>
-              </div>
-              <div className="flex-1 flex flex-col p-10 overflow-hidden">
-                <div className="flex-1 overflow-y-auto mb-6">
-                  <div className="bg-indigo-50 p-8 rounded-[2rem] rounded-tl-none border border-indigo-100 text-indigo-900 max-w-[85%] self-start">
-                    <p className="font-black text-lg mb-2">Hello Arun, I'm your Smart Urban Assistant.</p>
-                    <p className="text-xs text-indigo-600 font-bold leading-relaxed">I can help you navigate {selectedService || 'City Services'}, explain bill charges, or find the right office ward for your query.</p>
-                  </div>
-                  {aiResponse && <div className="mt-8 bg-slate-50 p-8 rounded-[2rem] text-slate-800 self-start max-w-[95%] border border-slate-100 font-bold animate-in fade-in">{aiResponse}</div>}
-                </div>
-                <div className="flex gap-4">
-                  <input
-                    type="text"
-                    placeholder="Ask me anything about Coimbatore Smart City..."
-                    className="flex-1 bg-slate-50 border-2 border-slate-100 p-6 rounded-2xl focus:border-indigo-500 outline-none text-lg font-bold"
-                    value={aiQuery}
-                    onChange={(e) => setAiQuery(e.target.value)}
-                  />
-                  <button onClick={handleAiSearch} className="bg-indigo-600 text-white p-6 rounded-2xl hover:bg-indigo-700 transition"><Send size={24} /></button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* VIEW 5: STATUS/HISTORY (Unchanged) */}
-          {activeTab === 'status' && (
-            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
-              <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> Interaction History</h2>
-              <div className="grid gap-4">
-                {MOCK_REQUESTS.map((req) => (
-                  <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
-                    <div className="flex gap-6 items-start">
-                      <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
-                        <h4 className="font-black text-slate-900 text-xl">{req.type}</h4>
-                        <p className="text-sm text-slate-500 font-medium">{req.department} • {req.timestamp}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${req.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{req.status}</span>
-                      <button className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition"><Download size={20} /></button>
+                      {/* Bot Actions - Replay Voice */}
+                      {msg.sender === 'bot' && msg.voiceText && isVoiceEnabled && (
+                        <button onClick={() => speakText(msg.voiceText!)} className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit hover:bg-indigo-100 transition">
+                          <PlayCircle size={14} /> Replay
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
+
+                {isAiLoading && (
+                  <div className="flex justify-start animate-pulse">
+                    <div className="bg-white p-6 rounded-3xl rounded-tl-none border border-slate-200 shadow-sm flex gap-2 items-center">
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-75"></span>
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-150"></span>
+                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></span>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Input Area */}
+              <div className="mt-4 flex gap-3 bg-white p-3 rounded-[2rem] shadow-xl border border-slate-100">
+                <button
+                  onClick={handleVoiceInput}
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center transition border ${isListening ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`}
+                >
+                  {isListening ? <MicOff size={24} /> : <Mic size={24} />}
+                </button>
+                <input
+                  type="text"
+                  placeholder="Type a number or select below..."
+                  className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-slate-800 placeholder:text-slate-300 px-2"
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                />
+                <button
+                  onClick={() => handleAiSearch()}
+                  disabled={!aiQuery.trim() || isAiLoading}
+                  className="w-16 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:shadow-none"
+                >
+                  <Send size={24} />
+                </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
-          {activeTab === 'complaints' && (
-            <div className="flex items-center justify-center h-full text-slate-400 font-black text-xl uppercase tracking-widest">
-              Complaints Module Loading...
+        {/* VIEW 5: STATUS/HISTORY (Unchanged) */}
+        {activeTab === 'status' && (
+          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
+            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> Interaction History</h2>
+            <div className="grid gap-4">
+              {GrievanceService.getUserRequests(MOCK_USER_PROFILE.id).map((req) => (
+                <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
+                  <div className="flex gap-6 items-start">
+                    <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
+                    <div>
+                      <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
+                      <h4 className="font-black text-slate-900 text-xl">{req.type}</h4>
+                      <p className="text-sm text-slate-500 font-medium">{req.department} • {req.timestamp}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${req.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{req.status}</span>
+                    <button className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition"><Download size={20} /></button>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-        </main>
+        {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
+        {activeTab === 'complaints' && (
+          <div className="h-full">
+            <ComplaintsModule
+              onBack={() => setActiveTab('home')}
+              language={language}
+            />
+          </div>
+        )}
 
-        {/* Footer Branding */}
-        <footer className="bg-white border-t p-5 flex justify-between items-center text-[10px] text-slate-400 shrink-0 uppercase tracking-[0.3em] font-black">
-          <div className="flex items-center gap-2"><ShieldCheck size={14} className="text-green-500" /> Data Purge Policy: Every 10 mins</div>
-          <p>Managed by Coimbatore Smart City Infrastructure Dept</p>
-        </footer>
-
-        <style>{`
-        @keyframes marquee { 0% { transform: translateX(-100%); } 100% { transform: translateX(100vw); } }
-        .animate-marquee { display: flex; animation: marquee 30s linear infinite; }
-        .animate-marquee:hover { animation-play-state: paused; }
-      `}</style>
       </div>
       <PaymentReceipt data={receiptDetails} />
-    </>
+    </KioskShell >
   );
 };
 

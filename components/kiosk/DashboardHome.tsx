@@ -1,42 +1,60 @@
 import React from 'react';
-import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone } from 'lucide-react';
+import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, MapPin } from 'lucide-react';
 import AlertsPanel from './AlertsPanel';
 import ConsumptionAnalytics from './ConsumptionAnalytics';
 import DisruptionMap from './DisruptionMap';
-import { CityAlert } from '../../types';
+import { CityAlert, Language } from '../../types';
+import { LocalityService } from '../../services/civicService';
+import { MOCK_USER_PROFILE, TRANSLATIONS } from '../../constants';
 
 interface Props {
     alerts: CityAlert[];
     onNavigate: (tab: string) => void;
     userName?: string;
+    language: Language;
 }
 
-const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citizen" }) => {
+const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citizen", language }) => {
+    const wardContacts = LocalityService.getSupportContacts(MOCK_USER_PROFILE.ward);
+    const t = TRANSLATIONS[language];
+
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-10">
             {/* Greeting Section */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">Namaste, <span className="privacy-sensitive">{userName}</span></h2>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t.namaste}, <span className="privacy-sensitive">{userName}</span></h2>
                     <div className="flex gap-2">
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                            <Smartphone size={12} /> e-KYC Verified
+                            <Smartphone size={12} /> {t.eKycVerified}
                         </span>
                         <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                            <User size={12} /> Aadhaar: •••• 9821
+                            <User size={12} /> {t.aadhaar}: •••• 9821
+                        </span>
+                        <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
+                            <MapPin size={12} /> {t.ward} {MOCK_USER_PROFILE.ward}
                         </span>
                     </div>
                 </div>
-                <div className="bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">System Online</span>
-                </div>
+
+                {/* Ward Support Widget */}
+                {wardContacts.length > 0 && (
+                    <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t.wardsupport}</p>
+                            <p className="font-bold text-slate-900">{wardContacts[0].phone}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center animate-pulse">
+                            <Phone size={20} />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Top Row: Alerts and Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 h-full">
-                    <AlertsPanel alerts={alerts} />
+                    <AlertsPanel alerts={alerts} language={language} />
                 </div>
 
                 <div className="lg:col-span-2 grid grid-cols-2 gap-4">
@@ -52,10 +70,10 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 <LayoutGrid size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black mb-1">New Request</h3>
-                                <p className="opacity-80 text-xs font-medium mb-4">Connections, Certificates & Civic Services</p>
+                                <h3 className="text-2xl font-black mb-1">{t.newRequest}</h3>
+                                <p className="opacity-80 text-xs font-medium mb-4">{t.newRequestDesc}</p>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 w-fit px-3 py-2 rounded-lg">
-                                    Start <ArrowRight size={12} />
+                                    {t.start} <ArrowRight size={12} />
                                 </div>
                             </div>
                         </div>
@@ -73,10 +91,10 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 <CreditCard size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black mb-1">Pay Bills</h3>
-                                <p className="text-slate-500 text-xs font-medium mb-4">Water, Elec, Gas & Property Tax</p>
+                                <h3 className="text-2xl font-black mb-1">{t.payBills}</h3>
+                                <p className="text-slate-500 text-xs font-medium mb-4">{t.payBillsDesc}</p>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-3 py-2 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition">
-                                    Pay <ArrowRight size={12} />
+                                    {t.pay} <ArrowRight size={12} />
                                 </div>
                             </div>
                         </div>
@@ -86,8 +104,8 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
 
             {/* Middle Row: Advanced Visuals (Analytics & Map) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ConsumptionAnalytics />
-                <DisruptionMap alerts={alerts} />
+                <ConsumptionAnalytics language={language} />
+                <DisruptionMap alerts={alerts} language={language} />
             </div>
 
             {/* Bottom Row: Zero-Document / DigiLocker Showcase */}
@@ -98,12 +116,12 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             <FileText size={32} />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-indigo-900">Zero-Document Vault</h3>
-                            <p className="text-indigo-600 font-bold text-sm">DigiLocker Linked • 3 Verified Documents Ready</p>
+                            <h3 className="text-2xl font-black text-indigo-900">{t.zeroDocVault}</h3>
+                            <p className="text-indigo-600 font-bold text-sm">{t.docVaultDesc}</p>
                         </div>
                     </div>
                     <button className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition">
-                        View Documents
+                        {t.viewDocs}
                     </button>
                 </div>
 

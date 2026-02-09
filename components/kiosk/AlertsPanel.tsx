@@ -1,20 +1,24 @@
 import React from 'react';
 import { AlertCircle, Zap, Droplets, Info } from 'lucide-react';
-import { CityAlert } from '../../types';
+import { CityAlert, Language } from '../../types';
+import { TRANSLATIONS } from '../../constants';
 
 interface Props {
     alerts: CityAlert[];
+    language?: Language;
 }
 
-const AlertsPanel: React.FC<Props> = ({ alerts }) => {
+const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
+    const t = TRANSLATIONS[language];
+
     return (
         <div className="bg-slate-900 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl">
             <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
                 <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <AlertCircle className="text-red-500 animate-pulse" size={16} />
-                    Local Alerts
+                    {t.localAlerts || "Local Alerts"}
                 </h3>
-                <span className="text-[10px] bg-red-600 px-2 py-0.5 rounded text-white font-bold animate-pulse">LIVE</span>
+                <span className="text-[10px] bg-red-600 px-2 py-0.5 rounded text-white font-bold animate-pulse">{t.live || "LIVE"}</span>
             </div>
 
             <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -33,7 +37,7 @@ const AlertsPanel: React.FC<Props> = ({ alerts }) => {
                                 <span className={`text-[10px] font-black uppercase tracking-wider ${alert.severity === 'Critical' ? 'text-red-400' :
                                     alert.severity === 'Warning' ? 'text-amber-400' : 'text-blue-200'
                                     }`}>
-                                    {alert.severity} • {alert.ward === 'Global' ? 'City Wide' : `Ward ${alert.ward}`}
+                                    {alert.severity} • {alert.ward === 'Global' ? (t.cityWide || 'City Wide') : `${t.ward || 'Ward'} ${alert.ward}`}
                                 </span>
                             </div>
                             <p className="text-xs font-bold leading-relaxed opacity-90">{alert.message}</p>

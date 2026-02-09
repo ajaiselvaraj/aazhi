@@ -57,7 +57,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               <p className="text-xs font-bold">{t.statusActive}</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={onBack}
             className="w-full flex items-center justify-center gap-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white p-4 rounded-2xl font-bold transition-all"
           >
@@ -73,18 +73,18 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
           <div className="flex items-center gap-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 capitalize">
-                {activeSubTab === 'overview' ? t.adminDashboard : 
-                 activeSubTab === 'requests' ? t.adminRequests : t.adminComplaints}
+                {activeSubTab === 'overview' ? t.adminDashboard :
+                  activeSubTab === 'requests' ? t.adminRequests : t.adminComplaints}
               </h2>
               <p className="text-sm text-gray-500">{t.welcomeBack}, Admin ID: 963852</p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-6">
             {/* Language Switcher */}
             <div className="flex items-center gap-3 bg-gray-100 p-1.5 rounded-2xl border">
               <Globe size={16} className="text-gray-400 ml-2" />
-              <select 
+              <select
                 value={language}
                 onChange={(e) => onLanguageChange(e.target.value as Language)}
                 className="bg-transparent border-none text-xs font-bold outline-none cursor-pointer pr-4"
@@ -133,9 +133,9 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <Tooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                         <Bar dataKey="applications" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                         <Bar dataKey="resolved" fill="#10b981" radius={[6, 6, 0, 0]} />
                       </BarChart>
@@ -171,69 +171,69 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
 
           {activeSubTab === 'requests' && (
             <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-               <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-                  <h3 className="font-bold">{t.activeApps}</h3>
-                  <div className="flex gap-2">
-                    <button className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl text-xs font-bold border hover:bg-gray-50">
-                      <Filter size={14} /> Filter
-                    </button>
-                    <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-100">
-                      Bulk Export
-                    </button>
-                  </div>
-               </div>
-               <div className="divide-y overflow-x-auto">
-                 <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
-                       <tr>
-                          <th className="px-8 py-4">Ref ID</th>
-                          <th className="px-8 py-4">Citizen</th>
-                          <th className="px-8 py-4">Service Type</th>
-                          <th className="px-8 py-4">Status</th>
-                          <th className="px-8 py-4 text-right">Actions</th>
-                       </tr>
-                    </thead>
-                    <tbody className="divide-y text-sm">
-                       {MOCK_REQUESTS.map((req) => (
-                          <tr key={req.id} className="hover:bg-blue-50/30 transition">
-                             <td className="px-8 py-6 font-bold text-blue-600">{req.id}</td>
-                             <td className="px-8 py-6 font-bold text-gray-900">{req.citizenName}</td>
-                             <td className="px-8 py-6">{req.type}</td>
-                             <td className="px-8 py-6">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                   {req.status}
-                                </span>
-                             </td>
-                             <td className="px-8 py-6 text-right">
-                                <div className="flex gap-2 justify-end">
-                                   <button className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-blue-600" title="View Documents"><Eye size={18} /></button>
-                                   <button className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-green-600" title="Approve"><UserCheck size={18} /></button>
-                                </div>
-                             </td>
-                          </tr>
-                       ))}
-                    </tbody>
-                 </table>
-               </div>
+              <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+                <h3 className="font-bold">{t.activeApps}</h3>
+                <div className="flex gap-2">
+                  <button className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl text-xs font-bold border hover:bg-gray-50">
+                    <Filter size={14} /> Filter
+                  </button>
+                  <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-100">
+                    Bulk Export
+                  </button>
+                </div>
+              </div>
+              <div className="divide-y overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
+                    <tr>
+                      <th className="px-8 py-4">Ref ID</th>
+                      <th className="px-8 py-4">Citizen</th>
+                      <th className="px-8 py-4">Service Type</th>
+                      <th className="px-8 py-4">Status</th>
+                      <th className="px-8 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-sm">
+                    {MOCK_REQUESTS.map((req) => (
+                      <tr key={req.id} className="hover:bg-blue-50/30 transition">
+                        <td className="px-8 py-6 font-bold text-blue-600">{req.id}</td>
+                        <td className="px-8 py-6 font-bold text-gray-900">{req.citizenName}</td>
+                        <td className="px-8 py-6">{req.type}</td>
+                        <td className="px-8 py-6">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="px-8 py-6 text-right">
+                          <div className="flex gap-2 justify-end">
+                            <button className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-blue-600" title="View Documents"><Eye size={18} /></button>
+                            <button className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-green-600" title="Approve"><UserCheck size={18} /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {activeSubTab === 'complaints' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               {[1, 2, 3].map((i) => (
-                 <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border-l-8 border-red-500">
-                    <div className="flex justify-between items-start mb-4">
-                       <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">High Priority</span>
-                       <p className="text-xs text-gray-400">Received: 2h ago</p>
-                    </div>
-                    <h4 className="text-xl font-bold mb-2">Illegal Water Tapping Reported</h4>
-                    <p className="text-gray-500 text-sm mb-6">Citizen reported multiple illegal connections in Ward 12. Significant pressure loss for legitimate users.</p>
-                    <div className="flex gap-4 border-t pt-6">
-                       <button className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold text-xs hover:bg-red-700">Dispatch Team</button>
-                       <button className="flex-1 bg-gray-100 p-3 rounded-xl font-bold text-xs hover:bg-gray-200">View Map Location</button>
-                    </div>
-                 </div>
-               ))}
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border-l-8 border-red-500">
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">High Priority</span>
+                    <p className="text-xs text-gray-400">Received: 2h ago</p>
+                  </div>
+                  <h4 className="text-xl font-bold mb-2">Illegal Water Tapping Reported</h4>
+                  <p className="text-gray-500 text-sm mb-6">Citizen reported multiple illegal connections in Ward 12. Significant pressure loss for legitimate users.</p>
+                  <div className="flex gap-4 border-t pt-6">
+                    <button className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold text-xs hover:bg-red-700">Dispatch Team</button>
+                    <button className="flex-1 bg-gray-100 p-3 rounded-xl font-bold text-xs hover:bg-gray-200">View Map Location</button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
