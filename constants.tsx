@@ -8,13 +8,13 @@ export const DEPARTMENTS: Department[] = [
     id: 'eb',
     name: 'Electricity Board',
     icon: 'Zap',
-    services: ['New Connection', 'Billing Issue', 'Meter Fault', 'Load Change', 'Other']
+    services: ['New Connection', 'Billing Issue', 'Meter Fault', 'Load Change', 'Address Change', 'Other']
   },
   {
     id: 'water',
     name: 'Water Supply & Sewage',
     icon: 'Droplets',
-    services: ['Water Connection', 'Sewage Block', 'Pipeline Leak', 'Bill Payment', 'Other']
+    services: ['Water Connection', 'Sewage Block', 'Pipeline Leak', 'Address Change', 'Other']
   },
   {
     id: 'gas',
@@ -23,10 +23,16 @@ export const DEPARTMENTS: Department[] = [
     services: ['New Connection', 'Refill Booking', 'Leakage Complaint', 'Address Change', 'Other']
   },
   {
+    id: 'waste',
+    name: 'Waste Management',
+    icon: 'Trash2',
+    services: ['Garbage Collection / Pickup Request', 'Complaint Registration', 'Recycling Information', 'Address Change']
+  },
+  {
     id: 'municipal',
     name: 'Municipal Corp',
-    icon: 'Trash2',
-    services: ['Waste Management', 'Birth/Death Cert', 'Property Tax', 'Street Light', 'Other']
+    icon: 'LayoutGrid',
+    services: ['Birth/Death Cert', 'Property Tax', 'Street Light', 'Address Change', 'Other']
   }
 ];
 
@@ -350,6 +356,9 @@ const BASE_TRANSLATIONS = {
   serv_RefillBooking: "Refill Booking",
   serv_LeakageComplaint: "Leakage Complaint",
   serv_AddressChange: "Address Change",
+  serv_GarbageCollectionPickupRequest: "Garbage Collection / Pickup Request",
+  serv_ComplaintRegistration: "Complaint Registration",
+  serv_RecyclingInformation: "Recycling Information",
   serv_WasteManagement: "Waste Management",
   serv_BirthDeathCert: "Birth/Death Cert",
   serv_PropertyTax: "Property Tax",
@@ -668,6 +677,9 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     serv_RefillBooking: "சிலிண்டர் பதிவு",
     serv_LeakageComplaint: "கசிவு புகார்",
     serv_AddressChange: "முகவரி மாற்றம்",
+    serv_GarbageCollectionPickupRequest: "குப்பை சேகரிப்பு / எடுப்பு கோரிக்கை",
+    serv_ComplaintRegistration: "புகார் பதிவு",
+    serv_RecyclingInformation: "மறுசுழற்சி தகவல்",
     serv_WasteManagement: "கழிவு மேலாண்மை",
     serv_BirthDeathCert: "பிறப்பு/இறப்பு சான்று",
     serv_PropertyTax: "சொத்து வரி",
@@ -958,6 +970,9 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     serv_RefillBooking: "रिफिल बुकिंग",
     serv_LeakageComplaint: "रिसाव शिकायत",
     serv_AddressChange: "पता परिवर्तन",
+    serv_GarbageCollectionPickupRequest: "कचरा संग्रह / उठाने का अनुरोध",
+    serv_ComplaintRegistration: "शिकायत पंजीकरण",
+    serv_RecyclingInformation: "पुनर्चक्रण जानकारी",
     serv_WasteManagement: "अपशिष्ट प्रबंधन",
     serv_BirthDeathCert: "जन्म/मृत्यु प्रमाण पत्र",
     serv_PropertyTax: "संपत्ति कर",
@@ -978,19 +993,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     issue_StreetLightNotWorking: "सड़क की बत्ती काम नहीं कर रही",
     issue_DeadAnimalRemoval: "मृत पशु हटाना",
     issue_PropertyTaxIssue: "संपत्ति कर समस्या",
-    // UI Actions
-    reportIssue: "शिकायत दर्ज करें",
-    nextStep: "अगला चरण",
-    // Wizard Strings
-    appWizard: "आवेदन विज़ार्ड",
-    modeSelf: "स्वयं सेवा",
-    modeCounter: "काउंटर सहायता",
-    ward: "वार्ड",
-    promptDetails: "कृपया अपनी व्यक्तिगत जानकारी की पुष्टि करें।",
-    promptScan: "हमें आपकी पहचान सत्यापित करनी है। कृपया अपना आधार स्कैन करें।",
-    promptIssue: "वैकल्पिक: समस्या की फोटो अपलोड करें।",
-    promptReview: "सबमिट करने से पहले विवरण की समीक्षा करें।",
-    applicantName: "आवेदक का नाम",
     // Alerts
     cityAlert: "सिटी अलर्ट",
     "alert_AL-01": "वार्ड 12 में दोपहर 2 बजे से शाम 5 बजे तक नियोजित रखरखाव।",

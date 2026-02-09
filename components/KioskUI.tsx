@@ -4,7 +4,7 @@ import {
   ArrowRight, Settings, Upload, FileText, Download, CheckCircle, AlertTriangle,
   Brain, Image as ImageIcon, Sparkles, Maximize2, CreditCard, Zap, Droplets,
   Flame, Receipt, ArrowLeft, Smartphone, Info, History, AlertCircle, ShieldCheck,
-  RefreshCw, Users, QrCode, ClipboardCheck, Home, Volume2, VolumeX, Type, Printer, Mic, MicOff, PlayCircle, RotateCcw
+  RefreshCw, Users, QrCode, ClipboardCheck, Home, Volume2, VolumeX, Type, Printer, Mic, MicOff, PlayCircle, RotateCcw, Trash2
 } from 'lucide-react';
 import { ViewState, Language, ServiceRequest } from '../types';
 import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, TRANSLATIONS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
@@ -13,8 +13,7 @@ import { BillingService, GrievanceService } from '../services/civicService';
 
 // New Components
 import DashboardHome from './kiosk/DashboardHome';
-import ServiceModeSelector from './kiosk/ServiceModeSelector';
-import ServiceFormWizard from './kiosk/ServiceFormWizard';
+import ServiceForm from './kiosk/ServiceForm';
 import ServiceSuccess from './kiosk/ServiceSuccess';
 import PaymentReceipt from './kiosk/PaymentReceipt';
 import KioskShell from './KioskShell';
@@ -70,9 +69,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [receiptDetails, setReceiptDetails] = useState<any>(null);
 
   // New Service Flow State
-  const [submissionStep, setSubmissionStep] = useState<'select' | 'flow_choice' | 'form' | 'success'>('select');
+  const [submissionStep, setSubmissionStep] = useState<'select' | 'form' | 'success'>('select');
   const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [serviceMode, setServiceMode] = useState<'SELF' | 'COUNTER'>('SELF');
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [fetchedBill, setFetchedBill] = useState<any>(null);
 
   const ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
@@ -220,9 +219,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     } finally { setIsImageLoading(false); }
   };
 
-  const handleServiceSelect = (svc: string) => {
+  const handleServiceSelect = (svc: string, deptId: string) => {
     setSelectedService(svc);
-    setSubmissionStep('flow_choice');
+    setSelectedDepartment(deptId);
+    setSubmissionStep('form');
   };
 
   const handleServiceSubmit = (data: any) => {
@@ -320,67 +320,111 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW 2: SERVICES (Feature 2, 3, 4, 7) */}
         {activeTab === 'services' && (
-          <div className="max-w-6xl mx-auto h-full">
+          <div className="max-w-7xl mx-auto h-full px-4 py-6">
             {submissionStep === 'select' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-10">
-                {DEPARTMENTS.map((dept) => {
-                  const deptKey = `dept_${dept.id}` as keyof typeof t;
-                  const deptName = t[deptKey] || dept.name;
+              <div className="space-y-8 animate-in slide-in-from-bottom-10">
+                {/* Page Header */}
+                <div className="text-center mb-8">
+                  <h2 className="text-5xl font-black text-slate-900 mb-3 tracking-tight">
+                    {t.navServices || "Services"}
+                  </h2>
+                  <p className="text-xl text-slate-600 font-medium">
+                    Select a service category to get started
+                  </p>
+                </div>
 
-                  return (
-                    <div key={dept.id} className="bg-white p-6 rounded-3xl shadow-sm border hover:border-blue-500 transition-all group">
-                      <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition">
-                          <FileText size={20} />
+                {/* Service Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {DEPARTMENTS.map((dept) => {
+                    const deptKey = `dept_${dept.id}` as keyof typeof t;
+                    const deptName = t[deptKey] || dept.name;
+
+                    // Define color schemes for each department
+                    const colorSchemes: Record<string, { bg: string; border: string; icon: string; hover: string; text: string }> = {
+                      eb: { bg: 'bg-amber-50', border: 'border-amber-200', icon: 'text-amber-600', hover: 'hover:border-amber-500 hover:shadow-amber-200', text: 'text-amber-900' },
+                      water: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-600', hover: 'hover:border-blue-500 hover:shadow-blue-200', text: 'text-blue-900' },
+                      gas: { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'text-orange-600', hover: 'hover:border-orange-500 hover:shadow-orange-200', text: 'text-orange-900' },
+                      waste: { bg: 'bg-green-50', border: 'border-green-200', icon: 'text-green-600', hover: 'hover:border-green-500 hover:shadow-green-200', text: 'text-green-900' },
+                      municipal: { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'text-purple-600', hover: 'hover:border-purple-500 hover:shadow-purple-200', text: 'text-purple-900' }
+                    };
+
+                    const colors = colorSchemes[dept.id] || colorSchemes.municipal;
+
+                    // Map icons
+                    const IconComponent = dept.icon === 'Zap' ? Zap :
+                      dept.icon === 'Droplets' ? Droplets :
+                        dept.icon === 'Flame' ? Flame :
+                          dept.icon === 'Trash2' ? Trash2 :
+                            LayoutGrid;
+
+                    return (
+                      <div
+                        key={dept.id}
+                        className={`bg-white rounded-[2.5rem] border-2 ${colors.border} ${colors.hover} transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl group`}
+                      >
+                        {/* Department Header */}
+                        <div className={`${colors.bg} p-8 border-b-2 ${colors.border}`}>
+                          <div className="flex items-center gap-5">
+                            <div className={`w-20 h-20 rounded-[1.5rem] ${colors.bg} border-2 ${colors.border} flex items-center justify-center ${colors.icon} group-hover:scale-110 transition-transform duration-300 shadow-inner`}>
+                              <IconComponent size={40} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className={`text-2xl font-black ${colors.text} leading-tight tracking-tight`}>
+                                {deptName}
+                              </h3>
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
+                                {dept.services.length} Services Available
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        {deptName}
-                      </h3>
-                      <div className="space-y-3">
-                        {dept.services.map((svc) => {
-                          const svcKey = `serv_${svc.replace(/[\s\/]/g, '')}` as keyof typeof t;
-                          const svcName = t[svcKey] || svc;
-                          return (
-                            <button
-                              key={svc}
-                              onClick={() => handleServiceSelect(svc)}
-                              className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-700 text-xs font-black uppercase tracking-widest flex justify-between items-center transition"
-                            >
-                              {svcName} <ArrowRight size={14} />
-                            </button>
-                          );
-                        })}
+
+                        {/* Services List */}
+                        <div className="p-6 space-y-3">
+                          {dept.services.map((svc) => {
+                            const svcKey = `serv_${svc.replace(/[\s\/]/g, '')}` as keyof typeof t;
+                            const svcName = t[svcKey] || svc;
+                            return (
+                              <button
+                                key={svc}
+                                onClick={() => handleServiceSelect(svc, dept.id)}
+                                className={`w-full text-left px-6 py-5 rounded-2xl bg-slate-50 hover:bg-gradient-to-r ${colors.hover.includes('amber') ? 'hover:from-amber-500 hover:to-amber-600' : colors.hover.includes('blue') ? 'hover:from-blue-500 hover:to-blue-600' : colors.hover.includes('orange') ? 'hover:from-orange-500 hover:to-orange-600' : colors.hover.includes('green') ? 'hover:from-green-500 hover:to-green-600' : 'hover:from-purple-500 hover:to-purple-600'} hover:text-white text-slate-700 font-bold text-base flex justify-between items-center transition-all duration-200 border-2 border-transparent hover:border-white hover:shadow-lg group/btn`}
+                              >
+                                <span className="leading-snug">{svcName}</span>
+                                <ArrowRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+
+                {/* Help Text */}
+                <div className="text-center mt-12 p-6 bg-blue-50 rounded-3xl border-2 border-blue-100">
+                  <div className="flex items-center justify-center gap-3 text-blue-900">
+                    <Info size={24} className="text-blue-600" />
+                    <p className="text-lg font-bold">
+                      Need help? Our staff is available at the counter for assistance.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Feature 2: Hybrid Flow Selection */}
-            {submissionStep === 'flow_choice' && selectedService && (
-              <ServiceModeSelector
+            {/* Service Form */}
+            {submissionStep === 'form' && selectedService && selectedDepartment && (
+              <ServiceForm
                 serviceName={selectedService}
-                onSelect={(mode) => {
-                  setServiceMode(mode);
-                  setSubmissionStep('form');
-                }}
+                departmentId={selectedDepartment}
                 onBack={() => setSubmissionStep('select')}
-                language={language}
-              />
-            )}
-
-            {/* Feature 4 & 7: Smart Wizard & Document Assistance */}
-            {submissionStep === 'form' && selectedService && (
-              <ServiceFormWizard
-                serviceName={selectedService}
-                mode={serviceMode}
-                onCancel={() => setSubmissionStep('flow_choice')}
                 onSubmit={handleServiceSubmit}
                 language={language}
               />
             )}
 
-            {/* Feature 3: QR Handoff */}
+            {/* Success Screen - No longer needed as ServiceForm handles it internally */}
             {submissionStep === 'success' && selectedService && (
               <ServiceSuccess
                 serviceName={selectedService}
