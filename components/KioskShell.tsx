@@ -207,11 +207,14 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     <div className="absolute bottom-0 w-full bg-slate-900 text-white py-2 px-6 flex items-center justify-between text-xs font-bold z-50 print:hidden">
                         <div className="flex items-center gap-2 text-yellow-400 shrink-0">
                             <AlertTriangle size={14} />
-                            <span className="uppercase tracking-widest">City Alert</span>
+                            <span className="uppercase tracking-widest">{t.cityAlert || "City Alert"}</span>
                         </div>
                         <div className="flex-1 mx-4 overflow-hidden">
                             <div className="whitespace-nowrap animate-marquee">
-                                {alerts.map(a => a.message).join('  •  ')}
+                                {alerts.map(a => {
+                                    const alertKey = `alert_${a.id}` as keyof typeof t;
+                                    return t[alertKey] || a.message;
+                                }).join('  •  ')}
                             </div>
                         </div>
                     </div>

@@ -21,6 +21,8 @@ const ServiceFormWizard: React.FC<Props> = ({ serviceName, mode, onCancel, onSub
     const [scanComplete, setScanComplete] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
     const t = TRANSLATIONS[language];
+    const svcKey = `serv_${serviceName.replace(/[\s\/]/g, '')}` as keyof typeof t;
+    const translatedServiceName = t[svcKey] as string || serviceName;
 
     // Auto-detect Department
     const department = DEPARTMENTS.find(d => d.services.includes(serviceName));
@@ -76,7 +78,7 @@ const ServiceFormWizard: React.FC<Props> = ({ serviceName, mode, onCancel, onSub
                 </div>
                 <div>
                     <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{isIssue ? (t.reportIssue || 'Report Issue') : (t.appWizard || 'Application Wizard')}</h2>
-                    <p className="text-xs text-blue-600 font-black uppercase tracking-widest">{serviceName} • {mode === 'SELF' ? (t.modeSelf || 'Self Service') : (t.modeCounter || 'Counter Help')}</p>
+                    <p className="text-xs text-blue-600 font-black uppercase tracking-widest">{translatedServiceName} • {mode === 'SELF' ? (t.modeSelf || 'Self Service') : (t.modeCounter || 'Counter Help')}</p>
                 </div>
             </div>
 

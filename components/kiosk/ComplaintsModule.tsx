@@ -12,7 +12,7 @@ import {
     Mic,
     FileText
 } from 'lucide-react';
-import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
+import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS, TRANSLATIONS } from '../../constants';
 import { GrievanceService } from '../../services/civicService';
 import { Language } from '../../types';
 
@@ -22,6 +22,7 @@ interface ComplaintsModuleProps {
 }
 
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language }) => {
+    const t = TRANSLATIONS[language];
     const [step, setStep] = useState<'category' | 'details' | 'success'>('category');
     const [selectedDept, setSelectedDept] = useState<string>('');
     const [issueType, setIssueType] = useState<string>('');
@@ -68,7 +69,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                     <ArrowLeft size={24} />
                 </button>
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900">Register Complaint</h2>
+                    <h2 className="text-3xl font-black text-slate-900">{t.reportIssue || "Register Complaint"}</h2>
                     <p className="text-slate-500 font-medium">Report civic issues directly to your Ward Officer</p>
                 </div>
             </div>
@@ -85,30 +86,33 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto">
-                            {DEPARTMENTS.map(dept => (
-                                <button
-                                    key={dept.id}
-                                    onClick={() => setSelectedDept(dept.id)}
-                                    className={`p-6 rounded-2xl text-left border-2 transition-all flex items-start gap-4 group
+                            {DEPARTMENTS.map(dept => {
+                                const deptName = t[`dept_${dept.id}` as keyof typeof t] || dept.name;
+                                return (
+                                    <button
+                                        key={dept.id}
+                                        onClick={() => setSelectedDept(dept.id)}
+                                        className={`p-6 rounded-2xl text-left border-2 transition-all flex items-start gap-4 group
                                 ${selectedDept === dept.id
-                                            ? 'border-blue-600 bg-blue-50'
-                                            : 'border-slate-100 hover:border-blue-300 hover:bg-slate-50'}
+                                                ? 'border-blue-600 bg-blue-50'
+                                                : 'border-slate-100 hover:border-blue-300 hover:bg-slate-50'}
                             `}
-                                >
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors
+                                    >
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors
                                 ${selectedDept === dept.id ? 'bg-blue-600 text-white' : 'bg-white text-slate-400 group-hover:text-blue-600'}
                             `}>
-                                        <Building2 size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`font-black text-lg ${selectedDept === dept.id ? 'text-blue-900' : 'text-slate-800'}`}>
-                                            {dept.name}
-                                        </h4>
-                                        <p className="text-xs text-slate-500 mt-1 font-medium">{dept.services.length} Issue Types</p>
-                                    </div>
-                                    {selectedDept === dept.id && <CheckCircle className="ml-auto text-blue-600 animate-in zoom-in" />}
-                                </button>
-                            ))}
+                                            <Building2 size={24} />
+                                        </div>
+                                        <div>
+                                            <h4 className={`font-black text-lg ${selectedDept === dept.id ? 'text-blue-900' : 'text-slate-800'}`}>
+                                                {deptName}
+                                            </h4>
+                                            <p className="text-xs text-slate-500 mt-1 font-medium">{dept.services.length} Issue Types</p>
+                                        </div>
+                                        {selectedDept === dept.id && <CheckCircle className="ml-auto text-blue-600 animate-in zoom-in" />}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         <div className="mt-6 border-t pt-6 flex justify-end">
@@ -117,7 +121,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                                 onClick={() => setStep('details')}
                                 className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                Next Step <ArrowLeft className="rotate-180" size={20} />
+                                {t.nextStep || "Next Step"} <ArrowLeft className="rotate-180" size={20} />
                             </button>
                         </div>
                     </div>
@@ -136,19 +140,23 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                                 <div>
                                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Common Issues</label>
                                     <div className="grid grid-cols-1 gap-3">
-                                        {(PREDEFINED_ISSUES[selectedDept as keyof typeof PREDEFINED_ISSUES] || PREDEFINED_ISSUES['municipal']).map(issue => (
-                                            <button
-                                                key={issue}
-                                                onClick={() => setIssueType(issue)}
-                                                className={`p-4 rounded-xl text-left font-bold text-sm border-2 transition-all
+                                        {(PREDEFINED_ISSUES[selectedDept as keyof typeof PREDEFINED_ISSUES] || PREDEFINED_ISSUES['municipal']).map(issue => {
+                                            const issueKey = `issue_${issue.replace(/[\s\(\)]/g, '')}` as keyof typeof t;
+                                            const issueName = t[issueKey] || issue;
+                                            return (
+                                                <button
+                                                    key={issue}
+                                                    onClick={() => setIssueType(issue)}
+                                                    className={`p-4 rounded-xl text-left font-bold text-sm border-2 transition-all
                                             ${issueType === issue
-                                                        ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200'
-                                                        : 'border-slate-100 text-slate-600 hover:border-blue-200'}
+                                                            ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200'
+                                                            : 'border-slate-100 text-slate-600 hover:border-blue-200'}
                                         `}
-                                            >
-                                                {issue}
-                                            </button>
-                                        ))}
+                                                >
+                                                    {issueName}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

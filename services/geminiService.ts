@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { MOCK_USER_PROFILE, MOCK_BILLS, DEPARTMENTS, PREDEFINED_ISSUES, APP_CONFIG } from "../constants";
+import { MOCK_USER_PROFILE, MOCK_BILLS, DEPARTMENTS, PREDEFINED_ISSUES, APP_CONFIG, TRANSLATIONS } from "../constants";
+import { Language } from "../types";
 import { BillingService } from "./civicService";
 
 export interface AIResponse {
@@ -40,13 +41,14 @@ class SuvidhaIntelligence {
     session = { step: 'WELCOME', data: {} };
   }
 
-  static getResponse(query: string, voiceEnabled: boolean): AIResponse {
+  static getResponse(query: string, voiceEnabled: boolean, lang: string = Language.ENGLISH): AIResponse {
+    const t = TRANSLATIONS[lang as Language] || TRANSLATIONS[Language.ENGLISH];
     const q = query.toLowerCase().trim();
 
     // GLOBAL RESET
-    if (q === 'home' || q === 'reset' || q === 'cancel') {
+    if (q === 'home' || q === 'reset' || q === 'cancel' || q === 'start') {
       this.resetSession();
-      return this.renderWelcome(voiceEnabled);
+      return this.renderWelcome(voiceEnabled, t);
     }
 
     // STATE MACHINE
@@ -90,10 +92,10 @@ class SuvidhaIntelligence {
           }
         }
         // Default Welcome
-        return this.renderWelcome(voiceEnabled);
+        return this.renderWelcome(voiceEnabled, t);
 
       case 'BILL_TYPE':
-        if (q === '5') { this.resetSession(); return this.renderWelcome(voiceEnabled); }
+        if (q === '5') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
         if (['1', '2', '3', '4'].includes(q)) {
           session.data.billType = q === '1' ? 'Electricity' : q === '2' ? 'Water' : 'Gas';
           session.step = 'BILL_CONSUMER_ID';
@@ -125,7 +127,7 @@ class SuvidhaIntelligence {
         };
 
       case 'BILL_DETAILS':
-        if (q === '2') { this.resetSession(); return this.renderWelcome(voiceEnabled); }
+        if (q === '2') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
         if (q === '1') {
           session.step = 'PAYMENT_METHOD';
           return {
@@ -170,12 +172,12 @@ class SuvidhaIntelligence {
             }
           }
         }
-        if (q === '2') { this.resetSession(); return this.renderWelcome(voiceEnabled); }
+        if (q === '2') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
         return { text: "Waiting for confirmation...", voice: undefined };
 
       case 'PAYMENT_SUCCESS':
         this.resetSession();
-        return this.renderWelcome(voiceEnabled);
+        return this.renderWelcome(voiceEnabled, t);
 
       // --- COMPLAINT FLOW ---
       case 'COMPLAINT_DEPT':
@@ -219,23 +221,23 @@ class SuvidhaIntelligence {
 
       case 'COMPLAINT_SUCCESS':
         this.resetSession();
-        return this.renderWelcome(voiceEnabled);
+        return this.renderWelcome(voiceEnabled, t);
     }
 
-    return this.renderWelcome(voiceEnabled);
+    return this.renderWelcome(voiceEnabled, t);
   }
 
-  static renderWelcome(voice: boolean): AIResponse {
+  static renderWelcome(voice: boolean, t: any): AIResponse {
     return {
-      text: "Welcome to SUVIDHA Digital Service Kiosk\n\nWhat would you like to do?\n1. Pay Bill\n2. Service Request\n3. Register Complaint\n4. Check Status",
-      voice: voice ? "Welcome to Suvidha. Please select an option. 1 Pay Bill. 2 Service Request." : undefined,
+      text: `${t.ai_welcome}\n\n${t.ai_whatToDo}\n1. ${t.ai_payBill}\n2. ${t.ai_serviceRequest}\n3. ${t.ai_registerComplaint}\n4. ${t.ai_checkStatus}`,
+      voice: voice ? `${t.ai_welcome}. ${t.ai_whatToDo}.` : undefined,
       menu: {
-        heading: "Main Menu",
+        heading: t.ai_mainMenu,
         options: [
-          { id: '1', label: 'Pay Bill' },
-          { id: '2', label: 'Service Request' },
-          { id: '3', label: 'Register Complaint' },
-          { id: '4', label: 'Check Status' }
+          { id: '1', label: t.ai_payBill },
+          { id: '2', label: t.ai_serviceRequest },
+          { id: '3', label: t.ai_registerComplaint },
+          { id: '4', label: t.ai_checkStatus }
         ]
       }
     };
@@ -250,7 +252,7 @@ export const getAssistantResponse = async (
   lang: string,
   voiceEnabled: boolean = false
 ): Promise<AIResponse> => {
-  return SuvidhaIntelligence.getResponse(query, voiceEnabled);
+  return SuvidhaIntelligence.getResponse(query, voiceEnabled, lang);
 };
 
 // Legacy Export Compatibility

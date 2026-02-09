@@ -324,11 +324,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {submissionStep === 'select' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in slide-in-from-bottom-10">
                 {DEPARTMENTS.map((dept) => {
-                  let deptName = dept.name;
-                  if (dept.id === 'eb') deptName = t.deptEB || dept.name;
-                  else if (dept.id === 'water') deptName = t.deptWater || dept.name;
-                  else if (dept.id === 'gas') deptName = t.deptGas || dept.name;
-                  else if (dept.id === 'municipal') deptName = t.deptMunicipal || dept.name;
+                  const deptKey = `dept_${dept.id}` as keyof typeof t;
+                  const deptName = t[deptKey] || dept.name;
+
                   return (
                     <div key={dept.id} className="bg-white p-6 rounded-3xl shadow-sm border hover:border-blue-500 transition-all group">
                       <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-3">
@@ -338,15 +336,19 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                         {deptName}
                       </h3>
                       <div className="space-y-3">
-                        {dept.services.map((svc) => (
-                          <button
-                            key={svc}
-                            onClick={() => handleServiceSelect(svc)}
-                            className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-700 text-xs font-black uppercase tracking-widest flex justify-between items-center transition"
-                          >
-                            {svc} <ArrowRight size={14} />
-                          </button>
-                        ))}
+                        {dept.services.map((svc) => {
+                          const svcKey = `serv_${svc.replace(/[\s\/]/g, '')}` as keyof typeof t;
+                          const svcName = t[svcKey] || svc;
+                          return (
+                            <button
+                              key={svc}
+                              onClick={() => handleServiceSelect(svc)}
+                              className="w-full text-left p-4 rounded-2xl bg-slate-50 hover:bg-slate-900 hover:text-white text-slate-700 text-xs font-black uppercase tracking-widest flex justify-between items-center transition"
+                            >
+                              {svcName} <ArrowRight size={14} />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -418,7 +420,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                         <item.icon size={48} />
                       </div>
                       <h3 className="text-2xl font-black text-slate-800">{item.name}</h3>
-                      <p className="text-[10px] text-slate-400 mt-3 font-black uppercase tracking-[0.2em]">Select Service</p>
+                      <p className="text-[10px] text-slate-400 mt-3 font-black uppercase tracking-[0.2em]">{t.selectService || "Select Service"}</p>
                     </button>
                   ))}
                 </div>
@@ -432,15 +434,15 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
                   <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-10 hover:text-blue-600 transition">
-                    <ArrowLeft size={16} /> Change Utility
+                    <ArrowLeft size={16} /> {t.changeUtility || "Change Utility"}
                   </button>
                   <div className="flex items-center gap-5 mb-10">
                     <div className={`w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center`}>
                       <selectedBillService.icon size={28} />
                     </div>
                     <div>
-                      <h2 className="text-3xl font-black text-slate-900">{selectedBillService.name} Bill</h2>
-                      <p className="text-sm text-slate-500 font-medium">Securely linked to Coimbatore-Central Database</p>
+                      <h2 className="text-3xl font-black text-slate-900">{selectedBillService.name} {t.billSuffix || "Bill"}</h2>
+                      <p className="text-sm text-slate-500 font-medium">{t.secureDbMsg || "Securely linked to Coimbatore-Central Database"}</p>
                     </div>
                   </div>
 
@@ -463,7 +465,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
                     <div className="space-y-4">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
-                        Registered Mobile Number
+                        {t.regMobileNo || "Registered Mobile Number"}
                       </label>
                       <div className="relative group">
                         <input
@@ -484,7 +486,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       disabled={isFetchingBill || !consumerNumber || mobileNumber.length !== 10}
                       className="w-full bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-2xl shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
                     >
-                      {isFetchingBill ? <RefreshCw className="animate-spin" /> : 'Fetch Bill Details'}
+                      {isFetchingBill ? <RefreshCw className="animate-spin" /> : (t.fetchBillDetails || 'Fetch Bill Details')}
                     </button>
                   </div>
                 </div>
@@ -494,14 +496,14 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {billingStep === 'details' && selectedBillService && (
               <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden max-w-2xl mx-auto animate-in slide-in-from-bottom-12">
                 <div className="bg-slate-900 p-10 text-white">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-4">Official Bill Preview</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-4">{t.billPreview || "Official Bill Preview"}</p>
                   <div className="flex justify-between items-end">
                     <div>
                       <h2 className={`text-6xl font-black mb-2 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>
                         {fetchedBill ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount) : '--'}
                       </h2>
                       <div className="flex items-center gap-2 text-slate-300 font-bold uppercase tracking-widest text-[10px]">
-                        <AlertCircle size={14} className="text-orange-400" /> Due Date: {fetchedBill ? fetchedBill.dueDate : '--'}
+                        <AlertCircle size={14} className="text-orange-400" /> {t.dueDateLabel || "Due Date:"} {fetchedBill ? fetchedBill.dueDate : '--'}
                       </div>
                     </div>
                   </div>
@@ -510,9 +512,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 <div className="p-10 space-y-10">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Consumer Name</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.consumerNameLabel || "Consumer Name"}</p>
                       <p className={`font-black text-xl text-slate-900 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>Arun Kumar</p>
-                      <p className="text-xs text-slate-500 font-bold mt-1">ID: {consumerNumber}</p>
+                      <p className="text-xs text-slate-500 font-bold mt-1">{t.idLabel || "ID:"} {consumerNumber}</p>
                     </div>
                     <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{selectedBillService.providerLabel}</p>
@@ -524,7 +526,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
                   <div className="border-t border-slate-100 pt-8">
                     <div className="flex justify-between items-center text-2xl font-black text-slate-900">
-                      <span>TOTAL PAYABLE</span>
+                      <span>{t.totalPayable || "TOTAL PAYABLE"}</span>
                       <span className={isPrivacyShield ? 'privacy-sensitive' : ''}>
                         {fetchedBill ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount) : '--'}
                       </span>
@@ -532,12 +534,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   </div>
 
                   <div className="flex gap-6 pt-4">
-                    <button onClick={() => setBillingStep('form')} className="flex-1 bg-slate-100 text-slate-500 p-6 rounded-2xl font-black transition">Edit</button>
+                    <button onClick={() => setBillingStep('form')} className="flex-1 bg-slate-100 text-slate-500 p-6 rounded-2xl font-black transition">{t.edit || "Edit"}</button>
                     <button
                       onClick={handlePayBill}
                       className="flex-[2] bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-2xl shadow-blue-100"
                     >
-                      Confirm & Pay
+                      {t.confirmPay || "Confirm & Pay"}
                     </button>
                   </div>
                 </div>
@@ -550,14 +552,14 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <div className="w-24 h-24 bg-green-50 text-green-600 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8">
                     <CheckCircle size={56} />
                   </div>
-                  <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Payment Success!</h2>
+                  <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tighter">{t.paymentSuccessTitle || "Payment Success!"}</h2>
                   <div className="bg-slate-50 p-8 rounded-[2.5rem] text-left space-y-5 mb-10 mt-10">
                     <div className="flex justify-between items-center border-b pb-4">
-                      <span className="text-[10px] font-black text-slate-400 uppercase">Utility</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase">{t.utilityLabel || "Utility"}</span>
                       <span className="text-slate-900 font-black">{selectedBillService?.name}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 uppercase">Amount</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase">{t.amountLabel || "Amount"}</span>
                       <span className="text-blue-600 font-black text-xl">₹1,452.00</span>
                     </div>
                   </div>
@@ -567,9 +569,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       onClick={handlePrintReceipt}
                       className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-lg shadow-blue-200"
                     >
-                      <Printer size={20} /> Print Receipt
+                      <Printer size={20} /> {t.printReceiptBtn || "Print Receipt"}
                     </button>
-                    <button onClick={resetBilling} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">Return Home</button>
+                    <button onClick={resetBilling} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">{t.returnHomeBtn || "Return Home"}</button>
                   </div>
                 </div>
               </div>
@@ -594,7 +596,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <h3 className="font-black text-2xl tracking-tight">SUVIDHA AI</h3>
                   <div className="flex items-center gap-2 opacity-80">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em]">Online • Voice Enabled</p>
+                    <p className="text-[10px] uppercase font-black tracking-[0.2em]">{t.ai_online} • {t.ai_voiceEnabled}</p>
                   </div>
                 </div>
               </div>
@@ -606,7 +608,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   className="flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border bg-indigo-800 text-indigo-300 border-indigo-700 hover:bg-white hover:text-indigo-900 hover:border-white"
                 >
                   <RotateCcw size={18} />
-                  <span className="text-xs uppercase tracking-wider">New Chat</span>
+                  <span className="text-xs uppercase tracking-wider">{t.ai_newChat}</span>
                 </button>
 
                 {/* Voice Toggle */}
@@ -615,7 +617,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${isVoiceEnabled ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-800 text-indigo-300 border-indigo-700'}`}
                 >
                   {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-                  <span className="text-xs uppercase tracking-wider">{isVoiceEnabled ? 'Voice ON' : 'Voice OFF'}</span>
+                  <span className="text-xs uppercase tracking-wider">{isVoiceEnabled ? t.ai_voiceOn : t.ai_voiceOff}</span>
                 </button>
               </div>
             </div>
@@ -653,7 +655,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       {/* Bot Actions - Replay Voice */}
                       {msg.sender === 'bot' && msg.voiceText && isVoiceEnabled && (
                         <button onClick={() => speakText(msg.voiceText!)} className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit hover:bg-indigo-100 transition">
-                          <PlayCircle size={14} /> Replay
+                          <PlayCircle size={14} /> {t.ai_replay}
                         </button>
                       )}
                     </div>
@@ -682,7 +684,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 </button>
                 <input
                   type="text"
-                  placeholder="Type a number or select below..."
+                  placeholder={t.ai_inputPlaceholder}
                   className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-slate-800 placeholder:text-slate-300 px-2"
                   value={aiQuery}
                   onChange={(e) => setAiQuery(e.target.value)}

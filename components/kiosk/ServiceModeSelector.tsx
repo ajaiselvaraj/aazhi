@@ -12,11 +12,13 @@ interface Props {
 
 const ServiceModeSelector: React.FC<Props> = ({ serviceName, onSelect, onBack, language = Language.ENGLISH }) => {
     const t = TRANSLATIONS[language];
+    const svcKey = `serv_${serviceName.replace(/[\s\/]/g, '')}` as keyof typeof t;
+    const translatedServiceName = t[svcKey] as string || serviceName;
     return (
         <div className="max-w-3xl mx-auto space-y-12 py-10 animate-in slide-in-from-bottom-8">
             <div className="text-center">
                 <h2 className="text-4xl font-black text-slate-900 mb-4 uppercase tracking-tighter">{t.modeHeading || "How would you like to proceed?"}</h2>
-                <p className="text-slate-500 font-bold">{t.modeSub || "Choose a processing mode for"} {serviceName}</p>
+                <p className="text-slate-500 font-bold">{t.modeSub || "Choose a processing mode for"} {translatedServiceName}</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <button

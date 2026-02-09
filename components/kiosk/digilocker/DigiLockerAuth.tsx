@@ -2,17 +2,21 @@ import React, { useState } from 'react';
 import { ShieldCheck, X, Smartphone, ArrowRight, Lock, CheckCircle, Loader2 } from 'lucide-react';
 import { fetchDigiLockerDocuments } from '../../../services/api/digilockerService';
 import { DigiLockerDoc } from '../../../types/digilocker';
+import { TRANSLATIONS } from '../../../constants';
+import { Language } from '../../../types';
 
 interface Props {
     requestId: string;
     onSuccess: (docs: DigiLockerDoc[]) => void;
     onCancel: () => void;
+    language: Language;
 }
 
-const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => {
+const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel, language }) => {
     const [step, setStep] = useState<'LOGIN' | 'OTP' | 'CONSENT' | 'FETCHING'>('LOGIN');
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
+    const t = TRANSLATIONS[language];
 
     const handleLogin = () => {
         if (mobile.length === 10) setStep('OTP');
@@ -59,11 +63,11 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                     {step === 'LOGIN' && (
                         <div className="space-y-6">
                             <div className="text-center">
-                                <h4 className="text-xl font-bold text-slate-800">Sign In to your account</h4>
-                                <p className="text-xs text-slate-500 mt-1">Access your digital documents securely.</p>
+                                <h4 className="text-xl font-bold text-slate-800">{t.dlSignIn || "Sign In to your account"}</h4>
+                                <p className="text-xs text-slate-500 mt-1">{t.dlAccessDesc || "Access your digital documents securely."}</p>
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Mobile / Aadhaar</label>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">{t.dlMobileAadhaar || "Mobile / Aadhaar"}</label>
                                 <div className="relative">
                                     <input
                                         inputMode="numeric"
@@ -82,7 +86,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                                 disabled={mobile.length !== 10}
                                 className="w-full bg-[#2E3192] text-white p-4 rounded-xl font-bold shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 hover:bg-indigo-900 transition disabled:opacity-50"
                             >
-                                Next <ArrowRight size={18} />
+                                {t.dlNext || "Next"} <ArrowRight size={18} />
                             </button>
                         </div>
                     )}
@@ -90,8 +94,8 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                     {step === 'OTP' && (
                         <div className="space-y-6">
                             <div className="text-center">
-                                <h4 className="text-xl font-bold text-slate-800">Verify OTP</h4>
-                                <p className="text-xs text-slate-500 mt-1">Enter code sent to +91 {mobile}</p>
+                                <h4 className="text-xl font-bold text-slate-800">{t.dlVerifyOtp || "Verify OTP"}</h4>
+                                <p className="text-xs text-slate-500 mt-1">{t.dlOtpSentTo || "Enter code sent to +91"} {mobile}</p>
                             </div>
                             <div>
                                 <input
@@ -109,7 +113,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                                 onClick={handleVerify}
                                 className="w-full bg-[#00A651] text-white p-4 rounded-xl font-bold shadow-xl shadow-green-100 flex items-center justify-center gap-2 hover:bg-green-700 transition"
                             >
-                                Verify & Sign In <ShieldCheck size={18} />
+                                {t.dlVerifySignIn || "Verify & Sign In"} <ShieldCheck size={18} />
                             </button>
                         </div>
                     )}
@@ -120,9 +124,11 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                                 <div className="w-16 h-16 bg-white rounded-full mx-auto flex items-center justify-center shadow-sm mb-4">
                                     <Lock className="text-indigo-600" size={32} />
                                 </div>
-                                <h4 className="font-bold text-slate-900 mb-2">Allow Access?</h4>
+                                <h4 className="font-bold text-slate-900 mb-2">{t.dlAllowAccess || "Allow Access?"}</h4>
                                 <p className="text-xs text-slate-500 leading-relaxed">
-                                    <span className="font-bold text-slate-900">SUVIDHA Kiosk</span> requests access to your <span className="font-bold text-slate-900">Aadhaar</span> and <span className="font-bold text-slate-900">Driving License</span> for verification.
+                                    {t.dlConsentDesc || <>
+                                        <span className="font-bold text-slate-900">SUVIDHA Kiosk</span> requests access to your <span className="font-bold text-slate-900">Aadhaar</span> and <span className="font-bold text-slate-900">Driving License</span> for verification.
+                                    </>}
                                 </p>
                             </div>
                             <div className="space-y-3">
@@ -130,13 +136,13 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                                     onClick={handleConsent}
                                     className="w-full bg-[#2E3192] text-white p-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-indigo-900 transition"
                                 >
-                                    Allow Access <CheckCircle size={18} />
+                                    {t.dlAllow || "Allow Access"} <CheckCircle size={18} />
                                 </button>
                                 <button
                                     onClick={onCancel}
                                     className="w-full bg-white text-slate-500 border border-slate-200 p-4 rounded-xl font-bold transition hover:bg-slate-50"
                                 >
-                                    Deny
+                                    {t.dlDeny || "Deny"}
                                 </button>
                             </div>
                         </div>
@@ -145,15 +151,15 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel }) => 
                     {step === 'FETCHING' && (
                         <div className="py-10 flex flex-col items-center justify-center text-center">
                             <Loader2 size={48} className="text-[#2E3192] animate-spin mb-6" />
-                            <h4 className="font-bold text-slate-900 mb-2">Fetching Documents...</h4>
-                            <p className="text-xs text-slate-500">Retrieving standard documents from Issuer</p>
+                            <h4 className="font-bold text-slate-900 mb-2">{t.dlFetching || "Fetching Documents..."}</h4>
+                            <p className="text-xs text-slate-500">{t.dlRetrieving || "Retrieving standard documents from Issuer"}</p>
                         </div>
                     )}
                 </div>
 
                 <div className="bg-slate-50 p-3 text-center border-t border-slate-100">
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-                        <Lock size={10} /> Secured by MeitY
+                        <Lock size={10} /> {t.dlSecured || "Secured by MeitY"}
                     </p>
                 </div>
             </div>
