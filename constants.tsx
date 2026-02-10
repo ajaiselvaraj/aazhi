@@ -467,7 +467,7 @@ const BASE_TRANSLATIONS = {
   err_aadhaar: "Enter valid 12-digit Aadhaar",
   err_mobile: "Enter valid 10-digit Mobile Number",
   err_adminPass: "Invalid Admin Password",
-  err_otp: "Invalid OTP. Try 123456"
+  err_otp: "Please enter a valid 6-digit OTP"
 };
 
 export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
@@ -822,7 +822,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "செல்லுபடியாகும் 12 இலக்க ஆதாரை உள்ளிடவும்",
     err_mobile: "செல்லுபடியாகும் 10 இலக்க மொபைல் எண்ணை உள்ளிடவும்",
     err_adminPass: "தவறான நிர்வாக கடவுச்சொல்",
-    err_otp: "தவறான OTP. 123456 ஐ முயற்சிக்கவும்"
+    err_otp: "6 இலக்க OTP ஐ உள்ளிடவும்"
   },
   [Language.HINDI]: {
     ...BASE_TRANSLATIONS,
@@ -1094,7 +1094,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "मान्य 12-अंकीय आधार दर्ज करें",
     err_mobile: "मान्य 10-अंकीय मोबाइल नंबर दर्ज करें",
     err_adminPass: "अमान्य व्यवस्थापक पासवर्ड",
-    err_otp: "अमान्य ओटीपी। 123456 आज़माएं"
+    err_otp: "कृपया 6 अंकों का ओटीपी दर्ज करें"
   },
   [Language.ASSAMESE]: {
     ...BASE_TRANSLATIONS,
@@ -1109,7 +1109,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "বৈধ ১২-অংকৰ আধাৰ নম্বৰ দিয়ক",
     err_mobile: "বৈধ ১০-অংকৰ মোবাইল নম্বৰ দিয়ক",
     err_adminPass: "অবৈধ প্ৰশাসনৰ পাছৱৰ্ড",
-    err_otp: "অবৈধ OTP। 123456 চেষ্টা কৰক"
+    err_otp: "6-অংকৰ OTP দিয়ক"
   },
   [Language.BENGALI]: {
     ...BASE_TRANSLATIONS,
@@ -1124,7 +1124,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "বৈধ ১২-সংখ্যার আধার লিখুন",
     err_mobile: "বৈধ ১০-সংখ্যার মোবাইল নম্বর লিখুন",
     err_adminPass: "অবৈধ অ্যাডমিন পাসওয়ার্ড",
-    err_otp: "অবৈধ OTP। 123456 চেষ্টা করুন"
+    err_otp: "6-সংখ্যার OTP লিখুন"
   },
   [Language.BODO]: { ...BASE_TRANSLATIONS },
   [Language.DOGRI]: { ...BASE_TRANSLATIONS },
@@ -1141,7 +1141,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "માન્ય 12-અંકનો આધાર દાખલ કરો",
     err_mobile: "માન્ય 10-અંકનો મોબાઇલ નંબર દાખલ કરો",
     err_adminPass: "અમાન્ય એડમિન પાસવર્ડ",
-    err_otp: "અમાન્ય OTP. 123456 પ્રયાસ કરો"
+    err_otp: "6-અંકનો OTP દાખલ કરો"
   },
   [Language.KANNADA]: {
     ...BASE_TRANSLATIONS,
@@ -1156,7 +1156,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "ಮಾನ್ಯ 12-ಅಂಕಿಯ ಆಧಾರ್ ಅನ್ನು ನಮೂದಿಸಿ",
     err_mobile: "ಮಾನ್ಯ 10-ಅಂಕಿಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ",
     err_adminPass: "ಅಮಾನ್ಯ ನಿರ್ವಾಹಕ ಪಾಸ್‌ವರ್ಡ್",
-    err_otp: "ಅಮಾನ್ಯ OTP. 123456 ಪ್ರಯತ್ನಿಸಿ"
+    err_otp: "6-ಅಂಕಿಯ OTP ನಮೂದಿಸಿ"
   },
   [Language.KASHMIRI]: { ...BASE_TRANSLATIONS },
   [Language.KONKANI]: { ...BASE_TRANSLATIONS },
@@ -1174,7 +1174,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "സാധുവായ 12 അക്ക ആധാർ നൽകുക",
     err_mobile: "സാധുവായ 10 അക്ക മൊബൈൽ നമ്പർ നൽകുക",
     err_adminPass: "അഡ്മിൻ പാസ്‌വേഡ് തെറ്റാണ്",
-    err_otp: "തെറ്റായ OTP. 123456 പരീക്ഷിക്കുക"
+    err_otp: "6 അക്ക OTP നൽകുക"
   },
   [Language.MANIPURI]: { ...BASE_TRANSLATIONS },
   [Language.MARATHI]: {
@@ -1190,7 +1190,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "वैध १२-अंकी आधार प्रविष्ट करा",
     err_mobile: "वैध १०-अंकी मोबाईल क्रमांक प्रविष्ट करा",
     err_adminPass: "अवैध ॲडमिन पासवर्ड",
-    err_otp: "अवैध OTP. 123456 प्रयत्न करा"
+    err_otp: "6-अंकी OTP प्रविष्ट करा"
   },
   [Language.NEPALI]: { ...BASE_TRANSLATIONS },
   [Language.ODIA]: {
@@ -1206,7 +1206,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "ବୈଧ 12- ଅଙ୍କ ବିଶିଷ୍ଟ ଆଧାର ପ୍ରବେଶ କରନ୍ତୁ |",
     err_mobile: "ବୈଧ 10-ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରବେଶ କରନ୍ତୁ |",
     err_adminPass: "ଅବୈଧ ଆଡମିନ୍ ପାସୱାର୍ଡ |",
-    err_otp: "ଅବୈଧ OTP | 123456 ଚେଷ୍ଟା କରନ୍ତୁ |"
+    err_otp: "6-ଅଙ୍କ ବିଶିଷ୍ଟ OTP ପ୍ରବେଶ କରନ୍ତୁ |"
   },
   [Language.PUNJABI]: {
     ...BASE_TRANSLATIONS,
@@ -1221,7 +1221,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "ਕਿਰਪਾ ਕਰਕੇ 12-ਅੰਕਾਂ ਦਾ ਆਧਾਰ ਦਰਜ ਕਰੋ",
     err_mobile: "ਕਿਰਪਾ ਕਰਕੇ 10-ਅੰਕ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦਰਜ ਕਰੋ",
     err_adminPass: "ਗਲਤ ਐਡਮਿਨ ਪਾਸਵਰਡ",
-    err_otp: "ਗਲਤ OTP। 123456 ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ"
+    err_otp: "6-ਅੰਕਾਂ ਦਾ OTP ਦਰਜ ਕਰੋ"
   },
   [Language.SANSKRIT]: {
     ...BASE_TRANSLATIONS,
@@ -1236,7 +1236,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "मान्यं द्वादश-अङ्कीय-आधार-सङ्ख्यां लिखतु",
     err_mobile: "मान्यं दश-अङ्कीय-जङ्‍गम-दूरवाणी-सङ्ख्यां लिखतु",
     err_adminPass: "अमान्य-प्रशासक-कूटशब्दः",
-    err_otp: "अमान्य-ओटीपी। 123456 प्रयुज्यताम्"
+    err_otp: "षड्-अङ्कीय-ओटीपी लिखतु"
   },
   [Language.SANTALI]: { ...BASE_TRANSLATIONS },
   [Language.SINDHI]: { ...BASE_TRANSLATIONS },
@@ -1253,7 +1253,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "సరైన 12-అంకెల ఆధార్‌ను నమోదు చేయండి",
     err_mobile: "సరైన 10-అంకెల మొబైల్ నంబర్‌ను నమోదు చేయండి",
     err_adminPass: "చెల్లని అడ్మిన్ పాస్‌వర్డ్",
-    err_otp: "చెల్లని OTP. 123456 ప్రయత్నించండి"
+    err_otp: "6-అంకెల OTPని నమోదు చేయండి"
   },
   [Language.URDU]: {
     ...BASE_TRANSLATIONS,
@@ -1268,6 +1268,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_aadhaar: "درست 12 ہندسوں کا آدھار درج کریں",
     err_mobile: "درست 10 ہندسوں کا موبائل نمبر درج کریں",
     err_adminPass: "غلط ایڈمن پاس ورڈ",
-    err_otp: "غلط OTP۔ 123456 آزمائیں"
+    err_otp: "6 ہندسوں کا OTP درج کریں"
   }
 };

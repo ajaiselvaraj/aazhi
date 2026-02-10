@@ -120,7 +120,8 @@ const App: React.FC = () => {
         }
       } else {
         // OTP Flow
-        if (otp === '123456') {
+        // OTP Flow
+        if (otp.length === 6) {
           // Redirect both Login methods to Selection Screen first
           setView(ViewState.SELECTION);
         } else {
@@ -407,7 +408,10 @@ const App: React.FC = () => {
               <div className="animate-in fade-in slide-in-from-right-8">
                 {authStage === 'INPUT' ? (
                   <>
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('mobileNumber')}</label>
+                    <div className="flex justify-between items-end mb-2">
+                      <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('mobileNumber')}</label>
+                      <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase select-none">Admin: 963852 • Pass: 789456</span>
+                    </div>
                     <div className="relative group">
                       <input
                         inputMode="numeric"

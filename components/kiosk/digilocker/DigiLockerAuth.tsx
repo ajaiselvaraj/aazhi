@@ -23,10 +23,10 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel, langu
     };
 
     const handleVerify = () => {
-        if (otp === '123456') {
+        if (otp.length === 6) {
             setStep('CONSENT');
         } else {
-            alert("For demo, enter OTP: 123456");
+            alert("Please enter a valid 6-digit OTP");
         }
     };
 
@@ -107,7 +107,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel, langu
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                                 />
-                                <p className="text-[10px] text-center mt-4 text-slate-400 font-bold">Demo OTP: 123456</p>
+                                <p className="text-[10px] text-center mt-4 text-slate-400 font-bold">Enter any 6-digit OTP</p>
                             </div>
                             <button
                                 onClick={handleVerify}
