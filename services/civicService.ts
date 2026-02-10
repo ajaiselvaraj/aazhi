@@ -54,19 +54,28 @@ export const BillingService = {
 export const GrievanceService = {
     // Get requests raised by this specific user
     getUserRequests: (userId: string): ServiceRequest[] => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS);
+        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
         return allRequests.filter(req => req.citizenId === userId || req.citizenName === MOCK_USER_PROFILE.name) // Fallback to name for mock
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     },
 
+    getAllRequests: (): ServiceRequest[] => {
+        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
+        return allRequests.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    },
+
     createRequest: (request: Omit<ServiceRequest, 'id' | 'timestamp' | 'status'>): ServiceRequest => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS);
+        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
 
         const newRequest: ServiceRequest = {
             ...request,
             id: `AZ-${Math.floor(Math.random() * 10000)}`,
             timestamp: new Date().toLocaleString(),
-            status: 'Pending',
+            status: 'Submitted',
+            currentStage: 'Submitted',
+            stages: [
+                { stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }
+            ],
             messages: []
         };
 
@@ -76,15 +85,16 @@ export const GrievanceService = {
     },
 
     addMessageToRequest: (requestId: string, text: string, sender: 'Citizen' | 'Authority') => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS);
+        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
         const updatedRequests = allRequests.map(req => {
             if (req.id === requestId) {
                 const newMessage = {
                     id: `MSG-${Date.now()}`,
                     sender,
-                    text,
+                    text: text,
                     timestamp: new Date().toISOString()
                 };
+                // @ts-ignore
                 return { ...req, messages: [...(req.messages || []), newMessage] };
             }
             return req;

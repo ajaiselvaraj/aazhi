@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Building2,
     MapPin,
@@ -13,49 +12,69 @@ import {
     FileText
 } from 'lucide-react';
 import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS, TRANSLATIONS } from '../../constants';
-import { GrievanceService } from '../../services/civicService';
 import { Language } from '../../types';
+import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 
 interface ComplaintsModuleProps {
     onBack: () => void;
     language: Language;
+    departmentId?: string; // Optional prop for pre-selecting department
 }
 
-const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language }) => {
+const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
     const t = TRANSLATIONS[language];
-    const [step, setStep] = useState<'category' | 'details' | 'success'>('category');
-    const [selectedDept, setSelectedDept] = useState<string>('');
+    const { addComplaint } = useServiceComplaint();
+
+    // If departmentId is provided, start at details step, otherwise category
+    const [step, setStep] = useState<'category' | 'details' | 'success'>(departmentId ? 'details' : 'category');
+    const [selectedDept, setSelectedDept] = useState<string>(departmentId || '');
     const [issueType, setIssueType] = useState<string>('');
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [ticketId, setTicketId] = useState('');
+
+    // Update selectedDept if prop changes
+    useEffect(() => {
+        if (departmentId) {
+            setSelectedDept(departmentId);
+            setStep('details');
+        }
+    }, [departmentId]);
+
+    const getDeptName = (id: string) => {
+        return DEPARTMENTS.find(d => d.id === id)?.name || 'General';
+    };
+
+    const getDeptCategory = (id: string): "Electricity" | "Water" | "Gas" | "Municipal" => {
+        switch (id) {
+            case 'eb': return "Electricity";
+            case 'water': return "Water";
+            case 'gas': return "Gas";
+            default: return "Municipal";
+        }
+    };
 
     const handleSubmit = () => {
         if (!selectedDept || !issueType) return;
 
         setIsSubmitting(true);
 
-        // Simulate API call
+        // Simulate network delay
         setTimeout(() => {
-            const newTicket = GrievanceService.createRequest({
-                type: issueType,
-                department: DEPARTMENTS.find(d => d.id === selectedDept)?.name || 'General',
-                citizenName: MOCK_USER_PROFILE.name,
-                citizenId: MOCK_USER_PROFILE.id,
-                details: description || issueType,
-                issueCategory: 'GENERAL', // Simplified mapping for now
-                ward: MOCK_USER_PROFILE.ward
+            const newId = addComplaint({
+                name: MOCK_USER_PROFILE.name,
+                phone: "9876543210", // In real app, this comes from user profile
+                category: getDeptCategory(selectedDept),
+                complaintType: issueType,
+                description: description || issueType,
+                location: MOCK_USER_PROFILE.ward || "Unknown",
+                area: MOCK_USER_PROFILE.ward || "Unknown"
             });
 
-            setTicketId(newTicket.id);
+            setTicketId(newId);
             setStep('success');
             setIsSubmitting(false);
         }, 1500);
-    };
-
-    const getDeptIcon = (id: string) => {
-        // Simple icon mapping or return generic
-        return FileText;
     };
 
     return (
@@ -70,14 +89,18 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                 </button>
                 <div>
                     <h2 className="text-3xl font-black text-slate-900">{t.reportIssue || "Register Complaint"}</h2>
-                    <p className="text-slate-500 font-medium">Report civic issues directly to your Ward Officer</p>
+                    <p className="text-slate-500 font-medium">
+                        {departmentId
+                            ? `Reporting issue for ${getDeptName(departmentId)}`
+                            : "Report civic issues directly to your Ward Officer"}
+                    </p>
                 </div>
             </div>
 
             {/* Content Area */}
             <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden flex flex-col">
 
-                {/* STEP 1: CATEGORY SELECTION */}
+                {/* STEP 1: CATEGORY SELECTION (Skipped if departmentId is provided) */}
                 {step === 'category' && (
                     <div className="p-8 h-full flex flex-col">
                         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -132,7 +155,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
                     <div className="p-8 h-full flex flex-col">
                         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-black">2</span>
-                            Issue Details
+                            Issue Details - {getDeptName(selectedDept)}
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
@@ -183,7 +206,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language })
 
                         <div className="mt-6 border-t pt-6 flex justify-between items-center">
                             <button
-                                onClick={() => setStep('category')}
+                                onClick={() => departmentId ? onBack() : setStep('category')}
                                 className="text-slate-400 font-bold hover:text-slate-600 px-4"
                             >
                                 Back
