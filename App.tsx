@@ -353,7 +353,10 @@ const App: React.FC = () => {
               <div className="animate-in fade-in slide-in-from-right-8">
                 {authStage === 'INPUT' ? (
                   <>
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('aadhaarNumber')}</label>
+                    <div className="flex justify-between items-end mb-2">
+                      <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('aadhaarNumber')}</label>
+                      <span className="text-[10px] text-slate-500 tracking-wide">For accessing admin portal, go to Mobile OTP.</span>
+                    </div>
                     <div className="relative group">
                       <input
                         inputMode="numeric"
@@ -437,7 +440,10 @@ const App: React.FC = () => {
                 ) : authStage === 'PASSWORD' ? (
                   /* HIDDEN ADMIN PASSWORD UI */
                   <div className="animate-in fade-in slide-in-from-right-8">
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('adminPasswordLabel')}</label>
+                    <div className="flex justify-between items-end mb-2">
+                      <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('adminPasswordLabel')}</label>
+                      <span className="text-[10px] text-slate-500 tracking-wide">Password: 789456</span>
+                    </div>
                     <div className="relative group">
                       <input
                         type="password"
