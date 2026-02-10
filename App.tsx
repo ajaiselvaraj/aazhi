@@ -3,8 +3,11 @@ import KioskUI from './components/KioskUI';
 import Documentation from './components/Documentation';
 import Admin from './components/Admin';
 import { Globe, Fingerprint, ShieldCheck, ChevronRight, Lock, User, Key, ArrowLeft, RefreshCw, Smartphone, Clock, EyeOff, Shield, Maximize2, Mic, AlertTriangle, ArrowRight } from 'lucide-react';
-import { APP_CONFIG, TRANSLATIONS, LANGUAGES_CONFIG } from './constants';
+import { APP_CONFIG, LANGUAGES_CONFIG } from './constants';
+import { Language } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
+import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
+import { useLanguage } from './contexts/LanguageContext';
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -15,21 +18,17 @@ enum ViewState {
   DOCUMENTATION = 'DOCUMENTATION'
 }
 
-type Language = keyof typeof TRANSLATIONS;
-
 const LOGOUT_TIME = 120; // 2 minutes
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
-  const [language, setLanguage] = useState<Language>('en');
+  const { language, setLanguage, t } = useLanguage();
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing'>('home');
   const timerRef = useRef<number | null>(null);
 
   // Refactored Login States
-  // 'GUEST' type is removed from loginMethod state logic but kept in case needed elsewhere,
-  // effectively removing the 'Staff' tab. "PASSWORD" added for hidden admin flow.
   const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE' | 'PASSWORD'>('AADHAAR');
   const [authStage, setAuthStage] = useState<'INPUT' | 'OTP' | 'PASSWORD'>('INPUT');
   const [identifier, setIdentifier] = useState('');
@@ -37,10 +36,6 @@ const App: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem('aazhi_lang', language);
-  }, [language]);
 
   // Handle inactivity auto-logout
   useEffect(() => {
@@ -69,14 +64,12 @@ const App: React.FC = () => {
     setError('');
   };
 
-  const t = TRANSLATIONS[language];
-
   // Logic for Sending OTP or Triggering Admin Password
   const handleSendOtp = () => {
     setError('');
     if (loginMethod === 'AADHAAR') {
       if (identifier.replace(/\s/g, '').length !== 12) {
-        setError('Enter valid 12-digit Aadhaar');
+        setError(t('err_aadhaar'));
         return;
       }
       setIsProcessing(true);
@@ -100,7 +93,7 @@ const App: React.FC = () => {
       }
 
       if (identifier.length !== 10) {
-        setError('Enter valid 10-digit Mobile Number');
+        setError(t('err_mobile'));
         return;
       }
       setIsProcessing(true);
@@ -121,23 +114,17 @@ const App: React.FC = () => {
         if (password === '789456') {
           setView(ViewState.ADMIN);
         } else {
-          setError('Invalid Admin Password');
+          setError(t('err_adminPass'));
           setIsProcessing(false);
           return;
         }
       } else {
         // OTP Flow
         if (otp === '123456') {
-          // Redirect Aadhaar login to Selection Screen first
-          if (loginMethod === 'AADHAAR') {
-            setView(ViewState.SELECTION);
-          } else {
-            // Mobile Login goes straight to Dashboard (default home)
-            setDashboardInitialTab('home');
-            setView(ViewState.DASHBOARD);
-          }
+          // Redirect both Login methods to Selection Screen first
+          setView(ViewState.SELECTION);
         } else {
-          setError('Invalid OTP. Try 123456');
+          setError(t('err_otp'));
           setIsProcessing(false);
           return;
         }
@@ -247,7 +234,7 @@ const App: React.FC = () => {
             <Maximize2 size={10} /> Fullscreen
           </button>
         </div>
-        <p className="opacity-50">Secure • Encrypted • Private • Govt. of India</p>
+        <p className="opacity-50">{t('footerSecure')}</p>
       </footer>
     </div>
   );
@@ -261,7 +248,7 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">{APP_CONFIG.TITLE}</h1>
-            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">Welcome, Citizen</p>
+            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">{t('sel_welcomeUser')}</p>
           </div>
         </div>
       </header>
@@ -272,10 +259,10 @@ const App: React.FC = () => {
           <div className="w-32 h-32 bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner relative z-10 group-hover:scale-110 transition duration-300">
             <Mic size={64} />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-indigo-900">SUVIDHA Assistant</h2>
-          <p className="text-slate-500 font-medium relative z-10">Ask me anything about government services, schemes, or local issues.</p>
+          <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-indigo-900">{t('sel_aiTitle')}</h2>
+          <p className="text-slate-500 font-medium relative z-10">{t('sel_aiDesc')}</p>
           <div className="mt-8 px-6 py-2 bg-indigo-600 text-white rounded-full font-bold uppercase text-xs tracking-widest relative z-10 group-hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-            Use Voice or Text
+            {t('sel_aiBtn')}
           </div>
         </button>
 
@@ -284,16 +271,16 @@ const App: React.FC = () => {
           <div className="w-32 h-32 bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner relative z-10 group-hover:scale-110 transition duration-300">
             <RefreshCw size={64} />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-blue-900">Quick Pay</h2>
-          <p className="text-slate-500 font-medium relative z-10">Pay your electricity, water, and property taxes instantly.</p>
+          <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-blue-900">{t('sel_payTitle')}</h2>
+          <p className="text-slate-500 font-medium relative z-10">{t('sel_payDesc')}</p>
           <div className="mt-8 px-6 py-2 bg-blue-600 text-white rounded-full font-bold uppercase text-xs tracking-widest relative z-10 group-hover:bg-blue-700 shadow-lg shadow-blue-200">
-            Fast & Secure
+            {t('sel_payBtn')}
           </div>
         </button>
       </div>
 
       <button onClick={handleBackToLanding} className="mt-12 text-slate-400 font-bold uppercase tracking-widest hover:text-red-500 transition z-10 text-xs flex items-center gap-2">
-        <ArrowLeft size={16} /> Cancel & Logout
+        <ArrowLeft size={16} /> {t('sel_cancel')}
       </button>
     </div>
   );
@@ -315,12 +302,12 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">{APP_CONFIG.TITLE}</h1>
-            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">Government of India</p>
+            <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">{t('govtOfIndia')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">System Online</span>
+          <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
         </div>
       </header>
 
@@ -336,8 +323,8 @@ const App: React.FC = () => {
             <ShieldCheck size={40} />
           </div>
 
-          <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">Secure Authentication</h2>
-          <p className="text-slate-500 font-medium mb-10">Use your digital ID to access services</p>
+          <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">{t('secureAuth')}</h2>
+          <p className="text-slate-500 font-medium mb-10">{t('useDigitalID')}</p>
 
           {/* Tabs - Only show in INPUT stage and NOT in Password Mode */}
           {authStage === 'INPUT' && (
@@ -346,13 +333,13 @@ const App: React.FC = () => {
                 onClick={() => { setLoginMethod('AADHAAR'); resetLoginState(); }}
                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'AADHAAR' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 '}`}
               >
-                <User size={16} /> Aadhaar
+                <User size={16} /> {t('aadhaar')}
               </button>
               <button
                 onClick={() => { setLoginMethod('MOBILE'); resetLoginState(); }}
                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'MOBILE' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
               >
-                <Smartphone size={16} /> Mobile OTP
+                <Smartphone size={16} /> {t('mobileOTP')}
               </button>
             </div>
           )}
@@ -365,7 +352,7 @@ const App: React.FC = () => {
               <div className="animate-in fade-in slide-in-from-right-8">
                 {authStage === 'INPUT' ? (
                   <>
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">Aadhaar Number</label>
+                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('aadhaarNumber')}</label>
                     <div className="relative group">
                       <input
                         inputMode="numeric"
@@ -388,12 +375,12 @@ const App: React.FC = () => {
                       disabled={isProcessing || identifier.replace(/\s/g, '').length !== 12}
                       className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none mt-6 flex items-center justify-center gap-2"
                     >
-                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>Verify Identity <ArrowRight size={20} /></>}
+                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('verifyIdentity')} <ArrowRight size={20} /></>}
                     </button>
                   </>
                 ) : (
                   <div className="text-center space-y-6">
-                    <p className="text-slate-500 font-medium">Enter the 6-digit code sent to linked mobile</p>
+                    <p className="text-slate-500 font-medium">{t('enterCodeLinked')}</p>
                     <input
                       inputMode="numeric"
                       maxLength={6}
@@ -407,9 +394,9 @@ const App: React.FC = () => {
                       disabled={isProcessing || otp.length !== 6}
                       className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
                     >
-                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>Confirm & Login <ShieldCheck size={20} /></>}
+                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('confirmLogin')} <ShieldCheck size={20} /></>}
                     </button>
-                    <button onClick={() => setAuthStage('INPUT')} className="text-sm font-bold text-slate-400 hover:text-blue-600">Change Aadhaar Number</button>
+                    <button onClick={() => setAuthStage('INPUT')} className="text-sm font-bold text-slate-400 hover:text-blue-600">{t('changeAadhaar')}</button>
                   </div>
                 )}
               </div>
@@ -420,7 +407,7 @@ const App: React.FC = () => {
               <div className="animate-in fade-in slide-in-from-right-8">
                 {authStage === 'INPUT' ? (
                   <>
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">Mobile Number</label>
+                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('mobileNumber')}</label>
                     <div className="relative group">
                       <input
                         inputMode="numeric"
@@ -440,13 +427,13 @@ const App: React.FC = () => {
                       disabled={isProcessing || identifier.length === 0}
                       className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none mt-6 flex items-center justify-center gap-2"
                     >
-                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>Send OTP <ArrowRight size={20} /></>}
+                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('sendOTP')} <ArrowRight size={20} /></>}
                     </button>
                   </>
                 ) : authStage === 'PASSWORD' ? (
                   /* HIDDEN ADMIN PASSWORD UI */
                   <div className="animate-in fade-in slide-in-from-right-8">
-                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">Admin Password</label>
+                    <label className="block text-xs font-bold text-slate-900 mb-2 ml-1 uppercase tracking-wider">{t('adminPasswordLabel')}</label>
                     <div className="relative group">
                       <input
                         type="password"
@@ -462,14 +449,14 @@ const App: React.FC = () => {
                       disabled={isProcessing || !password}
                       className="w-full bg-indigo-900 text-white p-5 rounded-2xl font-bold text-lg hover:bg-indigo-950 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none mt-6 flex items-center justify-center gap-2"
                     >
-                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>Access System <Lock size={20} /></>}
+                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('accessSystem')} <Lock size={20} /></>}
                     </button>
-                    <button onClick={() => { setAuthStage('INPUT'); setLoginMethod('MOBILE'); setIdentifier(''); }} className="text-sm font-bold text-slate-400 hover:text-blue-600 mt-4 block mx-auto">Cancel Admin Login</button>
+                    <button onClick={() => { setAuthStage('INPUT'); setLoginMethod('MOBILE'); setIdentifier(''); }} className="text-sm font-bold text-slate-400 hover:text-blue-600 mt-4 block mx-auto">{t('cancelAdmin')}</button>
                   </div>
                 ) : (
                   /* STANDARD OTP UI */
                   <div className="text-center space-y-6">
-                    <p className="text-slate-500 font-medium">Enter code sent to +91 {identifier}</p>
+                    <p className="text-slate-500 font-medium">{t('enterCode')} {identifier}</p>
                     <input
                       inputMode="numeric"
                       maxLength={6}
@@ -483,9 +470,9 @@ const App: React.FC = () => {
                       disabled={isProcessing || otp.length !== 6}
                       className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
                     >
-                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>Verify & Login <ShieldCheck size={20} /></>}
+                      {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('verifyLogin')} <ShieldCheck size={20} /></>}
                     </button>
-                    <button onClick={() => setAuthStage('INPUT')} className="text-sm font-bold text-slate-400 hover:text-blue-600">Change Number</button>
+                    <button onClick={() => setAuthStage('INPUT')} className="text-sm font-bold text-slate-400 hover:text-blue-600">{t('changeNumber')}</button>
                   </div>
                 )}
               </div>
@@ -517,32 +504,34 @@ const App: React.FC = () => {
       onKeyDown={resetTimer}
     >
       <KioskKeyboardWrapper language={language}>
-        {view === ViewState.LANDING && renderLanding()}
-        {view === ViewState.LOGIN && renderLogin()}
-        {view === ViewState.SELECTION && renderSelection()}
-        {view === ViewState.DASHBOARD && (
-          <KioskUI
-            language={language}
-            onNavigate={setView}
-            onLogout={handleBackToLanding}
-            isPrivacyShield={isPrivacyShieldOn}
-            timer={timer}
-            onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
-            initialTab={dashboardInitialTab}
-          />
-        )}
-        {view === ViewState.DOCUMENTATION && (
-          <div className="min-h-screen bg-slate-100 p-8 overflow-auto">
-            <Documentation onBack={() => setView(ViewState.LANDING)} />
-          </div>
-        )}
-        {view === ViewState.ADMIN && (
-          <Admin
-            onBack={handleBackToLanding}
-            language={language}
-            onLanguageChange={setLanguage}
-          />
-        )}
+        <ServiceComplaintProvider>
+          {view === ViewState.LANDING && renderLanding()}
+          {view === ViewState.LOGIN && renderLogin()}
+          {view === ViewState.SELECTION && renderSelection()}
+          {view === ViewState.DASHBOARD && (
+            <KioskUI
+              language={language}
+              onNavigate={setView}
+              onLogout={handleBackToLanding}
+              isPrivacyShield={isPrivacyShieldOn}
+              timer={timer}
+              onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
+              initialTab={dashboardInitialTab}
+            />
+          )}
+          {view === ViewState.DOCUMENTATION && (
+            <div className="min-h-screen bg-slate-100 p-8 overflow-auto">
+              <Documentation onBack={() => setView(ViewState.LANDING)} />
+            </div>
+          )}
+          {view === ViewState.ADMIN && (
+            <Admin
+              onBack={handleBackToLanding}
+              language={language}
+              onLanguageChange={setLanguage}
+            />
+          )}
+        </ServiceComplaintProvider>
       </KioskKeyboardWrapper>
 
       <style>{`

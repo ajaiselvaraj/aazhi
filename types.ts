@@ -87,18 +87,27 @@ export interface SupportContact {
   isEmergency?: boolean;
 }
 
+export interface TrackingStage {
+  stage: string;
+  status: "Completed" | "Current" | "Pending";
+  updatedAt?: string;
+}
+
 export interface ServiceRequest {
   id: string;
   type: string;
-  department: string;
+  department: string; // This maps to 'category' in some contexts
   citizenName: string;
   citizenId?: string;
-  status: 'Pending' | 'In Progress' | 'Resolved' | 'Rejected';
+  status: 'Submitted' | 'Under Review' | 'Verification' | 'Approval Pending' | 'Completed' | 'Rejected';
+  currentStage: string;
+  stages: TrackingStage[];
   timestamp: string;
   details: string;
   messages?: Message[];
   issueCategory?: IssueCategory;
   ward?: string;
+  phone?: string; // Added for tracker search
 }
 
 export interface Message {
@@ -115,4 +124,16 @@ export interface Department {
   name: string;
   icon: string;
   services: string[];
+}
+
+export interface Kiosk {
+  id: string;
+  location: string;
+  status: "Online" | "Offline";
+  battery: number;
+  network: "Good" | "Weak" | "Disconnected";
+  userLoad: "Low" | "Medium" | "High";
+  lastActive: string;
+  todayUsers: number;
+  complaintsToday: number;
 }

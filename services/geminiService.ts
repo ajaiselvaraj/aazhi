@@ -1,7 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-import { MOCK_USER_PROFILE, MOCK_BILLS, DEPARTMENTS, PREDEFINED_ISSUES, APP_CONFIG, TRANSLATIONS } from "../constants";
-import { Language } from "../types";
-import { BillingService } from "./civicService";
+import { MOCK_USER_PROFILE } from "../constants";
 
 export interface AIResponse {
   text: string;
@@ -41,8 +38,7 @@ class SuvidhaIntelligence {
     session = { step: 'WELCOME', data: {} };
   }
 
-  static getResponse(query: string, voiceEnabled: boolean, lang: string = Language.ENGLISH): AIResponse {
-    const t = TRANSLATIONS[lang as Language] || TRANSLATIONS[Language.ENGLISH];
+  static getResponse(query: string, voiceEnabled: boolean, t: (key: string) => string): AIResponse {
     const q = query.toLowerCase().trim();
 
     // GLOBAL RESET
@@ -227,17 +223,17 @@ class SuvidhaIntelligence {
     return this.renderWelcome(voiceEnabled, t);
   }
 
-  static renderWelcome(voice: boolean, t: any): AIResponse {
+  static renderWelcome(voice: boolean, t: (key: string) => string): AIResponse {
     return {
-      text: `${t.ai_welcome}\n\n${t.ai_whatToDo}\n1. ${t.ai_payBill}\n2. ${t.ai_serviceRequest}\n3. ${t.ai_registerComplaint}\n4. ${t.ai_checkStatus}`,
-      voice: voice ? `${t.ai_welcome}. ${t.ai_whatToDo}.` : undefined,
+      text: `${t('ai_welcome')}\n\n${t('ai_whatToDo')}\n1. ${t('ai_payBill')}\n2. ${t('ai_serviceRequest')}\n3. ${t('ai_registerComplaint')}\n4. ${t('ai_checkStatus')}`,
+      voice: voice ? `${t('ai_welcome')}. ${t('ai_whatToDo')}.` : undefined,
       menu: {
-        heading: t.ai_mainMenu,
+        heading: t('ai_mainMenu'),
         options: [
-          { id: '1', label: t.ai_payBill },
-          { id: '2', label: t.ai_serviceRequest },
-          { id: '3', label: t.ai_registerComplaint },
-          { id: '4', label: t.ai_checkStatus }
+          { id: '1', label: t('ai_payBill') },
+          { id: '2', label: t('ai_serviceRequest') },
+          { id: '3', label: t('ai_registerComplaint') },
+          { id: '4', label: t('ai_checkStatus') }
         ]
       }
     };
@@ -249,16 +245,10 @@ class SuvidhaIntelligence {
  */
 export const getAssistantResponse = async (
   query: string,
-  lang: string,
+  t: (key: string) => string,
   voiceEnabled: boolean = false
 ): Promise<AIResponse> => {
-  return SuvidhaIntelligence.getResponse(query, voiceEnabled, lang);
-};
-
-// Legacy Export Compatibility
-export const getSmartHelp = async (query: string, lang: string, mode: 'fast' | 'thinking' = 'fast') => {
-  const resp = await getAssistantResponse(query, lang, false);
-  return resp.text;
+  return SuvidhaIntelligence.getResponse(query, voiceEnabled, t);
 };
 
 export const generateCitizenImage = async (prompt: string, aspectRatio: string) => {

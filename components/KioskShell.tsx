@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, Battery, Clock, Shield, EyeOff } from 'lucide-react';
-import { APP_CONFIG, TRANSLATIONS } from '../constants';
+import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, Battery, Clock, Shield, EyeOff, Search } from 'lucide-react';
+import { APP_CONFIG } from '../constants';
 import { Language } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -35,7 +36,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
     onTogglePrivacy
 }) => {
     const [time, setTime] = useState(new Date());
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
 
     useEffect(() => {
         const timer = setInterval(() => setTime(new Date()), 1000);
@@ -43,12 +44,13 @@ const KioskShell: React.FC<KioskShellProps> = ({
     }, []);
 
     const NAV_ITEMS = [
-        { id: 'home', label: t.navHome || 'Home', icon: Home },
-        { id: 'services', label: t.navServices || 'Services', icon: LayoutGrid },
-        { id: 'billing', label: t.navPayBills || 'Pay Bills', icon: CreditCard },
-        { id: 'complaints', label: t.navHelp || 'Help', icon: AlertTriangle },
-        { id: 'status', label: t.navHistory || 'History', icon: FileCheck },
-        { id: 'ai', label: t.navAssistant || 'Assistant', icon: HelpCircle },
+        { id: 'home', label: t('navHome') || 'Home', icon: Home },
+        { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
+        { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
+        { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
+        { id: 'tracker', label: 'Track App', icon: Search },
+        { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
+        { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];
 
     return (
@@ -115,7 +117,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                         className="w-full aspect-square rounded-2xl bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 hover:bg-red-500 hover:text-white transition-colors duration-300"
                     >
                         <LogOut size={24} />
-                        <span className="text-[9px] font-black uppercase">{t.navExit || 'Exit'}</span>
+                        <span className="text-[9px] font-black uppercase">{t('navExit') || 'Exit'}</span>
                     </button>
                 </div>
             </nav>
@@ -125,17 +127,17 @@ const KioskShell: React.FC<KioskShellProps> = ({
         - Flex-1 to fill remaining space
         - Flex column for Header + Content
       */}
-            <main className="flex-1 flex flex-col h-full bg-[#f8f9fc] relative overflow-hidden">
+            <main className="flex-1 flex-col h-full bg-[#f8f9fc] relative overflow-hidden flex">
 
                 {/* Kiosk Header Board - Information Only (Not Nav) */}
                 <header className="h-24 px-8 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden">
                     <div>
                         <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                            {activeTab === 'home' ? `${t.welcomeUser || 'Welcome'}, ${userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
+                            {activeTab === 'home' ? `${t('welcomeUser') || 'Welcome'}, ${userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
                         </h1>
                         <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
                             <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
-                                {t.terminalId || 'Terminal ID'}: CBE-02
+                                {t('terminalId') || 'Terminal ID'}: CBE-02
                             </span>
                             <span>•</span>
                             <span>{APP_CONFIG.SUBTITLE}</span>
@@ -180,7 +182,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 <button
                                     onClick={onTogglePrivacy}
                                     className={`p-3 rounded-xl transition-all shadow-sm ${isPrivacyShield ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-200'}`}
-                                    title={t?.privacyShield || "Privacy Shield"}
+                                    title={t('privacyShield') || "Privacy Shield"}
                                 >
                                     {isPrivacyShield ? <Shield size={20} /> : <EyeOff size={20} />}
                                 </button>
@@ -207,13 +209,19 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     <div className="absolute bottom-0 w-full bg-slate-900 text-white py-2 px-6 flex items-center justify-between text-xs font-bold z-50 print:hidden">
                         <div className="flex items-center gap-2 text-yellow-400 shrink-0">
                             <AlertTriangle size={14} />
-                            <span className="uppercase tracking-widest">{t.cityAlert || "City Alert"}</span>
+                            <span className="uppercase tracking-widest">{t('cityAlert') || "City Alert"}</span>
                         </div>
                         <div className="flex-1 mx-4 overflow-hidden">
                             <div className="whitespace-nowrap animate-marquee">
                                 {alerts.map(a => {
-                                    const alertKey = `alert_${a.id}` as keyof typeof t;
-                                    return t[alertKey] || a.message;
+                                    const alertKey = `alert_${a.id}`;
+                                    // Fallback to message if translation missing (though fallback logic in t already handles it if key present in en.json)
+                                    // If alert_AL-01 is not in en.json but is in alerts array, then t(alertKey) returns alertKey.
+                                    // We want actual message if translation missing.
+                                    // My t function returns key.
+                                    // So: t(alertKey) === alertKey ? a.message : t(alertKey)
+                                    const val = t(alertKey);
+                                    return (val !== alertKey) ? val : a.message;
                                 }).join('  •  ')}
                             </div>
                         </div>

@@ -4,7 +4,7 @@ import DocScanner from './DocScanner';
 import DigiLockerAuth from './digilocker/DigiLockerAuth';
 import { DigiLockerDoc } from '../../types/digilocker';
 import { DEPARTMENTS, MOCK_USER_PROFILE, PREDEFINED_ISSUES, TRANSLATIONS } from '../../constants';
-import { GrievanceService } from '../../services/civicService';
+import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { Language } from '../../types';
 
 interface Props {
@@ -53,17 +53,19 @@ const ServiceFormWizard: React.FC<Props> = ({ serviceName, mode, onCancel, onSub
         setStep('review');
     };
 
+
+    const { addServiceRequest } = useServiceComplaint();
+
     const handleFinalSubmit = () => {
         // Feature 4: Strict Issue Creation
         if (department) {
-            GrievanceService.createRequest({
-                type: serviceName,
-                department: department.name,
-                citizenName: details.name,
-                citizenId: MOCK_USER_PROFILE.id,
-                details: `${serviceName} reported via Kiosk.`, // No free text allowed
-                ward: MOCK_USER_PROFILE.ward,
-                issueCategory: isIssue ? 'METER_FAULT' : undefined // Simplified mapping for demo
+            addServiceRequest({
+                name: details.name,
+                phone: details.mobile,
+                category: department.name,
+                serviceType: serviceName,
+                address: `Ward ${MOCK_USER_PROFILE.ward}`,
+                description: `${serviceName} reported via Kiosk.`
             });
         }
         onSubmit(details);
