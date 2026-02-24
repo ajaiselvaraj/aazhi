@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calculator, Info, Zap, Factory, Home, Building2, Sprout, Landmark, GraduationCap, BatteryCharging, CheckCircle, AlertCircle } from 'lucide-react';
 import { Language } from '../../../types';
-import { TRANSLATIONS } from '../../../constants';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Props {
     onBack: () => void;
@@ -40,7 +40,7 @@ type Category = 'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL' | 'AGRICULTURE' | 'HUT'
 type Voltage = 'LT' | 'HT';
 
 const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
 
     // State
     const [category, setCategory] = useState<Category>('DOMESTIC');
@@ -251,21 +251,21 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
     };
 
     const categories = [
-        { id: 'DOMESTIC', label: t.domestic || 'Domestic', icon: Home },
-        { id: 'COMMERCIAL', label: t.commercial || 'Commercial', icon: Building2 },
-        { id: 'INDUSTRIAL', label: t.industrial || 'Industrial', icon: Factory },
-        { id: 'AGRICULTURE', label: t.agriculture || 'Agriculture', icon: Sprout },
-        { id: 'HUT', label: t.hut || 'Hut (Dwelling)', icon: Home },
-        { id: 'POWERLOOM', label: t.powerloom || 'Power Loom', icon: Zap },
-        { id: 'WORSHIP', label: t.worship || 'Place of Worship', icon: Landmark },
-        { id: 'EDUCATION', label: t.education || 'Private Education', icon: GraduationCap },
-        { id: 'EV', label: t.ev || 'EV Charging', icon: BatteryCharging },
+        { id: 'DOMESTIC', label: t('domestic') || 'Domestic', icon: Home },
+        { id: 'COMMERCIAL', label: t('commercial') || 'Commercial', icon: Building2 },
+        { id: 'INDUSTRIAL', label: t('industrial') || 'Industrial', icon: Factory },
+        { id: 'AGRICULTURE', label: t('agriculture') || 'Agriculture', icon: Sprout },
+        { id: 'HUT', label: t('hut') || 'Hut (Dwelling)', icon: Home },
+        { id: 'POWERLOOM', label: t('powerloom') || 'Power Loom', icon: Zap },
+        { id: 'WORSHIP', label: t('worship') || 'Place of Worship', icon: Landmark },
+        { id: 'EDUCATION', label: t('education') || 'Private Education', icon: GraduationCap },
+        { id: 'EV', label: t('ev') || 'EV Charging', icon: BatteryCharging },
     ];
 
     return (
         <div className="max-w-4xl mx-auto animate-in slide-in-from-right-8 pb-10">
             <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-6 hover:text-slate-900 transition">
-                <ArrowLeft size={16} /> {t.back}
+                <ArrowLeft size={16} /> {t('back')}
             </button>
 
             <div className="flex flex-col lg:flex-row gap-8">
@@ -276,15 +276,15 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                             <Calculator size={28} />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-black text-slate-900">{t.calcHeading}</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t.calcSub}</p>
+                            <h2 className="text-2xl font-black text-slate-900">{t('calcHeading')}</h2>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t('calcSub')}</p>
                         </div>
                     </div>
 
                     <div className="space-y-6">
                         {/* Category Select */}
                         <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t.connType}</label>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('connType')}</label>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {categories.map((cat) => (
                                     <button
@@ -314,7 +314,7 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {category !== 'EV' && (
                                 <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t.unitsConsumed}</label>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('unitsConsumed')}</label>
                                     <input inputMode="numeric" type="number" value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-600" placeholder="0" />
                                 </div>
                             )}
@@ -341,7 +341,7 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                         </div>
 
                         <button onClick={calculate} className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-slate-800 transition shadow-xl mt-6">
-                            {t.calculate}
+                            {t('calculate')}
                         </button>
                     </div>
                 </div>
@@ -350,7 +350,7 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                 <div className="flex-1 space-y-4">
                     {result ? (
                         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[3rem] text-white shadow-2xl animate-in zoom-in-95">
-                            <p className="text-indigo-200 font-bold text-xs uppercase tracking-widest mb-2">{t.estCharge}</p>
+                            <p className="text-indigo-200 font-bold text-xs uppercase tracking-widest mb-2">{t('estCharge')}</p>
                             <h3 className="text-5xl font-black mb-6">₹{result.total.toFixed(2)}</h3>
 
                             <div className="space-y-4 mb-6">
@@ -384,7 +384,7 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                     ) : (
                         <div className="h-full bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center p-8 text-center opacity-50">
                             <Zap size={48} className="text-slate-300 mb-4" />
-                            <p className="font-bold text-slate-400">{t.calcSub}</p>
+                            <p className="font-bold text-slate-400">{t('calcSub')}</p>
                         </div>
                     )}
                 </div>

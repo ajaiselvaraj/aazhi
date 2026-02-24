@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, User, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, History, Download, FileText, AlertCircle, LogOut } from 'lucide-react';
-import { MOCK_USER_PROFILE, TRANSLATIONS } from '../../../constants';
+import { MOCK_USER_PROFILE } from '../../../constants';
 import { Language } from '../../../types';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Props {
     onBack: () => void;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
     const [view, setView] = useState<'LOGIN' | 'DASHBOARD'>('LOGIN');
     const [username, setUsername] = useState('04-100-2458');
     const [password, setPassword] = useState('');
@@ -28,15 +29,15 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
         return (
             <div className="max-w-md mx-auto bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100 animate-in slide-in-from-bottom-8">
                 <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-10 hover:text-slate-900 transition">
-                    <ArrowLeft size={16} /> {t.cancel || "Cancel"}
+                    <ArrowLeft size={16} /> {t('cancel') || "Cancel"}
                 </button>
 
-                <h2 className="text-3xl font-black text-slate-900 mb-2">{t.loginHeading || "Consumer Login"}</h2>
-                <p className="text-slate-500 font-medium text-sm mb-8">{t.loginSub || "Access bill history & manage your connection."}</p>
+                <h2 className="text-3xl font-black text-slate-900 mb-2">{t('loginHeading') || "Consumer Login"}</h2>
+                <p className="text-slate-500 font-medium text-sm mb-8">{t('loginSub') || "Access bill history & manage your connection."}</p>
 
                 <div className="space-y-6">
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t.serviceNoOrUser || "Service No / User ID"}</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('serviceNoOrUser') || "Service No / User ID"}</label>
                         <div className="relative">
                             <input
                                 inputMode="numeric"
@@ -50,7 +51,7 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t.password || "Password"}</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('password') || "Password"}</label>
                         <div className="relative">
                             <input
                                 type={showPass ? "text" : "password"}
@@ -69,7 +70,7 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                     <div className="bg-blue-50 p-4 rounded-xl flex items-start gap-3 border border-blue-100">
                         <ShieldCheck size={20} className="text-blue-600 shrink-0 mt-0.5" />
                         <p className="text-[10px] text-blue-800 font-bold leading-relaxed">
-                            {t.secureEnv || "Secure Environment. Keyboard input is monitored for safety."}
+                            {t('secureEnv') || "Secure Environment. Keyboard input is monitored for safety."}
                         </p>
                     </div>
 
@@ -78,7 +79,7 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                         disabled={isLoading}
                         className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-blue-700 transition shadow-lg shadow-blue-200"
                     >
-                        {isLoading ? (t.verifying || 'Verifying...') : (t.loginBtn || 'Login')}
+                        {isLoading ? (t('verifying') || 'Verifying...') : (t('loginBtn') || 'Login')}
                     </button>
                 </div>
             </div>
@@ -90,11 +91,11 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
             <div className="flex items-center justify-between mb-2">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900">{t.myConnection || "My Connection"}</h2>
-                    <p className="text-slate-500 font-bold">{t.consumerNo || "Service No"}: {username}</p>
+                    <h2 className="text-3xl font-black text-slate-900">{t('myConnection') || "My Connection"}</h2>
+                    <p className="text-slate-500 font-bold">{t('consumerNo') || "Service No"}: {username}</p>
                 </div>
                 <button onClick={() => setView('LOGIN')} className="bg-red-50 text-red-600 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition flex items-center gap-2">
-                    <LogOut size={16} /> {t.logout || "Logout"}
+                    <LogOut size={16} /> {t('logout') || "Logout"}
                 </button>
             </div>
 
@@ -103,14 +104,14 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
                     <div>
                         <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 border border-white/10">
-                            <AlertCircle size={12} className="text-amber-400" /> {t.paymentDue || "Payment Due"}
+                            <AlertCircle size={12} className="text-amber-400" /> {t('paymentDue') || "Payment Due"}
                         </div>
-                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{t.totalOutstanding || "Total Outstanding"}</p>
+                        <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">{t('totalOutstanding') || "Total Outstanding"}</p>
                         <h3 className="text-6xl font-black tracking-tighter">₹2,450.00</h3>
-                        <p className="text-slate-400 text-sm font-medium mt-4">{t.billingCycle || "Billing Cycle"}: Feb 2026 • {t.dueDate || "Due Date"}: 15 Feb</p>
+                        <p className="text-slate-400 text-sm font-medium mt-4">{t('billingCycle') || "Billing Cycle"}: Feb 2026 • {t('dueDate') || "Due Date"}: 15 Feb</p>
                     </div>
                     <button className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-blue-900/50 hover:bg-blue-500 transition">
-                        {t.payBillNow || "Pay Bill Now"}
+                        {t('payBillNow') || "Pay Bill Now"}
                     </button>
                 </div>
                 {/* BG Decoration */}
@@ -124,7 +125,7 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center">
                             <History size={20} />
                         </div>
-                        <h3 className="font-black text-xl text-slate-900">{t.recentTxns || "Recent Transactions"}</h3>
+                        <h3 className="font-black text-xl text-slate-900">{t('recentTxns') || "Recent Transactions"}</h3>
                     </div>
                     <div className="space-y-4">
                         {[
@@ -157,8 +158,8 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                             </div>
                             <ArrowRight size={20} className="text-slate-300 group-hover:text-green-600 transition" />
                         </div>
-                        <h4 className="font-black text-slate-900">{t.downloadStmt || "Download Statement"}</h4>
-                        <p className="text-xs text-slate-500 font-medium">{t.downloadStmtDesc || "Get detailed statement for last 6 months"}</p>
+                        <h4 className="font-black text-slate-900">{t('downloadStmt') || "Download Statement"}</h4>
+                        <p className="text-xs text-slate-500 font-medium">{t('downloadStmtDesc') || "Get detailed statement for last 6 months"}</p>
                     </button>
 
                     <button className="w-full bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:border-blue-400 transition text-left group">
@@ -168,8 +169,8 @@ const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
                             </div>
                             <ArrowRight size={20} className="text-slate-300 group-hover:text-orange-600 transition" />
                         </div>
-                        <h4 className="font-black text-slate-900">{t.consumptionAnalysis || "Consumption Analysis"}</h4>
-                        <p className="text-xs text-slate-500 font-medium">{t.consumptionAnalysisDesc || "View graphs of your power usage"}</p>
+                        <h4 className="font-black text-slate-900">{t('consumptionAnalysis') || "Consumption Analysis"}</h4>
+                        <p className="text-xs text-slate-500 font-medium">{t('consumptionAnalysisDesc') || "View graphs of your power usage"}</p>
                     </button>
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { CloudRain, AlertTriangle, ZapOff, Hammer, CheckCircle2 } from 'lucide-react';
 import { CityAlert, Language } from '../../types';
-import { TRANSLATIONS } from '../../constants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface Props {
     alerts: CityAlert[];
@@ -55,16 +55,16 @@ const CityMapSvg = ({ alerts }: { alerts: CityAlert[] }) => {
 };
 
 const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
     return (
         <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-slate-100 h-full relative overflow-hidden">
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <div>
-                    <h3 className="text-xl font-black text-slate-800">{t.liveMap || 'Live Disruption Map'}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">{t.iotSensor || 'IoT Sensor Network • Realtime'}</p>
+                    <h3 className="text-xl font-black text-slate-800">{t('liveMap') || 'Live Disruption Map'}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">{t('iotSensor') || 'IoT Sensor Network • Realtime'}</p>
                 </div>
                 <span className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest animate-pulse">
-                    <ZapOff size={12} /> {t.live || 'Live'}
+                    <ZapOff size={12} /> {t('live') || 'Live'}
                 </span>
             </div>
 
@@ -77,17 +77,17 @@ const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH })
                 {/* Legend / List */}
                 <div className="w-1/3 flex flex-col gap-3">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                        <span className="w-3 h-3 bg-red-200 border border-red-500 rounded-full"></span> {t.powerOutage || 'Power Outage'}
+                        <span className="w-3 h-3 bg-red-200 border border-red-500 rounded-full"></span> {t('powerOutage') || 'Power Outage'}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                        <span className="w-3 h-3 bg-blue-200 border border-blue-500 rounded-full"></span> {t.waterCut || 'Water Cut'}
+                        <span className="w-3 h-3 bg-blue-200 border border-blue-500 rounded-full"></span> {t('waterCut') || 'Water Cut'}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                        <span className="w-3 h-3 bg-slate-200 border border-slate-400 rounded-full"></span> {t.normal || 'Normal'}
+                        <span className="w-3 h-3 bg-slate-200 border border-slate-400 rounded-full"></span> {t('normal') || 'Normal'}
                     </div>
 
                     <div className="mt-auto bg-slate-900 text-white p-3 rounded-xl text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{t.estRestore || 'Est. Restore'}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{t('estRestore') || 'Est. Restore'}</p>
                         <p className="text-lg font-black text-green-400 flex items-center justify-center gap-1">
                             <CheckCircle2 size={14} /> 2h 15m
                         </p>

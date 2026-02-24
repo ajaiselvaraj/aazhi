@@ -2,7 +2,7 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Zap, Droplets, Lightbulb } from 'lucide-react';
 import { Language } from '../../types';
-import { TRANSLATIONS } from '../../constants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const DATA = [
     { month: 'Jan', power: 240, water: 150 },
@@ -27,17 +27,17 @@ interface Props {
 }
 
 const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
     return (
         <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 h-full">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-xl font-black text-slate-800">{t.consumptionTrends || 'Consumption Trends'}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.elecWaterUsage || 'Electricity & Water Usage'}</p>
+                    <h3 className="text-xl font-black text-slate-800">{t('consumptionTrends') || 'Consumption Trends'}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('elecWaterUsage') || 'Electricity & Water Usage'}</p>
                 </div>
                 <div className="flex gap-2 text-[10px] font-black uppercase tracking-widest">
-                    <span className="flex items-center gap-1 text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-600"></span> {t.power || 'Power'}</span>
-                    <span className="flex items-center gap-1 text-cyan-500"><span className="w-2 h-2 rounded-full bg-cyan-500"></span> {t.water || 'Water'}</span>
+                    <span className="flex items-center gap-1 text-blue-600"><span className="w-2 h-2 rounded-full bg-blue-600"></span> {t('power') || 'Power'}</span>
+                    <span className="flex items-center gap-1 text-cyan-500"><span className="w-2 h-2 rounded-full bg-cyan-500"></span> {t('water') || 'Water'}</span>
                 </div>
             </div>
 
@@ -68,7 +68,7 @@ const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH }) 
             </div>
 
             <div className="space-y-3">
-                <SmartTip text={t.tipContent || "Your usage peaks in May. Switching to 5-Star rated ACs can save ₹400/month."} />
+                <SmartTip text={t('tipContent') || "Your usage peaks in May. Switching to 5-Star rated ACs can save ₹400/month."} />
             </div>
         </div>
     );

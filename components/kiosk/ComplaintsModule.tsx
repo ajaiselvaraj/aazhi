@@ -11,9 +11,10 @@ import {
     Mic,
     FileText
 } from 'lucide-react';
-import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS, TRANSLATIONS } from '../../constants';
+import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
 import { Language } from '../../types';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface ComplaintsModuleProps {
     onBack: () => void;
@@ -22,7 +23,7 @@ interface ComplaintsModuleProps {
 }
 
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
     const { addComplaint } = useServiceComplaint();
 
     // If departmentId is provided, start at details step, otherwise category
@@ -88,7 +89,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                     <ArrowLeft size={24} />
                 </button>
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900">{t.reportIssue || "Register Complaint"}</h2>
+                    <h2 className="text-3xl font-black text-slate-900">{t('reportIssue') || "Register Complaint"}</h2>
                     <p className="text-slate-500 font-medium">
                         {departmentId
                             ? `Reporting issue for ${getDeptName(departmentId)}`
@@ -144,7 +145,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 onClick={() => setStep('details')}
                                 className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                {t.nextStep || "Next Step"} <ArrowLeft className="rotate-180" size={20} />
+                                {t('nextStep') || "Next Step"} <ArrowLeft className="rotate-180" size={20} />
                             </button>
                         </div>
                     </div>

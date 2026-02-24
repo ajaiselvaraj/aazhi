@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle } from 'lucide-react';
-import { TRANSLATIONS } from '../../../constants';
 import { Language } from '../../../types';
 
 interface Props {
