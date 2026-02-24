@@ -31,6 +31,7 @@ let session: ConversationState = {
 /**
  * SUVIDHA Intelligence Brain
  * Handles intent detection, state management, and hybrid responses.
+ * All text is passed through the t() function to honour the selected language.
  */
 class SuvidhaIntelligence {
 
@@ -53,36 +54,40 @@ class SuvidhaIntelligence {
         if (q === '1' || q.includes('pay') || q.includes('bill')) {
           session.step = 'BILL_TYPE';
           return {
-            text: "Select Bill Type:\n1. Electricity\n2. Water\n3. Gas\n4. Municipal Tax\n5. Back",
-            voice: voiceEnabled ? "Select the bill type. Option 1 Electricity, Option 2 Water, Option 3 Gas." : undefined,
+            text: `${t('ai_selectBillType')}\n1. ${t('ai_billElec')}\n2. ${t('ai_billWater')}\n3. ${t('ai_billGas')}\n4. ${t('ai_billMunicipal')}\n5. ${t('ai_backOption')}`,
+            voice: voiceEnabled ? `${t('ai_selectBillType')} 1 ${t('ai_billElec')}, 2 ${t('ai_billWater')}, 3 ${t('ai_billGas')}.` : undefined,
             menu: {
-              heading: "Select Bill Type",
+              heading: t('ai_selectBillTypeMenu'),
               options: [
-                { id: '1', label: 'Electricity' },
-                { id: '2', label: 'Water' },
-                { id: '3', label: 'Gas' },
-                { id: '4', label: 'Municipal Tax' },
-                { id: '5', label: 'Back' }
+                { id: '1', label: t('ai_billElec') },
+                { id: '2', label: t('ai_billWater') },
+                { id: '3', label: t('ai_billGas') },
+                { id: '4', label: t('ai_billMunicipal') },
+                { id: '5', label: t('ai_backOption') }
               ]
             }
           };
         }
         if (q === '2' || q.includes('service')) {
-          return { text: "Service Request module loading...", voice: voiceEnabled ? "Opening service request." : undefined, actions: [{ type: 'NAVIGATE', payload: 'services' }] };
+          return {
+            text: t('ai_serviceLoading'),
+            voice: voiceEnabled ? t('ai_openServiceRequest') : undefined,
+            actions: [{ type: 'NAVIGATE', payload: 'services' }]
+          };
         }
         if (q === '3' || q.includes('complaint')) {
           session.step = 'COMPLAINT_DEPT';
           return {
-            text: "Select Department:\n1. Electricity\n2. Water\n3. Sanitation\n4. Municipal\n5. Back",
-            voice: voiceEnabled ? "Select the department for your complaint." : undefined,
+            text: `${t('ai_selectDept')}\n1. ${t('ai_deptElec')}\n2. ${t('ai_deptWater')}\n3. ${t('ai_deptSanitation')}\n4. ${t('ai_deptMunicipal')}\n5. ${t('ai_backOption')}`,
+            voice: voiceEnabled ? t('ai_selectDept') : undefined,
             menu: {
-              heading: "Select Department",
+              heading: t('ai_selectDeptMenu'),
               options: [
-                { id: '1', label: 'Electricity' },
-                { id: '2', label: 'Water' },
-                { id: '3', label: 'Sanitation' },
-                { id: '4', label: 'Municipal' },
-                { id: '5', label: 'Back' }
+                { id: '1', label: t('ai_deptElec') },
+                { id: '2', label: t('ai_deptWater') },
+                { id: '3', label: t('ai_deptSanitation') },
+                { id: '4', label: t('ai_deptMunicipal') },
+                { id: '5', label: t('ai_backOption') }
               ]
             }
           }
@@ -93,31 +98,34 @@ class SuvidhaIntelligence {
       case 'BILL_TYPE':
         if (q === '5') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
         if (['1', '2', '3', '4'].includes(q)) {
-          session.data.billType = q === '1' ? 'Electricity' : q === '2' ? 'Water' : 'Gas';
+          session.data.billType = q === '1' ? t('ai_billElec') : q === '2' ? t('ai_billWater') : t('ai_billGas');
           session.step = 'BILL_CONSUMER_ID';
-          const label = session.data.billType === 'Electricity' ? 'Consumer Number' : 'Connection ID';
+          const label = q === '1' ? t('ai_consumerNumber') : t('ai_connectionId');
+          const enterMsg = t('ai_enterConsumerId')
+            .replace('{billType}', session.data.billType)
+            .replace('{label}', label);
           return {
-            text: `Please enter your ${session.data.billType} ${label} using the numeric keypad.`,
-            voice: voiceEnabled ? `Please enter your ${session.data.billType} number.` : undefined
+            text: enterMsg,
+            voice: voiceEnabled ? enterMsg : undefined
           };
         }
-        return { text: "Invalid selection. Please select 1 to 5.", voice: voiceEnabled ? "Invalid selection." : undefined };
+        return { text: t('ai_invalidSelection'), voice: voiceEnabled ? t('ai_invalidSelection') : undefined };
 
       case 'BILL_CONSUMER_ID':
-        if (q.length < 5) return { text: "Invalid Number. Please try again.", voice: voiceEnabled ? "Invalid number." : undefined };
+        if (q.length < 5) return { text: t('ai_invalidNumber'), voice: voiceEnabled ? t('ai_invalidNumber') : undefined };
 
         session.data.consumerId = q;
         session.step = 'BILL_DETAILS';
         session.data.amount = 850; // Mock
 
         return {
-          text: `Bill Details:\nName: ${MOCK_USER_PROFILE.name}\nAmount Due: ₹${session.data.amount}\nDue Date: 15 Feb 2026\n\n1. Pay Now\n2. Cancel`,
-          voice: voiceEnabled ? `Bill found for ${MOCK_USER_PROFILE.name}. Amount is 850 rupees. Select 1 to pay.` : undefined,
+          text: `${t('ai_billDetails')}\n${t('ai_billName')} ${MOCK_USER_PROFILE.name}\n${t('ai_billAmountDue').replace('{amount}', session.data.amount)}\n${t('ai_billDueDate')}\n\n1. ${t('ai_payNow')}\n2. ${t('ai_cancelOption')}`,
+          voice: voiceEnabled ? t('ai_billFoundVoice').replace('{name}', MOCK_USER_PROFILE.name).replace('{amount}', session.data.amount) : undefined,
           menu: {
-            heading: "Bill Summary",
+            heading: t('ai_billSummaryMenu'),
             options: [
-              { id: '1', label: 'Pay Now' },
-              { id: '2', label: 'Cancel' }
+              { id: '1', label: t('ai_payNow') },
+              { id: '2', label: t('ai_cancelOption') }
             ]
           }
         };
@@ -127,49 +135,49 @@ class SuvidhaIntelligence {
         if (q === '1') {
           session.step = 'PAYMENT_METHOD';
           return {
-            text: "Select Payment Method:\n1. UPI\n2. Debit/Credit Card\n3. Net Banking\n4. Back",
-            voice: voiceEnabled ? "Select payment method. Option 1 UPI." : undefined,
+            text: `${t('ai_selectPayMethod')}\n1. ${t('ai_payUPI')}\n2. ${t('ai_payCard')}\n3. ${t('ai_payNetBanking')}\n4. ${t('ai_backOption')}`,
+            voice: voiceEnabled ? `${t('ai_selectPayMethod')} 1 ${t('ai_payUPI')}.` : undefined,
             menu: {
-              heading: "Payment Method",
+              heading: t('ai_payMethodMenu'),
               options: [
-                { id: '1', label: 'UPI' },
-                { id: '2', label: 'Card' },
-                { id: '3', label: 'Net Banking' },
-                { id: '4', label: 'Back' }
+                { id: '1', label: t('ai_payUPI') },
+                { id: '2', label: t('ai_payCard') },
+                { id: '3', label: t('ai_payNetBanking') },
+                { id: '4', label: t('ai_backOption') }
               ]
             }
           };
         }
-        return { text: "Invalid option.", voice: undefined };
+        return { text: t('ai_invalidOption'), voice: undefined };
 
       case 'PAYMENT_METHOD':
         if (q === '1') {
           session.step = 'UPI_QR';
           return {
-            text: "UPI Payment\n\nPlease scan the QR code displayed.\nAmount: ₹850\n\n1. Payment Completed\n2. Cancel",
-            voice: voiceEnabled ? "Scan the QR code to pay 850 rupees." : undefined,
+            text: `${t('ai_upiPayment')}\n\n${t('ai_scanQr')}\n${t('ai_upiAmount')}\n\n1. ${t('ai_paymentCompleted')}\n2. ${t('ai_cancelOption')}`,
+            voice: voiceEnabled ? t('ai_scanQrVoice') : undefined,
             menu: {
-              heading: "Steps",
-              options: [{ id: '1', label: 'Payment Completed' }, { id: '2', label: 'Cancel' }]
+              heading: t('ai_upiStepsMenu'),
+              options: [{ id: '1', label: t('ai_paymentCompleted') }, { id: '2', label: t('ai_cancelOption') }]
             }
           }
         }
-        return { text: "Method not supported in demo. Try UPI (1).", voice: undefined };
+        return { text: t('ai_methodNotSupported'), voice: undefined };
 
       case 'UPI_QR':
         if (q === '1') {
           session.step = 'PAYMENT_SUCCESS';
           return {
-            text: "Payment Successful!\nTransaction ID: TXN458921\nAmount Paid: ₹850\n\n1. Download Receipt\n2. Home",
-            voice: voiceEnabled ? "Payment successful. Thank you." : undefined,
+            text: `${t('ai_paySuccess')}\n${t('ai_txnId')}\n${t('ai_amountPaid')}\n\n1. ${t('ai_downloadReceipt')}\n2. ${t('ai_home')}`,
+            voice: voiceEnabled ? t('ai_paySuccessVoice') : undefined,
             menu: {
-              heading: "Success",
-              options: [{ id: '1', label: 'Download Receipt' }, { id: '2', label: 'Home' }]
+              heading: t('ai_successMenu'),
+              options: [{ id: '1', label: t('ai_downloadReceipt') }, { id: '2', label: t('ai_home') }]
             }
           }
         }
         if (q === '2') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
-        return { text: "Waiting for confirmation...", voice: undefined };
+        return { text: t('ai_waitingConfirm'), voice: undefined };
 
       case 'PAYMENT_SUCCESS':
         this.resetSession();
@@ -178,28 +186,28 @@ class SuvidhaIntelligence {
       // --- COMPLAINT FLOW ---
       case 'COMPLAINT_DEPT':
         if (['1', '2', '3', '4'].includes(q)) {
-          session.data.dept = q === '1' ? 'Electricity' : 'Water';
+          session.data.dept = q === '1' ? t('ai_deptElec') : t('ai_deptWater');
           session.step = 'COMPLAINT_ID';
           return {
-            text: "Enter your Complaint Number or Consumer ID.",
-            voice: voiceEnabled ? "Enter your ID." : undefined
+            text: t('ai_enterComplaintId'),
+            voice: voiceEnabled ? t('ai_enterIdVoice') : undefined
           };
         }
-        return { text: "Invalid option.", voice: undefined };
+        return { text: t('ai_invalidOption'), voice: undefined };
 
       case 'COMPLAINT_ID':
         session.data.id = q;
         session.step = 'COMPLAINT_DESC';
         return {
-          text: "Select Issue:\n1. No Power / Water\n2. Wrong Bill\n3. Infrastructure Issue\n4. Other",
-          voice: voiceEnabled ? "Select the issue type." : undefined,
+          text: `${t('ai_selectIssue')}\n1. ${t('ai_issueNoSupply')}\n2. ${t('ai_issueWrongBill')}\n3. ${t('ai_issueInfra')}\n4. ${t('ai_issueOther')}`,
+          voice: voiceEnabled ? t('ai_selectIssue') : undefined,
           menu: {
-            heading: "Select Issue",
+            heading: t('ai_selectIssueMenu'),
             options: [
-              { id: '1', label: 'No Supply' },
-              { id: '2', label: 'Wrong Bill' },
-              { id: '3', label: 'Infra Issue' },
-              { id: '4', label: 'Other' }
+              { id: '1', label: t('ai_issueNoSupplyShort') },
+              { id: '2', label: t('ai_issueWrongBill') },
+              { id: '3', label: t('ai_issueInfraShort') },
+              { id: '4', label: t('ai_issueOther') }
             ]
           }
         };
@@ -207,11 +215,11 @@ class SuvidhaIntelligence {
       case 'COMPLAINT_DESC':
         session.step = 'COMPLAINT_SUCCESS';
         return {
-          text: "Complaint Registered Successfully!\nComplaint ID: CMP10245\n\n1. Track Status\n2. Home",
-          voice: voiceEnabled ? "Complaint registered. Your ID is C M P 1 0 2 4 5." : undefined,
+          text: `${t('ai_complaintSuccess')}\n${t('ai_complaintId')}\n\n1. ${t('ai_trackStatus')}\n2. ${t('ai_home')}`,
+          voice: voiceEnabled ? t('ai_complaintSuccessVoice') : undefined,
           menu: {
-            heading: "Done",
-            options: [{ id: '1', label: 'Track' }, { id: '2', label: 'Home' }]
+            heading: t('ai_complaintDoneMenu'),
+            options: [{ id: '1', label: t('ai_trackStatus') }, { id: '2', label: t('ai_home') }]
           }
         };
 

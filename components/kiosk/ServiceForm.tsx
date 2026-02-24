@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X, FileText } from 'lucide-react';
 import { Language } from '../../types';
-import { TRANSLATIONS } from '../../constants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 interface FormField {
     name: string;
@@ -22,7 +22,7 @@ interface ServiceFormProps {
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, onBack, onSubmit, language }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [showSuccess, setShowSuccess] = useState(false);

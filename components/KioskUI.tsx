@@ -94,13 +94,40 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, activeTab]);
 
+  // Full language-to-BCP47 locale map for voice synthesis & recognition
+  const LANG_LOCALE_MAP: Record<Language, string> = {
+    [Language.ENGLISH]: 'en-IN',
+    [Language.HINDI]: 'hi-IN',
+    [Language.TAMIL]: 'ta-IN',
+    [Language.TELUGU]: 'te-IN',
+    [Language.KANNADA]: 'kn-IN',
+    [Language.MALAYALAM]: 'ml-IN',
+    [Language.MARATHI]: 'mr-IN',
+    [Language.GUJARATI]: 'gu-IN',
+    [Language.PUNJABI]: 'pa-IN',
+    [Language.BENGALI]: 'bn-IN',
+    [Language.ODIA]: 'or-IN',
+    [Language.ASSAMESE]: 'as-IN',
+    [Language.URDU]: 'ur-IN',
+    [Language.NEPALI]: 'ne-NP',
+    [Language.MAITHILI]: 'mai',
+    [Language.DOGRI]: 'doi',
+    [Language.KONKANI]: 'kok-IN',
+    [Language.KASHMIRI]: 'ks-IN',
+    [Language.MANIPURI]: 'mni-IN',
+    [Language.BODO]: 'brx-IN',
+    [Language.SANSKRIT]: 'sa-IN',
+    [Language.SANTALI]: 'sat-IN',
+    [Language.SINDHI]: 'sd-IN',
+  };
+
   // Handle Voice Speak
   const speakText = (text: string) => {
     if (!isVoiceEnabled || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = language === Language.HINDI ? 'hi-IN' : 'en-IN'; // Basic lang support
+    utterance.lang = LANG_LOCALE_MAP[language] || 'en-IN';
     utterance.rate = 0.9; // Accessibility: Speak slowly
     window.speechSynthesis.speak(utterance);
   };
@@ -184,7 +211,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
 
-      recognition.lang = language === Language.HINDI ? 'hi-IN' : 'en-IN';
+      recognition.lang = LANG_LOCALE_MAP[language] || 'en-IN';
       recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 

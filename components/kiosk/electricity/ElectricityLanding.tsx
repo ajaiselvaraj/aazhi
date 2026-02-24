@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, AlertTriangle, ArrowRight, Lock, ArrowLeft } from 'lucide-react';
 import { Language } from '../../../types';
-import { TRANSLATIONS } from '../../../constants';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface Props {
     onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
@@ -10,24 +10,24 @@ interface Props {
 }
 
 const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
-    const t = TRANSLATIONS[language];
+    const { t } = useLanguage();
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
 
             <button onClick={onExit} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-2 hover:text-slate-900 transition">
-                <ArrowLeft size={16} /> {t.backToUtils}
+                <ArrowLeft size={16} /> {t('backToUtils')}
             </button>
 
             {/* Header */}
             <div className="text-center space-y-4">
                 <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full border border-blue-100 mb-2">
                     <ShieldCheck size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{t.officialPortal}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">{t('officialPortal')}</span>
                 </div>
-                <h1 className="text-5xl font-black text-slate-900 tracking-tight">{t.elecServices}</h1>
+                <h1 className="text-5xl font-black text-slate-900 tracking-tight">{t('elecServices')}</h1>
                 <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
-                    {language === Language.ENGLISH ? "Secure, instant, and transparent electricity bill payments. Choose your preferred access mode below." : (language === Language.TAMIL ? "பாதுகாப்பான, உடனடி மற்றும் வெளிப்படையான மின்சார கட்டண கொடுப்பனவுகள்." : "तेज, सुरक्षित और पारदर्शी बिजली बिल भुगतान।")}
+                    {t('elecLandingDesc') || "Secure, instant, and transparent electricity bill payments. Choose your preferred access mode below."}
                 </p>
             </div>
 
@@ -50,16 +50,16 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
 
                         <div>
                             <div className="inline-block bg-white/20 backdrop-blur px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 border border-white/10">
-                                {t.recommended || "RECOMMENDED"}
+                                {t('recommended') || "RECOMMENDED"}
                             </div>
-                            <h2 className="text-3xl font-black leading-tight mb-2">{t.quickPay}</h2>
+                            <h2 className="text-3xl font-black leading-tight mb-2">{t('quickPay')}</h2>
                             <p className="opacity-90 font-medium text-sm leading-relaxed max-w-[80%]">
-                                {t.quickPayDesc}
+                                {t('quickPayDesc')}
                             </p>
                         </div>
 
                         <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 w-fit px-4 py-3 rounded-xl group-hover:bg-white group-hover:text-blue-600 transition">
-                            {t.startPayment} <ArrowRight size={14} />
+                            {t('startPayment')} <ArrowRight size={14} />
                         </div>
                     </div>
                 </button>
@@ -80,16 +80,16 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
 
                         <div>
                             <div className="inline-block bg-slate-100 text-slate-500 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
-                                {t.fullAccess || "FULL ACCESS"}
+                                {t('fullAccess') || "FULL ACCESS"}
                             </div>
-                            <h2 className="text-3xl font-black leading-tight mb-2">{t.consumerLogin}</h2>
+                            <h2 className="text-3xl font-black leading-tight mb-2">{t('consumerLogin')}</h2>
                             <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-[80%]">
-                                {t.consumerLoginDesc}
+                                {t('consumerLoginDesc')}
                             </p>
                         </div>
 
                         <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-4 py-3 rounded-xl group-hover:bg-slate-900 group-hover:text-white transition">
-                            {t.secureLogin} <ArrowRight size={14} />
+                            {t('secureLogin')} <ArrowRight size={14} />
                         </div>
                     </div>
                 </button>
@@ -98,10 +98,10 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
             {/* Secondary Tools */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
                 {[
-                    { id: 'CALCULATOR', icon: Calculator, label: t.billCalculator, desc: t.calcSub },
-                    { id: 'TARIFF', icon: FileText, label: t.tariffDetails, desc: t.viewRates || 'View rates & slabs' },
+                    { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator'), desc: t('calcSub') },
+                    { id: 'TARIFF', icon: FileText, label: t('tariffDetails'), desc: t('viewRates') || 'View rates & slabs' },
                     { id: 'TRANSACTIONS', icon: CreditCard, label: "My Transactions", desc: "View Payment History" },
-                    { id: 'APP', icon: Smartphone, label: t.appDownload, desc: t.mobileServices || 'Mobile services' },
+                    { id: 'APP', icon: Smartphone, label: t('appDownload'), desc: t('mobileServices') || 'Mobile services' },
                 ].map((item) => (
                     <button
                         key={item.id}
@@ -125,9 +125,9 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                     <AlertTriangle size={24} />
                 </div>
                 <div>
-                    <h4 className="font-black text-amber-900 text-sm uppercase tracking-wider mb-1">{t.fraudAlert}</h4>
+                    <h4 className="font-black text-amber-900 text-sm uppercase tracking-wider mb-1">{t('fraudAlert')}</h4>
                     <p className="text-amber-800 text-sm font-medium leading-relaxed">
-                        {t.fraudMsg}
+                        {t('fraudMsg')}
                     </p>
                 </div>
             </div>
