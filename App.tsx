@@ -183,28 +183,28 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Grid: Optimized for 23 items at 100% zoom */}
-      <div className="flex-1 w-full max-w-[1600px] z-10 px-6 overflow-y-auto pb-4 flex items-center justify-center">
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3 w-full">
+      {/* Main Grid: Adjusted for 14 items */}
+      <div className="flex-1 w-full max-w-[1200px] z-10 px-6 overflow-y-auto pb-4 flex items-center justify-center">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4 w-full">
           {LANGUAGES_CONFIG.map((item) => (
             <button
               key={item.code}
               onClick={() => handleLanguageSelect(item.code)}
               className={`
                 group relative bg-white transition-all duration-200
-                flex flex-col items-center justify-center gap-0.5
-                h-24 w-full rounded-xl border
+                flex flex-col items-center justify-center gap-1.5
+                h-28 w-full rounded-2xl border-2
                 ${language === item.code
-                  ? 'border-blue-600 ring-2 ring-blue-600 shadow-xl z-20 scale-105'
-                  : 'border-slate-200 hover:border-blue-500 hover:shadow-md hover:-translate-y-0.5'
+                  ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-105'
+                  : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
                 }
               `}
               dir={item.rtl ? 'rtl' : 'ltr'}
             >
-              <span className={`text-xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 ${item.rtl ? 'font-serif text-2xl' : ''}`}>
+              <span className={`text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 ${item.rtl ? 'font-serif text-4xl' : ''}`}>
                 {item.label}
               </span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1">
                 {item.name}
               </span>
 
