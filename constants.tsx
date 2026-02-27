@@ -96,23 +96,14 @@ export const LANGUAGES_CONFIG = [
   { code: Language.ENGLISH, label: 'English', name: 'English' },
   { code: Language.ASSAMESE, label: 'অসমীয়া', name: 'Assamese' },
   { code: Language.BENGALI, label: 'বাংলা', name: 'Bengali' },
-  { code: Language.BODO, label: 'बर\'/बड़ो', name: 'Bodo' },
-  { code: Language.DOGRI, label: 'डोगरी', name: 'Dogri' },
   { code: Language.GUJARATI, label: 'ગુજરાતી', name: 'Gujarati' },
   { code: Language.HINDI, label: 'हिन्दी', name: 'Hindi' },
   { code: Language.KANNADA, label: 'ಕನ್ನಡ', name: 'Kannada' },
-  { code: Language.KASHMIRI, label: 'کأشُر', name: 'Kashmiri', rtl: true },
-  { code: Language.KONKANI, label: 'कोंकणी', name: 'Konkani' },
-  { code: Language.MAITHILI, label: 'मैथिली', name: 'Maithili' },
   { code: Language.MALAYALAM, label: 'മലയാളം', name: 'Malayalam' },
-  { code: Language.MANIPURI, label: 'ꯃꯤꯇꯩ ꯂꯣꯟ', name: 'Manipuri' },
   { code: Language.MARATHI, label: 'मराठी', name: 'Marathi' },
   { code: Language.NEPALI, label: 'नेपाली', name: 'Nepali' },
   { code: Language.ODIA, label: 'ଓଡ଼ିଆ', name: 'Odia' },
   { code: Language.PUNJABI, label: 'ਪੰਜਾਬੀ', name: 'Punjabi' },
-  { code: Language.SANSKRIT, label: 'संस्कृतम्', name: 'Sanskrit' },
-  { code: Language.SANTALI, label: 'ᱥᱟᱱᱛᱟᱲᱤ', name: 'Santali' },
-  { code: Language.SINDHI, label: 'سنڌي', name: 'Sindhi', rtl: true },
   { code: Language.TAMIL, label: 'தமிழ்', name: 'Tamil' },
   { code: Language.TELUGU, label: 'తెలుగు', name: 'Telugu' },
   { code: Language.URDU, label: 'اُردُو', name: 'Urdu', rtl: true }
@@ -1126,8 +1117,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_adminPass: "অবৈধ অ্যাডমিন পাসওয়ার্ড",
     err_otp: "6-সংখ্যার OTP লিখুন"
   },
-  [Language.BODO]: { ...BASE_TRANSLATIONS },
-  [Language.DOGRI]: { ...BASE_TRANSLATIONS },
   [Language.GUJARATI]: {
     ...BASE_TRANSLATIONS,
     sel_welcomeUser: "સ્વાગત છે, નાગરિક",
@@ -1158,9 +1147,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_adminPass: "ಅಮಾನ್ಯ ನಿರ್ವಾಹಕ ಪಾಸ್‌ವರ್ಡ್",
     err_otp: "6-ಅಂಕಿಯ OTP ನಮೂದಿಸಿ"
   },
-  [Language.KASHMIRI]: { ...BASE_TRANSLATIONS },
-  [Language.KONKANI]: { ...BASE_TRANSLATIONS },
-  [Language.MAITHILI]: { ...BASE_TRANSLATIONS },
   [Language.MALAYALAM]: {
     ...BASE_TRANSLATIONS,
     sel_welcomeUser: "സ്വാഗതം, പൗരൻ",
@@ -1176,7 +1162,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_adminPass: "അഡ്മിൻ പാസ്‌വേഡ് തെറ്റാണ്",
     err_otp: "6 അക്ക OTP നൽകുക"
   },
-  [Language.MANIPURI]: { ...BASE_TRANSLATIONS },
   [Language.MARATHI]: {
     ...BASE_TRANSLATIONS,
     sel_welcomeUser: "स्वागत आहे, नागरिक",
@@ -1223,23 +1208,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_adminPass: "ਗਲਤ ਐਡਮਿਨ ਪਾਸਵਰਡ",
     err_otp: "6-ਅੰਕਾਂ ਦਾ OTP ਦਰਜ ਕਰੋ"
   },
-  [Language.SANSKRIT]: {
-    ...BASE_TRANSLATIONS,
-    sel_welcomeUser: "स्वागतम्, नागरिक",
-    sel_aiTitle: "सुविधा-सहायकः",
-    sel_aiDesc: "सर्वकारीय-सेवा-योजना-स्थानीय-समस्या-विषये किमपि पृच्छतु।",
-    sel_aiBtn: "ध्वनिः वा टङ्कनं वा प्रयुज्यताम्",
-    sel_payTitle: "शीघ्र-भुक्तानम्",
-    sel_payDesc: "विद्युत्-जल-सम्पत्ति-करान् झटिति ददातु।",
-    sel_payBtn: "शीघ्रं सुरक्षितं च",
-    sel_cancel: "निरसनं निर्गमनं च",
-    err_aadhaar: "मान्यं द्वादश-अङ्कीय-आधार-सङ्ख्यां लिखतु",
-    err_mobile: "मान्यं दश-अङ्कीय-जङ्‍गम-दूरवाणी-सङ्ख्यां लिखतु",
-    err_adminPass: "अमान्य-प्रशासक-कूटशब्दः",
-    err_otp: "षड्-अङ्कीय-ओटीपी लिखतु"
-  },
-  [Language.SANTALI]: { ...BASE_TRANSLATIONS },
-  [Language.SINDHI]: { ...BASE_TRANSLATIONS },
   [Language.TELUGU]: {
     ...BASE_TRANSLATIONS,
     sel_welcomeUser: "స్వాగతం, పౌరుడు",
