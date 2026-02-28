@@ -3,6 +3,7 @@ import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, Log
 import { APP_CONFIG } from '../constants';
 import { Language } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
+import VoiceNavigation from './VoiceNavigation';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -15,6 +16,7 @@ interface KioskShellProps {
     timer?: number;
     isPrivacyShield?: boolean;
     onTogglePrivacy?: () => void;
+    onVoiceCommand?: (command: string) => void;
 }
 
 /**
@@ -33,7 +35,8 @@ const KioskShell: React.FC<KioskShellProps> = ({
     language,
     timer = 120, // Default to avoid crash if not passed
     isPrivacyShield = false,
-    onTogglePrivacy
+    onTogglePrivacy,
+    onVoiceCommand
 }) => {
     const [time, setTime] = useState(new Date());
     const { t } = useLanguage();
@@ -145,6 +148,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     </div>
 
                     <div className="flex items-center gap-6">
+                        {onVoiceCommand && (
+                            <VoiceNavigation onCommand={onVoiceCommand} />
+                        )}
                         {/* Accessibility Quick Toggles */}
                         <div className="hidden xl:flex bg-slate-100 p-1 rounded-xl">
                             <button className="p-3 text-slate-400 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition"><Volume2 size={20} /></button>
