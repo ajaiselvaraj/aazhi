@@ -36,6 +36,7 @@ interface LanguageContextType {
     language: Language;
     setLanguage: (lang: Language) => void;
     t: (key: string) => string;
+    tForLang: (key: string, lang: Language) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -75,8 +76,23 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return key;
     };
 
+    const tForLang = (key: string, lang: Language): string => {
+        const currentLocale = LOCALE_MAP[lang];
+        const fallbackLocale = LOCALE_MAP[Language.ENGLISH];
+
+        if (currentLocale && currentLocale[key]) {
+            return currentLocale[key];
+        }
+
+        if (fallbackLocale && fallbackLocale[key]) {
+            return fallbackLocale[key];
+        }
+
+        return key;
+    };
+
     return (
-        <LanguageContext.Provider value={{ language, setLanguage, t }}>
+        <LanguageContext.Provider value={{ language, setLanguage, t, tForLang }}>
             {children}
         </LanguageContext.Provider>
     );
