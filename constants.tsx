@@ -372,9 +372,12 @@ const BASE_TRANSLATIONS = {
   issue_PropertyTaxIssue: "Property tax issue",
   // Alerts
   cityAlert: "City Alert",
+  alertUpdateFor: "Important update for",
   "alert_AL-01": "Planned maintenance in Ward 12 from 2PM - 5PM.",
   "alert_AL-02": "Low pressure expected in Central Zone due to pipeline repair.",
   "alert_AL-03": "Mobile Health Camp today at Gandhi Park (Ward 12).",
+  alert_additional_info: "24/7 Assistance: 1800-425-1111 (Toll Free) • Pay through official portals only • Don't share OTP • Follow safety guidelines",
+
   // DigiLocker
   dlSignIn: "Sign In to your account",
   dlAccessDesc: "Access your digital documents securely.",
