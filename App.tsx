@@ -8,6 +8,7 @@ import { Language } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useLanguage } from './contexts/LanguageContext';
+import VoiceNavigation from './components/VoiceNavigation';
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -383,6 +384,35 @@ const App: React.FC = () => {
     setView(ViewState.DASHBOARD);
   };
 
+  const handleVoiceCommand = useCallback((command: string) => {
+    console.log('App received voice command:', command);
+    switch (command) {
+      case 'LOGIN':
+        setView(ViewState.LOGIN);
+        break;
+      case 'SELECT_EN':
+        setLanguage(Language.ENGLISH);
+        break;
+      case 'SELECT_HI':
+        setLanguage(Language.HINDI);
+        break;
+      case 'SELECT_TA':
+        setLanguage(Language.TAMIL);
+        break;
+      case 'SELECT_TE':
+        setLanguage(Language.TELUGU);
+        break;
+      case 'SELECT_KN':
+        setLanguage(Language.KANNADA);
+        break;
+      case 'SELECT_ML':
+        setLanguage(Language.MALAYALAM);
+        break;
+      default:
+        console.warn('Voice command ignored:', command);
+    }
+  }, [setView, setLanguage]);
+
   // ─────────────────────────────────────────────
   // Render: LANDING (Language Selection)
   // ─────────────────────────────────────────────
@@ -398,7 +428,6 @@ const App: React.FC = () => {
       </div>
 
       {/* Top-right Location Selector */}
-      {/* Top-right Location Selector */}
       <div style={{
         position: 'absolute', top: '24px', right: '32px', zIndex: 40,
       }}>
@@ -406,6 +435,15 @@ const App: React.FC = () => {
           locationInfo={locationInfo}
         />
       </div>
+
+      {/* Top-left Voice Navigation */}
+      <div style={{
+        position: 'absolute', top: '24px', left: '32px', zIndex: 40,
+      }}>
+        <VoiceNavigation onCommand={handleVoiceCommand} />
+      </div>
+
+
 
       {/* Compact Header */}
       <header className="text-center mb-6 z-10 w-full max-w-7xl mx-auto flex flex-col items-center justify-center pt-8">
@@ -460,7 +498,7 @@ const App: React.FC = () => {
             </button>
           ))}
         </div>
-      </div>
+      </div >
 
       <footer className="mb-2 z-10 text-center opacity-70 flex flex-col items-center gap-1 text-slate-500 text-[10px] font-medium tracking-wide">
         <div className="flex items-center gap-4 uppercase tracking-[0.2em]">
@@ -485,7 +523,7 @@ const App: React.FC = () => {
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
         <ScrollingAlertBanner language={alertLanguage} location={locationInfo} />
       </div>
-    </div>
+    </div >
   );
 
   // ─────────────────────────────────────────────
@@ -562,9 +600,12 @@ const App: React.FC = () => {
             <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">{t('govtOfIndia')}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
+        <div className="flex items-center gap-4">
+          <VoiceNavigation onCommand={handleVoiceCommand} />
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
+          </div>
         </div>
       </header>
 
@@ -798,7 +839,8 @@ const App: React.FC = () => {
               isPrivacyShield={isPrivacyShieldOn}
               timer={timer}
               onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
-              initialTab={dashboardInitialTab}
+              initialTab={dashboardInitialTab as any}
+              onVoiceCommand={handleVoiceCommand}
             />
           )}
           {view === ViewState.DOCUMENTATION && (
