@@ -19,6 +19,13 @@ import PaymentReceipt from './kiosk/PaymentReceipt';
 import KioskShell from './KioskShell';
 import ElectricityModule from './kiosk/electricity/ElectricityModule';
 import ComplaintsModule from './kiosk/ComplaintsModule';
+import { CivicComplaintForm } from './municipal/CivicComplaintForm';
+import { EmergencySOS } from './municipal/EmergencySOS';
+import { CertificateDownload } from './municipal/CertificateDownload';
+import { VendorLicenseFlow } from './municipal/VendorLicenseFlow';
+import { PropertyServices } from './municipal/PropertyServices';
+import { CitizenParticipation } from './municipal/CitizenParticipation';
+
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -30,7 +37,8 @@ interface Props {
   isPrivacyShield: boolean;
   timer: number;
   onTogglePrivacy: () => void;
-  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker';
+  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation';
+
 }
 
 interface ChatMessage {
@@ -43,12 +51,16 @@ interface ChatMessage {
 }
 
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home' }) => {
-  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation'>(initialTab);
+
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
   const { t } = useLanguage();
 
   // Accessibility State
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
+    return localStorage.getItem('voice_enabled') === 'true';
+  });
+
   const [isLargeText, setIsLargeText] = useState(false);
 
   // AI & Chat States
@@ -119,6 +131,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     [Language.SANSKRIT]: 'sa-IN',
     [Language.SANTALI]: 'sat-IN',
     [Language.SINDHI]: 'sd-IN',
+
   };
 
   // Handle Voice Speak
@@ -713,7 +726,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
                 {/* Voice Toggle */}
                 <button
-                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
+                  onClick={() => {
+                    const nextState = !isVoiceEnabled;
+                    setIsVoiceEnabled(nextState);
+                    localStorage.setItem('voice_enabled', nextState.toString());
+                  }}
+
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${isVoiceEnabled ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-800 text-indigo-300 border-indigo-700'}`}
                 >
                   {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
@@ -835,16 +853,35 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
         {activeTab === 'complaints' && (
           <div className="h-full">
-            <ComplaintsModule
+            <CivicComplaintForm
               onBack={() => {
                 // If specific dept was selected, go back to Services list, else Home
                 setActiveTab(selectedComplaintDept ? 'services' : 'home');
                 setSelectedComplaintDept(undefined);
               }}
+              isPrivacyOn={isPrivacyShield}
               language={language}
               departmentId={selectedComplaintDept}
             />
+
           </div>
+        )}
+
+        {/* VIEW 7: NEW MODULES */}
+        {activeTab === 'emergency' && (
+          <EmergencySOS onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
+        )}
+        {activeTab === 'certificates' && (
+          <CertificateDownload onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
+        )}
+        {activeTab === 'business' && (
+          <VendorLicenseFlow onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
+        )}
+        {activeTab === 'property' && (
+          <PropertyServices onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
+        )}
+        {activeTab === 'participation' && (
+          <CitizenParticipation onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
         )}
 
       </div>

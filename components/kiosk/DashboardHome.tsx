@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, MapPin } from 'lucide-react';
+import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, MapPin, AlertCircle, Users, Briefcase } from 'lucide-react';
 import AlertsPanel from './AlertsPanel';
 import ConsumptionAnalytics from './ConsumptionAnalytics';
 import DisruptionMap from './DisruptionMap';
@@ -58,7 +58,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                     <AlertsPanel alerts={alerts} language={language} />
                 </div>
 
-                <div className="lg:col-span-2 grid grid-cols-2 gap-4">
+                <div className="lg:col-span-2 grid grid-cols-3 gap-4">
                     <button
                         onClick={() => onNavigate('services')}
                         className="group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left h-full"
@@ -92,10 +92,31 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 <CreditCard size={24} />
                             </div>
                             <div>
-                                <h3 className="text-2xl font-black mb-1">{t('payBills')}</h3>
-                                <p className="text-slate-500 text-xs font-medium mb-4">{t('payBillsDesc')}</p>
+                                <h3 className="text-xl font-black mb-1">{t('payBills') || "Pay Bills"}</h3>
+                                <p className="text-slate-500 text-[10px] font-medium mb-4">{t('payBillsDesc') || "Utility bills"}</p>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-3 py-2 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition">
-                                    {t('pay')} <ArrowRight size={12} />
+                                    {t('pay') || "Pay"} <ArrowRight size={12} />
+                                </div>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => onNavigate('complaints')}
+                        className="group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left h-full"
+                    >
+                        <div className="absolute top-0 right-0 p-4 text-red-100 group-hover:text-red-500 transition duration-500">
+                            <AlertCircle size={100} />
+                        </div>
+                        <div className="relative z-10 flex flex-col h-full justify-between">
+                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 text-red-600 shadow-sm">
+                                <AlertCircle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black mb-1">{t('reportIssue') || "Report Issue"}</h3>
+                                <p className="opacity-80 text-[10px] font-medium mb-4">Potholes, garbage, etc</p>
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/50 text-red-700 w-fit px-3 py-2 rounded-lg group-hover:bg-red-800 group-hover:text-white transition">
+                                    Report <ArrowRight size={12} />
                                 </div>
                             </div>
                         </div>
@@ -121,15 +142,60 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             <p className="text-indigo-600 font-bold text-sm">{t('docVaultDesc')}</p>
                         </div>
                     </div>
-                    <button className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition">
-                        {t('viewDocs')}
-                    </button>
+                    <div className="flex gap-4">
+                        <button onClick={() => onNavigate('certificates')} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition">
+                            {t('viewDocs') || "Certificates"}
+                        </button>
+                        <button onClick={() => onNavigate('property')} className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest border border-indigo-200 shadow-md hover:bg-indigo-50 transition">
+                            Property Services
+                        </button>
+                    </div>
                 </div>
 
-                {/* Visual Flair */}
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-100 to-transparent"></div>
             </div>
 
+            {/* Extra Kiosk Links Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <button onClick={() => onNavigate('emergency')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-red-200 transition group">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition shadow-sm">
+                            <AlertCircle size={24} />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-black text-slate-800 text-xl mb-1 flex items-center gap-2">SOS Help <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Fire • Rescue</p>
+                        </div>
+                    </div>
+                    <ArrowRight size={20} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition" />
+                </button>
+
+                <button onClick={() => onNavigate('participation')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-indigo-200 transition group">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm">
+                            <Users size={24} />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-black text-slate-800 text-xl mb-1">Governance</h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Vote • Meetings</p>
+                        </div>
+                    </div>
+                    <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
+                </button>
+
+                <button onClick={() => onNavigate('business')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-blue-200 transition group">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition shadow-sm">
+                            <Briefcase size={24} />
+                        </div>
+                        <div className="text-left">
+                            <h4 className="font-black text-slate-800 text-xl mb-1">Vendor Licenses</h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Shops • Commerce</p>
+                        </div>
+                    </div>
+                    <ArrowRight size={20} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
+                </button>
+            </div>
         </div>
     );
 };
