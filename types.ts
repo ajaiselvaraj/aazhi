@@ -13,7 +13,16 @@ export enum Language {
   PUNJABI = 'Punjabi',
   TAMIL = 'Tamil',
   TELUGU = 'Telugu',
-  URDU = 'Urdu'
+  URDU = 'Urdu',
+  MAITHILI = 'Maithili',
+  DOGRI = 'Dogri',
+  KONKANI = 'Konkani',
+  KASHMIRI = 'Kashmiri',
+  MANIPURI = 'Manipuri',
+  BODO = 'Bodo',
+  SANSKRIT = 'Sanskrit',
+  SANTALI = 'Santali',
+  SINDHI = 'Sindhi'
 }
 
 export enum ViewState {

@@ -9,6 +9,9 @@ import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useLanguage } from './contexts/LanguageContext';
 import VoiceNavigation from './components/VoiceNavigation';
+import { speakText, loadVoices } from './utils/speak';
+import TalkbackOverlay from './components/TalkbackOverlay';
+
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -264,9 +267,20 @@ const App: React.FC = () => {
     updateLoc();
   }, []);
 
-  // Initial detection on mount
+  // Initial detection on mount and accessibility setup
   useEffect(() => {
     handleAutoDetectLocation();
+
+    // Pre-load Text-to-Speech voices for Accessibility
+    loadVoices().then(() => {
+      // Speak welcome message
+      setTimeout(() => {
+        speakText({
+          text: "Welcome to Aazhi, your all in one companion.",
+          language: "English"
+        });
+      }, 1000);
+    });
   }, [handleAutoDetectLocation]);
 
   // Handle inactivity auto-logout
@@ -293,6 +307,24 @@ const App: React.FC = () => {
   // Logic for Login Navigation
   const handleLanguageSelect = (lang: Language) => {
     setLanguage(lang);
+
+    // Find the language info to speak out loud
+    const selectedLangConfig = LANGUAGES_CONFIG.find(l => l.code === lang);
+    if (selectedLangConfig) {
+      // Speak in English that the language was selected
+      speakText({
+        text: `Language changed to ${selectedLangConfig.name}`,
+        language: 'English'
+      });
+      // Then speak the native greeting
+      setTimeout(() => {
+        speakText({
+          text: selectedLangConfig.label,
+          language: selectedLangConfig.name
+        });
+      }, 1500);
+    }
+
     // Alert language is NOT changed here
     setView(ViewState.LOGIN);
     setError('');
@@ -858,6 +890,8 @@ const App: React.FC = () => {
         </ServiceComplaintProvider>
       </KioskKeyboardWrapper>
 
+      <TalkbackOverlay />
+
       <style>{`
         .privacy-active .privacy-sensitive {
           filter: blur(8px);
@@ -868,7 +902,7 @@ const App: React.FC = () => {
           filter: blur(0);
         }
       `}</style>
-    </div>
+    </div >
   );
 };
 
