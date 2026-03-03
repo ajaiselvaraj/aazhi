@@ -182,9 +182,13 @@ const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) 
       </button>
 
       <div className="flex flex-col items-center justify-center text-center">
-        <p className="text-[15px] font-bold text-slate-800 leading-relaxed px-2">
+        <p className="text-[15px] font-bold text-slate-800 leading-relaxed px-2 mb-3">
           For accessing admin portal, go to Mobile OTP.
         </p>
+        <div className="space-y-1">
+          <p className="text-[13px] font-medium text-slate-500">Admin ID: <span className="text-slate-700 font-bold">963852</span></p>
+          <p className="text-[13px] font-medium text-slate-500">Password: <span className="text-slate-700 font-bold">789456</span></p>
+        </div>
       </div>
 
       {/* Visual connector for desktop */}
@@ -753,7 +757,11 @@ const App: React.FC = () => {
                   {authStage === 'INPUT' ? (
                     <>
                       <div className="flex justify-between items-end mb-2">
-                        <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('mobileNumber')}</label>
+                        <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('mobileOTP')}</label>
+                        <div className="flex gap-3 text-[10px] text-slate-400 font-medium mb-0.5">
+                          <span>admin = 963852</span>
+                          <span>pass = 789456</span>
+                        </div>
                       </div>
                       <div className="relative group">
                         <input
