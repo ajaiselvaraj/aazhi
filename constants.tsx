@@ -101,12 +101,21 @@ export const LANGUAGES_CONFIG = [
   { code: Language.KANNADA, label: 'ಕನ್ನಡ', name: 'Kannada' },
   { code: Language.MALAYALAM, label: 'മലയാളം', name: 'Malayalam' },
   { code: Language.MARATHI, label: 'मराठी', name: 'Marathi' },
-  { code: Language.NEPALI, label: 'नेपाली', name: 'Nepali' },
+
   { code: Language.ODIA, label: 'ଓଡ଼ିଆ', name: 'Odia' },
   { code: Language.PUNJABI, label: 'ਪੰਜਾਬੀ', name: 'Punjabi' },
   { code: Language.TAMIL, label: 'தமிழ்', name: 'Tamil' },
   { code: Language.TELUGU, label: 'తెలుగు', name: 'Telugu' },
-  { code: Language.URDU, label: 'اُردُو', name: 'Urdu', rtl: true }
+  { code: Language.URDU, label: 'اُردُو', name: 'Urdu', rtl: true },
+  { code: Language.BODO, label: 'बड़ो', name: 'Bodo' },
+  { code: Language.DOGRI, label: 'डोगरी', name: 'Dogri' },
+  { code: Language.KASHMIRI, label: 'کٲشُر', name: 'Kashmiri', rtl: true },
+  { code: Language.KONKANI, label: 'कोंकणी', name: 'Konkani' },
+  { code: Language.MAITHILI, label: 'मैथिली', name: 'Maithili' },
+  { code: Language.MANIPURI, label: 'ꯃꯤꯇꯩꯂꯣꯟ', name: 'Manipuri (Meitei)' },
+  { code: Language.SANSKRIT, label: 'संस्कृतम्', name: 'Sanskrit' },
+  { code: Language.SANTALI, label: 'ᱥᱟᱱᱛᱟᱲᱤ', name: 'Santali' },
+  { code: Language.SINDHI, label: 'سِنڌِي', name: 'Sindhi', rtl: true }
 ];
 
 const BASE_TRANSLATIONS = {
@@ -466,6 +475,15 @@ const BASE_TRANSLATIONS = {
 
 export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
   [Language.ENGLISH]: BASE_TRANSLATIONS,
+  [Language.BODO]: BASE_TRANSLATIONS,
+  [Language.DOGRI]: BASE_TRANSLATIONS,
+  [Language.KASHMIRI]: BASE_TRANSLATIONS,
+  [Language.KONKANI]: BASE_TRANSLATIONS,
+  [Language.MAITHILI]: BASE_TRANSLATIONS,
+  [Language.MANIPURI]: BASE_TRANSLATIONS,
+  [Language.SANSKRIT]: BASE_TRANSLATIONS,
+  [Language.SANTALI]: BASE_TRANSLATIONS,
+  [Language.SINDHI]: BASE_TRANSLATIONS,
   [Language.TAMIL]: {
     ...BASE_TRANSLATIONS,
     welcome: "வரவேற்கிறோம்",
@@ -1180,7 +1198,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     err_adminPass: "अवैध ॲडमिन पासवर्ड",
     err_otp: "6-अंकी OTP प्रविष्ट करा"
   },
-  [Language.NEPALI]: { ...BASE_TRANSLATIONS },
+
   [Language.ODIA]: {
     ...BASE_TRANSLATIONS,
     sel_welcomeUser: "ସ୍ୱାଗତ, ନାଗରିକ",
