@@ -11,7 +11,15 @@ import { useLanguage } from './contexts/LanguageContext';
 import VoiceNavigation from './components/VoiceNavigation';
 import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
-
+import BodoPage from './components/languages/Bodo';
+import DogriPage from './components/languages/Dogri';
+import KashmiriPage from './components/languages/Kashmiri';
+import KonkaniPage from './components/languages/Konkani';
+import MaithiliPage from './components/languages/Maithili';
+import ManipuriPage from './components/languages/Manipuri';
+import SanskritPage from './components/languages/Sanskrit';
+import SantaliPage from './components/languages/Santali';
+import SindhiPage from './components/languages/Sindhi';
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -19,7 +27,8 @@ enum ViewState {
   SELECTION = 'SELECTION',
   DASHBOARD = 'DASHBOARD',
   ADMIN = 'ADMIN',
-  DOCUMENTATION = 'DOCUMENTATION'
+  DOCUMENTATION = 'DOCUMENTATION',
+  LANGUAGE_INFO = 'LANGUAGE_INFO'
 }
 
 const LOGOUT_TIME = 120; // 2 minutes
@@ -43,8 +52,7 @@ const LOCATION_TO_LANGUAGE: Record<string, Language> = {
   'Assam': Language.ASSAMESE,
   'Odisha': Language.ODIA,
   'Jammu & Kashmir': Language.URDU,
-  'Uttarakhand': Language.NEPALI,
-  'Sikkim': Language.NEPALI,
+
 };
 
 const STATES = Object.keys(LOCATION_TO_LANGUAGE);
@@ -329,8 +337,17 @@ const App: React.FC = () => {
       }, 1500);
     }
 
-    // Alert language is NOT changed here
-    setView(ViewState.LOGIN);
+    const infoLanguages = [
+      Language.BODO, Language.DOGRI, Language.KASHMIRI, Language.KONKANI,
+      Language.MAITHILI, Language.MANIPURI, Language.SANSKRIT,
+      Language.SANTALI, Language.SINDHI
+    ];
+
+    if (infoLanguages.includes(lang)) {
+      setView(ViewState.LANGUAGE_INFO);
+    } else {
+      setView(ViewState.LOGIN);
+    }
     setError('');
   };
 
@@ -500,8 +517,8 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Grid: Clean Language Selection Area */}
-      <div className="flex-1 w-full max-w-[1200px] z-10 px-6 overflow-y-auto pb-4 flex items-center justify-center">
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4 w-full">
+      <div className="flex-1 w-full overflow-y-auto pb-4 flex items-center justify-center">
+        <div className="grid gap-[20px] w-full auto-rows-fr" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
           {LANGUAGES_CONFIG.map((item) => (
             <button
               key={item.code}
@@ -510,7 +527,7 @@ const App: React.FC = () => {
               className={`
                 group relative bg-white transition-all duration-200
                 flex flex-col items-center justify-center gap-1.5
-                h-28 w-full rounded-2xl border-2
+                h-full p-4 w-full rounded-2xl border-2
                 ${language === item.code
                   ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-105'
                   : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
@@ -518,10 +535,10 @@ const App: React.FC = () => {
               `}
               dir={item.rtl ? 'rtl' : 'ltr'}
             >
-              <span className={`text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 ${item.rtl ? 'font-serif text-4xl' : ''}`}>
+              <span className={`text-2xl sm:text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-3xl sm:text-4xl' : ''}`}>
                 {item.label}
               </span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1">
+              <span className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
                 {item.name}
               </span>
 
@@ -894,6 +911,19 @@ const App: React.FC = () => {
               language={language}
               onLanguageChange={setLanguage}
             />
+          )}
+          {view === ViewState.LANGUAGE_INFO && (
+            <div className="absolute inset-0 z-50 bg-white">
+              {language === Language.BODO && <BodoPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.DOGRI && <DogriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.KASHMIRI && <KashmiriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.KONKANI && <KonkaniPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.MAITHILI && <MaithiliPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.MANIPURI && <ManipuriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.SANSKRIT && <SanskritPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.SANTALI && <SantaliPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+              {language === Language.SINDHI && <SindhiPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
+            </div>
           )}
         </ServiceComplaintProvider>
       </KioskKeyboardWrapper>

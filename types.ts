@@ -8,18 +8,17 @@ export enum Language {
   KANNADA = 'Kannada',
   MALAYALAM = 'Malayalam',
   MARATHI = 'Marathi',
-  NEPALI = 'Nepali',
   ODIA = 'Odia',
   PUNJABI = 'Punjabi',
   TAMIL = 'Tamil',
   TELUGU = 'Telugu',
   URDU = 'Urdu',
-  MAITHILI = 'Maithili',
-  DOGRI = 'Dogri',
-  KONKANI = 'Konkani',
-  KASHMIRI = 'Kashmiri',
-  MANIPURI = 'Manipuri',
   BODO = 'Bodo',
+  DOGRI = 'Dogri',
+  KASHMIRI = 'Kashmiri',
+  KONKANI = 'Konkani',
+  MAITHILI = 'Maithili',
+  MANIPURI = 'Manipuri (Meitei)',
   SANSKRIT = 'Sanskrit',
   SANTALI = 'Santali',
   SINDHI = 'Sindhi'
@@ -33,7 +32,8 @@ export enum ViewState {
   COMPLAINT_FORM = 'COMPLAINT_FORM',
   TRACK_STATUS = 'TRACK_STATUS',
   ADMIN = 'ADMIN',
-  DOCUMENTATION = 'DOCUMENTATION'
+  DOCUMENTATION = 'DOCUMENTATION',
+  LANGUAGE_INFO = 'LANGUAGE_INFO'
 }
 
 export interface CityAlert {
