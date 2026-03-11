@@ -61,7 +61,7 @@ const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH })
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <div>
                     <h3 className="text-xl font-black text-slate-800">{t('liveMap') || 'Live Disruption Map'}</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:block">{t('iotSensor') || 'IoT Sensor Network • Realtime'}</p>
+
                 </div>
                 <span className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest animate-pulse">
                     <ZapOff size={12} /> {t('live') || 'Live'}

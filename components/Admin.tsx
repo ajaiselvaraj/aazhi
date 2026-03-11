@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Users, FileText, CheckCircle, Clock, BarChart2, Search, Filter, Eye, UserCheck, MessageSquare, AlertCircle, Globe, ChevronDown, AlertTriangle, Edit, LayoutGrid } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Users, FileText, CheckCircle, Clock, BarChart2, Search, Filter, Eye, UserCheck, MessageSquare, AlertCircle, Globe, ChevronDown, AlertTriangle, Edit, LayoutGrid } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { MOCK_REQUESTS } from '../constants';
 import { Language } from '../types';
@@ -50,6 +50,16 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
       setOpenDropdown(null);
     } else {
       setOpenDropdown({ id, type });
+    }
+  };
+
+  const getNextStageAction = (stage: string) => {
+    switch (stage) {
+      case 'Submitted': return { label: 'Assign Officer', next: 'Officer Assigned', color: 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200' };
+      case 'Officer Assigned': return { label: 'Submit Response', next: 'Manager Review', color: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' };
+      case 'Manager Review': return { label: 'Manager Approve', next: 'GM Approval', color: 'bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200' };
+      case 'GM Approval': return { label: 'Final Approval', next: 'Resolved', color: 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-200' };
+      default: return null;
     }
   };
 
@@ -322,34 +332,38 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                             </span>
                           </td>
                           <td className="px-8 py-6 text-right">
-                            <div className="flex gap-2 justify-end">
-                              <button className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-blue-600" title="View Documents"><Eye size={18} /></button>
+                            <div className="flex gap-2 justify-end items-center">
+                              <button className="p-2 hover:bg-white rounded-xl border transition text-gray-500 hover:text-blue-600 bg-slate-50" title="View Documents">
+                                <Eye size={18} />
+                              </button>
 
-                              <div className="relative">
-                                <button
-                                  onClick={() => toggleDropdown(req.id, 'reqStep')}
-                                  className="p-2 hover:bg-white rounded-lg border transition text-gray-500 hover:text-green-600 flex items-center gap-1"
-                                >
-                                  <Edit size={16} />
-                                </button>
-                                {openDropdown?.id === req.id && openDropdown?.type === 'reqStep' && (
-                                  <div className="absolute right-0 top-full mt-1 bg-white border rounded-xl shadow-lg w-48 z-20 p-1 animate-in fade-in zoom-in-95 duration-200">
-                                    {['Submitted', 'Under Review', 'Verification', 'Approval Pending', 'Completed', 'Rejected'].map((stage) => (
-                                      <button
-                                        key={stage}
-                                        onClick={() => {
-                                          updateServiceStage(req.id, stage);
-                                          setOpenDropdown(null);
-                                        }}
-                                        className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-blue-50 rounded-lg 
-                                          ${req.currentStage === stage ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
-                                      >
-                                        {stage}
-                                      </button>
-                                    ))}
+                              {(() => {
+                                const action = getNextStageAction(req.currentStage || 'Submitted');
+                                if (action) {
+                                  return (
+                                    <button
+                                      onClick={() => updateServiceStage(req.id, action.next)}
+                                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${action.color}`}
+                                    >
+                                      {action.label} <ArrowRight size={14} />
+                                    </button>
+                                  );
+                                }
+                                return (
+                                  <div className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 flex items-center gap-1 border border-slate-200">
+                                    <CheckCircle size={14} /> {req.currentStage}
                                   </div>
-                                )}
-                              </div>
+                                );
+                              })()}
+
+                              {req.currentStage !== 'Resolved' && req.currentStage !== 'Rejected' && req.currentStage !== 'Completed' && (
+                                <button
+                                  onClick={() => updateServiceStage(req.id, 'Rejected')}
+                                  className="px-4 py-2 bg-white text-red-600 border-2 border-red-100 rounded-xl text-xs font-bold hover:bg-red-50 transition-all"
+                                >
+                                  Reject
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -522,34 +536,34 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 min-w-[150px]">
-                          {/* NEW: Stage Updater for Complaints */}
-                          <div className="relative">
-                            <button
-                              onClick={() => toggleDropdown(complaint.id, 'compStage')}
-                              className="w-full bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-bold flex justify-between items-center hover:bg-blue-100 border border-blue-100 mb-2"
-                            >
-                              <Edit size={14} /> {complaint.currentStage || 'Update Stage'} <ChevronDown size={14} />
-                            </button>
-                            {openDropdown?.id === complaint.id && openDropdown?.type === 'compStage' && (
-                              <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-1 w-48 z-20 animate-in fade-in zoom-in-95 duration-200">
-                                {['Submitted', 'Officer Assigned', 'Manager Review', 'GM Approval', 'Resolved', 'Closed'].map((stage) => (
-                                  <button
-                                    key={stage}
-                                    onClick={() => {
-                                      updateComplaintStage(complaint.id, stage);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className={`w-full text-left px-4 py-2 text-xs font-bold hover:bg-blue-50 rounded-lg 
-                                      ${complaint.currentStage === stage ? 'bg-blue-100 text-blue-700' : 'text-slate-700'}`}
-                                  >
-                                    {stage}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                        <div className="flex flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 min-w-[150px]">                          {/* Auto-progression Action Button */}
+                          {(() => {
+                            const action = getNextStageAction(complaint.currentStage || 'Submitted');
+                            if (action) {
+                              return (
+                                <button
+                                  onClick={() => updateComplaintStage(complaint.id, action.next)}
+                                  className={`w-full ${action.color} px-4 py-2 text-left md:text-center rounded-xl text-xs font-bold transition-all mb-2 flex items-center justify-center gap-2`}
+                                >
+                                  {action.label} <ArrowRight size={14} />
+                                </button>
+                              );
+                            }
+                            return (
+                                <div className="w-full bg-slate-50 text-slate-500 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-center mb-2 flex items-center justify-center gap-1">
+                                    <CheckCircle size={14} /> {complaint.currentStage}
+                                </div>
+                            );
+                          })()}
 
+                          {complaint.currentStage !== 'Resolved' && complaint.currentStage !== 'Closed' && complaint.currentStage !== 'Rejected' && (
+                              <button
+                                  onClick={() => updateComplaintStage(complaint.id, 'Rejected')}
+                                  className="w-full bg-white text-red-600 border-2 border-red-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition-all flex justify-center items-center mb-2"
+                              >
+                                  Reject
+                              </button>
+                          )}
                           <div className="relative">
                             <button
                               onClick={() => toggleDropdown(complaint.id, 'compStatus')}
