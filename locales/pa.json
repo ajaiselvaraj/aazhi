@@ -322,5 +322,11 @@
     "err_aadhaar": "ਸਹੀ ੧੨-ਅੰਕੀ ਆਧਾਰ ਦਾਖਲ ਕਰੋ",
     "err_mobile": "ਸਹੀ ੧੦-ਅੰਕੀ ਮੋਬਾਇਲ ਨੰਬਰ ਦਾਖਲ ਕਰੋ",
     "err_adminPass": "ਅਮਾਨ੍ਯ ਪ੍ਰਸ਼ਾਸਕ ਪਾਸਵਰਡ",
-    "err_otp": "੬-ਅੰਕੀ OTP ਦਾਖਲ ਕਰੋ"
+    "err_otp": "੬-ਅੰਕੀ OTP ਦਾਖਲ ਕਰੋ",
+    "adminPopupMsg": "ਐਡਮਿਨ ਪੋਰਟਲ ਤੱਕ ਪਹੁੰਚ ਕਰਨ ਲਈ, ਮੋਬਾਈਲ OTP ਤੇ ਜਾਓ।",
+    "adminPopupId": "ਐਡਮਿਨ ID",
+    "adminPopupPass": "ਪਾਸਵਰਡ",
+    "documentation": "ਦਸਤਾਵੇਜ਼",
+    "fullscreen": "ਪੂਰੀ ਸਕਰੀਨ",
+    "appTagline": "ਪਹੁੰਚਯੋਗ। ਪਾਰਦਰਸ਼ੀ। ਕੁਸ਼ਲ।"
 }

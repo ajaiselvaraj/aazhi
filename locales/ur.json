@@ -322,5 +322,11 @@
     "err_aadhaar": "درست 12 ہندسوں کا آدھار درج کریں",
     "err_mobile": "درست 10 ہندسوں کا موبائل نمبر درج کریں",
     "err_adminPass": "غلط ایڈمن پاس ورڈ",
-    "err_otp": "6 ہندسوں کا OTP درج کریں"
+    "err_otp": "6 ہندسوں کا OTP درج کریں",
+    "adminPopupMsg": "ایڈمن پورٹل تک رسائی کے لیے، موبائل OTP پر جائیں۔",
+    "adminPopupId": "ایڈمن ID",
+    "adminPopupPass": "پاسورڈ",
+    "documentation": "دستاویزات",
+    "fullscreen": "فل سکرین",
+    "appTagline": "قابل رسائی۔ شفاف۔ موثر۔"
 }

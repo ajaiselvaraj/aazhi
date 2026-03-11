@@ -168,6 +168,7 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
 // Admin Popup Notification Component
 // ─────────────────────────────────────────────
 const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+  const { t } = useLanguage();
   return (
     <div
       className="pointer-events-auto absolute lg:left-[calc(100%+24px)] lg:top-8 top-full left-1/2 -translate-x-1/2 lg:translate-x-0 z-[100] w-[290px] lg:w-[340px] bg-slate-50/98 backdrop-blur-md border border-slate-200 rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-top-4 lg:slide-in-from-left-10 duration-700"
@@ -181,11 +182,11 @@ const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) 
 
       <div className="flex flex-col items-center justify-center text-center">
         <p className="text-[15px] font-bold text-slate-800 leading-relaxed px-2 mb-3">
-          For accessing admin portal, go to Mobile OTP.
+          {t('adminPopupMsg')}
         </p>
         <div className="space-y-1">
-          <p className="text-[13px] font-medium text-slate-500">Admin ID: <span className="text-slate-700 font-bold">963852</span></p>
-          <p className="text-[13px] font-medium text-slate-500">Password: <span className="text-slate-700 font-bold">789456</span></p>
+          <p className="text-[13px] font-medium text-slate-500">{t('adminPopupId')}: <span className="text-slate-700 font-bold">963852</span></p>
+          <p className="text-[13px] font-medium text-slate-500">{t('adminPopupPass')}: <span className="text-slate-700 font-bold">789456</span></p>
         </div>
       </div>
 
@@ -486,12 +487,12 @@ const App: React.FC = () => {
         </h1>
         <div className="flex items-center gap-3">
           <p className="text-lg text-slate-600 font-medium tracking-tight">
-            {APP_CONFIG.SUBTITLE}
+            {t('loginSubtitle')}
           </p>
           <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">
             <ShieldCheck size={14} className="text-blue-600" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-900">
-              {APP_CONFIG.TAGLINE}
+              {t('appTagline')}
             </span>
           </div>
         </div>
@@ -536,7 +537,7 @@ const App: React.FC = () => {
 
       <footer className="mb-2 z-10 text-center opacity-70 flex flex-col items-center gap-1 text-slate-500 text-[10px] font-medium tracking-wide">
         <div className="flex items-center gap-4 uppercase tracking-[0.2em]">
-          <button onClick={() => setView(ViewState.DOCUMENTATION)} className="hover:text-blue-600 transition font-bold">Documentation</button>
+          <button onClick={() => setView(ViewState.DOCUMENTATION)} className="hover:text-blue-600 transition font-bold">{t('documentation')}</button>
           <span>|</span>
           <button onClick={() => {
             if (!document.fullscreenElement) {
@@ -547,7 +548,7 @@ const App: React.FC = () => {
           }}
             className="hover:text-blue-600 transition font-bold flex items-center gap-1"
           >
-            <Maximize2 size={10} /> Fullscreen
+            <Maximize2 size={10} /> {t('fullscreen')}
           </button>
         </div>
         <p className="opacity-50">{t('footerSecure')}</p>

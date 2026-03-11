@@ -322,5 +322,11 @@
     "err_aadhaar": "বৈধ ১২ সংখ্যার আধার দিন",
     "err_mobile": "বৈধ ১০ সংখ্যার মোবাইল নম্বর দিন",
     "err_adminPass": "অবৈধ অ্যাডমিন পাসওয়ার্ড",
-    "err_otp": "৬ সংখ্যার OTP দিন"
+    "err_otp": "৬ সংখ্যার OTP দিন",
+    "adminPopupMsg": "অ্যাডমিন পোর্টাল অ্যাক্সেস করতে, মোবাইল OTP-তে যান।",
+    "adminPopupId": "অ্যাডমিন আইডি",
+    "adminPopupPass": "পাসওয়ার্ড",
+    "documentation": "ডকুমেন্টেশন",
+    "fullscreen": "পূর্ণ স্ক্রিন",
+    "appTagline": "সুলভ। স্বচ্ছ। দক্ষ।"
 }
