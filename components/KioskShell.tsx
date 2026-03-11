@@ -183,16 +183,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
                             </div>
 
-                            {/* Privacy Shield Toggle */}
-                            {onTogglePrivacy && (
-                                <button
-                                    onClick={onTogglePrivacy}
-                                    className={`p-3 rounded-xl transition-all shadow-sm ${isPrivacyShield ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-400 hover:bg-slate-50 border border-slate-200'}`}
-                                    title={t('privacyShield') || "Privacy Shield"}
-                                >
-                                    {isPrivacyShield ? <Shield size={20} /> : <EyeOff size={20} />}
-                                </button>
-                            )}
+
                         </div>
                     </div>
                 </header>
