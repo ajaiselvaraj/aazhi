@@ -499,8 +499,8 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Grid: Clean Language Selection Area */}
-      <div className="flex-1 w-full overflow-y-auto pb-4 flex items-center justify-center">
-        <div className="grid gap-[20px] w-full auto-rows-fr" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+      <div className="flex-1 w-full overflow-y-auto pb-4 px-4 md:px-8 flex items-center justify-center">
+        <div className="grid gap-4 md:gap-6 w-full max-w-[1600px] auto-rows-fr py-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
           {LANGUAGES_CONFIG.map((item) => (
             <button
               key={item.code}
@@ -517,10 +517,10 @@ const App: React.FC = () => {
               `}
               dir={item.rtl ? 'rtl' : 'ltr'}
             >
-              <span className={`text-2xl sm:text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-3xl sm:text-4xl' : ''}`}>
+              <span className={`text-xl sm:text-2xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-2xl sm:text-3xl' : ''}`}>
                 {item.label}
               </span>
-              <span className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
                 {item.name}
               </span>
 
