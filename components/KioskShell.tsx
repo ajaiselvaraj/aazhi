@@ -151,11 +151,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                         {onVoiceCommand && (
                             <VoiceNavigation onCommand={onVoiceCommand} />
                         )}
-                        {/* Accessibility Quick Toggles */}
-                        <div className="hidden xl:flex bg-slate-100 p-1 rounded-xl">
-                            <button className="p-3 text-slate-400 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition"><Volume2 size={20} /></button>
-                            <button className="p-3 text-slate-400 hover:bg-white hover:text-blue-600 hover:shadow-sm rounded-lg transition"><Type size={20} /></button>
-                        </div>
+
 
                         {/* System Status Indicators - Time Moved Left */}
                         <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
