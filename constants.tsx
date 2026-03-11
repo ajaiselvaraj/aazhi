@@ -6,33 +6,33 @@ import { Department, Language, CityAlert, Bill, UserProfile, SupportContact } fr
 export const DEPARTMENTS: Department[] = [
   {
     id: 'eb',
-    name: 'Electricity Board',
+    name: 'dept_eb',
     icon: 'Zap',
-    services: ['New Connection', 'Billing Issue', 'Meter Fault', 'Load Change', 'Address Change', 'Other']
+    services: ['serv_NewConnection', 'serv_BillingIssue', 'serv_MeterFault', 'serv_LoadChange', 'serv_AddressChange', 'serv_Other']
   },
   {
     id: 'water',
-    name: 'Water Supply & Sewage',
+    name: 'dept_water',
     icon: 'Droplets',
-    services: ['Water Connection', 'Sewage Block', 'Pipeline Leak', 'Address Change', 'Other']
+    services: ['serv_WaterConnection', 'serv_SewageBlock', 'serv_PipelineLeak', 'serv_AddressChange', 'serv_Other']
   },
   {
     id: 'gas',
-    name: 'Gas Distribution',
+    name: 'dept_gas',
     icon: 'Flame',
-    services: ['New Connection', 'Refill Booking', 'Leakage Complaint', 'Address Change', 'Other']
+    services: ['serv_NewConnection', 'serv_RefillBooking', 'serv_LeakageComplaint', 'serv_AddressChange', 'serv_Other']
   },
   {
     id: 'waste',
-    name: 'Waste Management',
+    name: 'dept_Municipal',
     icon: 'Trash2',
-    services: ['Garbage Collection / Pickup Request', 'Complaint Registration', 'Recycling Information', 'Address Change']
+    services: ['serv_GarbageCollectionPickupRequest', 'serv_ComplaintRegistration', 'serv_RecyclingInformation', 'serv_AddressChange']
   },
   {
     id: 'municipal',
-    name: 'Municipal Corp',
+    name: 'dept_municipal',
     icon: 'LayoutGrid',
-    services: ['Birth/Death Cert', 'Property Tax', 'Street Light', 'Address Change', 'Other']
+    services: ['serv_BirthDeathCert', 'serv_PropertyTax', 'serv_StreetLight', 'serv_AddressChange', 'serv_Other']
   }
 ];
 
@@ -470,7 +470,8 @@ const BASE_TRANSLATIONS = {
   err_aadhaar: "Enter valid 12-digit Aadhaar",
   err_mobile: "Enter valid 10-digit Mobile Number",
   err_adminPass: "Invalid Admin Password",
-  err_otp: "Please enter a valid 6-digit OTP"
+  err_otp: "Please enter a valid 6-digit OTP",
+  appTagline: "Accessible. Transparent. Efficient."
 };
 
 export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
@@ -746,6 +747,7 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     issue_StreetLightNotWorking: "தெரு விளக்கு எரியவில்லை",
     issue_DeadAnimalRemoval: "இறந்த விலங்கு அகற்றுதல்",
     issue_PropertyTaxIssue: "சொத்து வரி பிரச்சனை",
+    appTagline: "அணுகக்கூடியது. வெளிப்படையானது. திறமையானது.",
     // Alerts
     cityAlert: "நகர எச்சரிக்கை",
     "alert_AL-01": "வார்டு 12 இல் பிற்பகல் 2 மணி முதல் மாலை 5 மணி வரை திட்டமிடப்பட்ட பராமரிப்பு.",

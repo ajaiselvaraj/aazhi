@@ -342,5 +342,11 @@
     "feedback_scrolling_up": "పైకి స్క్రోల్ చేయబడుతోంది",
     "feedback_help": "సహాయం తెరవబడుతోంది",
     "feedback_cancelling": "చర్య రద్దు చేయబడింది",
-    "err_invalid_command": "కమాండ్ గుర్తించబడలేదు. మళ్ళీ ప్రయత్నించండి."
+    "err_invalid_command": "కమాండ్ గుర్తించబడలేదు. మళ్ళీ ప్రయత్నించండి.",
+    "adminPopupMsg": "అడ్మిన్ పోర్టల్ యాక్సెస్ చేయడానికి, మొబైల్ OTP కి వెళ్ళండి.",
+    "adminPopupId": "అడ్మిన్ ID",
+    "adminPopupPass": "పాస్‌వర్డ్",
+    "documentation": "డాక్యుమెంటేషన్",
+    "fullscreen": "పూర్తి స్క్రీన్",
+    "appTagline": "అందుబాటులో. పారదర్శకం. సమర్థవంతం."
 }

@@ -89,7 +89,8 @@ export const BBPSService = {
 
                 resolve({
                     success: false,
-                    error: 'Invalid Consumer Number. Please check and try again.'
+                    error: 'err_invalidConsumer',
+                    errorCode: 'INVALID_CONSUMER_NUMBER'
                 });
             }, 1500); // Simulate network latency
         });

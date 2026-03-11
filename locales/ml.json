@@ -341,5 +341,11 @@
     "feedback_scrolling_up": "മുകളിലേക്ക് സ്ക്രോൾ ചെയ്യുന്നു",
     "feedback_help": "സഹായം തുറക്കുന്നു",
     "feedback_cancelling": "നടപടി റദ്ദാക്കുന്നു",
-    "err_invalid_command": "കമാൻഡ് തിരിച്ചറിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക."
+    "err_invalid_command": "കമാൻഡ് തിരിച്ചറിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.",
+    "adminPopupMsg": "അഡ്മിൻ പോർട്ടൽ ആക്‌സസ് ചെയ്യാൻ, മൊബൈൽ OTP-ലേക്ക് പോകുക.",
+    "adminPopupId": "അഡ്മിൻ ID",
+    "adminPopupPass": "പാസ്‌വേഡ്",
+    "documentation": "ഡോക്യുമെന്റേഷൻ",
+    "fullscreen": "മുഴുവൻ സ്ക്രീൻ",
+    "appTagline": "പ്രവേശനയോഗ്യം. സുതാര്യം. കാര്യക്ഷമം."
 }

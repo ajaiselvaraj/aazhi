@@ -322,5 +322,11 @@
     "err_aadhaar": "বৈধ ১২-সংখ্যাৰ আধাৰ দিয়ক",
     "err_mobile": "বৈধ ১০-সংখ্যাৰ মোবাইল নম্বৰ দিয়ক",
     "err_adminPass": "অবৈধ প্ৰশাসক পাছৱাৰ্ড",
-    "err_otp": "৬-সংখ্যাৰ OTP দিয়ক"
+    "err_otp": "৬-সংখ্যাৰ OTP দিয়ক",
+    "adminPopupMsg": "এডমিন প'ৰ্টেল অভিগম কৰিবলৈ, মবাইল OTP লৈ যাওক।",
+    "adminPopupId": "এডমিন আইডি",
+    "adminPopupPass": "পাছৱৰ্ড",
+    "documentation": "নথিপত্ৰ",
+    "fullscreen": "সম্পূৰ্ণ পৰ্দা",
+    "appTagline": "সুলভ। স্বচ্ছ। দক্ষ।"
 }

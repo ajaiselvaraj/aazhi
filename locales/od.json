@@ -322,5 +322,11 @@
     "err_aadhaar": "ବୈଧ ୧୨-ଅଙ୍କ ଆଧାର ଦିଅନ୍ତୁ",
     "err_mobile": "ବୈଧ ୧୦-ଅଙ୍କ ମୋବାଇଲ ନମ୍ୱର ଦିଅନ୍ତୁ",
     "err_adminPass": "ଅବୈଧ ଆଡ଼ମିନ ପାସୱାର୍ଡ",
-    "err_otp": "୬-ଅଙ୍କ OTP ଦିଅନ୍ତୁ"
+    "err_otp": "୬-ଅଙ୍କ OTP ଦିଅନ୍ତୁ",
+    "adminPopupMsg": "ଆଡମିନ ପୋର୍ଟାଲ ଅଭିଗମ କରିବାକୁ, ମୋବାଇଲ OTP କୁ ଯାଆନ୍ତୁ।",
+    "adminPopupId": "ଆଡମିନ ID",
+    "adminPopupPass": "ପାସୱାର୍ଡ",
+    "documentation": "ଡକ୍ୟୁମେଣ୍ଟେସନ",
+    "fullscreen": "ପୂର୍ଣ୍ଣ ସ୍କ୍ରିନ",
+    "appTagline": "ସୁଲଭ। ସ୍ୱଚ୍ଛ। ଦକ୍ଷ।"
 }

@@ -322,5 +322,11 @@
     "err_aadhaar": "वैध १२-अंकी आधार टाका",
     "err_mobile": "वैध १०-अंकी मोबाईल क्रमांक टाका",
     "err_adminPass": "अवैध प्रशासक पासवर्ड",
-    "err_otp": "६-अंकी OTP टाका"
+    "err_otp": "६-अंकी OTP टाका",
+    "adminPopupMsg": "प्रशासक पोर्टल ऍक्सेस करण्यासाठी, मोबाइल OTP वर जा.",
+    "adminPopupId": "प्रशासक ID",
+    "adminPopupPass": "पासवर्ड",
+    "documentation": "दस्तऐवजीकरण",
+    "fullscreen": "पूर्ण स्क्रीन",
+    "appTagline": "सुलभ. पारदर्शक. कार्यक्षम."
 }

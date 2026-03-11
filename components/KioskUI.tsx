@@ -388,8 +388,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 {/* Service Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {DEPARTMENTS.map((dept) => {
-                    const deptKey = `dept_${dept.id}`;
-                    const deptName = t(deptKey) || dept.name;
+                    const deptName = t(dept.name) || dept.name;
 
                     // Define color schemes for each department
                     const colorSchemes: Record<string, { bg: string; border: string; icon: string; hover: string; text: string }> = {
@@ -425,7 +424,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                                 {deptName}
                               </h3>
                               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                {dept.services.length} Services Available
+                                {dept.services.length} {t('servicesAvailable') || 'Services Available'}
                               </p>
                             </div>
                           </div>
@@ -433,13 +432,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
                         {/* Services List */}
                         <div className="p-6 space-y-3">
-                          {dept.services.map((svc) => {
-                            const svcKey = `serv_${svc.replace(/[\s\/]/g, '')}`;
-                            const svcName = t(svcKey) || svc;
+                          {dept.services.map((svcKey) => {
+                            const svcName = t(svcKey) || svcKey;
                             return (
                               <button
-                                key={svc}
-                                onClick={() => handleServiceSelect(svc, dept.id)}
+                                key={svcKey}
+                                onClick={() => handleServiceSelect(svcName, dept.id)}
                                 className={`w-full text-left px-6 py-5 rounded-2xl bg-slate-50 hover:bg-gradient-to-r ${colors.hover.includes('amber') ? 'hover:from-amber-500 hover:to-amber-600' : colors.hover.includes('blue') ? 'hover:from-blue-500 hover:to-blue-600' : colors.hover.includes('orange') ? 'hover:from-orange-500 hover:to-orange-600' : colors.hover.includes('green') ? 'hover:from-green-500 hover:to-green-600' : 'hover:from-purple-500 hover:to-purple-600'} hover:text-white text-slate-700 font-bold text-base flex justify-between items-center transition-all duration-200 border-2 border-transparent hover:border-white hover:shadow-lg group/btn`}
                               >
                                 <span className="leading-snug">{svcName}</span>

@@ -143,7 +143,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 {t('terminalId') || 'Terminal ID'}: CBE-02
                             </span>
                             <span>•</span>
-                            <span>{APP_CONFIG.SUBTITLE}</span>
+                            <span>{t('loginSubtitle')}</span>
                         </div>
                     </div>
 

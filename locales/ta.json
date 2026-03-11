@@ -387,5 +387,11 @@
     "ai_complaintId": "புகார் ஐடி: CMP10245",
     "ai_trackStatus": "நிலை கண்காணிக்கவும்",
     "ai_complaintSuccessVoice": "புகார் பதிவாகியது. உங்கள் ஐடி C M P 1 0 2 4 5.",
-    "ai_complaintDoneMenu": "முடிந்தது"
+    "ai_complaintDoneMenu": "முடிந்தது",
+    "adminPopupMsg": "நிர்வாக போர்ட்டலை அணுக, மொபைல் OTP க்குச் செல்லவும்.",
+    "adminPopupId": "நிர்வாக ஐடி",
+    "adminPopupPass": "கடவுச்சொல்",
+    "documentation": "ஆவணங்கள்",
+    "fullscreen": "முழுத்திரை",
+    "appTagline": "அணுகக்கூடியது. வெளிப்படையானது. திறமையானது."
 }
