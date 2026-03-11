@@ -386,10 +386,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                                     />
                                 ) : field.type === 'textarea' ? (
                                     <textarea
+                                        inputMode="text"
                                         value={formData[field.name] || ''}
                                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                                         placeholder={field.placeholder}
-                                        rows={4}
+                                        rows={3}
                                         className={`w-full bg-slate-50 border-2 ${errors[field.name] ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-semibold outline-none focus:border-blue-500 focus:bg-white transition placeholder:text-slate-400 resize-none`}
                                     />
                                 ) : field.type === 'select' ? (

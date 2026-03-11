@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import VirtualKeyboard, { KeyboardType } from './kiosk/VirtualKeyboard';
 import { Language } from '../types';
 
@@ -8,136 +8,234 @@ interface Props {
 }
 
 const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
+
     const [isOpen, setIsOpen] = useState(false);
     const [keyboardType, setKeyboardType] = useState<KeyboardType>('TEXT');
-    const activeInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
-    // Prevent native keyboard on mobile/touch devices if possible
-    // but mostly this is for a kiosk where no phys keyboard exists.
+    const activeInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+    const savedSelectionRef = useRef<{ start: number; end: number } | null>(null);
+
+    const saveCursorPosition = () => {
+        const input = activeInputRef.current;
+        if (!input || input.type === 'number') return;
+
+        savedSelectionRef.current = {
+            start: input.selectionStart ?? 0,
+            end: input.selectionEnd ?? 0,
+        };
+    };
 
     const handleFocusCapture = (e: React.FocusEvent<HTMLDivElement>) => {
+
         const target = e.target as HTMLElement;
+
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+
             const input = target as HTMLInputElement;
 
-            // Check if readonly
             if (input.readOnly || input.disabled) return;
 
             const type = input.type;
             const inputMode = input.getAttribute('inputmode');
 
-            // Determine Keyboard Type
             let kType: KeyboardType = 'TEXT';
-            if (type === 'number' || type === 'tel' || inputMode === 'numeric' || inputMode === 'decimal') {
+
+            if (
+                type === 'number' ||
+                type === 'tel' ||
+                inputMode === 'numeric' ||
+                inputMode === 'decimal'
+            ) {
                 kType = 'NUMERIC';
-            } else if (inputMode === 'email' || type === 'email') {
-                kType = 'TEXT'; // Could be specialized later
+            }
+
+            if (activeInputRef.current && activeInputRef.current !== input) {
+
+                activeInputRef.current.removeEventListener('keyup', saveCursorPosition);
+                activeInputRef.current.removeEventListener('click', saveCursorPosition);
+                activeInputRef.current.removeEventListener('select', saveCursorPosition);
             }
 
             activeInputRef.current = input;
+            savedSelectionRef.current = null;
+
             setKeyboardType(kType);
             setIsOpen(true);
+
+            input.addEventListener('keyup', saveCursorPosition);
+            input.addEventListener('click', saveCursorPosition);
+            input.addEventListener('select', saveCursorPosition);
         }
     };
 
-    // Handle clicks outside to close? 
-    // The requirement says: "Input panel must remain visible until... User taps outside input field... User presses Done"
-    // Capturing click outside might be tricky if we want to allow clicking *other* inputs.
-    // Actually, if we click another input, focus capture runs again and keeps it open (possibly changing type).
-    // If we click non-input, we should close.
-    // BUT the VirtualKeyboard itself is part of the clickable area.
+    const setNativeValue = (element: any, value: string) => {
 
-    // Let's use a click listener on the wrapper? 
-    // Or just rely on the 'Done' button for now, or blur?
-    // "User taps outside input field" -> blur.
+        const setter = Object.getOwnPropertyDescriptor(
+            element.__proto__,
+            'value'
+        )?.set;
 
-    // BUT blur fires when clicking the VirtualKeyboard buttons! That's the classic problem.
-    // We need to prevent blur when interacting with keyboard.
-    // VirtualKeyboard buttons should call `preventDefault` on mousedown/touchstart to prevent focus loss.
-    // But then the caret might be lost.
-    // Solution: Refocus the input after keypress, or keep focus.
+        setter?.call(element, value);
 
-    const handleInputUpdate = (cb: (currentVal: string) => string) => {
-        const input = activeInputRef.current;
-        if (!input) return;
-
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-        const newVal = cb(input.value);
-
-        if (nativeInputValueSetter) {
-            nativeInputValueSetter.call(input, newVal);
-        } else {
-            input.value = newVal;
-        }
-
-        input.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('input', { bubbles: true }));
     };
 
     const handleKeyPress = (key: string) => {
+
         const input = activeInputRef.current;
         if (!input) return;
 
-        const isNumberType = input.type === 'number';
+        // ⭐ Aadhaar special handling – always append, never use cursor position
+        if (input.dataset.type === 'aadhaar') {
+            // Only allow digit keys
+            if (!/^\d$/.test(key)) return;
 
-        if (!isNumberType && input.selectionStart !== null) {
-            const start = input.selectionStart || input.value.length;
-            const end = input.selectionEnd || input.value.length;
-            const newVal = input.value.substring(0, start) + key + input.value.substring(end);
+            // Strip spaces from display value to get raw digits
+            const currentDigits = input.value.replace(/\D/g, '');
 
-            handleInputUpdate(() => newVal);
+            if (currentDigits.length >= 12) return; // already full
 
-            // Restore cursor
-            requestAnimationFrame(() => {
-                input.setSelectionRange(start + 1, start + 1);
-            });
-        } else {
-            // Append Only for number types or if selection not supported
-            handleInputUpdate((val) => val + key);
+            const newDigits = currentDigits + key; // guaranteed ≤ 12 digits
+
+            // Format as XXXX XXXX XXXX for display
+            const formatted = newDigits.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+            setNativeValue(input, formatted);
+
+            // Cursor must go to END of the FORMATTED string (not raw digit count)
+            const pos = formatted.length;
+            savedSelectionRef.current = { start: pos, end: pos };
+
+            setTimeout(() => {
+                input.focus();
+                input.setSelectionRange(pos, pos);
+            }, 0);
+
+            return;
         }
+
+        // Default behaviour
+        const start =
+            savedSelectionRef.current?.start ??
+            input.selectionStart ??
+            input.value.length;
+
+        const end =
+            savedSelectionRef.current?.end ??
+            input.selectionEnd ??
+            input.value.length;
+
+        const newVal =
+            input.value.substring(0, start) +
+            key +
+            input.value.substring(end);
+
+        setNativeValue(input, newVal);
+
+        const newCursor = start + key.length;
+
+        savedSelectionRef.current = {
+            start: newCursor,
+            end: newCursor,
+        };
+
+        setTimeout(() => {
+
+            input.focus();
+            input.setSelectionRange(newCursor, newCursor);
+
+        }, 0);
     };
 
     const handleDelete = () => {
+
         const input = activeInputRef.current;
         if (!input) return;
 
-        const isNumberType = input.type === 'number';
+        // ⭐ Aadhaar – delete last raw digit
+        if (input.dataset.type === 'aadhaar') {
+            const currentDigits = input.value.replace(/\D/g, '');
+            if (currentDigits.length === 0) return;
 
-        if (!isNumberType && input.selectionStart !== null) {
-            const start = input.selectionStart || input.value.length;
-            const end = input.selectionEnd || input.value.length;
+            const newDigits = currentDigits.slice(0, -1);
+            const formatted = newDigits.replace(/(\d{4})(?=\d)/g, '$1 ');
+            setNativeValue(input, formatted);
 
-            if (start === end && start > 0) {
-                // Delete character before cursor
-                const newVal = input.value.substring(0, start - 1) + input.value.substring(end);
-                handleInputUpdate(() => newVal);
-                requestAnimationFrame(() => {
-                    input.setSelectionRange(start - 1, start - 1);
-                });
-            } else if (start !== end) {
-                // Delete selection
-                const newVal = input.value.substring(0, start) + input.value.substring(end);
-                handleInputUpdate(() => newVal);
-                requestAnimationFrame(() => {
-                    input.setSelectionRange(start, start);
-                });
-            }
-        } else {
-            // Delete last char
-            handleInputUpdate((val) => val.slice(0, -1));
+            const pos = formatted.length;
+            savedSelectionRef.current = { start: pos, end: pos };
+
+            setTimeout(() => {
+                input.focus();
+                input.setSelectionRange(pos, pos);
+            }, 0);
+            return;
         }
+
+        const start = savedSelectionRef.current?.start ?? input.selectionStart ?? 0;
+        const end = savedSelectionRef.current?.end ?? input.selectionEnd ?? 0;
+
+        const currentVal = input.value;
+
+        let newVal: string;
+        let newCursor: number;
+
+        if (start === end && start > 0) {
+
+            newVal = currentVal.substring(0, start - 1) + currentVal.substring(end);
+            newCursor = start - 1;
+
+        } else if (start !== end) {
+
+            newVal = currentVal.substring(0, start) + currentVal.substring(end);
+            newCursor = start;
+
+        } else {
+            return;
+        }
+
+        setNativeValue(input, newVal);
+
+        savedSelectionRef.current = { start: newCursor, end: newCursor };
+
+        setTimeout(() => {
+
+            input.focus();
+            input.setSelectionRange(newCursor, newCursor);
+
+        }, 0);
     };
 
     const handleClear = () => {
-        handleInputUpdate(() => '');
+
         const input = activeInputRef.current;
-        if (input && !input.type.includes('number')) {
+        if (!input) return;
+
+        setNativeValue(input, '');
+
+        savedSelectionRef.current = { start: 0, end: 0 };
+
+        setTimeout(() => {
+
             input.focus();
-        }
+            input.setSelectionRange(0, 0);
+
+        }, 0);
     };
 
     const handleClose = () => {
+
+        const input = activeInputRef.current;
+
+        if (input) {
+
+            input.removeEventListener('keyup', saveCursorPosition);
+            input.removeEventListener('click', saveCursorPosition);
+            input.removeEventListener('select', saveCursorPosition);
+        }
+
         setIsOpen(false);
         activeInputRef.current = null;
+        savedSelectionRef.current = null;
     };
 
     return (
@@ -145,23 +243,26 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
             className="flex h-screen w-screen overflow-hidden bg-slate-50"
             onFocusCapture={handleFocusCapture}
         >
-            {/* Main Content Area - Shrinks when keyboard opens */}
-            <div className={`
+
+            <div
+                className={`
                 transition-all duration-300 ease-in-out h-full overflow-hidden
                 ${isOpen ? 'w-[calc(100vw-350px)] md:w-[calc(100vw-600px)]' : 'w-full'}
-            `}>
+            `}
+            >
                 {children}
             </div>
 
-            {/* Keyboard Panel - Slides in from right */}
-            <div className={`
+            <div
+                className={`
                 fixed right-0 top-0 h-full bg-white z-[9999] shadow-2xl
                 transition-transform duration-300 ease-in-out
                 ${isOpen ? 'translate-x-0' : 'translate-x-full'}
                 w-[350px] md:w-[600px]
-            `}>
+            `}
+            >
                 <VirtualKeyboard
-                    isOpen={true} // Always "open" inside the panel if panel is visible
+                    isOpen={true}
                     type={keyboardType}
                     language={language}
                     onKeyPress={handleKeyPress}
@@ -171,8 +272,6 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
                     onClose={handleClose}
                 />
             </div>
-
-            {/* Overlay for small screens if needed, but we are designing for Kiosk (large screen) */}
         </div>
     );
 };

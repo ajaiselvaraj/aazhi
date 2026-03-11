@@ -11,15 +11,6 @@ import { useLanguage } from './contexts/LanguageContext';
 import VoiceNavigation from './components/VoiceNavigation';
 import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
-import BodoPage from './components/languages/Bodo';
-import DogriPage from './components/languages/Dogri';
-import KashmiriPage from './components/languages/Kashmiri';
-import KonkaniPage from './components/languages/Konkani';
-import MaithiliPage from './components/languages/Maithili';
-import ManipuriPage from './components/languages/Manipuri';
-import SanskritPage from './components/languages/Sanskrit';
-import SantaliPage from './components/languages/Santali';
-import SindhiPage from './components/languages/Sindhi';
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -27,8 +18,7 @@ enum ViewState {
   SELECTION = 'SELECTION',
   DASHBOARD = 'DASHBOARD',
   ADMIN = 'ADMIN',
-  DOCUMENTATION = 'DOCUMENTATION',
-  LANGUAGE_INFO = 'LANGUAGE_INFO'
+  DOCUMENTATION = 'DOCUMENTATION'
 }
 
 const LOGOUT_TIME = 120; // 2 minutes
@@ -337,17 +327,8 @@ const App: React.FC = () => {
       }, 1500);
     }
 
-    const infoLanguages = [
-      Language.BODO, Language.DOGRI, Language.KASHMIRI, Language.KONKANI,
-      Language.MAITHILI, Language.MANIPURI, Language.SANSKRIT,
-      Language.SANTALI, Language.SINDHI
-    ];
-
-    if (infoLanguages.includes(lang)) {
-      setView(ViewState.LANGUAGE_INFO);
-    } else {
-      setView(ViewState.LOGIN);
-    }
+    // Navigate directly to authentication page (LOGIN view)
+    setView(ViewState.LOGIN);
     setError('');
   };
 
@@ -718,14 +699,19 @@ const App: React.FC = () => {
                       <div className="relative group">
                         <input
                           id="aadhaar-input"
+                          data-type="aadhaar"
                           inputMode="numeric"
                           type="text"
                           maxLength={14}
-                          value={identifier}
+                          value={identifier.replace(/(\d{4})(?=\d)/g, "$1 ")}
                           onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            const formatted = val.match(/.{1,4}/g)?.join(' ') || val;
-                            setIdentifier(formatted);
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 12);
+                            setIdentifier(val);
+                            setError('');
+                          }}
+                          onInput={(e) => {
+                            const val = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 12);
+                            setIdentifier(val);
                             setError('');
                           }}
                           className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition placeholder:text-slate-300 placeholder:tracking-widest"
@@ -912,19 +898,7 @@ const App: React.FC = () => {
               onLanguageChange={setLanguage}
             />
           )}
-          {view === ViewState.LANGUAGE_INFO && (
-            <div className="absolute inset-0 z-50 bg-white">
-              {language === Language.BODO && <BodoPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.DOGRI && <DogriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.KASHMIRI && <KashmiriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.KONKANI && <KonkaniPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.MAITHILI && <MaithiliPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.MANIPURI && <ManipuriPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.SANSKRIT && <SanskritPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.SANTALI && <SantaliPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-              {language === Language.SINDHI && <SindhiPage onBack={handleBackToLanding} onContinue={() => setView(ViewState.LOGIN)} />}
-            </div>
-          )}
+
         </ServiceComplaintProvider>
       </KioskKeyboardWrapper>
 
