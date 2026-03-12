@@ -121,7 +121,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     [Language.ODIA]: 'or-IN',
     [Language.ASSAMESE]: 'as-IN',
     [Language.URDU]: 'ur-IN',
-    [Language.NEPALI]: 'ne-NP',
     [Language.MAITHILI]: 'mai',
     [Language.DOGRI]: 'doi',
     [Language.KONKANI]: 'kok-IN',
