@@ -159,6 +159,31 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
+  // Calculate new dashboard metrics
+  const totalCount = serviceRequests.length + complaints.length;
+  const resolvedCount = serviceRequests.filter(r => r.status === 'Completed' || r.status === 'Resolved').length + 
+                        complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+  const pendingRequests = totalCount - resolvedCount;
+  const pendingColor = pendingRequests < 10 ? 'green' : pendingRequests < 40 ? 'orange' : 'red';
+
+  const todayStr = new Date().toDateString();
+  const todaysRequests = serviceRequests.filter(r => new Date(r.createdAt).toDateString() === todayStr).length +
+                         complaints.filter(c => new Date(c.createdAt).toDateString() === todayStr).length;
+
+  const resolvedItems = [...serviceRequests.filter(r => r.status === 'Completed' || r.status === 'Resolved'), ...complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed')];
+  
+  let avgResText = "Not enough data";
+  if (resolvedItems.length > 0) {
+    const resolveTimes = resolvedItems.map(item => {
+      // @ts-ignore
+      const resolvedAtMs = item.resolvedAt ? new Date(item.resolvedAt).getTime() : new Date(item.stages[item.stages.length - 1]?.updatedAt || item.createdAt).getTime();
+      return Math.max(0, resolvedAtMs - new Date(item.createdAt).getTime());
+    });
+    const avgMs = resolveTimes.reduce((a, b) => a + b, 0) / resolveTimes.length;
+    const avgHours = Math.round(avgMs / (1000 * 60 * 60));
+    avgResText = `${avgHours} hrs`;
+  }
+
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden font-sans">
       {/* Sidebar */}
@@ -366,10 +391,13 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               </div>
 
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
                   { label: "Total Complaints", val: complaints.length, icon: AlertCircle, color: 'red' },
                   { label: "Resolved", val: complaints.filter(c => c.status === 'Resolved').length, icon: CheckCircle, color: 'green' },
+                  { label: "Pending Requests", val: pendingRequests, icon: Clock, color: pendingColor },
+                  { label: "Today's Requests", val: todaysRequests, icon: Calendar, color: 'blue' },
+                  { label: "Average Resolution Time", val: avgResText, icon: Clock, color: 'purple' },
                   { label: t('slaMet'), val: '96.4%', icon: CheckCircle, color: 'blue' },
                   { label: t('avgFeedback'), val: '4.8/5', icon: MessageSquare, color: 'purple' }
                 ].map((stat) => (
@@ -381,60 +409,10 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                 ))}
               </div>
 
-              {/* Leaderboard & Trend Analysis Row */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border">
-                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
-                    <TrendingUp className="text-blue-500" /> Trend Analysis
-                  </h3>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={activeMetrics.trend}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#94a3b8', fontSize: 12}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill:'#94a3b8', fontSize: 12}} />
-                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
-                        <Legend verticalAlign="top" height={36} />
-                        <Line type="monotone" name="Complaints" dataKey="complaints" stroke="#ef4444" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
-                        <Line type="monotone" name="Requests" dataKey="requests" stroke="#3b82f6" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
-                        <Line type="monotone" name="Resolved" dataKey="handled" stroke="#10b981" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Leaderboard */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col">
-                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <Trophy className="text-yellow-500" /> Top Performers
-                  </h3>
-                  <div className="flex-1 space-y-4">
-                    {topOfficers.map((officer, idx) => (
-                      <div key={officer.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-md transition">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs
-                            ${idx === 0 ? 'bg-yellow-400 shadow-lg shadow-yellow-200' : idx === 1 ? 'bg-slate-300' : 'bg-orange-300'}
-                          `}>
-                            #{idx + 1}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-sm">{officer.name}</p>
-                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{officer.dept}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-black text-blue-600">{officer.resolved}</p>
-                          <p className="text-[10px] text-slate-500">Cases</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <button className="w-full mt-4 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 py-2 rounded-xl transition">
-                     View All Staff
-                  </button>
-                </div>
+              {/* Activity Row */}
+              <div className="grid grid-cols-1 gap-10">
                 {/* Recent Activity Feed */}
-                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col lg:col-span-3 xl:col-span-1">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col">
                   <div className="flex justify-between items-center mb-6">
                      <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
                         <Activity className="text-green-500" size={20} /> System Activity Log
