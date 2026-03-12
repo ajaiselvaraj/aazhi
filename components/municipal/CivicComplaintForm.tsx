@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, MapPin, AlertCircle, CheckCircle, Mic, Plus } from 'lucide-react';
-import { MunicipalAPI } from '../../services/municipalApi';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { LANGUAGES_CONFIG } from '../../constants';
+import { LANGUAGES_CONFIG, MOCK_USER_PROFILE } from '../../constants';
 import { Priority } from '../../types/municipal';
+import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 
 const CIVIC_CATEGORIES = [
     'Garbage not collected',
@@ -27,8 +27,9 @@ const CIVIC_CATEGORIES = [
     'Commercial waste request'
 ];
 
-export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
+export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean; language?: any; departmentId?: string }> = ({ onBack, isPrivacyOn, departmentId }) => {
     const { language } = useLanguage();
+    const { addComplaint } = useServiceComplaint();
     const [step, setStep] = useState(1);
     const [category, setCategory] = useState('');
     const [priority, setPriority] = useState<Priority>('Medium');
@@ -83,12 +84,20 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
         setIsSubmitting(true);
         try {
-            await MunicipalAPI.submitComplaint({
-                category,
+            // Map the department ID to category
+            let deptCat = 'Municipal';
+            if (departmentId === 'eb') deptCat = 'Electricity';
+            else if (departmentId === 'water') deptCat = 'Water';
+            else if (departmentId === 'gas') deptCat = 'Gas';
+
+            addComplaint({
+                name: MOCK_USER_PROFILE.name,
+                phone: MOCK_USER_PROFILE.mobile,
+                category: deptCat,
+                complaintType: category, // Issue Type
                 description: desc || 'Filed via Aazhi Kiosk.',
-                priority,
-                location,
-                photoUrl: 'base64_or_signed_url_would_go_here'
+                location: location.address,
+                area: MOCK_USER_PROFILE.ward || 'Unknown'
             });
 
             speakText({
