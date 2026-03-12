@@ -5,7 +5,8 @@ import { TrackingStage, Kiosk } from '../types';
 // --- TYPE DEFINITIONS (As requested) ---
 
 export interface ServiceRequest {
-    id: string;
+    id: string; // The token is also used as ID for tracking
+    token?: string;
     name: string;
     phone: string;
     category: string;
@@ -44,19 +45,29 @@ export interface AreaAlert {
     createdAt: string;
 }
 
+export interface ActivityLogEntry {
+    id: string;
+    action: string;
+    details: string;
+    timestamp: string;
+}
+
 interface ServiceComplaintContextType {
     serviceRequests: ServiceRequest[];
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
-    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'currentStage' | 'stages'>) => void;
+    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stages'>) => string;
     addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>) => string;
     updateServiceStatus: (id: string, status: ServiceRequest['status']) => void;
     updateServiceStage: (id: string, stage: string) => void;
     updateComplaintStatus: (id: string, status: Complaint['status']) => void;
     updateComplaintStage: (id: string, stage: string) => void;
+    acknowledgeAlert: (area: string, operator: string) => void;
     getComplaintsByCategory: (category: string) => Complaint[];
     kiosks: Kiosk[];
     addKiosk: (kiosk: Kiosk) => void;
+    activityLog: ActivityLogEntry[];
+    logActivity: (action: string, details: string) => void;
 }
 
 const ServiceComplaintContext = createContext<ServiceComplaintContextType | undefined>(undefined);
@@ -65,7 +76,8 @@ const LOCAL_STORAGE_KEYS = {
     SERVICES: "aazhi_services",
     COMPLAINTS: "aazhi_complaints",
     ALERTS: "aazhi_area_alerts",
-    KIOSKS: "aazhi_kiosks"
+    KIOSKS: "aazhi_kiosks",
+    ACTIVITY: "aazhi_activity_log"
 };
 
 const SEED_KIOSKS: Kiosk[] = [
@@ -118,6 +130,7 @@ const SEED_REQUESTS: ServiceRequest[] = MOCK_REQUESTS.map(req => {
 
     return {
         id: req.id,
+        token: req.id,
         name: req.citizenName,
         phone: MOCK_USER_PROFILE.mobile,
         category: req.department,
@@ -196,6 +209,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [areaAlerts, setAreaAlerts] = useState<AreaAlert[]>([]);
     const [kiosks, setKiosks] = useState<Kiosk[]>([]);
+    const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
 
     // 1. Load data from LocalStorage on mount
     useEffect(() => {
@@ -230,6 +244,17 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     setKiosks(SEED_KIOSKS);
                     localStorage.setItem(LOCAL_STORAGE_KEYS.KIOSKS, JSON.stringify(SEED_KIOSKS));
                 }
+
+                const logData = localStorage.getItem(LOCAL_STORAGE_KEYS.ACTIVITY);
+                if (logData) {
+                    setActivityLog(JSON.parse(logData));
+                } else {
+                    const seedLogs: ActivityLogEntry[] = [
+                        { id: '1', action: 'System Init', details: 'Dashboard boot sequence complete.', timestamp: new Date(Date.now() - 3600000).toISOString() }
+                    ];
+                    setActivityLog(seedLogs);
+                    localStorage.setItem(LOCAL_STORAGE_KEYS.ACTIVITY, JSON.stringify(seedLogs));
+                }
             } catch (error) {
                 console.error("Failed to load data from localStorage", error);
             }
@@ -239,17 +264,19 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         // 2. Real-time Sync across tabs
         const handleStorageChange = (e: StorageEvent) => {
-            if (e.key === LOCAL_STORAGE_KEYS.SERVICES || e.key === LOCAL_STORAGE_KEYS.COMPLAINTS || e.key === LOCAL_STORAGE_KEYS.ALERTS || e.key === LOCAL_STORAGE_KEYS.KIOSKS) {
+            if (e.key === LOCAL_STORAGE_KEYS.SERVICES || e.key === LOCAL_STORAGE_KEYS.COMPLAINTS || e.key === LOCAL_STORAGE_KEYS.ALERTS || e.key === LOCAL_STORAGE_KEYS.KIOSKS || e.key === LOCAL_STORAGE_KEYS.ACTIVITY) {
                 // Read directly from storage to update state
                 const services = localStorage.getItem(LOCAL_STORAGE_KEYS.SERVICES);
                 const complaintsData = localStorage.getItem(LOCAL_STORAGE_KEYS.COMPLAINTS);
                 const alertsData = localStorage.getItem(LOCAL_STORAGE_KEYS.ALERTS);
                 const kiosksData = localStorage.getItem(LOCAL_STORAGE_KEYS.KIOSKS);
+                const logData = localStorage.getItem(LOCAL_STORAGE_KEYS.ACTIVITY);
 
                 if (services) setServiceRequests(JSON.parse(services));
                 if (complaintsData) setComplaints(JSON.parse(complaintsData));
                 if (alertsData) setAreaAlerts(JSON.parse(alertsData));
                 if (kiosksData) setKiosks(JSON.parse(kiosksData));
+                if (logData) setActivityLog(JSON.parse(logData));
             }
         };
 
@@ -272,10 +299,15 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         persistData(LOCAL_STORAGE_KEYS.KIOSKS, updatedKiosks);
     };
 
-    const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'currentStage' | 'stages'>) => {
+    const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stages'>): string => {
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, ''); // format: YYYYMMDD
+        const randStr = Math.floor(1000 + Math.random() * 9000).toString(); // format: XXXX
+        const generatedToken = `TKT-${dateStr}-${randStr}`;
+
         const newRequest: ServiceRequest = {
             ...data,
-            id: `SR-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            id: generatedToken,
+            token: generatedToken,
             status: "Submitted",
             currentStage: "Submitted",
             stages: [
@@ -287,6 +319,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         const updatedRequests = [newRequest, ...serviceRequests];
         setServiceRequests(updatedRequests);
         persistData(LOCAL_STORAGE_KEYS.SERVICES, updatedRequests);
+        logActivity("Request Submitted", `New service request ${newRequest.id} submitted for ${newRequest.category}.`);
+        return generatedToken;
     };
 
     const addComplaint = (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>): string => {
@@ -374,6 +408,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         );
         setServiceRequests(updatedRequests);
         persistData(LOCAL_STORAGE_KEYS.SERVICES, updatedRequests);
+        logActivity("Request Updated", `Service request ${id} status changed to ${status}.`);
     };
 
     const updateServiceStage = (id: string, stage: string) => {
@@ -403,6 +438,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
         setServiceRequests(updatedRequests);
         persistData(LOCAL_STORAGE_KEYS.SERVICES, updatedRequests);
+        logActivity("Request Stage Advanced", `Service request ${id} stage advanced to ${stage}.`);
     };
 
     const updateComplaintStatus = (id: string, status: Complaint['status']) => {
@@ -411,6 +447,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         );
         setComplaints(updatedComplaints);
         persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updatedComplaints);
+        logActivity("Complaint Updated", `Complaint ${id} flagged as ${status}.`);
     };
 
     const updateComplaintStage = (id: string, stage: string) => {
@@ -442,6 +479,25 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
         setComplaints(updatedComplaints);
         persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updatedComplaints);
+        logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
+    };
+
+    const acknowledgeAlert = (area: string, operator: string) => {
+        // Technically just a logging and local UI action for this simulation setup
+        logActivity("Area Alert Acknowledged", `Priority alert for ${area} acknowledged by ${operator}. Team dispatched.`);
+    };
+
+    const logActivity = (action: string, details: string) => {
+        const newLog: ActivityLogEntry = {
+            id: `ACT-${Date.now()}`,
+            action,
+            details,
+            timestamp: new Date().toISOString()
+        };
+        const updatedLog = [newLog, ...activityLog].slice(0, 50); // Keep last 50
+        
+        setActivityLog(updatedLog);
+        persistData(LOCAL_STORAGE_KEYS.ACTIVITY, updatedLog);
     };
 
     // Legacy support for helper function used in Admin
@@ -461,9 +517,12 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             updateServiceStage,
             updateComplaintStatus,
             updateComplaintStage,
+            acknowledgeAlert,
             getComplaintsByCategory,
             kiosks,
-            addKiosk
+            addKiosk,
+            activityLog,
+            logActivity
         }}>
             {children}
         </ServiceComplaintContext.Provider>
