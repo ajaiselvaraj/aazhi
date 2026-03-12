@@ -87,6 +87,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [submissionStep, setSubmissionStep] = useState<'select' | 'form' | 'success'>('select');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [generatedToken, setGeneratedToken] = useState<string>('');
   const [fetchedBill, setFetchedBill] = useState<any>(null);
   const [selectedComplaintDept, setSelectedComplaintDept] = useState<string | undefined>(undefined);
 
@@ -269,7 +270,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
   const handleServiceSubmit = (data: any) => {
     if (selectedService && selectedDepartment) {
-      addServiceRequest({
+      const tokenStr = addServiceRequest({
         name: data.name || MOCK_USER_PROFILE.name,
         phone: data.mobile || data.contact || MOCK_USER_PROFILE.mobile,
         category: DEPARTMENTS.find(d => d.id === selectedDepartment)?.name || selectedDepartment,
@@ -277,6 +278,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         address: data.address || data.location || MOCK_USER_PROFILE.address,
         description: data.description || data.complaintType || "Service Request"
       });
+      setGeneratedToken(tokenStr);
     }
     setSubmissionStep('success');
   };
@@ -494,7 +496,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {submissionStep === 'success' && selectedService && (
               <ServiceSuccess
                 serviceName={selectedService}
-                token={`TKT-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`}
+                token={generatedToken}
                 mobile="98765 43210" // In a real app, this comes from state
                 onFinish={finishSubmission}
                 language={language}

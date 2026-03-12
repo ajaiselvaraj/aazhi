@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Users, FileText, CheckCircle, Clock, BarChart2, Search, Filter, Eye, UserCheck, MessageSquare, AlertCircle, Globe, ChevronDown, AlertTriangle, Edit, LayoutGrid } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ArrowLeft, ArrowRight, Users, FileText, CheckCircle, Clock, BarChart2, Search, Filter, Eye, UserCheck, MessageSquare, AlertCircle, Globe, ChevronDown, AlertTriangle, Edit, LayoutGrid, TrendingUp, Calendar, Download, Moon, Sun, Bell, Trophy, Activity } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { MOCK_REQUESTS } from '../constants';
 import { Language } from '../types';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import KioskNetwork from './KioskNetwork';
+import AdminRequests from './AdminRequests';
+import AdminAlerts from './AdminAlerts';
+import AdminComplaints from './AdminComplaints';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
@@ -22,6 +25,54 @@ const data = [
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
 
+const trendData = [
+  { name: 'Jan', complaints: 40, requests: 24, handled: 60 },
+  { name: 'Feb', complaints: 30, requests: 13, handled: 40 },
+  { name: 'Mar', complaints: 20, requests: 58, handled: 70 },
+  { name: 'Apr', complaints: 27, requests: 39, handled: 60 },
+  { name: 'May', complaints: 18, requests: 48, handled: 65 },
+  { name: 'Jun', complaints: 23, requests: 38, handled: 55 },
+];
+
+const sentimentData = [
+  { name: 'Positive', value: 400 },
+  { name: 'Neutral', value: 300 },
+  { name: 'Negative', value: 150 },
+];
+const SENTIMENT_COLORS = ['#10b981', '#f59e0b', '#ef4444'];
+
+const topOfficers = [
+  { id: 1, name: 'Rahul Sharma', dept: 'Electricity', resolved: 145, time: '< 12h' },
+  { id: 2, name: 'Priya Patel', dept: 'Water', resolved: 128, time: '< 24h' },
+  { id: 3, name: 'Amit Kumar', dept: 'Roads', resolved: 112, time: '< 24h' },
+];
+
+const mockDateDataGenerator = (range: string) => {
+   const multiplier = range === '7D' ? 0.2 : range === '90D' ? 3 : range === '1Y' ? 12 : 1;
+   
+   return {
+      bar: [
+        { name: 'Electricity', applications: Math.round(400 * multiplier), resolved: Math.round(240 * multiplier) },
+        { name: 'Water', applications: Math.round(300 * multiplier), resolved: Math.round(139 * multiplier) },
+        { name: 'Municipal', applications: Math.round(200 * multiplier), resolved: Math.round(180 * multiplier) },
+        { name: 'Gas', applications: Math.round(278 * multiplier), resolved: Math.round(190 * multiplier) },
+      ],
+      trend: [
+        { name: 'P1', complaints: Math.round(40 * multiplier), requests: Math.round(24 * multiplier), handled: Math.round(60 * multiplier) },
+        { name: 'P2', complaints: Math.round(30 * multiplier), requests: Math.round(13 * multiplier), handled: Math.round(40 * multiplier) },
+        { name: 'P3', complaints: Math.round(20 * multiplier), requests: Math.round(58 * multiplier), handled: Math.round(70 * multiplier) },
+        { name: 'P4', complaints: Math.round(27 * multiplier), requests: Math.round(39 * multiplier), handled: Math.round(60 * multiplier) },
+        { name: 'P5', complaints: Math.round(18 * multiplier), requests: Math.round(48 * multiplier), handled: Math.round(65 * multiplier) },
+        { name: 'P6', complaints: Math.round(23 * multiplier), requests: Math.round(38 * multiplier), handled: Math.round(55 * multiplier) },
+      ],
+      sentiment: [
+        { name: 'Positive', value: Math.round(400 * multiplier) },
+        { name: 'Neutral', value: Math.round(300 * multiplier) },
+        { name: 'Negative', value: Math.round(150 * multiplier) },
+      ]
+   };
+};
+
 const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'requests' | 'complaints' | 'alerts' | 'kiosks'>('overview');
   const { t } = useLanguage();
@@ -33,11 +84,18 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
     updateServiceStage,
     updateComplaintStatus,
     updateComplaintStage,
-    getComplaintsByCategory
+    getComplaintsByCategory,
+    activityLog,
+    logActivity
   } = useServiceComplaint();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [priorityFilter, setPriorityFilter] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Dashboard Metrics State
+  const [dateRange, setDateRange] = useState<'7D' | '30D' | '90D' | '1Y'>('30D');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const activeMetrics = mockDateDataGenerator(dateRange);
 
   // Requests State
   const [selectedRequestCategory, setSelectedRequestCategory] = useState<string>('All');
@@ -186,11 +244,20 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               </select>
             </div>
 
+            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition relative">
+              <Bell size={20} />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition">
+              <Moon size={20} />
+            </button>
+
             <div className="relative hidden lg:block">
               <input
                 type="text"
-                placeholder="Search ID..."
-                className="bg-gray-100 pl-10 pr-4 py-2 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Universal Search..."
+                className="bg-gray-100 pl-10 pr-4 py-2 w-64 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -203,7 +270,101 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
         {/* Dashboard Content */}
         <div className="p-10">
           {activeSubTab === 'overview' && (
-            <div className="space-y-10">
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4">
+              {/* Date Filter & Actions */}
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 relative">
+                <div className="flex items-center gap-4">
+                  <div 
+                     onClick={() => setShowDatePicker(!showDatePicker)}
+                     className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 border border-slate-200 cursor-pointer hover:bg-slate-100 transition"
+                  >
+                    <Calendar size={18} className="text-blue-500" />
+                    {dateRange === '7D' ? 'Last 7 Days' : dateRange === '30D' ? 'Last 30 Days' : dateRange === '90D' ? 'Last 3 Months' : 'Last Year'} <ChevronDown size={14} />
+                  </div>
+                  {showDatePicker && (
+                     <div className="absolute top-full left-4 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-2 z-50 animate-in fade-in zoom-in-95 w-48">
+                        {['7D', '30D', '90D', '1Y'].map(range => (
+                           <button 
+                              key={range}
+                              onClick={() => { setDateRange(range as any); setShowDatePicker(false); }}
+                              className={`w-full text-left px-4 py-2 text-sm font-bold rounded-lg transition ${dateRange === range ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'}`}
+                           >
+                              {range === '7D' ? 'Last 7 Days' : range === '30D' ? 'Last 30 Days' : range === '90D' ? 'Last 3 Months' : 'Last Year'}
+                           </button>
+                        ))}
+                     </div>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                   <button className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition">
+                     <Download size={16} /> Export PDF
+                   </button>
+                   <button className="flex items-center gap-2 px-4 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-xl text-sm font-bold transition">
+                     <Download size={16} /> Export Excel
+                   </button>
+                </div>
+              </div>
+
+              {/* SLA Violation Alert */}
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl flex flex-col md:flex-row items-center justify-between shadow-sm gap-4">
+                 <div className="flex items-center gap-3 w-full">
+                   <AlertTriangle className="text-red-500 shrink-0" size={24} />
+                   <div>
+                     <p className="font-black text-red-900">SLA Violation Alert</p>
+                     <p className="text-red-700 text-sm font-medium">12 Complaints and 5 Requests have breached their 48-hour resolution SLA.</p>
+                   </div>
+                 </div>
+                 <button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-xl text-sm font-bold shadow-md shadow-red-200 transition whitespace-nowrap">
+                   Review Now
+                 </button>
+              </div>
+
+              {/* Pending Tasks & Quick Action Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div 
+                   onClick={() => setActiveSubTab('complaints')}
+                   className="bg-white p-6 rounded-3xl shadow-sm border border-red-100 hover:shadow-lg transition cursor-pointer group flex flex-col relative overflow-hidden"
+                >
+                   <div className="absolute -right-6 -top-6 bg-red-50 w-24 h-24 rounded-full group-hover:scale-110 transition duration-500"></div>
+                   <div className="flex justify-between items-start relative z-10 mb-2">
+                      <div className="p-3 bg-red-100 rounded-2xl text-red-600"><AlertCircle size={24}/></div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 px-3 py-1 rounded-full">ACTION REQ</span>
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{complaints.filter(c => c.status === 'Pending').length}</h3>
+                   <p className="font-bold text-slate-500 mt-1 relative z-10">Pending Complaints</p>
+                   <div className="mt-4 flex items-center text-xs font-bold text-red-500 group-hover:gap-2 transition-all">Manage Now <ArrowRight size={14} className="ml-1"/></div>
+                </div>
+
+                <div 
+                   onClick={() => setActiveSubTab('requests')}
+                   className="bg-white p-6 rounded-3xl shadow-sm border border-blue-100 hover:shadow-lg transition cursor-pointer group flex flex-col relative overflow-hidden"
+                >
+                   <div className="absolute -right-6 -top-6 bg-blue-50 w-24 h-24 rounded-full group-hover:scale-110 transition duration-500"></div>
+                   <div className="flex justify-between items-start relative z-10 mb-2">
+                      <div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><FileText size={24}/></div>
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{serviceRequests.filter(r => r.status === 'Submitted' || r.status === 'Under Review').length}</h3>
+                   <p className="font-bold text-slate-500 mt-1 relative z-10">Active Requests</p>
+                   <div className="mt-4 flex items-center text-xs font-bold text-blue-500 group-hover:gap-2 transition-all">Review Pipeline <ArrowRight size={14} className="ml-1"/></div>
+                </div>
+                
+                <div 
+                   onClick={() => setActiveSubTab('alerts')}
+                   className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 hover:shadow-lg transition cursor-pointer group flex flex-col relative overflow-hidden"
+                >
+                   <div className="absolute -right-6 -top-6 bg-orange-50 w-24 h-24 rounded-full group-hover:scale-110 transition duration-500"></div>
+                   <div className="flex justify-between items-start relative z-10 mb-2">
+                      <div className="p-3 bg-orange-100 rounded-2xl text-orange-600"><AlertTriangle size={24}/></div>
+                      {areaAlerts.length > 0 && <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>}
+                   </div>
+                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{areaAlerts.length}</h3>
+                   <p className="font-bold text-slate-500 mt-1 relative z-10">Unresolved Impact Alerts</p>
+                   <div className="mt-4 flex items-center text-xs font-bold text-orange-500 group-hover:gap-2 transition-all">Command Center <ArrowRight size={14} className="ml-1"/></div>
+                </div>
+
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {[
@@ -220,15 +381,98 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                 ))}
               </div>
 
+              {/* Leaderboard & Trend Analysis Row */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border">
+                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <TrendingUp className="text-blue-500" /> Trend Analysis
+                  </h3>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={activeMetrics.trend}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill:'#94a3b8', fontSize: 12}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill:'#94a3b8', fontSize: 12}} />
+                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                        <Legend verticalAlign="top" height={36} />
+                        <Line type="monotone" name="Complaints" dataKey="complaints" stroke="#ef4444" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
+                        <Line type="monotone" name="Requests" dataKey="requests" stroke="#3b82f6" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
+                        <Line type="monotone" name="Resolved" dataKey="handled" stroke="#10b981" strokeWidth={3} dot={{r:4, strokeWidth: 2}} activeDot={{r: 6}} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Leaderboard */}
+                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <Trophy className="text-yellow-500" /> Top Performers
+                  </h3>
+                  <div className="flex-1 space-y-4">
+                    {topOfficers.map((officer, idx) => (
+                      <div key={officer.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:shadow-md transition">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-xs
+                            ${idx === 0 ? 'bg-yellow-400 shadow-lg shadow-yellow-200' : idx === 1 ? 'bg-slate-300' : 'bg-orange-300'}
+                          `}>
+                            #{idx + 1}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 text-sm">{officer.name}</p>
+                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">{officer.dept}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-blue-600">{officer.resolved}</p>
+                          <p className="text-[10px] text-slate-500">Cases</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button className="w-full mt-4 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 py-2 rounded-xl transition">
+                     View All Staff
+                  </button>
+                </div>
+                {/* Recent Activity Feed */}
+                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col lg:col-span-3 xl:col-span-1">
+                  <div className="flex justify-between items-center mb-6">
+                     <h3 className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                        <Activity className="text-green-500" size={20} /> System Activity Log
+                     </h3>
+                     <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-md">Live Sync</span>
+                  </div>
+                  <div className="flex-1 space-y-4 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+                     {activityLog.length === 0 ? (
+                        <div className="text-center text-slate-400 font-bold py-10">No recent activity</div>
+                     ) : (
+                        activityLog.map((log) => (
+                           <div key={log.id} className="relative pl-6 pb-4 border-l-2 border-slate-100 last:border-transparent group">
+                              <span className="absolute left-[-9px] top-1 h-4 w-4 rounded-full bg-slate-200 border-4 border-white group-hover:bg-blue-400 transition-colors"></span>
+                              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl rounded-tl-none -mt-2">
+                                 <div className="flex justify-between items-start mb-1 gap-2">
+                                    <h4 className="font-bold text-sm text-slate-700">{log.action}</h4>
+                                    <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap">
+                                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                 </div>
+                                 <p className="text-xs text-slate-500 font-medium leading-relaxed">{log.details}</p>
+                              </div>
+                           </div>
+                        ))
+                     )}
+                  </div>
+                </div>
+              </div>
+
               {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <div className="bg-white p-8 rounded-3xl shadow-sm border">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-sm border">
                   <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
                     <BarChart2 className="text-blue-500" /> {t('deptPerformance')}
                   </h3>
                   <div className="h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data}>
+                      <BarChart data={activeMetrics.bar}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
                         <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
@@ -240,24 +484,26 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                   </div>
                 </div>
 
-                <div className="bg-white p-8 rounded-3xl shadow-sm border">
-                  <h3 className="text-lg font-bold mb-8">{t('serviceDistribution')}</h3>
-                  <div className="h-[350px]">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border flex flex-col">
+                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <MessageSquare className="text-blue-500" /> Feedback Sentiment
+                  </h3>
+                  <div className="flex-1 min-h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={data}
+                          data={activeMetrics.sentiment}
                           innerRadius={80}
                           outerRadius={120}
                           paddingAngle={5}
-                          dataKey="applications"
+                          dataKey="value"
                         >
-                          {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          {activeMetrics.sentiment.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={SENTIMENT_COLORS[index % SENTIMENT_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip />
-                        <Legend />
+                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
+                        <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -267,335 +513,45 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
           )}
 
           {activeSubTab === 'requests' && (
-            <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-              <div className="p-6 border-b flex flex-col gap-4 bg-gray-50">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold">{t('activeApps')}</h3>
-                  <div className="flex gap-2">
-                    <button className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl text-xs font-bold border hover:bg-gray-50">
-                      <Filter size={14} /> Filter
-                    </button>
-                    <button className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-100">
-                      Bulk Export
-                    </button>
-                  </div>
-                </div>
-
-                {/* Request Category Filters */}
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {['All', 'Electricity', 'Water', 'Gas', 'Municipal'].map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedRequestCategory(cat)}
-                      className={`px-4 py-1.5 rounded-lg font-bold text-xs transition-all whitespace-nowrap
-                            ${selectedRequestCategory === cat
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                          : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="divide-y overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
-                    <tr>
-                      <th className="px-8 py-4">Ref ID</th>
-                      <th className="px-8 py-4">Citizen</th>
-                      <th className="px-8 py-4">Service Type</th>
-                      <th className="px-8 py-4">Status</th>
-                      <th className="px-8 py-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y text-sm">
-                    {filteredRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="text-center py-12 text-slate-400 font-bold">
-                          No requests found for {selectedRequestCategory}
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredRequests.map((req) => (
-                        <tr key={req.id} className="hover:bg-blue-50/30 transition">
-                          <td className="px-8 py-6 font-bold text-blue-600">{req.id}</td>
-                          <td className="px-8 py-6 font-bold text-gray-900">{req.name}</td>
-                          <td className="px-8 py-6">
-                            <div className="flex flex-col">
-                              <span className="font-bold text-slate-900">{req.serviceType}</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{req.category}</span>
-                            </div>
-                          </td>
-                          <td className="px-8 py-6">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${req.currentStage === 'Completed' || req.currentStage === 'Approved' ? 'bg-green-100 text-green-700' : req.currentStage === 'Submitted' || req.currentStage === 'Pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {req.currentStage}
-                            </span>
-                          </td>
-                          <td className="px-8 py-6 text-right">
-                            <div className="flex gap-2 justify-end items-center">
-                              <button className="p-2 hover:bg-white rounded-xl border transition text-gray-500 hover:text-blue-600 bg-slate-50" title="View Documents">
-                                <Eye size={18} />
-                              </button>
-
-                              {(() => {
-                                const action = getNextStageAction(req.currentStage || 'Submitted');
-                                if (action) {
-                                  return (
-                                    <button
-                                      onClick={() => updateServiceStage(req.id, action.next)}
-                                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${action.color}`}
-                                    >
-                                      {action.label} <ArrowRight size={14} />
-                                    </button>
-                                  );
-                                }
-                                return (
-                                  <div className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 flex items-center gap-1 border border-slate-200">
-                                    <CheckCircle size={14} /> {req.currentStage}
-                                  </div>
-                                );
-                              })()}
-
-                              {req.currentStage !== 'Resolved' && req.currentStage !== 'Rejected' && req.currentStage !== 'Completed' && (
-                                <button
-                                  onClick={() => updateServiceStage(req.id, 'Rejected')}
-                                  className="px-4 py-2 bg-white text-red-600 border-2 border-red-100 rounded-xl text-xs font-bold hover:bg-red-50 transition-all"
-                                >
-                                  Reject
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+             <AdminRequests 
+                requests={serviceRequests} 
+                updateStage={updateServiceStage} 
+             />
           )}
 
           {activeSubTab === 'alerts' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-              <div className="bg-red-50 border border-red-200 p-6 rounded-3xl mb-8">
-                <div className="flex items-center gap-4 mb-2">
-                  <AlertTriangle className="text-red-600" size={32} />
-                  <div>
-                    <h3 className="text-xl font-black text-red-900">High Impact Areas Detected</h3>
-                    <p className="text-red-700 font-medium">Immediate attention required for clustering complaints in these zones.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {areaAlerts.length === 0 ? (
-                  <div className="col-span-full text-center py-20 opacity-50">
-                    <CheckCircle className="mx-auto mb-4 text-green-500" size={48} />
-                    <p className="text-xl font-bold text-slate-800">No active area alerts</p>
-                    <p className="text-slate-500">System is monitoring for complaint spikes...</p>
-                  </div>
-                ) : (
-                  [...areaAlerts].sort((a, b) => a.level === 'Critical' ? -1 : 1).map((alert, idx) => (
-                    <div key={idx} className={`relative overflow-hidden bg-white p-6 rounded-3xl shadow-lg border-2 
-                            ${alert.level === 'Critical' ? 'border-red-500 shadow-red-100' : 'border-orange-400 shadow-orange-100'}`}>
-
-                      <div className={`absolute top-0 right-0 px-4 py-1 rounded-bl-2xl font-black text-xs uppercase text-white
-                                ${alert.level === 'Critical' ? 'bg-red-600 animate-pulse' : 'bg-orange-500'}`}>
-                        {alert.level} Priority
-                      </div>
-
-                      <h4 className="text-2xl font-black text-slate-900 mb-1">{alert.area}</h4>
-                      <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mb-6">Impact Zone</p>
-
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
-                          <span className="text-xs font-bold text-slate-500">Issue Type</span>
-                          <span className="font-bold text-slate-900">{alert.complaintType}</span>
-                        </div>
-                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl">
-                          <span className="text-xs font-bold text-slate-500">Department</span>
-                          <span className="font-bold text-slate-900">{alert.category}</span>
-                        </div>
-                        <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-                          <span className="text-xs font-bold text-slate-500">Total Reports</span>
-                          <span className="font-black text-2xl text-slate-900">{alert.count}</span>
-                        </div>
-                      </div>
-
-                      <button onClick={() => {
-                        setActiveSubTab('complaints');
-                        setSelectedCategory(alert.category);
-                        setSearchTerm(alert.area);
-                      }} className="w-full mt-6 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition flex items-center justify-center gap-2">
-                        View Complaints <ArrowLeft className="rotate-180" size={16} />
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+             <AdminAlerts 
+                alerts={areaAlerts} 
+                onViewComplaints={(category, area) => {
+                   setActiveSubTab('complaints');
+                   setSelectedCategory(category);
+                   setSearchTerm(area);
+                }} 
+             />
           )}
 
           {activeSubTab === 'complaints' && (
-            <div className="space-y-6">
-              {/* Complaint Filters */}
-              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-                <div className="flex gap-2 overflow-x-auto pb-2">
-                  {['All', 'Electricity', 'Water', 'Gas', 'Municipal'].map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-6 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap
-                        ${selectedCategory === cat
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                          : 'bg-white text-slate-500 hover:bg-slate-100'}`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Priority Filter */}
-                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200">
-                  <span className="text-[10px] font-black uppercase text-slate-400 pl-3">Priority</span>
-                  {['All', 'Critical', 'High', 'Medium', 'Low'].map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPriorityFilter(p)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
-                                ${priorityFilter === p
-                          ? (p === 'Critical' ? 'bg-red-100 text-red-700' :
-                            p === 'High' ? 'bg-orange-100 text-orange-700' :
-                              p === 'Medium' ? 'bg-blue-100 text-blue-700' :
-                                'bg-slate-800 text-white')
-                          : 'text-slate-500 hover:bg-slate-50'
-                        }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                {sortedComplaints.length === 0 ? (
-                  <div className="text-center py-20 opacity-50">
-                    <AlertCircle className="mx-auto mb-4" size={48} />
-                    <p className="text-xl font-bold">No complaints found</p>
-                  </div>
-                ) : (
-                  sortedComplaints.map((complaint) => (
-                    <div key={complaint.id} className={`bg-white p-6 rounded-3xl shadow-sm border transition hover:shadow-md
-                        ${complaint.priority === 'Critical' ? 'border-l-4 border-l-red-500' :
-                        complaint.priority === 'High' ? 'border-l-4 border-l-orange-500' : 'border-slate-100'}
-                        ${complaint.areaAlert ? 'ring-2 ring-red-500 ring-offset-2 bg-red-50/10' : ''}
-                    `}>
-                      <div className="flex flex-col md:flex-row justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
-                              ${complaint.status === 'Pending' ? 'bg-red-50 text-red-600' :
-                                complaint.status === 'In Progress' ? 'bg-orange-50 text-orange-600' :
-                                  'bg-green-50 text-green-600'}`}>
-                              {complaint.status}
-                            </span>
-
-                            {/* Stage Badge */}
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
-                              ${complaint.currentStage === 'GM Approval' ? 'bg-purple-100 text-purple-700' :
-                                complaint.currentStage === 'Manager Review' ? 'bg-indigo-100 text-indigo-700' :
-                                  'bg-blue-50 text-blue-600'}`}>
-                              {complaint.currentStage || 'Submitted'}
-                            </span>
-
-                            {/* Priority Badge */}
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider
-                                ${complaint.priority === 'Critical' ? 'bg-red-600 text-white' :
-                                complaint.priority === 'High' ? 'bg-orange-500 text-white' :
-                                  complaint.priority === 'Medium' ? 'bg-blue-500 text-white' :
-                                    'bg-slate-200 text-slate-500'}
-                            `}>
-                              {complaint.priority}
-                            </span>
-
-                            <span className="text-xs font-bold text-slate-400">{complaint.id}</span>
-                            <span className="text-xs font-bold text-slate-400">• {new Date(complaint.createdAt).toLocaleDateString()}</span>
-                            {complaint.areaAlert && (
-                              <span className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider animate-pulse">
-                                <AlertTriangle size={10} /> Impact Alert
-                              </span>
-                            )}
-                          </div>
-
-                          <h4 className="text-lg font-black text-slate-900 mb-1">{complaint.complaintType}</h4>
-                          <p className="text-slate-500 text-sm mb-3 line-clamp-2">{complaint.description}</p>
-
-                          <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
-                            <span className="flex items-center gap-1"><Users size={14} /> {complaint.name} ({complaint.phone})</span>
-                            <span className="flex items-center gap-1"><Globe size={14} /> {complaint.category}</span>
-                            {complaint.location && <span className="flex items-center gap-1"><AlertCircle size={14} /> {complaint.location}</span>}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 justify-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-6 min-w-[150px]">                          {/* Auto-progression Action Button */}
-                          {(() => {
-                            const action = getNextStageAction(complaint.currentStage || 'Submitted');
-                            if (action) {
-                              return (
-                                <button
-                                  onClick={() => updateComplaintStage(complaint.id, action.next)}
-                                  className={`w-full ${action.color} px-4 py-2 text-left md:text-center rounded-xl text-xs font-bold transition-all mb-2 flex items-center justify-center gap-2`}
-                                >
-                                  {action.label} <ArrowRight size={14} />
-                                </button>
-                              );
-                            }
-                            return (
-                                <div className="w-full bg-slate-50 text-slate-500 border border-slate-200 px-4 py-2 rounded-xl text-xs font-bold text-center mb-2 flex items-center justify-center gap-1">
-                                    <CheckCircle size={14} /> {complaint.currentStage}
-                                </div>
-                            );
-                          })()}
-
-                          {complaint.currentStage !== 'Resolved' && complaint.currentStage !== 'Closed' && complaint.currentStage !== 'Rejected' && (
-                              <button
-                                  onClick={() => updateComplaintStage(complaint.id, 'Rejected')}
-                                  className="w-full bg-white text-red-600 border-2 border-red-50 px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-50 transition-all flex justify-center items-center mb-2"
-                              >
-                                  Reject
-                              </button>
-                          )}
-                          <div className="relative">
-                            <button
-                              onClick={() => toggleDropdown(complaint.id, 'compStatus')}
-                              className="w-full bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold flex justify-between items-center hover:bg-slate-200"
-                            >
-                              Status <ChevronDown size={14} />
-                            </button>
-                            {openDropdown?.id === complaint.id && openDropdown?.type === 'compStatus' && (
-                              <div className="absolute right-0 top-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 p-1 w-40 z-10 animate-in fade-in zoom-in-95 duration-200">
-                                {['Pending', 'In Progress', 'Resolved'].map((s) => (
-                                  <button
-                                    key={s}
-                                    onClick={() => {
-                                      updateComplaintStatus(complaint.id, s as any);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 rounded-lg text-slate-700"
-                                  >
-                                    {s}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+             <AdminComplaints 
+                complaints={getComplaintsByCategory(selectedCategory).filter(c => {
+                  const matchesSearch = c.id.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm) || c.name.toLowerCase().includes(searchTerm.toLowerCase());
+                  const matchesPriority = priorityFilter === 'All' || c.priority === priorityFilter;
+                  return matchesSearch && matchesPriority;
+                }).sort((a, b) => {
+                  const priorityA = PRIORITY_ORDER[a.priority] ?? 1;
+                  const priorityB = PRIORITY_ORDER[b.priority] ?? 1;
+                  if (priorityB !== priorityA) return priorityB - priorityA; 
+                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                })}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                priorityFilter={priorityFilter}
+                setPriorityFilter={setPriorityFilter}
+                updateStage={updateComplaintStage}
+                updateStatus={updateComplaintStatus}
+                searchTerm={searchTerm}
+             />
           )}
+
           {activeSubTab === 'kiosks' && <KioskNetwork />}
         </div>
       </main>

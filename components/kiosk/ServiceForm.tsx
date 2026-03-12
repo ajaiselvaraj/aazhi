@@ -25,9 +25,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
     const { t } = useLanguage();
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [showSuccess, setShowSuccess] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
-    const [tokenNumber, setTokenNumber] = useState<string>('');
 
     // Define form fields for each service
     const getFormFields = (): FormField[] => {
@@ -253,19 +251,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
         e.preventDefault();
 
         if (validateForm()) {
-            // Generate token number
-            const currentYear = new Date().getFullYear();
-            const randomNumber = Math.floor(Math.random() * 900000) + 100000; // 6-digit number
-            const newToken = `MSP-${currentYear}-${randomNumber.toString().slice(0, 6)}`;
-            setTokenNumber(newToken);
-
-            // Show success message
-            setShowSuccess(true);
-
-            // Auto-hide success message and call onSubmit after 10 seconds (extended time for user to read token)
-            setTimeout(() => {
-                onSubmit({ ...formData, tokenNumber: newToken });
-            }, 10000);
+            onSubmit(formData);
         }
     };
 
@@ -273,64 +259,12 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
         setFormData({});
         setErrors({});
         setUploadedFiles({});
-        setShowSuccess(false);
-        setTokenNumber('');
     };
 
     // Check if description should be shown (when "Other" is selected)
     const shouldShowDescription = formData['complaintType'] === 'Other';
 
-    if (showSuccess) {
-        return (
-            <div className="max-w-2xl mx-auto animate-in zoom-in-95">
-                <div className="bg-white rounded-[3rem] shadow-2xl border-2 border-green-200 p-12 text-center">
-                    <div className="w-32 h-32 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-                        <CheckCircle size={64} strokeWidth={2.5} />
-                    </div>
 
-                    <h2 className="text-4xl font-black text-slate-900 mb-4">Request Submitted Successfully!</h2>
-
-                    <p className="text-xl text-slate-600 mb-8">
-                        Your request has been submitted successfully.<br />
-                        Please save this token number for tracking.
-                    </p>
-
-                    {/* Token Number Display */}
-                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-4 border-blue-300 rounded-3xl p-8 mb-8 shadow-lg">
-                        <p className="text-sm font-bold text-blue-700 uppercase tracking-widest mb-3">
-                            Your Token Number
-                        </p>
-                        <div className="bg-white rounded-2xl p-6 border-2 border-blue-200 shadow-inner">
-                            <p className="text-5xl font-black text-blue-600 tracking-wider font-mono">
-                                {tokenNumber}
-                            </p>
-                        </div>
-                        <p className="text-xs font-bold text-blue-600 mt-4 uppercase tracking-wide">
-                            Please save this number for tracking your request
-                        </p>
-                    </div>
-
-                    <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 mb-8">
-                        <p className="text-sm font-bold text-amber-900 flex items-center justify-center gap-2">
-                            <span className="text-2xl">📱</span>
-                            A confirmation SMS will be sent to your registered mobile number shortly.
-                        </p>
-                    </div>
-
-                    <button
-                        onClick={() => {
-                            setShowSuccess(false);
-                            handleReset();
-                            onBack();
-                        }}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-12 py-6 rounded-2xl font-black text-xl hover:from-blue-700 hover:to-blue-800 transition shadow-xl shadow-blue-200"
-                    >
-                        Back to Services
-                    </button>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-8">
