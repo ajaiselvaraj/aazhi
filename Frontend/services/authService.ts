@@ -22,6 +22,7 @@ export const authService = {
         return data;
     },
 
+<<<<<<< HEAD
     firebaseLogin: async (firebaseToken: string): Promise<AuthResponse> => {
         const data = await apiClient.post<AuthResponse>('/auth/firebase-login', { firebaseToken });
         localStorage.setItem('aazhi_token', data.accessToken);
@@ -29,6 +30,8 @@ export const authService = {
         return data;
     },
 
+=======
+>>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
     register: async (userData: any): Promise<AuthResponse> => {
         const data = await apiClient.post<AuthResponse>('/auth/register', userData);
         localStorage.setItem('aazhi_token', data.accessToken);

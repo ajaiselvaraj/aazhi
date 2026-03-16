@@ -10,7 +10,10 @@ import { success, fail } from "../utils/response.js";
 import { maskAadhaar } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import crypto from "crypto";
+<<<<<<< HEAD
 import { firebaseAdmin } from "../config/firebase.js";
+=======
+>>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 
 // ─── Citizen Registration ─────────────────────────────────
 export const register = async (req, res, next) => {
@@ -202,6 +205,7 @@ export const getProfile = async (req, res, next) => {
     }
 };
 
+<<<<<<< HEAD
 // ─── Firebase Mobile Login ───────────────────────────────
 export const firebaseLogin = async (req, res, next) => {
     try {
@@ -273,6 +277,8 @@ export const firebaseLogin = async (req, res, next) => {
     }
 };
 
+=======
+>>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 // ─── Token Generation Helper ─────────────────────────────
 function generateTokens(user) {
     const accessToken = jwt.sign(
