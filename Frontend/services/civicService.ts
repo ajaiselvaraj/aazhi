@@ -1,105 +1,53 @@
-import { Bill, ServiceRequest, UserProfile, SupportContact, IssueCategory } from '../types';
-import { MOCK_BILLS, MOCK_REQUESTS, AREA_SUPPORT_CONTACTS, MOCK_USER_PROFILE } from '../constants';
-
-// --- PERSISTENCE LAYER (Simulated) ---
-const LOCAL_STORAGE_KEYS = {
-    BILLS: 'aazhi_data_bills',
-    REQUESTS: 'aazhi_data_requests',
-    USER: 'aazhi_data_user'
-};
-
-const getStoredData = <T>(key: string, defaultData: T): T => {
-    try {
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : defaultData;
-    } catch (e) {
-        return defaultData;
-    }
-};
-
-const setStoredData = <T>(key: string, data: T) => {
-    localStorage.setItem(key, JSON.stringify(data));
-};
+import { Bill, ServiceRequest, UserProfile, SupportContact } from '../types';
+import { AREA_SUPPORT_CONTACTS } from '../constants';
+import { apiClient } from './api/apiClient';
 
 // --- BILLING SERVICE ---
 export const BillingService = {
-    // Get all bills for a specific user (linked by Consumer ID)
-    getBillsForUser: (user: UserProfile): Bill[] => {
-        const allBills = getStoredData<Bill[]>(LOCAL_STORAGE_KEYS.BILLS, MOCK_BILLS);
-
-        // Filter bills where ConsumerId matches any of the user's linked services
-        const userConsumerIds = Object.values(user.consumerIds);
-        return allBills.filter(bill => userConsumerIds.includes(bill.consumerId))
-            .sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+    // Get all bills for the authenticated user
+    getBillsForUser: async (serviceType?: 'electricity' | 'gas' | 'water' | 'property'): Promise<Bill[]> => {
+        const endpoint = serviceType ? `/${serviceType}/bills` : '/electricity/bills'; // Default to electricity for now
+        return await apiClient.get<Bill[]>(endpoint);
     },
 
-    getUnpaidBills: (user: UserProfile): Bill[] => {
-        return BillingService.getBillsForUser(user).filter(b => b.status === 'Pending' || b.status === 'Overdue');
+    getUnpaidBills: async (serviceType?: 'electricity' | 'gas' | 'water' | 'property'): Promise<Bill[]> => {
+        const bills = await BillingService.getBillsForUser(serviceType);
+        return bills.filter(b => b.status === 'Pending' || b.status === 'Overdue' || b.status === 'pending' || b.status === 'overdue');
     },
 
-    payBill: (billId: string) => {
-        const allBills = getStoredData<Bill[]>(LOCAL_STORAGE_KEYS.BILLS, MOCK_BILLS);
-        const updatedBills = allBills.map(b => {
-            if (b.id === billId) {
-                return { ...b, status: 'Paid', paymentDate: new Date().toISOString() } as Bill;
-            }
-            return b;
-        });
-        setStoredData(LOCAL_STORAGE_KEYS.BILLS, updatedBills);
-        return true;
+    payBill: async (billId: string, amount: number) => {
+        // First create a razorpay order
+        const order = await apiClient.post<any>('/payment/create-order', { bill_id: billId, amount });
+        return order;
+    },
+
+    verifyPayment: async (paymentData: any) => {
+        return await apiClient.post<any>('/payment/verify', paymentData);
     }
 };
 
 // --- GRIEVANCE SERVICE ---
 export const GrievanceService = {
-    // Get requests raised by this specific user
-    getUserRequests: (userId: string): ServiceRequest[] => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
-        return allRequests.filter(req => req.citizenId === userId || req.citizenName === MOCK_USER_PROFILE.name) // Fallback to name for mock
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    getUserRequests: async (): Promise<ServiceRequest[]> => {
+        return await apiClient.get<ServiceRequest[]>('/service-requests');
     },
 
-    getAllRequests: (): ServiceRequest[] => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
-        return allRequests.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    getAllRequests: async (): Promise<ServiceRequest[]> => {
+        // For admin/staff view if needed
+        return await apiClient.get<ServiceRequest[]>('/service-requests');
     },
 
-    createRequest: (request: Omit<ServiceRequest, 'id' | 'timestamp' | 'status'>): ServiceRequest => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
-
-        const newRequest: ServiceRequest = {
-            ...request,
-            id: `AZ-${Math.floor(Math.random() * 10000)}`,
-            timestamp: new Date().toLocaleString(),
-            status: 'Submitted',
-            currentStage: 'Submitted',
-            stages: [
-                { stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }
-            ],
-            messages: []
-        };
-
-        const updatedRequests = [newRequest, ...allRequests];
-        setStoredData(LOCAL_STORAGE_KEYS.REQUESTS, updatedRequests);
-        return newRequest;
+    createRequest: async (request: any): Promise<ServiceRequest> => {
+        return await apiClient.post<ServiceRequest>('/service-requests', request);
     },
 
-    addMessageToRequest: (requestId: string, text: string, sender: 'Citizen' | 'Authority') => {
-        const allRequests = getStoredData<ServiceRequest[]>(LOCAL_STORAGE_KEYS.REQUESTS, MOCK_REQUESTS as unknown as ServiceRequest[]);
-        const updatedRequests = allRequests.map(req => {
-            if (req.id === requestId) {
-                const newMessage = {
-                    id: `MSG-${Date.now()}`,
-                    sender,
-                    text: text,
-                    timestamp: new Date().toISOString()
-                };
-                // @ts-ignore
-                return { ...req, messages: [...(req.messages || []), newMessage] };
-            }
-            return req;
-        });
-        setStoredData(LOCAL_STORAGE_KEYS.REQUESTS, updatedRequests);
+    trackRequest: async (ticketNumber: string): Promise<ServiceRequest> => {
+        return await apiClient.get<ServiceRequest>(`/service-requests/track/${ticketNumber}`);
+    },
+
+    addMessageToRequest: async (requestId: string, text: string) => {
+        // This endpoint might need to be added to backend or matched with existing
+        return await apiClient.post(`/service-requests/${requestId}/messages`, { text });
     }
 };
 
@@ -109,3 +57,4 @@ export const LocalityService = {
         return AREA_SUPPORT_CONTACTS.filter(c => c.area === ward || c.area === 'Global');
     }
 };
+

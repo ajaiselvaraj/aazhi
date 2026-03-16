@@ -48,15 +48,19 @@ export interface CityAlert {
 
 export interface Bill {
   id: string;
-  consumerId: string;
-  serviceType: 'Electricity' | 'Water' | 'Gas' | 'Property';
+  account_id?: string;
+  citizen_id?: string;
+  consumerId: string; // Map from account_number or similar if needed
+  serviceType: string;
   amount: number;
+  tax_amount?: number;
+  total_amount?: number;
   units?: string;
   month: string;
   year: string;
-  status: 'Paid' | 'Pending' | 'Overdue';
+  status: string; // Support 'Pending', 'pending', 'Paid', 'paid', etc.
   dueDate: string;
-  cycle?: string; // e.g. "FEB-2026"
+  cycle?: string;
   readings?: { current: number; previous: number };
   paymentDate?: string;
 }
@@ -94,11 +98,12 @@ export interface TrackingStage {
 
 export interface ServiceRequest {
   id: string;
+  ticket_number?: string;
   type: string;
-  department: string; // This maps to 'category' in some contexts
+  department: string;
   citizenName: string;
   citizenId?: string;
-  status: 'Submitted' | 'Under Review' | 'Verification' | 'Approval Pending' | 'Completed' | 'Rejected';
+  status: string;
   currentStage: string;
   stages: TrackingStage[];
   timestamp: string;
@@ -106,7 +111,7 @@ export interface ServiceRequest {
   messages?: Message[];
   issueCategory?: IssueCategory;
   ward?: string;
-  phone?: string; // Added for tracker search
+  phone?: string;
 }
 
 export interface Message {

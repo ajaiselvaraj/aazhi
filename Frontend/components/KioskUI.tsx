@@ -91,6 +91,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [fetchedBill, setFetchedBill] = useState<any>(null);
   const [selectedComplaintDept, setSelectedComplaintDept] = useState<string | undefined>(undefined);
 
+  const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
   const { addServiceRequest } = useServiceComplaint();
 
   const ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
@@ -100,6 +101,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     if (chatHistory.length === 0) {
       handleAiSearch("start"); // Trigger initial welcome flow
     }
+    
+    // Fetch user requests for the status tab
+    const fetchRequests = async () => {
+      try {
+        const reqs = await GrievanceService.getUserRequests();
+        setUserRequests(reqs);
+      } catch (error) {
+        console.error("Failed to fetch requests", error);
+      }
+    };
+    fetchRequests();
   }, []);
 
   // Scroll to bottom of chat
@@ -289,44 +301,77 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setActiveTab('status');
   };
 
-  const handleFetchBill = () => {
+  const handleFetchBill = async () => {
     if (!consumerNumber || mobileNumber.length !== 10) return;
     setIsFetchingBill(true);
 
-    // Simulate network delay then fetch real data
-    setTimeout(() => {
-      const unpaidBills = BillingService.getUnpaidBills(MOCK_USER_PROFILE);
-      /* In real app, filter by service type and consumer number entered */
+    try {
+      // In real app, we use the selected service type
+      const serviceTypeMap: Record<string, 'electricity' | 'gas' | 'water' | 'property'> = {
+        'elec': 'electricity',
+        'water': 'water',
+        'gas': 'gas'
+      };
+      
+      const type = selectedBillService ? serviceTypeMap[selectedBillService.id] : 'electricity';
+      const unpaidBills = await BillingService.getUnpaidBills(type);
+      
+      // Find bill by consumer number or fallback to first one for demo
       const bill = unpaidBills.find(b => b.consumerId === consumerNumber) || unpaidBills[0];
+
+      if (!bill) {
+        alert("No pending bills found for this consumer number.");
+        setIsFetchingBill(false);
+        return;
+      }
 
       setFetchedBill(bill);
       setBillingStep('details');
+    } catch (error) {
+       console.error("Failed to fetch bill", error);
+       alert("Error connecting to billing server. Please try again.");
+    } finally {
       setIsFetchingBill(false);
-    }, 1500);
+    }
   };
 
-  const handlePayBill = () => {
+  const handlePayBill = async () => {
     if (!fetchedBill) return;
     setIsFetchingBill(true);
 
-    BillingService.payBill(fetchedBill.id);
+    try {
+      const order = await BillingService.payBill(fetchedBill.id, fetchedBill.amount);
+      
+      // Here you would normally trigger Razorpay Checkout UI
+      // For this integration, we simulate a successful payment verification
+      const mockPaymentData = {
+        razorpay_order_id: order.order_id,
+        razorpay_payment_id: "pay_" + Date.now(),
+        razorpay_signature: "sig_" + Date.now() 
+      };
 
-    const txnId = 'TXN' + Date.now();
-    setReceiptDetails({
-      serviceName: selectedBillService.name,
-      consumerId: consumerNumber,
-      consumerName: "Arun Kumar",
-      amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount),
-      txnId: txnId,
-      date: new Date().toLocaleString(),
-      mode: 'UPI'
-    });
+      // In real app, verifyPayment would be called after Razorpay success
+      // await BillingService.verifyPayment(mockPaymentData);
 
-    setTimeout(() => {
+      setReceiptDetails({
+        serviceName: selectedBillService.name,
+        consumerId: consumerNumber,
+        consumerName: "Arun Kumar",
+        amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount),
+        txnId: order.transaction_id || ('TXN' + Date.now()),
+        date: new Date().toLocaleString(),
+        mode: 'UPI'
+      });
+
       setBillingStep('success');
+    } catch (error) {
+      console.error("Payment failed", error);
+      alert("Payment initiation failed.");
+    } finally {
       setIsFetchingBill(false);
-    }, 2500);
+    }
   };
+
 
   const handlePrintReceipt = () => {
     window.print();
@@ -829,7 +874,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
           <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
             <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> Interaction History</h2>
             <div className="grid gap-4">
-              {GrievanceService.getUserRequests(MOCK_USER_PROFILE.id).map((req) => (
+              {userRequests.map((req) => (
                 <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
                   <div className="flex gap-6 items-start">
                     <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
