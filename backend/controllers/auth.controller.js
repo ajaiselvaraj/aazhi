@@ -10,6 +10,7 @@ import { success, fail } from "../utils/response.js";
 import { maskAadhaar } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import crypto from "crypto";
+import { firebaseAdmin } from "../config/firebase.js";
 
 // ─── Citizen Registration ─────────────────────────────────
 export const register = async (req, res, next) => {
@@ -198,6 +199,77 @@ export const getProfile = async (req, res, next) => {
         return success(res, "Profile retrieved", result.rows[0]);
     } catch (err) {
         next(err);
+    }
+};
+
+// ─── Firebase Mobile Login ───────────────────────────────
+export const firebaseLogin = async (req, res, next) => {
+    try {
+        const { firebaseToken } = req.body;
+
+        if (!firebaseToken) {
+            return fail(res, "Firebase token required.", 400);
+        }
+
+        // 1. Verify token with Firebase
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(firebaseToken);
+        const { phone_number, uid } = decodedToken;
+
+        if (!phone_number) {
+            return fail(res, "Phone number not found in token.", 400);
+        }
+
+        // Clean up phone number (remove +91 if present)
+        const mobile = phone_number.replace("+91", "").slice(-10);
+
+        // 2. Find or Create user in our DB
+        let userResult = await pool.query(
+            "SELECT id, name, mobile, role, is_active FROM citizens WHERE mobile = $1",
+            [mobile]
+        );
+
+        let user;
+
+        if (userResult.rows.length === 0) {
+            // New user - auto register
+            const newUser = await pool.query(
+                `INSERT INTO citizens (name, mobile, role, is_active)
+                 VALUES ($1, $2, 'citizen', true) 
+                 RETURNING id, name, mobile, role, is_active`,
+                [`Citizen ${mobile.slice(-4)}`, mobile]
+            );
+            user = newUser.rows[0];
+            logger.info("New user auto-registered via Firebase", { userId: user.id, mobile });
+        } else {
+            user = userResult.rows[0];
+        }
+
+        if (!user.is_active) {
+            return fail(res, "Account is deactivated.", 403);
+        }
+
+        // 3. Issue our JWT tokens
+        const { accessToken, refreshToken } = generateTokens(user);
+
+        // Store refresh token
+        await pool.query(
+            "UPDATE citizens SET refresh_token = $1, updated_at = NOW() WHERE id = $2",
+            [refreshToken, user.id]
+        );
+
+        return success(res, "Firebase login successful", {
+            user: {
+                id: user.id,
+                name: user.name,
+                mobile: user.mobile,
+                role: user.role,
+            },
+            accessToken,
+            refreshToken,
+        });
+    } catch (error) {
+        logger.error("Firebase Login Error:", error);
+        return fail(res, "Identity verification failed.", 401);
     }
 };
 

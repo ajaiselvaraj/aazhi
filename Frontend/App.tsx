@@ -13,6 +13,8 @@ import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
 import { authService } from './services/authService';
 import { GrievanceService } from './services/civicService';
+import { auth as firebaseAuth, RecaptchaVerifier, signInWithPhoneNumber } from './services/firebase';
+import { ConfirmationResult } from 'firebase/auth';
 
 
 enum ViewState {
@@ -218,6 +220,7 @@ const App: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   // ── Location & Alert Banner state ──
   const [alertLanguage, setAlertLanguage] = useState<Language>(Language.ENGLISH);
@@ -337,42 +340,63 @@ const App: React.FC = () => {
   };
 
   // Logic for Sending OTP or Triggering Admin Password
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     setError('');
+    
+    // Hidden Admin Logic: Check for special number
+    if (loginMethod === 'MOBILE' && identifier === '963852') {
+      setIsProcessing(true);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setLoginMethod('PASSWORD');
+        setAuthStage('PASSWORD');
+        setIdentifier('');
+        setPassword('');
+      }, 500);
+      return;
+    }
+
     if (loginMethod === 'AADHAAR') {
       if (identifier.replace(/\s/g, '').length !== 12) {
         setError(t('err_aadhaar'));
         return;
       }
+      // Note: In a real app, Aadhaar OTP would come from UIDAI. 
+      // For this demo, we simulate it or use the same mobile logic.
       setIsProcessing(true);
       setTimeout(() => {
         setIsProcessing(false);
         setAuthStage('OTP');
       }, 1000);
-
-    } else if (loginMethod === 'MOBILE') {
-      // Hidden Admin Logic: Check for special number
-      if (identifier === '963852') {
-        setIsProcessing(true);
-        setTimeout(() => {
-          setIsProcessing(false);
-          setLoginMethod('PASSWORD');
-          setAuthStage('PASSWORD');
-          setIdentifier('');
-          setPassword('');
-        }, 500);
-        return;
-      }
-
+      return;
+    } 
+    
+    if (loginMethod === 'MOBILE') {
       if (identifier.length !== 10) {
         setError(t('err_mobile'));
         return;
       }
+
       setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
+      try {
+        // Initialize reCAPTCHA
+        const recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, 'mobile-send-otp-btn', {
+          'size': 'invisible'
+        });
+
+        const phoneNumber = `+91${identifier}`;
+        const result = await signInWithPhoneNumber(firebaseAuth, phoneNumber, recaptchaVerifier);
+        
+        setConfirmationResult(result);
         setAuthStage('OTP');
-      }, 1000);
+        
+        speakText({ text: t('otpSent') || "OTP sent to your mobile", language: "English" });
+      } catch (e: any) {
+        console.error("Firebase Auth Error", e);
+        setError("Failed to send OTP. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -383,8 +407,9 @@ const App: React.FC = () => {
 
     try {
       if (authStage === 'PASSWORD') {
-        if (password === '789456') {
-          setView(ViewState.ADMIN);
+        if (password === '789456' && identifier === '') {
+           // Super Admin bypass
+           setView(ViewState.ADMIN);
         } else {
           // Attempt real login with mobile + password for admin/staff
           try {
@@ -398,16 +423,29 @@ const App: React.FC = () => {
              setError(e.message || t('err_adminPass'));
           }
         }
+      } else if (loginMethod === 'MOBILE' && confirmationResult) {
+        // 1. Verify OTP with Firebase
+        const result = await confirmationResult.confirm(otp);
+        
+        // 2. Get Firebase ID Token
+        const idToken = await result.user.getIdToken();
+        
+        // 3. Authenticate with backend
+        await authService.firebaseLogin(idToken);
+        
+        setView(ViewState.SELECTION);
+        speakText({ text: "Authentication successful", language: "English" });
       } else {
+        // Fallback for Aadhaar simulation
         if (otp.length === 6) {
            setView(ViewState.SELECTION);
         } else {
           setError(t('err_otp'));
         }
       }
-    } catch (e) {
-      console.error("Login error", e);
-      setError("Authentication service unavailable.");
+    } catch (e: any) {
+      console.error("Login submission error", e);
+      setError(e.message || "Authentication failed. Invalid OTP.");
     } finally {
       setIsProcessing(false);
     }
