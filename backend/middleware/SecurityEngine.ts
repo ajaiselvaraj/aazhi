@@ -76,6 +76,11 @@ export class SecurityEngine {
     // Prevent MIME-type sniffing & Clickjacking
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
+
+    // Prevent Browser/Proxy Caching of PII data
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
     next();
   }
@@ -88,8 +93,19 @@ export class SecurityEngine {
       // 0. Anti-Spoofing: Ensure request comes through approved WAF/CDN
       if (process.env.NODE_ENV === 'production') {
         const expectedWafSecret = process.env.WAF_SECRET;
-        if (expectedWafSecret && req.headers['x-waf-secret'] !== expectedWafSecret) {
-          return res.status(403).json({ error: 'Direct Origin Access Prohibited. Route through WAF.' });
+        const providedWafSecret = req.headers['x-waf-secret'];
+        
+        if (expectedWafSecret) {
+          if (!providedWafSecret || typeof providedWafSecret !== 'string') {
+            return res.status(403).json({ error: 'Direct Origin Access Prohibited. Route through WAF.' });
+          }
+          
+          const expectedBuffer = Buffer.from(expectedWafSecret);
+          const providedBuffer = Buffer.from(providedWafSecret);
+          
+          if (expectedBuffer.length !== providedBuffer.length || !crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
+            return res.status(403).json({ error: 'Direct Origin Access Prohibited. Invalid WAF Signature.' });
+          }
         }
       }
 

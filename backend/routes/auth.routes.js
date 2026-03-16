@@ -13,12 +13,14 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import { validate, registerSchema, loginSchema } from "../utils/validator.js";
 
+import { verifyTokenNotBlacklisted } from "../middleware/jwtBlacklist.js";
+
 const router = express.Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
 router.post("/refresh", refreshToken);
-router.post("/logout", authMiddleware, logout);
-router.get("/profile", authMiddleware, getProfile);
+router.post("/logout", authMiddleware, verifyTokenNotBlacklisted, logout);
+router.get("/profile", authMiddleware, verifyTokenNotBlacklisted, getProfile);
 
 export default router;

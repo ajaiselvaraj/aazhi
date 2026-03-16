@@ -156,7 +156,17 @@ export const refreshToken = async (req, res, next) => {
 // ─── Logout ───────────────────────────────────────────────
 export const logout = async (req, res, next) => {
     try {
+        if (!req.user) {
+            return fail(res, "Authentication required.", 401);
+        }
+        // Invalidate the refresh token in the database
         await pool.query("UPDATE citizens SET refresh_token = NULL WHERE id = $1", [req.user.id]);
+        
+        // Blacklist the access token for its remaining validity
+        if (req.blacklistToken) {
+            await req.blacklistToken();
+        }
+
         return success(res, "Logged out successfully");
     } catch (err) {
         next(err);

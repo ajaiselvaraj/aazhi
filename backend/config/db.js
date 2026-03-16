@@ -2,12 +2,10 @@
 // Database Pool Configuration with connection validation
 // ═══════════════════════════════════════════════════════════════
 
-import pkg from "pg";
+import { Pool } from "pg";
 import dotenv from "dotenv";
 
 dotenv.config();
-
-const { Pool } = pkg;
 
 export const pool = new Pool({
     connectionString: process.env.DB_URL,

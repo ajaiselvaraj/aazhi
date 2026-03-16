@@ -1,7 +1,3 @@
-// ═══════════════════════════════════════════════════════════════
-// Joi Validation Schemas for all API endpoints
-// ═══════════════════════════════════════════════════════════════
-
 import Joi from "joi";
 
 // ─── Reusable Strict Password Schema ──────────────────────
@@ -28,12 +24,12 @@ export const registerSchema = Joi.object({
 
 export const loginSchema = Joi.object({
     mobile: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    password: Joi.string().required(),
+    password: Joi.string().max(128).required(), // Max length prevents Bcrypt CPU-exhaustion DoS
 });
 
 export const adminLoginSchema = Joi.object({
     mobile: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    password: Joi.string().required(),
+    password: Joi.string().max(128).required(),
 });
 
 // ─── Bill Schemas ─────────────────────────────────────────

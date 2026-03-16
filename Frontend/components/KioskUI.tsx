@@ -29,6 +29,7 @@ import { CitizenParticipation } from './municipal/CitizenParticipation';
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useInactivityTimer } from '../hooks/useInactivityTimer';
 
 interface Props {
   language: Language;
@@ -95,6 +96,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const { addServiceRequest } = useServiceComplaint();
 
   const ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
+
+  // Kiosk Physical Security: Auto-logout after 45s of inactivity
+  const { isWarning, countdown, resetTimer } = useInactivityTimer(45000, 15000, () => {
+    onLogout();
+  });
 
   // Initialize Chat with Welcome Message on Load
   useEffect(() => {
@@ -401,6 +407,23 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       isPrivacyShield={isPrivacyShield}
       onTogglePrivacy={onTogglePrivacy}
     >
+      {/* KIOSK WALK-AWAY WARNING MODAL */}
+      {isWarning && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="bg-white p-10 rounded-[3rem] text-center max-w-md animate-in zoom-in-95 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
+            <AlertTriangle size={64} className="text-amber-500 mx-auto mb-6 animate-pulse" />
+            <h2 className="text-3xl font-black text-slate-900 mb-4">Are you still there?</h2>
+            <p className="text-slate-500 font-medium mb-8">
+              For your privacy, your session will automatically close in <br/>
+              <span className="text-red-600 font-black text-4xl leading-relaxed">{countdown}s</span>
+            </p>
+            <button onClick={resetTimer} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+              Yes, keep me logged in
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className={`h-full ${isLargeText ? 'text-lg' : ''} print:hidden`}>
 
         {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
