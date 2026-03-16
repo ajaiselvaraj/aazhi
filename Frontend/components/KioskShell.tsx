@@ -88,6 +88,22 @@ const KioskShell: React.FC<KioskShellProps> = ({
     const [isCharging, setIsCharging] = useState(false);
     const { t } = useLanguage();
 
+    const translateAlertMessage = (alert: any) => {
+        if (!alert || !alert.message) return '';
+        if (alert.message.includes("Planned maintenance in Ward")) {
+            return `${t('plannedMaintenance')} ${alert.ward} ${t('from', 'from')} 2PM - 5PM.`;
+        }
+        if (alert.message.includes("Low pressure expected in Central Zone")) {
+            return t('lowPressureAlert') + '.';
+        }
+        if (alert.message.includes("Mobile Health Camp today at Gandhi Park")) {
+            return `${t('mobileHealthCamp')} ${alert.ward}).`;
+        }
+        const alertKey = `alert_${alert.id}`;
+        const val = t(alertKey);
+        return val !== alertKey ? val : alert.message;
+    };
+
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
         const handleOffline = () => setIsOnline(false);
@@ -207,7 +223,11 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
+<<<<<<< Updated upstream:Frontend/components/KioskShell.tsx
         { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
+=======
+        { id: 'tracker', label: t('navTracker') || 'Track App', icon: Search },
+>>>>>>> Stashed changes:components/KioskShell.tsx
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];
@@ -297,7 +317,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 <header className="h-24 px-8 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden">
                     <div>
                         <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                            {activeTab === 'home' ? `${t('welcomeUser') || 'Welcome'}, ${userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
+                            {activeTab === 'home' ? `${t('welcomeCitizen') || 'Welcome, Citizen'} ${userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
                         </h1>
                         <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
                             <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
@@ -375,16 +395,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                         </div>
                         <div className="flex-1 mx-4 overflow-hidden">
                             <div className="whitespace-nowrap animate-marquee">
-                                {alerts.map(a => {
-                                    const alertKey = `alert_${a.id}`;
-                                    // Fallback to message if translation missing (though fallback logic in t already handles it if key present in en.json)
-                                    // If alert_AL-01 is not in en.json but is in alerts array, then t(alertKey) returns alertKey.
-                                    // We want actual message if translation missing.
-                                    // My t function returns key.
-                                    // So: t(alertKey) === alertKey ? a.message : t(alertKey)
-                                    const val = t(alertKey);
-                                    return (val !== alertKey) ? val : a.message;
-                                }).join('  •  ')}
+                                {alerts.map(a => translateAlertMessage(a)).join('  •  ')}
                             </div>
                         </div>
                     </div>

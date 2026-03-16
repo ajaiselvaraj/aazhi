@@ -66,8 +66,8 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                 name: MOCK_USER_PROFILE.name,
                 phone: "9876543210", // In real app, this comes from user profile
                 category: getDeptCategory(selectedDept),
-                complaintType: issueType,
-                description: description || issueType,
+                complaintType: t(issueType),
+                description: description || t(issueType),
                 location: MOCK_USER_PROFILE.ward || "Unknown",
                 area: MOCK_USER_PROFILE.ward || "Unknown"
             });
@@ -89,11 +89,11 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                     <ArrowLeft size={24} />
                 </button>
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900">{t('reportIssue') || "Register Complaint"}</h2>
+                    <h2 className="text-3xl font-black text-slate-900">{t('comp_registerComplaint')}</h2>
                     <p className="text-slate-500 font-medium">
                         {departmentId
-                            ? `Reporting issue for ${getDeptName(departmentId)}`
-                            : "Report civic issues directly to your Ward Officer"}
+                            ? `${t('comp_reportForDept')} ${getDeptName(departmentId)}`
+                            : t('comp_reportToWard')}
                     </p>
                 </div>
             </div>
@@ -106,12 +106,12 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                     <div className="p-8 h-full flex flex-col">
                         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-black">1</span>
-                            Select Department
+                            {t('comp_selectDept')}
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto">
                             {DEPARTMENTS.map(dept => {
-                                const deptName = t[`dept_${dept.id}` as keyof typeof t] || dept.name;
+                                const deptName = t(`dept_${dept.id}`) || dept.name;
                                 return (
                                     <button
                                         key={dept.id}
@@ -131,7 +131,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                             <h4 className={`font-black text-lg ${selectedDept === dept.id ? 'text-blue-900' : 'text-slate-800'}`}>
                                                 {deptName}
                                             </h4>
-                                            <p className="text-xs text-slate-500 mt-1 font-medium">{dept.services.length} Issue Types</p>
+                                            <p className="text-xs text-slate-500 mt-1 font-medium">{dept.services.length} {t('comp_issueTypes')}</p>
                                         </div>
                                         {selectedDept === dept.id && <CheckCircle className="ml-auto text-blue-600 animate-in zoom-in" />}
                                     </button>
@@ -145,7 +145,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 onClick={() => setStep('details')}
                                 className="bg-blue-600 text-white px-8 py-4 rounded-xl font-black text-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                {t('nextStep') || "Next Step"} <ArrowLeft className="rotate-180" size={20} />
+                                {t('nextStep') || t('nextBtn')} <ArrowLeft className="rotate-180" size={20} />
                             </button>
                         </div>
                     </div>
@@ -156,23 +156,22 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                     <div className="p-8 h-full flex flex-col">
                         <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                             <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-black">2</span>
-                            Issue Details - {getDeptName(selectedDept)}
+                            {t('comp_issueDetails')} - {getDeptName(selectedDept)}
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Common Issues</label>
+                                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{t('comp_commonIssues')}</label>
                                     <div className="grid grid-cols-1 gap-3">
-                                        {(PREDEFINED_ISSUES[selectedDept as keyof typeof PREDEFINED_ISSUES] || PREDEFINED_ISSUES['municipal']).map(issue => {
-                                            const issueKey = `issue_${issue.replace(/[\s\(\)]/g, '')}` as keyof typeof t;
-                                            const issueName = t[issueKey] || issue;
+                                        {(PREDEFINED_ISSUES[selectedDept as keyof typeof PREDEFINED_ISSUES] || PREDEFINED_ISSUES['municipal']).map(issueKey => {
+                                            const issueName = t(issueKey);
                                             return (
                                                 <button
-                                                    key={issue}
-                                                    onClick={() => setIssueType(issue)}
+                                                    key={issueKey}
+                                                    onClick={() => setIssueType(issueKey)}
                                                     className={`p-4 rounded-xl text-left font-bold text-sm border-2 transition-all
-                                            ${issueType === issue
+                                            ${issueType === issueKey
                                                             ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-200'
                                                             : 'border-slate-100 text-slate-600 hover:border-blue-200'}
                                         `}
@@ -186,20 +185,20 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             </div>
 
                             <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col">
-                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Additional Details</label>
+                                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{t('comp_additionalDetails')}</label>
                                 <textarea
                                     className="flex-1 w-full bg-white border-2 border-slate-200 rounded-xl p-4 text-slate-800 font-bold focus:border-blue-500 outline-none resize-none placeholder:text-slate-300 placeholder:font-normal"
-                                    placeholder="Describe the location or specific problem (Optional)..."
+                                    placeholder={t('comp_describeProblem')}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
 
                                 <div className="mt-4 flex gap-3">
                                     <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                                        <Camera size={18} /> Add Photo
+                                        <Camera size={18} /> {t('comp_addPhoto')}
                                     </button>
                                     <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                                        <Mic size={18} /> Voice Note
+                                        <Mic size={18} /> {t('comp_voiceNote')}
                                     </button>
                                 </div>
                             </div>
@@ -210,14 +209,14 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 onClick={() => departmentId ? onBack() : setStep('category')}
                                 className="text-slate-400 font-bold hover:text-slate-600 px-4"
                             >
-                                Back
+                                {t('backBtn')}
                             </button>
                             <button
                                 disabled={!issueType || isSubmitting}
                                 onClick={handleSubmit}
                                 className="bg-red-600 text-white px-8 py-4 rounded-xl font-black text-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2 shadow-xl shadow-red-100"
                             >
-                                {isSubmitting ? 'Registering...' : 'Submit Complaint'} <Send size={18} />
+                                {isSubmitting ? t('comp_registering') : t('comp_submitComplaint')} <Send size={18} />
                             </button>
                         </div>
                     </div>
@@ -229,19 +228,19 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-sm">
                             <CheckCircle size={48} />
                         </div>
-                        <h2 className="text-4xl font-black text-slate-900 mb-2">Complaint Registered!</h2>
+                        <h2 className="text-4xl font-black text-slate-900 mb-2">{t('comp_complaintRegistered')}</h2>
                         <p className="text-slate-500 text-lg font-medium max-w-md mx-auto mb-8">
-                            Your grievance has been forwarded to the {DEPARTMENTS.find(d => d.id === selectedDept)?.name} Officer.
+                            {t('comp_grievanceForwarded')}
                         </p>
 
                         <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 w-full max-w-sm mb-8">
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Ticket ID</p>
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{t('comp_ticketId')}</p>
                             <p className="text-3xl font-black text-slate-800 tracking-tight">{ticketId}</p>
                         </div>
 
                         <div className="flex gap-4">
                             <button onClick={onBack} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
-                                Return Home
+                                {t('returnHome')}
                             </button>
                         </div>
                     </div>

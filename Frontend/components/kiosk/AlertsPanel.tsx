@@ -11,6 +11,21 @@ interface Props {
 const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
     const { t } = useLanguage();
 
+    const translateAlertMessage = (alert: CityAlert) => {
+        if (alert.message.includes("Planned maintenance in Ward")) {
+            return `${t('plannedMaintenance')} ${alert.ward} ${t('from', 'from')} 2PM - 5PM.`;
+        }
+        if (alert.message.includes("Low pressure expected in Central Zone")) {
+            return t('lowPressureAlert') + '.';
+        }
+        if (alert.message.includes("Mobile Health Camp today at Gandhi Park")) {
+            return `${t('mobileHealthCamp')} ${alert.ward}).`;
+        }
+        const alertKey = `alert_${alert.id}`;
+        const val = t(alertKey);
+        return val !== alertKey ? val : alert.message;
+    };
+
     return (
         <div className="bg-slate-900 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl">
             <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
@@ -37,10 +52,13 @@ const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) =
                                 <span className={`text-[10px] font-black uppercase tracking-wider ${alert.severity === 'Critical' ? 'text-red-400' :
                                     alert.severity === 'Warning' ? 'text-amber-400' : 'text-blue-200'
                                     }`}>
-                                    {alert.severity} • {alert.ward === 'Global' ? (t('cityWide') || 'City Wide') : `${t('ward') || 'Ward'} ${alert.ward}`}
+                                    {(() => {
+                                        const sevMap: Record<string, string> = { 'Critical': t('severityCritical'), 'Warning': t('severityWarning'), 'Info': t('severityInfo') };
+                                        return sevMap[alert.severity] || alert.severity;
+                                    })()} • {alert.ward === 'Global' ? (t('cityWide') || 'City Wide') : `${t('ward') || 'Ward'} ${alert.ward}`}
                                 </span>
                             </div>
-                            <p className="text-xs font-bold leading-relaxed opacity-90">{alert.message}</p>
+                            <p className="text-xs font-bold leading-relaxed opacity-90">{translateAlertMessage(alert)}</p>
                         </div>
                     </div>
                 ))}

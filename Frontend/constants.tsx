@@ -72,10 +72,10 @@ export const MOCK_BILLS: Bill[] = [
 ];
 
 export const PREDEFINED_ISSUES: Record<string, string[]> = {
-  eb: ['Meter not working', 'Wrong bill amount', 'Power outage', 'Voltage fluctuation', 'Connection problem'],
-  water: ['No water supply', 'Dirty water', 'Pipeline leak', 'Sewage block', 'New connection delay'],
-  gas: ['Gas leak (Urgent)', 'Cylinder not delivered', 'Subsidy not received', 'Meter fault'],
-  municipal: ['Garbage not collected', 'Street light not working', 'Dead animal removal', 'Property tax issue']
+  eb: ['issue_meterNotWorking', 'issue_wrongBill', 'issue_powerOutage', 'issue_voltageFluctuation', 'issue_connectionProblem'],
+  water: ['issue_noWaterSupply', 'issue_dirtyWater', 'issue_pipelineLeak', 'issue_sewageBlock', 'issue_newConnectionDelay'],
+  gas: ['issue_gasLeak', 'issue_cylinderNotDelivered', 'issue_subsidyNotReceived', 'issue_meterFault'],
+  municipal: ['issue_garbageNotCollected', 'issue_streetLightNotWorking', 'issue_deadAnimalRemoval', 'issue_propertyTaxIssue']
 };
 
 export const AREA_SUPPORT_CONTACTS: SupportContact[] = [
