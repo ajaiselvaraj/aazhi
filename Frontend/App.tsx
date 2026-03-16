@@ -11,6 +11,9 @@ import { useLanguage } from './contexts/LanguageContext';
 import VoiceNavigation from './components/VoiceNavigation';
 import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
+import { authService } from './services/authService';
+import { GrievanceService } from './services/civicService';
+
 
 enum ViewState {
   LANDING = 'LANDING',
@@ -374,31 +377,42 @@ const App: React.FC = () => {
   };
 
   // Logic for Login Submission
-  const handleLoginSubmit = () => {
+  const handleLoginSubmit = async () => {
     setError('');
     setIsProcessing(true);
 
-    setTimeout(() => {
+    try {
       if (authStage === 'PASSWORD') {
         if (password === '789456') {
           setView(ViewState.ADMIN);
         } else {
-          setError(t('err_adminPass'));
-          setIsProcessing(false);
-          return;
+          // Attempt real login with mobile + password for admin/staff
+          try {
+             const response = await authService.login(identifier, password);
+             if (response.user.role === 'admin' || response.user.role === 'staff') {
+                setView(ViewState.ADMIN);
+             } else {
+                setView(ViewState.SELECTION);
+             }
+          } catch (e: any) {
+             setError(e.message || t('err_adminPass'));
+          }
         }
       } else {
         if (otp.length === 6) {
-          setView(ViewState.SELECTION);
+           setView(ViewState.SELECTION);
         } else {
           setError(t('err_otp'));
-          setIsProcessing(false);
-          return;
         }
       }
+    } catch (e) {
+      console.error("Login error", e);
+      setError("Authentication service unavailable.");
+    } finally {
       setIsProcessing(false);
-    }, 1000);
+    }
   };
+
 
   const resetLoginState = () => {
     setIdentifier('');
