@@ -357,7 +357,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 px-3 py-1 rounded-full">ACTION REQ</span>
                    </div>
                    <h3 className="text-3xl font-black text-slate-800 relative z-10">{complaints.filter(c => c.status === 'Pending').length}</h3>
-                   <p className="font-bold text-slate-500 mt-1 relative z-10">Pending Complaints</p>
+                   <p className="font-bold text-slate-500 mt-1 relative z-10">{t('pendingComplaints')}</p>
                    <div className="mt-4 flex items-center text-xs font-bold text-red-500 group-hover:gap-2 transition-all">Manage Now <ArrowRight size={14} className="ml-1"/></div>
                 </div>
 

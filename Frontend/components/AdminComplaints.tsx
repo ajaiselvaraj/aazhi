@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle, ChevronDown, Globe, Users, AlertTriangle, MessageSquare, Paperclip, Send, Download, X, Upload } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
   complaints: any[];
@@ -25,6 +26,7 @@ const AdminComplaints: React.FC<Props> = ({
   const [openDropdown, setOpenDropdown] = useState<{ id: string, type: 'status' } | null>(null);
   const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'Active' | 'Resolved'>('Active');
+  const { t } = useLanguage();
   
   // Custom mock state for the requested functional additions
   const [complaintNotes, setComplaintNotes] = useState<Record<string, string>>({});
@@ -44,9 +46,9 @@ const AdminComplaints: React.FC<Props> = ({
 
   const getNextStageAction = (stage: string) => {
     switch (stage) {
-      case 'Submitted': return { label: 'Assign Officer', next: 'Manager Review', color: 'bg-blue-600 hover:bg-blue-700 text-white' };
-      case 'Manager Review': return { label: 'Manager Approve', next: 'GM Approval', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' };
-      case 'GM Approval': return { label: 'Final Approval', next: 'Resolved', color: 'bg-purple-600 hover:bg-purple-700 text-white' };
+      case 'Submitted': return { label: t('assignOfficer'), next: 'Manager Review', color: 'bg-blue-600 hover:bg-blue-700 text-white' };
+      case 'Manager Review': return { label: t('sendGmApproval'), next: 'GM Approval', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' };
+      case 'GM Approval': return { label: t('markResolved'), next: 'Resolved', color: 'bg-purple-600 hover:bg-purple-700 text-white' };
       default: return null;
     }
   };
