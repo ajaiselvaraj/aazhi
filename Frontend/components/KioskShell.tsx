@@ -4,6 +4,7 @@ import { APP_CONFIG } from '../constants';
 import { Language } from '../types';
 import { useLanguage } from '../contexts/LanguageContext';
 import VoiceNavigation from './VoiceNavigation';
+import KioskErrorBoundary from './KioskErrorBoundary';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -129,18 +130,99 @@ const KioskShell: React.FC<KioskShellProps> = ({
         return () => clearInterval(timer);
     }, []);
 
+    // Security: Block Browser Hotkeys (F5, F12, Ctrl+R, etc.)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const blockedKeys = ['F5', 'F12'];
+            const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+            
+            if (
+                blockedKeys.includes(e.key) || 
+                (isCtrlOrCmd && ['r', 'R', 'i', 'I', 'c', 'C', 'u', 'U'].includes(e.key))
+            ) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    }, []);
+
+    // Security: Hardware Tamper/Heartbeat Monitor
+    useEffect(() => {
+        const heartbeat = setInterval(() => {
+            if (isOnline) {
+                fetch('/api/system/heartbeat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        terminalId: 'CBE-02',
+                        batteryLevel,
+                        isCharging,
+                        timestamp: new Date().toISOString()
+                    })
+                }).catch(() => { /* Silently fail on transient network drops */ });
+            }
+        }, 30000); // Send heartbeat every 30 seconds
+        return () => clearInterval(heartbeat);
+    }, [isOnline, batteryLevel, isCharging]);
+
+    // Security: Aggressive Data Clearing on Logout
+    const handleSecureLogout = async () => {
+        // 1. Preserve non-PII settings
+        const lang = localStorage.getItem('selectedLanguage');
+        const voice = localStorage.getItem('voice_enabled');
+
+        // 2. Aggressively clear all storage
+        localStorage.clear();
+        sessionStorage.clear();
+
+        // 2.5 Aggressively clear all cookies
+        document.cookie.split(";").forEach((c) => {
+            document.cookie = c
+                .replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+        });
+
+        // 2.6 Server-side session invalidation (Destroys HttpOnly cookies)
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch (error) {
+            console.warn('Secure logout failed to reach server. Proceeding with local wipe.', error);
+        }
+
+        // 3. Restore non-PII settings
+        if (lang) localStorage.setItem('selectedLanguage', lang);
+        if (voice) localStorage.setItem('voice_enabled', voice);
+
+        // 4. Call parent logout
+        onLogout();
+    };
+
+    // Security: Auto-logout when idle timer hits 0
+    useEffect(() => {
+        if (timer <= 0) {
+            handleSecureLogout();
+        }
+    }, [timer]);
+
     const NAV_ITEMS = [
         { id: 'home', label: t('navHome') || 'Home', icon: Home },
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
-        { id: 'tracker', label: 'Track App', icon: Search },
+        { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];
 
     return (
-        <div className="flex h-full w-full overflow-hidden bg-slate-50 selection:bg-blue-100 font-sans">
+        <div 
+            className="flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
+            onContextMenu={(e) => { if (process.env.NODE_ENV === 'production') e.preventDefault(); }}
+            onDragStart={(e) => e.preventDefault()}
+            style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+        >
 
             {/* 
         REGION 1: PERMANENT SIDEBAR 
@@ -199,7 +281,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 {/* Emergency / Logout - Bottom */}
                 <div className="p-4 border-t border-slate-100">
                     <button
-                        onClick={onLogout}
+                        onClick={handleSecureLogout}
                         className="w-full aspect-square rounded-2xl bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 hover:bg-red-500 hover:text-white transition-colors duration-300"
                     >
                         <LogOut size={24} />
@@ -248,11 +330,11 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                             <div className="flex gap-2 text-slate-300">
                                 {isOnline ? (
-                                    <Wifi size={18} className="text-green-500" title="Online" />
+                                    <Wifi size={18} className="text-green-500" title={t('statusOnline') || "Online"} />
                                 ) : (
-                                    <WifiOff size={18} className="text-red-500" title="Offline" />
+                                    <WifiOff size={18} className="text-red-500" title={t('statusOffline') || "Offline"} />
                                 )}
-                                <div className="flex items-center" title={batteryLevel !== null ? `Battery: ${batteryLevel}%` : 'Battery'}>
+                                <div className="flex items-center" title={batteryLevel !== null ? `${t('statusBattery') || 'Battery'}: ${batteryLevel}%` : (t('statusBattery') || 'Battery')}>
                                     <DynamicBatteryIcon level={batteryLevel} isCharging={isCharging} />
                                 </div>
                             </div>
@@ -282,7 +364,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 <div className="flex-1 overflow-y-auto overflow-x-hidden relative p-6 md:p-8 w-full">
                     {/* Content Wrapper for breathability */}
                     <div className="h-full w-full max-w-[1920px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {children}
+                        <KioskErrorBoundary>
+                            {children}
+                        </KioskErrorBoundary>
                     </div>
                 </div>
 
@@ -310,6 +394,21 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     </div>
                 )}
             </main>
+
+            {/* Security: Full Screen Network Disconnect Overlay */}
+            {!isOnline && (
+                <div className="fixed inset-0 z-[9999] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center text-white select-none">
+                    <WifiOff size={100} className="text-red-500 mb-8 animate-pulse" />
+                    <h1 className="text-5xl font-black mb-4 uppercase tracking-wider">{t('offlineTitle') || 'Terminal Offline'}</h1>
+                    <p className="text-2xl text-slate-300 max-w-2xl text-center mb-8">
+                        {t('offlineDesc') || 'Network connection has been lost. The system will automatically resume when the connection is restored.'}
+                    </p>
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                        <span className="text-lg font-bold tracking-widest uppercase">{t('offlineWait') || 'Waiting for connection...'}</span>
+                    </div>
+                </div>
+            )}
 
             <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

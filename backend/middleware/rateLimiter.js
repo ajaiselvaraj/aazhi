@@ -4,6 +4,10 @@
 // ═══════════════════════════════════════════════════════════════
 
 import rateLimit from "express-rate-limit";
+import RedisStore from "rate-limit-redis";
+import Redis from "ioredis";
+
+const redisClient = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
 
 // General API rate limiter
 export const generalLimiter = rateLimit({
@@ -16,6 +20,9 @@ export const generalLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+    }),
 });
 
 // Stricter limiter for auth endpoints (prevent brute force)
@@ -29,6 +36,9 @@ export const authLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+    }),
 });
 
 // Payment endpoint limiter
@@ -42,6 +52,9 @@ export const paymentLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
+    store: new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+    }),
 });
 
 export default generalLimiter;

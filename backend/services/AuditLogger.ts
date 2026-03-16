@@ -14,11 +14,23 @@ if (!HMAC_SECRET) {
 
 export class AuditLogger {
   /**
-   * Generates a deterministic SHA-256 hash of a JSON state representation
+   * Generates a deterministic SHA-256 hash of a JSON state representation.
+   * Keys are recursively sorted to ensure consistent hashing regardless of property order.
    */
   static hashState(state: any): string {
-    // Stable stringify could be used here for complex nested objects
-    const stateString = JSON.stringify(state || {});
+    const stableStringify = (obj: any): string => {
+      if (obj === null || typeof obj !== 'object') {
+        return JSON.stringify(obj);
+      }
+      if (Array.isArray(obj)) {
+        return `[${obj.map(stableStringify).join(',')}]`;
+      }
+      // Sort keys alphabetically to guarantee deterministic output
+      const keys = Object.keys(obj).sort();
+      return `{${keys.map(k => `"${k}":${stableStringify(obj[k])}`).join(',')}}`;
+    };
+
+    const stateString = stableStringify(state || {});
     return crypto.createHash('sha256').update(stateString).digest('hex');
   }
 

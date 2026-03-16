@@ -60,6 +60,18 @@ const Documentation: React.FC<Props> = ({ onBack }) => {
         </section>
 
         <section>
+          <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-gray-800"><Cpu className="text-orange-500" /> F. Hardware & OS-Level Hardening</h2>
+          <p className="text-gray-700 leading-relaxed mb-2">
+            Software security is meaningless if the physical device is compromised. AAZHI's deployment protocol requires:
+          </p>
+          <ul className="list-disc ml-6 mt-2 text-gray-700">
+            <li><strong>True Kiosk Mode:</strong> App launches via Chrome with <code>--kiosk --incognito --disable-pinch --overscroll-history-navigation=0</code>.</li>
+            <li><strong>Hardware Tamper Heartbeat:</strong> The kiosk pings the central server every 30 seconds. If power or network is physically cut, the admin dashboard alerts instantly.</li>
+            <li><strong>OS Lockdown:</strong> Android Assigned Access / Windows Kiosk mode prevents users from accessing the system UI.</li>
+          </ul>
+        </section>
+
+        <section>
           <h2 className="text-2xl font-bold flex items-center gap-2 mb-4 text-gray-800"><Globe className="text-indigo-500" /> L. Why the name "AAZHI"?</h2>
           <p className="text-gray-700">
             In Tamil, <strong>'Aazhi' (ஆழி)</strong> means <em>Ocean</em> or <em>Universal Ring</em>. It signifies the vast reach of government services 
