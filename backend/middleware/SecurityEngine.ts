@@ -85,6 +85,14 @@ export class SecurityEngine {
    */
   static async gatekeeper(req: Request, res: Response, next: NextFunction) {
     try {
+      // 0. Anti-Spoofing: Ensure request comes through approved WAF/CDN
+      if (process.env.NODE_ENV === 'production') {
+        const expectedWafSecret = process.env.WAF_SECRET;
+        if (expectedWafSecret && req.headers['x-waf-secret'] !== expectedWafSecret) {
+          return res.status(403).json({ error: 'Direct Origin Access Prohibited. Route through WAF.' });
+        }
+      }
+
       // 1. Geo-Fencing Check (Using Cloudflare header or similar proxy Geo-IP)
       const countryCode = req.headers['cf-ipcountry'] || req.headers['x-vercel-ip-country'];
       if (countryCode && countryCode !== GEO_FENCE_ALLOWED_COUNTRY) {

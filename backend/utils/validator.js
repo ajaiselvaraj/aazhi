@@ -4,6 +4,13 @@
 
 import Joi from "joi";
 
+// ─── Reusable Strict Password Schema ──────────────────────
+const securePassword = Joi.string()
+    .min(12).max(128)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/)
+    .message("Password must be 12+ chars, with at least one uppercase, one lowercase, one number, and one special character")
+    .required();
+
 // ─── Auth Schemas ─────────────────────────────────────────
 export const registerSchema = Joi.object({
     name: Joi.string().min(2).max(100).required()
@@ -13,7 +20,7 @@ export const registerSchema = Joi.object({
     email: Joi.string().email().allow("", null),
     aadhaar: Joi.string().pattern(/^\d{12}$/).required()
         .messages({ "string.pattern.base": "Aadhaar must be 12 digits" }),
-    password: Joi.string().min(6).max(128).required(),
+    password: securePassword,
     address: Joi.string().max(500).allow("", null),
     ward: Joi.string().max(10).allow("", null),
     zone: Joi.string().max(50).allow("", null),
