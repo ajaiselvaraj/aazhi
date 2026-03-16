@@ -8,7 +8,11 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
+<<<<<<< HEAD
 import { register, login, refreshToken, logout, getProfile, firebaseLogin } from "../controllers/auth.controller.js";
+=======
+import { register, login, refreshToken, logout, getProfile } from "../controllers/auth.controller.js";
+>>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 import authMiddleware from "../middleware/auth.middleware.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import { validate, registerSchema, loginSchema } from "../utils/validator.js";
@@ -19,7 +23,10 @@ const router = express.Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
+<<<<<<< HEAD
 router.post("/firebase-login", authLimiter, firebaseLogin);
+=======
+>>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 router.post("/refresh", refreshToken);
 router.post("/logout", authMiddleware, verifyTokenNotBlacklisted, logout);
 router.get("/profile", authMiddleware, verifyTokenNotBlacklisted, getProfile);
