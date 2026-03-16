@@ -263,6 +263,25 @@ CREATE INDEX IF NOT EXISTS idx_messages_complaint ON messages(complaint_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sr ON messages(service_request_id);
 
 -- ─────────────────────────────────────────────
+-- 12. AUDIT LOGS (Cryptographic Tamper-Evident Chain)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    actor_id            VARCHAR(255) NOT NULL,
+    ip_fingerprint      VARCHAR(255),
+    resource_id         VARCHAR(255) NOT NULL,
+    action              VARCHAR(100) NOT NULL,
+    previous_state_hash VARCHAR(64) NOT NULL,
+    current_state_hash  VARCHAR(64) NOT NULL,
+    previous_log_id     UUID REFERENCES audit_logs(id),
+    hmac_signature      VARCHAR(64) NOT NULL,
+    timestamp           TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON audit_logs(resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON audit_logs(timestamp);
+
+-- ─────────────────────────────────────────────
 -- SEED DATA — Default service configurations
 -- ─────────────────────────────────────────────
 INSERT INTO service_config (service_name, display_name, is_enabled, description) VALUES

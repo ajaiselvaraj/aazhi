@@ -10,7 +10,6 @@ import cors from "cors";
 import morgan from "morgan";
 
 // Route imports
-import authRoutes from "./routes/auth.routes.js";
 import electricityRoutes from "./routes/electricity.routes.js";
 import gasRoutes from "./routes/gas.routes.js";
 import municipalRoutes from "./routes/municipal.routes.js";
@@ -91,9 +90,20 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+// ─── Hardware Heartbeat ──────────────────────────────────
+app.post("/api/system/heartbeat", (req, res) => {
+    // This endpoint receives the hardware heartbeat from the frontend KioskShell
+    // It prevents the frontend from throwing proxy/404 errors every 30 seconds
+    const { terminalId, batteryLevel, isCharging, timestamp } = req.body;
+    
+    // Optional: You can log or update the kiosk status in your database here
+    res.status(200).json({
+        success: true,
+        message: "Heartbeat acknowledged"
+    });
+});
+
 // ─── API Routes ──────────────────────────────────────────
-// Apply the targeted brute-force protection to all authentication attempts
-app.use("/api/auth", accountLockout, authRoutes);
 app.use("/api/electricity", electricityRoutes);
 app.use("/api/gas", gasRoutes);
 app.use("/api/municipal", municipalRoutes);
