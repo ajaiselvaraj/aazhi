@@ -184,19 +184,15 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
         });
 
-        // 2.6 Server-side session invalidation (Destroys HttpOnly cookies)
-        try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-        } catch (error) {
-            console.warn('Secure logout failed to reach server. Proceeding with local wipe.', error);
-        }
-
         // 3. Restore non-PII settings
         if (lang) localStorage.setItem('selectedLanguage', lang);
         if (voice) localStorage.setItem('voice_enabled', voice);
 
         // 4. Call parent logout
         onLogout();
+
+        // 5. Hard redirect to backend Auth0 logout route to clear IdP session cookies
+        window.location.href = '/logout';
     };
 
     // Security: Auto-logout when idle timer hits 0

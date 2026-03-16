@@ -92,10 +92,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [fetchedBill, setFetchedBill] = useState<any>(null);
   const [selectedComplaintDept, setSelectedComplaintDept] = useState<string | undefined>(undefined);
 
-  const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
-  const { addServiceRequest } = useServiceComplaint();
-
-  const ASPECT_RATIOS = ['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'];
+  const [userRequests, setUserRequests] = useState<ServiceRequest[]>(MOCK_REQUESTS as unknown as ServiceRequest[]);
 
   // Kiosk Physical Security: Auto-logout after 45s of inactivity
   const { isWarning, countdown, resetTimer } = useInactivityTimer(45000, 15000, () => {
@@ -112,7 +109,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     const fetchRequests = async () => {
       try {
         const reqs = await GrievanceService.getUserRequests();
-        setUserRequests(reqs);
+        if (reqs && reqs.length > 0) {
+          setUserRequests(reqs);
+        }
       } catch (error) {
         console.error("Failed to fetch requests", error);
       }
