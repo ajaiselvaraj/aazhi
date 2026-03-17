@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Filter, Eye, ArrowRight, CheckCircle, Search, Download, Paperclip, Mail, MessageSquare } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
   requests: any[];
@@ -7,6 +8,7 @@ interface Props {
 }
 
 const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,10 +23,10 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
 
   const getNextStageAction = (stage: string) => {
     switch (stage) {
-      case 'Submitted': return { label: 'Assign Officer', next: 'Officer Assigned', color: 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200' };
-      case 'Officer Assigned': return { label: 'Submit Response', next: 'Manager Review', color: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' };
-      case 'Manager Review': return { label: 'Manager Approve', next: 'GM Approval', color: 'bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200' };
-      case 'GM Approval': return { label: 'Final Approval', next: 'Resolved', color: 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-200' };
+      case 'Submitted': return { label: t('assignOfficer'), next: 'Officer Assigned', color: 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200' };
+      case 'Officer Assigned': return { label: t('escalateManager'), next: 'Manager Review', color: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' };
+      case 'Manager Review': return { label: t('sendGmApproval'), next: 'GM Approval', color: 'bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200' };
+      case 'GM Approval': return { label: t('markResolved'), next: 'Resolved', color: 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-200' };
       default: return null;
     }
   };

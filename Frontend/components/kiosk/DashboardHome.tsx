@@ -24,7 +24,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
             {/* Greeting Section */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t('namaste')}, <span className="privacy-sensitive">{userName}</span></h2>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t('welcomeCitizen') || 'Welcome, Citizen'} <span className="privacy-sensitive">{userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}</span></h2>
                     <div className="flex gap-2">
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
                             <Smartphone size={12} /> {t('eKycVerified')}
@@ -114,9 +114,9 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             </div>
                             <div>
                                 <h3 className="text-xl font-black mb-1">{t('reportIssue') || "Report Issue"}</h3>
-                                <p className="opacity-80 text-[10px] font-medium mb-4">Potholes, garbage, etc</p>
+                                <p className="opacity-80 text-[10px] font-medium mb-4">{t('reportIssueDesc')}</p>
                                 <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/50 text-red-700 w-fit px-3 py-2 rounded-lg group-hover:bg-red-800 group-hover:text-white transition">
-                                    Report <ArrowRight size={12} />
+                                    {t('reportIssue')} <ArrowRight size={12} />
                                 </div>
                             </div>
                         </div>
@@ -147,7 +147,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             {t('viewDocs') || "Certificates"}
                         </button>
                         <button onClick={() => onNavigate('property')} className="bg-white text-indigo-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest border border-indigo-200 shadow-md hover:bg-indigo-50 transition">
-                            Property Services
+                            {t('propertyServices')}
                         </button>
                     </div>
                 </div>
@@ -163,8 +163,8 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             <AlertCircle size={24} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1 flex items-center gap-2">SOS Help <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Fire • Rescue</p>
+                            <h4 className="font-black text-slate-800 text-xl mb-1 flex items-center gap-2">{t('sosHelp')} <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('fireRescue')}</p>
                         </div>
                     </div>
                     <ArrowRight size={20} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition" />
@@ -176,8 +176,8 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             <Users size={24} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1">Governance</h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Vote • Meetings</p>
+                            <h4 className="font-black text-slate-800 text-xl mb-1">{t('governance')}</h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('voteMeetings')}</p>
                         </div>
                     </div>
                     <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
@@ -189,8 +189,8 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                             <Briefcase size={24} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1">Vendor Licenses</h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">Shops • Commerce</p>
+                            <h4 className="font-black text-slate-800 text-xl mb-1">{t('vendorLicenses')}</h4>
+                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('shopsCommerce')}</p>
                         </div>
                     </div>
                     <ArrowRight size={20} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />

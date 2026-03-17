@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Delete, Check, X, ChevronDown, Space, GripHorizontal } from 'lucide-react';
 import { Language } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export type KeyboardType = 'NUMERIC' | 'TEXT' | 'ALPHANUMERIC';
 
@@ -53,6 +54,7 @@ LAYOUTS[Language.TELUGU] = LAYOUTS[Language.ENGLISH];
 LAYOUTS[Language.KANNADA] = LAYOUTS[Language.ENGLISH];
 
 const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, language, onKeyPress, onDelete, onClear, onClose, onEnter }) => {
+    const { t } = useLanguage();
 
     if (!isOpen) return null;
 
@@ -69,7 +71,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
             <div className="bg-slate-200 p-4 flex items-center justify-between border-b border-slate-300">
                 <div className="flex items-center gap-2 text-slate-500">
                     <GripHorizontal size={20} />
-                    <span className="text-xs font-black uppercase tracking-widest">{isNumeric ? 'Numpad' : 'Keyboard'}</span>
+                    <span className="text-xs font-black uppercase tracking-widest">{isNumeric ? (t('kb_numpad') || 'Numpad') : (t('kb_keyboard') || 'Keyboard')}</span>
                 </div>
                 <button onClick={onClose} className="bg-slate-300 p-2 rounded-lg hover:bg-slate-400 hover:text-white transition">
                     <ChevronDown size={20} />
@@ -107,7 +109,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                         {/* Control Row */}
                         <div className="grid grid-cols-2 gap-3 h-20">
                             <button onMouseDown={(e) => e.preventDefault()} onClick={onClear} className="bg-red-50 rounded-2xl shadow-sm text-red-600 font-black text-xs uppercase tracking-wider hover:bg-red-100 transition border-b-4 border-red-100 active:border-b-0 active:translate-y-1">
-                                Clear
+                                {t('kb_clear') || 'Clear'}
                             </button>
                             <button onMouseDown={(e) => e.preventDefault()} onClick={onDelete} className="bg-slate-200 rounded-2xl shadow-sm text-slate-600 flex items-center justify-center hover:bg-slate-300 transition border-b-4 border-slate-300 active:border-b-0 active:translate-y-1">
                                 <Delete size={28} />
@@ -135,10 +137,10 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                         {/* Action Row */}
                         <div className="flex gap-2 mt-2">
                             <button onMouseDown={(e) => e.preventDefault()} onClick={onClear} className="px-6 h-14 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase shadow-sm border-b-2 border-red-100 active:border-b-0 active:translate-y-0.5">
-                                Clear
+                                {t('kb_clear') || 'Clear'}
                             </button>
                             <button onMouseDown={(e) => e.preventDefault()} onClick={() => handleKeyClick(' ')} className="flex-1 h-14 bg-white text-slate-400 rounded-xl shadow-sm border-b-2 border-slate-200 active:border-b-0 active:translate-y-0.5 flex items-center justify-center gap-2">
-                                <Space size={20} /> Space
+                                <Space size={20} /> {t('kb_space') || 'Space'}
                             </button>
                             <button onMouseDown={(e) => e.preventDefault()} onClick={onDelete} className="px-6 h-14 bg-slate-200 text-slate-600 rounded-xl shadow-sm border-b-2 border-slate-300 active:border-b-0 active:translate-y-0.5 flex items-center justify-center">
                                 <Delete size={20} />
@@ -155,7 +157,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                     onClick={onEnter}
                     className="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                 >
-                    <Check size={24} /> {isNumeric ? 'Confirm' : 'Done'}
+                    <Check size={24} /> {isNumeric ? (t('kb_confirm') || 'Confirm') : (t('kb_done') || 'Done')}
                 </button>
             </div>
         </div>
