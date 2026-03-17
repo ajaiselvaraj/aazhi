@@ -449,7 +449,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     {t('navServices') || "Services"}
                   </h2>
                   <p className="text-xl text-slate-600 font-medium">
-                    Select a service category to get started
+                    {t('selectServiceCategory') || "Select a service category to get started"}
                   </p>
                 </div>
 
@@ -894,7 +894,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {/* VIEW 5: STATUS/HISTORY (Unchanged) */}
         {activeTab === 'status' && (
           <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
-            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> Interaction History</h2>
+            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> {t('history') || 'History'}</h2>
             <div className="grid gap-4">
               {userRequests.map((req) => (
                 <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">

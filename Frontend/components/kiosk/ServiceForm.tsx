@@ -275,7 +275,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                     className="flex items-center gap-3 text-slate-600 hover:text-blue-600 font-bold mb-6 transition group"
                 >
                     <ArrowLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-                    <span className="text-lg">Back to Services</span>
+                    <span className="text-lg">{t('backToServices')}</span>
                 </button>
 
                 <div className="bg-white rounded-[2.5rem] border-2 border-blue-200 p-8 shadow-lg">
@@ -286,7 +286,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                         <div>
                             <h2 className="text-3xl font-black text-slate-900 leading-tight">{serviceName}</h2>
                             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                Fill in the details below
+                                {t('fillDetailsBelow')}
                             </p>
                         </div>
                     </div>
@@ -333,7 +333,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                                         className={`w-full bg-slate-50 border-2 ${errors[field.name] ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-semibold outline-none focus:border-blue-500 focus:bg-white transition`}
                                     >
-                                        <option value="">-- Select {field.label} --</option>
+                                        <option value="">{t('selectOption')}</option>
                                         {field.options?.map(option => (
                                             <option key={option} value={option}>{option}</option>
                                         ))}
@@ -350,7 +350,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                                         <label className="w-full bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-500 p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group">
                                             <Upload size={40} className="text-slate-400 group-hover:text-blue-600 mb-3 transition" />
                                             <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition">
-                                                {uploadedFiles[field.name] || 'Click to upload file'}
+                                                {uploadedFiles[field.name] || t('clickToUpload')}
                                             </span>
                                             <input
                                                 type="file"
@@ -387,14 +387,14 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                         className="flex-1 bg-slate-100 text-slate-700 px-8 py-6 rounded-2xl font-black text-xl hover:bg-slate-200 transition border-2 border-slate-200 flex items-center justify-center gap-3"
                     >
                         <X size={24} />
-                        Reset Form
+                        {t('resetForm')}
                     </button>
                     <button
                         type="submit"
                         className="flex-[2] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-6 rounded-2xl font-black text-xl hover:from-blue-700 hover:to-blue-800 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-3"
                     >
                         <CheckCircle size={24} />
-                        Submit Request
+                        {t('submitReq')}
                     </button>
                 </div>
             </form>
