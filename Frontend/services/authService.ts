@@ -22,7 +22,6 @@ export const authService = {
         return data;
     },
 
-<<<<<<< HEAD
     firebaseLogin: async (firebaseToken: string): Promise<AuthResponse> => {
         const data = await apiClient.post<AuthResponse>('/auth/firebase-login', { firebaseToken });
         localStorage.setItem('aazhi_token', data.accessToken);
@@ -30,8 +29,24 @@ export const authService = {
         return data;
     },
 
-=======
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
+    sendOtp: async (mobile: string): Promise<any> => {
+        return await apiClient.post('/auth/send-otp', { mobile });
+    },
+
+    verifyOtp: async (mobile: string, otp: string): Promise<AuthResponse> => {
+        const data = await apiClient.post<any>('/auth/verify-otp', { mobile, otp });
+        // The apiClient already returns result.data
+        const { citizen, tokens } = data;
+        const authData: AuthResponse = {
+            user: citizen,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        };
+        localStorage.setItem('aazhi_token', authData.accessToken);
+        localStorage.setItem('aazhi_user', JSON.stringify(authData.user));
+        return authData;
+    },
+
     register: async (userData: any): Promise<AuthResponse> => {
         const data = await apiClient.post<AuthResponse>('/auth/register', userData);
         localStorage.setItem('aazhi_token', data.accessToken);

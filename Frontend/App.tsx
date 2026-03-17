@@ -13,11 +13,6 @@ import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
 import { authService } from './services/authService';
 import { GrievanceService } from './services/civicService';
-<<<<<<< HEAD
-import { auth as firebaseAuth, RecaptchaVerifier, signInWithPhoneNumber } from './services/firebase';
-import { ConfirmationResult } from 'firebase/auth';
-=======
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 
 
 enum ViewState {
@@ -223,10 +218,6 @@ const App: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-<<<<<<< HEAD
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-=======
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
 
   // ── Location & Alert Banner state ──
   const [alertLanguage, setAlertLanguage] = useState<Language>(Language.ENGLISH);
@@ -346,7 +337,6 @@ const App: React.FC = () => {
   };
 
   // Logic for Sending OTP or Triggering Admin Password
-<<<<<<< HEAD
   const handleSendOtp = async () => {
     setError('');
     
@@ -363,80 +353,38 @@ const App: React.FC = () => {
       return;
     }
 
-=======
-  const handleSendOtp = () => {
-    setError('');
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
     if (loginMethod === 'AADHAAR') {
       if (identifier.replace(/\s/g, '').length !== 12) {
         setError(t('err_aadhaar'));
         return;
       }
-<<<<<<< HEAD
       // Note: In a real app, Aadhaar OTP would come from UIDAI. 
       // For this demo, we simulate it or use the same mobile logic.
-=======
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
       setIsProcessing(true);
       setTimeout(() => {
         setIsProcessing(false);
         setAuthStage('OTP');
       }, 1000);
-<<<<<<< HEAD
       return;
     } 
     
     if (loginMethod === 'MOBILE') {
-=======
-
-    } else if (loginMethod === 'MOBILE') {
-      // Hidden Admin Logic: Check for special number
-      if (identifier === '963852') {
-        setIsProcessing(true);
-        setTimeout(() => {
-          setIsProcessing(false);
-          setLoginMethod('PASSWORD');
-          setAuthStage('PASSWORD');
-          setIdentifier('');
-          setPassword('');
-        }, 500);
-        return;
-      }
-
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
       if (identifier.length !== 10) {
         setError(t('err_mobile'));
         return;
       }
-<<<<<<< HEAD
 
       setIsProcessing(true);
       try {
-        // Initialize reCAPTCHA
-        const recaptchaVerifier = new RecaptchaVerifier(firebaseAuth, 'mobile-send-otp-btn', {
-          'size': 'invisible'
-        });
-
-        const phoneNumber = `+91${identifier}`;
-        const result = await signInWithPhoneNumber(firebaseAuth, phoneNumber, recaptchaVerifier);
-        
-        setConfirmationResult(result);
+        await authService.sendOtp(identifier);
         setAuthStage('OTP');
-        
         speakText({ text: t('otpSent') || "OTP sent to your mobile", language: "English" });
       } catch (e: any) {
-        console.error("Firebase Auth Error", e);
-        setError("Failed to send OTP. Please try again.");
+        console.error("Auth Error", e);
+        setError(e.message || "Failed to send OTP. Please try again.");
       } finally {
         setIsProcessing(false);
       }
-=======
-      setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
-        setAuthStage('OTP');
-      }, 1000);
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
     }
   };
 
@@ -447,14 +395,9 @@ const App: React.FC = () => {
 
     try {
       if (authStage === 'PASSWORD') {
-<<<<<<< HEAD
         if (password === '789456' && identifier === '') {
            // Super Admin bypass
            setView(ViewState.ADMIN);
-=======
-        if (password === '789456') {
-          setView(ViewState.ADMIN);
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
         } else {
           // Attempt real login with mobile + password for admin/staff
           try {
@@ -468,39 +411,23 @@ const App: React.FC = () => {
              setError(e.message || t('err_adminPass'));
           }
         }
-<<<<<<< HEAD
-      } else if (loginMethod === 'MOBILE' && confirmationResult) {
-        // 1. Verify OTP with Firebase
-        const result = await confirmationResult.confirm(otp);
-        
-        // 2. Get Firebase ID Token
-        const idToken = await result.user.getIdToken();
-        
-        // 3. Authenticate with backend
-        await authService.firebaseLogin(idToken);
+      } else if (loginMethod === 'MOBILE') {
+        // Authenticate with backend
+        await authService.verifyOtp(identifier, otp);
         
         setView(ViewState.SELECTION);
         speakText({ text: "Authentication successful", language: "English" });
       } else {
         // Fallback for Aadhaar simulation
-=======
-      } else {
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
         if (otp.length === 6) {
            setView(ViewState.SELECTION);
         } else {
           setError(t('err_otp'));
         }
       }
-<<<<<<< HEAD
     } catch (e: any) {
       console.error("Login submission error", e);
       setError(e.message || "Authentication failed. Invalid OTP.");
-=======
-    } catch (e) {
-      console.error("Login error", e);
-      setError("Authentication service unavailable.");
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
     } finally {
       setIsProcessing(false);
     }

@@ -17,6 +17,7 @@ import paymentRoutes from "./routes/payment.routes.js";
 import complaintRoutes from "./routes/complaint.routes.js";
 import serviceRequestRoutes from "./routes/serviceRequest.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 // Middleware imports
 import { generalLimiter } from "./middleware/rateLimiter.js";
@@ -111,6 +112,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/service-requests", serviceRequestRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/auth", authRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────
 app.use("*", (req, res) => {

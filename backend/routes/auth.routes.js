@@ -1,34 +1,25 @@
 // ═══════════════════════════════════════════════════════════════
 // Authentication Routes
-// POST /api/auth/register - Citizen registration
-// POST /api/auth/login    - Login (all roles)
-// POST /api/auth/refresh  - Refresh access token
-// POST /api/auth/logout   - Logout (invalidate refresh token)
-// GET  /api/auth/profile  - Get current user profile
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-<<<<<<< HEAD
-import { register, login, refreshToken, logout, getProfile, firebaseLogin } from "../controllers/auth.controller.js";
-=======
-import { register, login, refreshToken, logout, getProfile } from "../controllers/auth.controller.js";
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
-import authMiddleware from "../middleware/auth.middleware.js";
+import { sendOtpController, verifyOtpController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
-import { validate, registerSchema, loginSchema } from "../utils/validator.js";
-
-import { verifyTokenNotBlacklisted } from "../middleware/jwtBlacklist.js";
 
 const router = express.Router();
 
-router.post("/register", authLimiter, validate(registerSchema), register);
-router.post("/login", authLimiter, validate(loginSchema), login);
-<<<<<<< HEAD
-router.post("/firebase-login", authLimiter, firebaseLogin);
-=======
->>>>>>> f51765aa423a289cd5ac42e7270a4aa83f2028f3
-router.post("/refresh", refreshToken);
-router.post("/logout", authMiddleware, verifyTokenNotBlacklisted, logout);
-router.get("/profile", authMiddleware, verifyTokenNotBlacklisted, getProfile);
+/**
+ * @desc    Generate and Send OTP to mobile
+ * @route   POST /api/auth/send-otp
+ * @access  Public
+ */
+router.post("/send-otp", authLimiter, sendOtpController);
+
+/**
+ * @desc    Verify OTP and Authenticate/Register
+ * @route   POST /api/auth/verify-otp
+ * @access  Public
+ */
+router.post("/verify-otp", authLimiter, verifyOtpController);
 
 export default router;

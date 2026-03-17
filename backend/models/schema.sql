@@ -11,12 +11,12 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS citizens (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name            VARCHAR(100) NOT NULL,
+    name            VARCHAR(100),
     mobile          VARCHAR(15) NOT NULL UNIQUE,
     email           VARCHAR(100),
-    aadhaar_hash    VARCHAR(255) NOT NULL,
+    aadhaar_hash    VARCHAR(255),
     aadhaar_masked  VARCHAR(16),
-    password_hash   VARCHAR(255) NOT NULL,
+    password_hash   VARCHAR(255),
     role            VARCHAR(20) NOT NULL DEFAULT 'citizen'
                     CHECK (role IN ('citizen', 'admin', 'staff')),
     address         TEXT,
@@ -292,3 +292,16 @@ INSERT INTO service_config (service_name, display_name, is_enabled, description)
     ('property', 'Property Tax', true, 'Property tax payment and assessment'),
     ('complaints', 'Complaint Portal', true, 'Civic complaint registration and tracking')
 ON CONFLICT (service_name) DO NOTHING;
+
+-- ─────────────────────────────────────────────
+-- 13. OTP TABLE (Authentication)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS otp_table (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    mobile      VARCHAR(15) NOT NULL,
+    otp         VARCHAR(10) NOT NULL,
+    expiry      TIMESTAMP NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_otp_mobile ON otp_table(mobile);
