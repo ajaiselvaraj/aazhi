@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// Razorpay Payment Gateway Configuration
-// ═══════════════════════════════════════════════════════════════
+
 
 import Razorpay from "razorpay";
 import dotenv from "dotenv";

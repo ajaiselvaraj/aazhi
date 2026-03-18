@@ -22,12 +22,7 @@ export const authService = {
         return data;
     },
 
-    firebaseLogin: async (firebaseToken: string): Promise<AuthResponse> => {
-        const data = await apiClient.post<AuthResponse>('/auth/firebase-login', { firebaseToken });
-        localStorage.setItem('aazhi_token', data.accessToken);
-        localStorage.setItem('aazhi_user', JSON.stringify(data.user));
-        return data;
-    },
+
 
     sendOtp: async (mobile: string): Promise<any> => {
         return await apiClient.post('/auth/send-otp', { mobile });
