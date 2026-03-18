@@ -27,12 +27,12 @@ if (!fs.existsSync(logsDir)) {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-    // Test database connection
-    const dbConnected = await testConnection();
+    // Test database connection with retry logic (5 attempts, exponential back-off)
+    const dbConnected = await testConnection(5, 2000);
 
     if (!dbConnected) {
-        logger.warn("⚠️  Database connection failed. Server will start but DB operations may fail.");
-        logger.warn("   Run 'npm run db:init' to initialize the database after fixing the connection.");
+        logger.warn("⚠️  Database connection failed after retries. Server will start but DB operations may fail.");
+        logger.warn("   Check your DATABASE_URL and Supabase dashboard for connection issues.");
     } else {
         // Initialize Auth tables & execute migrations if needed
         await initializeAuthTables();
@@ -52,18 +52,18 @@ async function startServer() {
 
     app.listen(PORT, () => {
         logger.info(`
-╔═══════════════════════════════════════════════════════╗
-║                                                       ║
-║   🏛️  SUVIDHA KIOSK Backend Server                    ║
-║   Unified Civic Utility Self-Service Platform         ║
-║                                                       ║
-║   🌐 Server:    http://localhost:${PORT}                ║
-║   📋 Health:    http://localhost:${PORT}/api/health      ║
-║   🗄️  Database:  ${dbConnected ? "✅ Connected" : "❌ Not connected"}                      ║
-║   🔒 Auth:      JWT (${process.env.JWT_EXPIRY || "1h"} access / ${process.env.JWT_REFRESH_EXPIRY || "7d"} refresh)    ║
-║   📁 Env:       ${process.env.NODE_ENV || "development"}                         ║
-║                                                       ║
-╚═══════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════      ═╗
+║                                                                                                                         ║
+║   🏛️  SUVIDHA KIOSK Backend Server                                                                                     ║
+║   Unified Civic Utility Self-Service Platform                                                                           ║
+║                                                                                                                         ║
+║   🌐 Server:    ${process.env.BASE_URL || `http://localhost:${PORT}`}                                                       ║
+║   📋 Health:    ${(process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, "")}/api/health                   ║
+║   🗄️  Database:  ${dbConnected ? "✅ Connected" : "❌ Not connected"}                                                   ║
+║   🔒 Auth:      JWT (${process.env.JWT_EXPIRY || "1h"} access / ${process.env.JWT_REFRESH_EXPIRY || "7d"} refresh)       ║
+║   📁 Env:       ${process.env.NODE_ENV || "development"}                                                                 ║
+║                                                                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════                                                                 ╝
         `);
     });
 }
