@@ -52,17 +52,17 @@ async function startServer() {
 
     app.listen(PORT, () => {
         logger.info(`
-╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════      ═╗
-║                                                                                                                         ║
-║   🏛️  SUVIDHA KIOSK Backend Server                                                                                     ║
-║   Unified Civic Utility Self-Service Platform                                                                           ║
-║                                                                                                                         ║
-║   🌐 Server:    ${process.env.BASE_URL || `http://localhost:${PORT}`}                                                       ║
-║   📋 Health:    ${(process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, "")}/api/health                   ║
-║   🗄️  Database:  ${dbConnected ? "✅ Connected" : "❌ Not connected"}                                                   ║
-║   🔒 Auth:      JWT (${process.env.JWT_EXPIRY || "1h"} access / ${process.env.JWT_REFRESH_EXPIRY || "7d"} refresh)       ║
-║   📁 Env:       ${process.env.NODE_ENV || "development"}                                                                 ║
+╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════        ═╗
+║                                                                                                                           ║
+║   🏛️  SUVIDHA KIOSK Backend Server                                                                                        ║
+║   Unified Civic Utility Self-Service Platform                                                                            ║
 ║                                                                                                                          ║
+║   🌐 Server:    ${process.env.BASE_URL || `http://localhost:${PORT}`}                                                    ║
+║   📋 Health:    ${(process.env.BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, "")}/api/health                    ║
+║   🗄️  Database:  ${dbConnected ? "✅ Connected" : "❌ Not connected"}                                                    ║
+║   🔒 Auth:      JWT (${process.env.JWT_EXPIRY || "1h"} access / ${process.env.JWT_REFRESH_EXPIRY || "7d"} refresh)        ║
+║   📁 Env:       ${process.env.NODE_ENV || "development"}                                                                   ║
+║                                                                                                                           ║
 ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════                                                                 ╝
         `);
     });
