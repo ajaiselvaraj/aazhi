@@ -5,9 +5,11 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "dev": "nodemon server.js",
+    "fresh": "taskkill /F /IM node.exe & npm run dev",
     "db:init": "node models/migrate.js",
+    "db:ping": "node -e \"import('./config/db.js').then(m => m.testConnection(3, 1000)).then(ok => process.exit(ok ? 0 : 1))\"",
     "test": "jest"
   },
   "dependencies": {
@@ -39,6 +41,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/supertest": "^7.2.0",
+    "cross-env": "^10.1.0",
     "jest": "^30.3.0",
     "nodemon": "^3.0.2",
     "supertest": "^7.2.2",

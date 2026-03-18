@@ -223,11 +223,8 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
-<<<<<<< Updated upstream:Frontend/components/KioskShell.tsx
         { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
-=======
-        { id: 'tracker', label: t('navTracker') || 'Track App', icon: Search },
->>>>>>> Stashed changes:components/KioskShell.tsx
+
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];

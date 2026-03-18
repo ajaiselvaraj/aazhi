@@ -18,24 +18,39 @@ import complaintRoutes from "./routes/complaint.routes.js";
 import serviceRequestRoutes from "./routes/serviceRequest.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import { pool, getPoolStatus } from "./config/db.js";
 
 // Middleware imports
 import { generalLimiter } from "./middleware/rateLimiter.js";
 import errorHandler from "./middleware/error.middleware.js";
 import auditLogger from "./middleware/audit.middleware.js";
 import { accountLockout } from "./middleware/accountLockout.js";
-import { auth } from "express-openid-connect";
 import { SecurityEngine } from "./middleware/SecurityEngine.js";
 
 const app = express();
 
 // ─── Security Middleware ─────────────────────────────────
 app.use(SecurityEngine.applySecurityHeaders); // Apply A+ Zero-Trust Headers (CSP, HSTS)
+
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000,http://localhost:3001,http://localhost:3002")
+    .split(",")
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Kiosk-Id"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Kiosk-Id", "X-WAF-Secret"],
 }));
 
 // ─── Body Parsing ────────────────────────────────────────
@@ -45,27 +60,18 @@ app.use(express.urlencoded({ extended: true, limit: "100kb" }));
 // ─── Request Logging ─────────────────────────────────────
 app.use(morgan("combined"));
 
-// ─── Auth0 OpenID Connect ────────────────────────────────
-// This middleware attaches authentication routes (/login, /logout, /callback)
-// and provides user session management.
-const auth0Config = {
-  authRequired: false, // False = Don't protect all routes by default
-  auth0Logout: true, // True = Redirect to Auth0 for logout
-  secret: process.env.AUTH0_SECRET,
-  baseURL: process.env.BASE_URL,
-  clientID: process.env.AUTH0_CLIENT_ID,
-  issuerBaseURL: process.env.AUTH0_ISSUER_BASE_URL,
-};
-
-app.use(auth(auth0Config));
-
-// ─── Root Route (For Auth Testing) ───────────────────────
-// A simple test route to check if the user is authenticated.
-// This is provided by the express-openid-connect middleware.
+// ─── Root Route ──────────────────────────────────────────
+// Returns a clean JSON response for the API root.
+// The React frontend is served separately at FRONTEND_URL.
 app.get("/", (req, res) => {
-  res.send(
-    req.oidc.isAuthenticated() ? `Logged in as ${req.oidc.user.name}` : "Logged out"
-  );
+    res.json({
+        success: true,
+        message: "🏛️ SUVIDHA KIOSK API Server",
+        description: "Unified Civic Utility Self-Service Platform",
+        version: "1.0.0",
+        health: `${(process.env.BASE_URL || "http://localhost:5000").replace(/\/$/, "")}/api/health`,
+        frontend: process.env.FRONTEND_URL?.split(",")[0] || "http://localhost:3000",
+    });
 });
 
 // ─── Advanced Rate Limiting & Security Gates ─────────────
@@ -78,15 +84,36 @@ app.use(SecurityEngine.gatekeeper); // Apply Geo-Fencing, WAF Secrets, and Leaky
 app.use(auditLogger);
 
 // ─── Health Check ────────────────────────────────────────
-app.get("/api/health", (req, res) => {
-    res.json({
-        success: true,
-        message: "SUVIDHA KIOSK Backend is running",
+app.get("/api/health", async (req, res) => {
+    let dbStatus = "unreachable";
+    let dbTime = null;
+
+    try {
+        const client = await pool.connect();
+        const result = await client.query("SELECT NOW() AS now");
+        client.release();
+        dbStatus = "connected";
+        dbTime = result.rows[0].now;
+    } catch (_) {
+        dbStatus = "error";
+    }
+
+    const healthy = dbStatus === "connected";
+
+    res.status(healthy ? 200 : 503).json({
+        success: healthy,
+        message: healthy ? "SUVIDHA KIOSK Backend is healthy" : "Backend running but DB is unreachable",
         data: {
-            status: "healthy",
+            status: healthy ? "healthy" : "degraded",
             timestamp: new Date().toISOString(),
             version: "1.0.0",
             uptime: process.uptime(),
+            database: {
+                status: dbStatus,
+                serverTime: dbTime,
+                pool: getPoolStatus(),     // { total, idle, waiting }
+            },
+            environment: process.env.NODE_ENV || "development",
         },
     });
 });
@@ -113,6 +140,7 @@ app.use("/api/complaints", complaintRoutes);
 app.use("/api/service-requests", serviceRequestRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────
 app.use("*", (req, res) => {
