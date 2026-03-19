@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, CreditCard, Printer, ShieldCheck, Zap, QrCode } from 'lucide-react';
 import { MOCK_USER_PROFILE } from '../../../constants';
 import OfficialReceipt from './OfficialReceipt';
+import PaymentReceipt from '../PaymentReceipt';
 import { Language } from '../../../types';
 import { BBPSService, BBPSBillResponse } from '../../../services/BBPSService';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [paymentMode, setPaymentMode] = useState<'UPI' | 'CARD' | 'NET_BANKING'>('UPI');
     const [paymentRef, setPaymentRef] = useState<{ txnId: string; bbpsRefId: string } | null>(null);
     const [error, setError] = useState<string>('');
+    const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
     const handleFetch = async () => {
         if (!consumerNo) return;
@@ -318,13 +320,29 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => window.print()} className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-blue-200">
+                        <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-blue-200">
                             <Printer size={18} /> {t('printReceipt')}
                         </button>
                         <button onClick={onBack} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
                             {t('back') || "Done"}
                         </button>
                     </div>
+
+                    {showReceiptPreview && (
+                        <PaymentReceipt 
+                            data={{
+                                serviceName: t('power') || 'Electricity',
+                                serviceId: 'elec',
+                                consumerId: consumerNo,
+                                consumerName: billData.consumerName,
+                                amount: billData.amount.toString(),
+                                txnId: paymentRef.txnId,
+                                date: new Date().toLocaleString(),
+                                mode: paymentMode
+                            }} 
+                            onClose={() => setShowReceiptPreview(false)} 
+                        />
+                    )}
                 </div>
             )}
 

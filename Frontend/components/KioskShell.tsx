@@ -213,14 +213,13 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
         { id: 'tracker', label: t('trackApp'), icon: Search },
-        { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];
 
     return (
         <div 
-            className="flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
+            className="kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
             onContextMenu={(e) => { if (process.env.NODE_ENV === 'production') e.preventDefault(); }}
             onDragStart={(e) => e.preventDefault()}
             style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}

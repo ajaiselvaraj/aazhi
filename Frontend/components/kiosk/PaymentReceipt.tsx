@@ -1,10 +1,13 @@
 import React from 'react';
+import { X, Printer, Download, CheckCircle2, ShieldCheck, Landmark } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import { APP_CONFIG } from '../../constants';
+import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
 
 interface Props {
     data: {
         serviceName: string;
+        serviceId?: string; // 'elec', 'water', 'gas'
         consumerId: string;
         consumerName?: string;
         amount: string;
@@ -12,124 +15,238 @@ interface Props {
         date: string;
         mode: string;
     } | null;
+    onClose: () => void;
 }
 
-const PaymentReceipt: React.FC<Props> = ({ data }) => {
+const PaymentReceipt: React.FC<Props> = ({ data, onClose }) => {
     if (!data) return null;
+    const { t } = useTranslation();
 
-    // Helper to format date like "Sat, 27 June 2020 15:17"
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-GB', {
-            weekday: 'short',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        }).replace(',', '');
+    const handlePrint = () => {
+        window.print();
     };
 
-    // Extract Month/Year from date or use current
-    const dateObj = new Date(data.date);
-    const billMonthYear = `${String(dateObj.getMonth() + 1).padStart(2, '0')} / ${dateObj.getFullYear()}`;
+    // Determine header based on service type
+    const getHeader = () => {
+        switch (data.serviceId) {
+            case 'elec':
+                return {
+                    title: t('receiptHeader') || "TAMIL NADU GENERATION AND DISTRIBUTION CORPORATION LIMITED",
+                    color: "text-amber-600",
+                    icon: <Landmark className="text-amber-600" size={24} />
+                };
+            case 'water':
+                return {
+                    title: "METRO WATER SUPPLY AND SEWERAGE BOARD",
+                    color: "text-blue-600",
+                    icon: <Landmark className="text-blue-600" size={24} />
+                };
+            case 'gas':
+                return {
+                    title: "MUNICIPAL GAS DISTRIBUTION UTILITY",
+                    color: "text-orange-600",
+                    icon: <Landmark className="text-orange-600" size={24} />
+                };
+            default:
+                return {
+                    title: t('receiptHeader') || "UTILITY PAYMENT RECEIPT",
+                    color: "text-slate-600",
+                    icon: <Landmark className="text-slate-600" size={24} />
+                };
+        }
+    };
 
-    return (
-        <div className="hidden print:block print:w-full print:h-full bg-white text-black font-mono text-sm p-4">
-            <style>
-                {`
-                    @media print {
-                        @page { margin: 0; }
-                        body { margin: 1cm; }
-                    }
-                `}
-            </style>
+    const header = getHeader();
 
-            <div className="max-w-[80mm] mx-auto">
-                {/* Header */}
-                <div className="text-center mb-4">
-                    <div className="border-b border-dashed border-black pb-1 mb-1">
-                        ------------------------------------------------------------
+    const ReceiptUI = (
+        <div className="payment-receipt-portal">
+            {/* Modal Backdrop & Preview UI */}
+            <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-300 print:hidden">
+                <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-300">
+                    {/* Modal Header */}
+                    <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl bg-white shadow-sm ${header.color}`}>
+                                {header.icon}
+                            </div>
+                            <div>
+                                <h3 className="font-black text-slate-900 leading-tight">Receipt Preview</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{data.serviceName}</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={onClose}
+                            className="p-3 bg-white hover:bg-red-50 hover:text-red-500 rounded-2xl transition-colors border shadow-sm"
+                        >
+                            <X size={20} />
+                        </button>
                     </div>
-                    <h1 className="font-bold text-sm">Tamil Nadu Generation and Distribution Corporation Limited</h1>
-                    <div className="border-b border-dashed border-black pt-1 mb-1">
-                        ------------------------------------------------------------
+
+                    {/* Receipt Body - Thermal Paper Style */}
+                    <div className="flex-1 overflow-y-auto p-8 bg-slate-100/50 flex justify-center">
+                        <div className="bg-white shadow-xl w-full max-w-[400px] p-8 font-mono text-sm text-slate-800 relative receipt-paper min-h-[600px]">
+                            {/* Decorative Top Edge */}
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-[radial-gradient(circle_at_50%_100%,transparent_4px,#f1f5f9_4px)] bg-[length:12px_12px] bg-repeat-x rotate-180"></div>
+
+                            {/* Official Header */}
+                            <div className="text-center mb-8">
+                                <p className="text-[10px] font-bold border-b border-dashed border-slate-300 pb-2 mb-4 uppercase tracking-tighter">----------------------------------------------------</p>
+                                <h4 className="font-black uppercase text-center leading-snug mb-2">{header.title}</h4>
+                                <p className="text-[10px] font-bold border-t border-dashed border-slate-300 pt-2 mb-2 uppercase tracking-tighter">----------------------------------------------------</p>
+                                <h5 className="font-bold border border-slate-900 inline-block px-4 py-1 my-2">E-RECEIPT</h5>
+                                <p className="text-[10px] font-bold border-b border-dashed border-slate-300 pb-2 mb-4 uppercase tracking-tighter">----------------------------------------------------</p>
+                            </div>
+
+                            {/* Details */}
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-start gap-4">
+                                    <span className="shrink-0 uppercase font-bold">Service No:</span>
+                                    <span className="text-right font-black">{data.consumerId}</span>
+                                </div>
+                                <div className="flex justify-between items-start gap-4">
+                                    <span className="shrink-0 uppercase font-bold">Name:</span>
+                                    <span className="text-right font-black uppercase">{data.consumerName || 'Resident'}</span>
+                                </div>
+
+                                <div className="py-4 border-y border-dashed border-slate-200 mt-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="uppercase font-bold">Bill Amount:</span>
+                                        <span className="font-black text-lg">₹{data.amount.replace(/[^0-9.]/g, '')}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="uppercase font-bold text-xs">Period:</span>
+                                        <span className="font-bold">
+                                            {(() => {
+                                                try {
+                                                    const d = new Date(data.date);
+                                                    return d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                                                } catch (e) {
+                                                    return 'CURRENT';
+                                                }
+                                            })()}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <span className="shrink-0 uppercase text-xs">Receipt No:</span>
+                                        <span className="text-right font-bold text-xs">{data.txnId}</span>
+                                    </div>
+                                    <div className="flex justify-between items-start gap-4">
+                                        <span className="shrink-0 uppercase text-xs">Date:</span>
+                                        <span className="text-right font-bold text-xs">{data.date}</span>
+                                    </div>
+                                    <div className="flex justify-between items-start gap-4">
+                                        <span className="shrink-0 uppercase text-xs">Mode:</span>
+                                        <span className="text-right font-bold text-xs">{data.mode}</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-8 pt-4 border-t-2 border-slate-900 border-double">
+                                    <div className="flex justify-between items-center bg-slate-50 p-2 border border-slate-200">
+                                        <span className="uppercase font-black text-xs">Amount Paid:</span>
+                                        <span className="font-black text-xl">₹{data.amount.replace(/[^0-9.]/g, '')}</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-center py-6">
+                                    <div className="p-2 border border-slate-100 rounded-lg">
+                                        <QRCode value={data.txnId} size={80} />
+                                    </div>
+                                </div>
+
+                                <div className="text-center text-[9px] leading-tight text-slate-500 italic px-4">
+                                    <p className="mb-2">----------------------------------------------------</p>
+                                    <p>{t('receiptDisclaimer') || "Receipt issued subject to confirmation of online payment credit in department's bank account."}</p>
+                                    <p className="mt-1">Computer Generated Receipt - No signature required.</p>
+                                    <p className="mt-4 font-bold border-t border-dashed border-slate-300 pt-2 tracking-widest uppercase">Thank You for using Suvidha Kiosk</p>
+                                </div>
+                            </div>
+
+                            {/* Decorative Bottom Edge */}
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-[radial-gradient(circle_at_50%_0%,transparent_4px,#f1f5f9_4px)] bg-[length:12px_12px] bg-repeat-x"></div>
+                        </div>
                     </div>
-                    <h2 className="font-bold text-sm my-1">E-Receipt</h2>
-                    <div className="border-b border-dashed border-black mb-4">
-                        ------------------------------------------------------------
+
+                    {/* Modal Footer / Actions */}
+                    <div className="p-8 border-t bg-white flex gap-4">
+                        <button 
+                            onClick={handlePrint}
+                            className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-3 shadow-xl shadow-blue-100"
+                        >
+                            <Printer size={20} /> Print Formal Receipt
+                        </button>
+                        <button 
+                            onClick={onClose}
+                            className="flex-1 bg-slate-100 text-slate-600 p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-200 transition"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
+            </div>
 
-                {/* Consumer Details */}
-                <div className="space-y-4 mb-4">
-                    <div className="flex justify-between">
-                        <span>Service No        : {data.consumerId}</span>
-                        <span>Name : {data.consumerName || 'K GANESAN'}</span>
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="flex justify-between">
-                            <span>Bill Amount       :</span>
-                            <span>{data.amount}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Bill Month / Year :</span>
-                            <span>{billMonthYear}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="flex justify-between">
-                            <span>Receipt No        :</span>
-                            <span>{data.txnId}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Receipt Date      :</span>
-                            <span>{data.date}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="flex justify-between">
-                            <span>Amount Debited    :</span>
-                            <span>{data.amount}</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4">
-                        <div className="flex justify-between">
-                            <span>Bank Transaction No :</span>
-                            <span>{data.txnId.replace(/\D/g, '').slice(0, 10)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Bank Authorisation Id :</span>
-                            <span>-</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Card Type            :</span>
-                            <span>-</span>
-                        </div>
-                    </div>
+            {/* Hidden Print-only Version (Optimized for Printer) */}
+            <div className="print-actual-receipt hidden print:block bg-white text-black font-mono text-[10px] w-[80mm] p-4 mx-auto leading-tight">
+                <style dangerouslySetInnerHTML={{__html: `
+                        @media print {
+                            @page { 
+                                margin: 0; 
+                                size: 80mm auto; 
+                            }
+                            
+                            /* Hide EVERYTHING except the portal */
+                            body > *:not(.payment-receipt-portal) {
+                                display: none !important;
+                            }
+                            
+                            /* Ensure the body is prepared for printing */
+                            body {
+                                background: white !important;
+                                margin: 0 !important;
+                                padding: 0 !important;
+                                overflow: visible !important;
+                                height: auto !important;
+                                -webkit-print-color-adjust: exact !important;
+                                print-color-adjust: exact !important;
+                            }
+                            
+                            .payment-receipt-portal {
+                                display: block !important;
+                                position: static !important;
+                            }
+                        }
+                `}} />
+                <div className="text-center">
+                    <p>-----------------------------------</p>
+                    <h1 className="font-bold text-[12px] uppercase text-center leading-tight">{header.title}</h1>
+                    <p>-----------------------------------</p>
+                    <p className="font-bold my-2">E-RECEIPT</p>
+                    <p>-----------------------------------</p>
                 </div>
-
-                {/* Footer */}
-                <div className="text-center mt-6">
-                    <div className="border-t border-dashed border-black py-2">
-                        ------------------------------------------------------------
-                    </div>
-                    <p className="text-xs">
-                        Receipt issued subject to confirmation of online payment
-                        credit in TANGEDCO’s bank account.
-                    </p>
-                    <div className="border-b border-dashed border-black py-2">
-                        ------------------------------------------------------------
-                    </div>
+                <div className="space-y-1 my-4">
+                    <div className="flex justify-between items-start gap-2"><span>SERVICE NO:</span><span className="font-bold text-right">{data.consumerId}</span></div>
+                    <div className="flex justify-between items-start gap-2"><span>NAME:</span><span className="font-bold uppercase text-right">{data.consumerName || 'RESIDENT'}</span></div>
+                    <div className="flex justify-between font-bold pt-2 border-t border-dashed"><span>AMOUNT:</span><span>₹{data.amount.replace(/[^0-9.]/g, '')}</span></div>
+                    <div className="flex justify-between"><span>DATE:</span><span>{data.date.split(',')[0]}</span></div>
+                    <div className="flex justify-between"><span>TXN ID:</span><span className="text-[8px] font-bold">{data.txnId}</span></div>
+                    <div className="flex justify-between"><span>MODE:</span><span>{data.mode}</span></div>
+                </div>
+                <div className="flex justify-center my-4">
+                    <QRCode value={data.txnId} size={100} />
+                </div>
+                <div className="text-center text-[8px] leading-tight mt-6">
+                    <p>-----------------------------------</p>
+                    <p>{t('receiptDisclaimer') || "Receipt issued subject to confirmation of online payment credit in department's bank account."}</p>
+                    <p className="mt-2 font-bold uppercase">Suvidha Digital Kiosk</p>
+                    <p>-----------------------------------</p>
                 </div>
             </div>
         </div>
     );
+
+    return createPortal(ReceiptUI, document.body);
 };
 
 export default PaymentReceipt;
