@@ -1,0 +1,14 @@
+components/KioskErrorBoundary.tsx(61,21): error TS2339: Property 'props' does not exist on type 'KioskErrorBoundary'.
+components/KioskUI.tsx(290,24): error TS2304: Cannot find name 'addServiceRequest'.
+components/SecureSession.tsx(2,41): error TS2307: Cannot find module 'framer-motion' or its corresponding type declarations.
+contexts/EnhancedLanguageContext.tsx(9,36): error TS2307: Cannot find module './languageAPIService' or its corresponding type declarations.
+contexts/EnhancedLanguageContext.tsx(68,17): error TS2322: Type '"en"' is not assignable to type 'Language'.
+contexts/EnhancedLanguageContext.tsx(84,27): error TS2367: This comparison appears to be unintentional because the types 'Language' and '"ur"' have no overlap.
+contexts/EnhancedLanguageContext.tsx(84,51): error TS2367: This comparison appears to be unintentional because the types 'Language' and '"ar"' have no overlap.
+services/BBPSService.ts(93,21): error TS2353: Object literal may only specify known properties, and 'errorCode' does not exist in type 'BBPSBillResponse | PromiseLike<BBPSBillResponse>'.
+services/languageAPIService.ts(7,26): error TS2307: Cannot find module './types' or its corresponding type declarations.
+services/languageAPIService.ts(59,17): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(input: string | URL | Request, init?: RequestInit): Promise<Response>', gave the following error.
+    Object literal may only specify known properties, and 'timeout' does not exist in type 'RequestInit'.
+  Overload 2 of 2, '(input: URL | RequestInfo, init?: RequestInit): Promise<Response>', gave the following error.
+    Object literal may only specify known properties, and 'timeout' does not exist in type 'RequestInit'.

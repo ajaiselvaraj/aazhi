@@ -37,6 +37,11 @@ export const GrievanceService = {
         return await apiClient.get<ServiceRequest[]>('/service-requests');
     },
 
+    getAllRequestsAdmin: async (): Promise<any[]> => {
+        // Admin/staff only — returns all citizens' requests from the database
+        return await apiClient.get<any[]>('/service-requests/admin');
+    },
+
     createRequest: async (request: any): Promise<ServiceRequest> => {
         return await apiClient.post<ServiceRequest>('/service-requests', request);
     },

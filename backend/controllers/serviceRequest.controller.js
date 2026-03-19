@@ -133,6 +133,50 @@ export const getMyServiceRequests = async (req, res, next) => {
     }
 };
 
+// ─── Get All Service Requests (Admin/Staff Only) ─────────
+export const getAllServiceRequestsAdmin = async (req, res, next) => {
+    try {
+        const { status, department, page = 1, limit = 50 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let query = `
+            SELECT sr.*, c.name AS citizen_name, c.mobile AS citizen_mobile
+            FROM service_requests sr
+            LEFT JOIN citizens c ON sr.citizen_id = c.id
+        `;
+        const params = [];
+
+        const conditions = [];
+        if (status) {
+            conditions.push(`sr.status = $${params.length + 1}`);
+            params.push(status);
+        }
+        if (department) {
+            conditions.push(`sr.department = $${params.length + 1}`);
+            params.push(department);
+        }
+        if (conditions.length > 0) {
+            query += ` WHERE ${conditions.join(' AND ')}`;
+        }
+
+        const countQuery = `SELECT COUNT(*) FROM service_requests sr${conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''}`;
+        const countResult = await pool.query(countQuery, params);
+
+        query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+
+        const result = await pool.query(query, params);
+
+        return paginated(res, "All service requests retrieved", result.rows, {
+            total: parseInt(countResult.rows[0].count),
+            page: parseInt(page),
+            limit: parseInt(limit),
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ─── Update Service Request Status (Admin/Staff) ─────────
 export const updateServiceRequestStatus = async (req, res, next) => {
     try {
