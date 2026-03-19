@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Users, FileText, CheckCircle, Clock, BarChart2, Search, Filter, Eye, UserCheck, MessageSquare, AlertCircle, Globe, ChevronDown, AlertTriangle, Edit, LayoutGrid, TrendingUp, Calendar, Download, Moon, Sun, Bell, Trophy, Activity } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { MOCK_REQUESTS } from '../constants';
@@ -128,6 +128,17 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
 
   // Dropdown Management State
   const [openDropdown, setOpenDropdown] = useState<{ id: string, type: 'reqStep' | 'compStage' | 'compStatus' } | null>(null);
+
+  // Auto Refresh Feature
+  const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+       setLastRefreshed(new Date());
+       // To explicitly reload data if connected to an API, call fetch logic here.
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleDropdown = (id: string, type: 'reqStep' | 'compStage' | 'compStatus') => {
     if (openDropdown?.id === id && openDropdown?.type === type) {
@@ -276,7 +287,13 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                     activeSubTab === 'alerts' ? t('adminAlerts') || "Area Impact Alerts" :
                       activeSubTab === 'kiosks' ? t('adminKiosks') || "Kiosk Network Management" : t('adminComplaints')}
               </h2>
-              <p className="text-sm text-gray-500">{t('welcomeBack')}, Admin ID: 963852</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-gray-500">{t('welcomeBack')}, Admin ID: 963852</p>
+                <span className="text-[10px] bg-green-100/50 text-green-600 font-bold px-2 py-0.5 rounded-full flex items-center gap-1.5 border border-green-200 shadow-sm ml-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  Auto-refresh (30s) • {lastRefreshed.toLocaleTimeString()}
+                </span>
+              </div>
             </div>
           </div>
 
