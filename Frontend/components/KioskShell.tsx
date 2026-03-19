@@ -220,7 +220,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
     return (
         <div 
-            className="flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
+            className="kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
             onContextMenu={(e) => { if (process.env.NODE_ENV === 'production') e.preventDefault(); }}
             onDragStart={(e) => e.preventDefault()}
             style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}

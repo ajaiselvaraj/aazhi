@@ -84,6 +84,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [mobileNumber, setMobileNumber] = useState('');
   const [isFetchingBill, setIsFetchingBill] = useState(false);
   const [receiptDetails, setReceiptDetails] = useState<any>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   // New Service Flow State
   const [submissionStep, setSubmissionStep] = useState<'select' | 'form' | 'success'>('select');
@@ -361,6 +362,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       setReceiptDetails({
         serviceName: selectedBillService.name,
+        serviceId: selectedBillService.id,
         consumerId: consumerNumber,
         consumerName: "Arun Kumar",
         amount: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(fetchedBill.amount),
@@ -370,6 +372,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       });
 
       setBillingStep('success');
+      setShowReceiptPreview(true);
     } catch (error) {
       console.error("Payment failed", error);
       alert("Payment initiation failed.");
@@ -380,7 +383,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
 
   const handlePrintReceipt = () => {
-    window.print();
+    setShowReceiptPreview(true);
   };
 
   const resetBilling = () => {
@@ -389,6 +392,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setConsumerNumber('');
     setMobileNumber('');
     setReceiptDetails(null);
+    setShowReceiptPreview(false);
   };
 
   return (
@@ -963,7 +967,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         )}
 
       </div>
-      <PaymentReceipt data={receiptDetails} />
+      {showReceiptPreview && <PaymentReceipt data={receiptDetails} onClose={() => setShowReceiptPreview(false)} />}
     </KioskShell >
   );
 };
