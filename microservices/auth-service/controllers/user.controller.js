@@ -27,18 +27,11 @@ export const getUsers = async (req, res) => {
 export const createUser = async (req, res) => {
     const { name, phone } = req.body;
 
-    // Simple validation with solid bounds (XSS mitigation layer 1)
-    if (!name || typeof name !== 'string' || name.length > 100 || name.length < 2) {
+    // Simple validation
+    if (!name || !phone) {
         return res.status(400).json({
             success: false,
-            message: "A valid Name (2-100 characters) is required"
-        });
-    }
-
-    if (!phone || !/^\+?\d{10,15}$/.test(phone)) {
-        return res.status(400).json({
-            success: false,
-            message: "A valid Phone number is required"
+            message: "Name and phone are required"
         });
     }
 

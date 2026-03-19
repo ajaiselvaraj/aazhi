@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Implements a Tamper-Evident Government Audit Trail
+model AuditLog {
+  id                  String   @id @default(uuid()) @db.Uuid
+  timestamp           DateTime @default(now())
+  
+  // Who performed the action
+  actorId             String   @map("actor_id")
+  ipFingerprint       String   @map("ip_fingerprint")
+  
+  // What was acted upon
+  resourceId          String   @map("resource_id")
+  action              String   @db.VarChar(100)
+  
+  // Immutability State Tracking
+  previousStateHash   String   @map("previous_state_hash") @db.Text
+  currentStateHash    String   @map("current_state_hash") @db.Text
+  
+  // Cryptographic Chain Link (Immutable verification)
+  previousLogId       String?  @unique @db.Uuid @map("previous_log_id")
+  hmacSignature       String   @map("hmac_signature") @db.Text
+
+  previousLog         AuditLog? @relation("AuditChain", fields: [previousLogId], references: [id])
+  nextLog             AuditLog? @relation("AuditChain")
+
+  @@index([actorId])
+  @@index([timestamp(sort: Desc)])
+  @@map("audit_logs")
+}
