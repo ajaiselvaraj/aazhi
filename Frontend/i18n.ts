@@ -10,11 +10,19 @@ import gu from './locales/gu.json';
 import kn from './locales/kn.json';
 import ml from './locales/ml.json';
 import mr from './locales/mr.json';
-// import ne from './locales/ne.json';
-import od from './locales/od.json';
+import or from './locales/or.json';
 import pa from './locales/pa.json';
 import te from './locales/te.json';
 import ur from './locales/ur.json';
+import mni from './locales/mni.json';
+import brx from './locales/brx.json';
+import doi from './locales/doi.json';
+import ks from './locales/ks.json';
+import kok from './locales/kok.json';
+import mai from './locales/mai.json';
+import sa from './locales/sa.json';
+import sat from './locales/sat.json';
+import sd from './locales/sd.json';
 
 import { Language } from './types';
 
@@ -28,11 +36,19 @@ const resources = {
     [Language.KANNADA]: { translation: kn },
     [Language.MALAYALAM]: { translation: ml },
     [Language.MARATHI]: { translation: mr },
-    // [Language.NEPALI]: { translation: ne },
-    [Language.ODIA]: { translation: od },
+    [Language.ODIA]: { translation: or },
     [Language.PUNJABI]: { translation: pa },
     [Language.TELUGU]: { translation: te },
     [Language.URDU]: { translation: ur },
+    [Language.MANIPURI]: { translation: mni },
+    [Language.BODO]: { translation: brx },
+    [Language.DOGRI]: { translation: doi },
+    [Language.KASHMIRI]: { translation: ks },
+    [Language.KONKANI]: { translation: kok },
+    [Language.MAITHILI]: { translation: mai },
+    [Language.SANSKRIT]: { translation: sa },
+    [Language.SANTALI]: { translation: sat },
+    [Language.SINDHI]: { translation: sd },
 };
 
 const lang = localStorage.getItem("selectedLanguage") || Language.ENGLISH;

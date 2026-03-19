@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertCircle, ArrowRight, CheckCircle, ChevronDown, Globe, Users, AlertTriangle, MessageSquare, Paperclip, Send, Download, X, Upload } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   complaints: any[];
@@ -26,13 +26,39 @@ const AdminComplaints: React.FC<Props> = ({
   const [openDropdown, setOpenDropdown] = useState<{ id: string, type: 'status' } | null>(null);
   const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'Active' | 'Resolved'>('Active');
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   
   // Custom mock state for the requested functional additions
   const [complaintNotes, setComplaintNotes] = useState<Record<string, string>>({});
   const [complaintImages, setComplaintImages] = useState<Record<string, string[]>>({});
   const [activeModal, setActiveModal] = useState<{ id: string, type: 'note' | 'upload' } | null>(null);
   const [tempNote, setTempNote] = useState('');
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    const keyMap: Record<string, string> = {
+        'Pending': t('pending') || 'Pending',
+        'In Progress': t('inProgress') || 'In Progress',
+        'Resolved': t('resolved') || 'Resolved',
+        'Completed': t('completed') || 'Completed',
+        'Rejected': t('rejected') || 'Rejected',
+        'Closed': t('closed') || 'Closed',
+        'Submitted': t('submitted') || 'Submitted',
+        'Officer Assigned': t('officerAssigned') || 'Officer Assigned',
+        'Manager Review': t('managerReview') || 'Manager Review',
+        'GM Approval': t('gmApproval') || 'GM Approval',
+        'Critical': t('severityCritical') || 'Critical',
+        'High': t('severityWarning') || 'High',
+        'Medium': t('severityInfo') || 'Medium',
+        'Low': t('severityLow') || 'Low',
+        'Electricity': t('power') || 'Electricity',
+        'Water': t('water') || 'Water',
+        'Gas': t('gas') || 'Gas',
+        'Municipal': t('municipalCorp') || 'Municipal',
+        'All': t('all') || 'All'
+    };
+    return keyMap[text] || text;
+  };
 
   const filteredComplaints = complaints.filter(c => {
      // Apply view mode filter
@@ -90,13 +116,13 @@ const AdminComplaints: React.FC<Props> = ({
              onClick={() => setViewMode('Active')}
              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'Active' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 bg-white border border-slate-200'}`}
           >
-             Active Cases
+             {t('activeCases') || 'Active Cases'}
           </button>
           <button 
              onClick={() => setViewMode('Resolved')}
              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${viewMode === 'Resolved' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-100 bg-white border border-slate-200'}`}
           >
-             Archive
+             {t('archive') || 'Archive'}
           </button>
           <div className="w-px h-8 bg-slate-300 mx-2 self-center"></div>
 
@@ -109,7 +135,7 @@ const AdminComplaints: React.FC<Props> = ({
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
                   : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}
             >
-              {cat}
+              {translateDynamic(cat)}
             </button>
           ))}
         </div>
@@ -130,7 +156,7 @@ const AdminComplaints: React.FC<Props> = ({
                   : 'text-slate-500 hover:bg-slate-50'
                 }`}
             >
-              {p}
+              {translateDynamic(p)}
             </button>
           ))}
         </div>
@@ -189,7 +215,7 @@ const AdminComplaints: React.FC<Props> = ({
                         ${complaint.status === 'Pending' ? 'bg-red-50 text-red-600' :
                           complaint.status === 'In Progress' ? 'bg-orange-50 text-orange-600' :
                             'bg-green-50 text-green-600'}`}>
-                        {complaint.status}
+                        {translateDynamic(complaint.status)}
                       </span>
 
                       {/* Stage Badge */}
@@ -197,7 +223,7 @@ const AdminComplaints: React.FC<Props> = ({
                         ${complaint.currentStage === 'GM Approval' ? 'bg-purple-100 text-purple-700' :
                           complaint.currentStage === 'Manager Review' ? 'bg-indigo-100 text-indigo-700' :
                             'bg-blue-50 text-blue-600'}`}>
-                        {complaint.currentStage || 'Submitted'}
+                        {translateDynamic(complaint.currentStage || 'Submitted')}
                       </span>
 
                       {/* Priority Badge */}
@@ -207,7 +233,7 @@ const AdminComplaints: React.FC<Props> = ({
                             complaint.priority === 'Medium' ? 'bg-blue-500 text-white' :
                               'bg-slate-200 text-slate-500'}
                       `}>
-                        {complaint.priority}
+                        {translateDynamic(complaint.priority)}
                       </span>
 
                       <span className="text-xs font-bold text-slate-400 ml-2">{complaint.id}</span>
@@ -315,7 +341,7 @@ const AdminComplaints: React.FC<Props> = ({
                             }}
                             className="w-full text-left px-4 py-2 text-xs font-bold hover:bg-slate-50 hover:text-blue-600 rounded-lg text-slate-700 transition"
                           >
-                            {s}
+                            {translateDynamic(s)}
                           </button>
                         ))}
                       </div>

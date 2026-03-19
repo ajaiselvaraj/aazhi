@@ -14,7 +14,7 @@ import {
 import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
 import { Language } from '../../types';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface ComplaintsModuleProps {
     onBack: () => void;
@@ -23,7 +23,7 @@ interface ComplaintsModuleProps {
 }
 
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     const { addComplaint } = useServiceComplaint();
 
     // If departmentId is provided, start at details step, otherwise category

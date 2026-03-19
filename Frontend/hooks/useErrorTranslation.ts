@@ -5,7 +5,7 @@
  */
 
 import { useCallback } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { getTranslatedError, getErrorByKey, TranslatedError } from '../services/errorTranslationService';
 
 export interface UseErrorTranslationReturn {
@@ -22,7 +22,7 @@ export interface UseErrorTranslationReturn {
  *   const response = formatErrorResponse('BILL_FETCH_FAILED');
  */
 export const useErrorTranslation = (): UseErrorTranslationReturn => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const translateError = useCallback(
         (errorCode: string): string => {

@@ -6,7 +6,7 @@ import { DigiLockerDoc } from '../../types/digilocker';
 import { DEPARTMENTS, MOCK_USER_PROFILE, PREDEFINED_ISSUES } from '../../constants';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     serviceName: string;
@@ -21,7 +21,7 @@ const ServiceFormWizard: React.FC<Props> = ({ serviceName, mode, onCancel, onSub
     const [details, setDetails] = useState({ name: MOCK_USER_PROFILE.name, mobile: MOCK_USER_PROFILE.mobile });
     const [scanComplete, setScanComplete] = useState(false);
     const [showScanner, setShowScanner] = useState(false);
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     const svcKey = `serv_${serviceName.replace(/[\s\/]/g, '')}` as keyof typeof t;
     const translatedServiceName = t[svcKey] as string || serviceName;
 

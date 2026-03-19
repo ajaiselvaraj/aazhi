@@ -3,7 +3,7 @@ import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, Arrow
 import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/ServiceComplaintContext';
 import { TrackingStage } from '../types';
 import { MOCK_USER_PROFILE } from '../constants';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 type ActivityItem =
     | (ServiceRequest & { type: 'Request' })
@@ -11,7 +11,8 @@ type ActivityItem =
 
 const ApplicationTracker: React.FC = () => {
     const { serviceRequests, complaints } = useServiceComplaint();
-    const { t, language } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language;
     const [searchId, setSearchId] = useState('');
     const [viewMode, setViewMode] = useState<'my-activity' | 'search'>('my-activity');
     const [searchResult, setSearchResult] = useState<ActivityItem[]>([]);
@@ -72,16 +73,29 @@ const ApplicationTracker: React.FC = () => {
 
     const translateDynamic = (text: string): string => {
         if (!text) return text;
+
+        // First: if it looks like an i18n key (serv_*, dept_*, issue_*, etc.), translate directly
+        if (/^(serv_|dept_|issue_|civic_|comp_|emer_)/.test(text)) {
+            const translated = t(text);
+            // t() returns the key itself if not found – only use if it's actually different
+            if (translated && translated !== text) return translated;
+        }
+
+        // Second: map legacy English strings stored before key-based approach was introduced
         const map: Record<string, string> = {
             'Electricity': t('power') || 'Electricity',
-            'Electricity Board': t('electricityBoard') || 'Electricity Board',
+            'Electricity Board': t('dept_eb') || 'Electricity Board',
+            'Water Supply & Sewage': t('dept_water') || 'Water Supply & Sewage',
+            'Water Supply': t('dept_water') || 'Water Supply',
+            'Gas Distribution': t('dept_gas') || 'Gas Distribution',
+            'Municipal Corp': t('dept_municipal') || 'Municipal Corp',
+            'Municipal Corporation': t('dept_municipal') || 'Municipal Corporation',
             'Water': t('water') || 'Water',
             'Gas': t('gas') || 'Gas',
-            'Waste Management': t('wasteManagement') || 'Waste Management',
-            'Municipal Corporation': t('municipalCorp') || 'Municipal Corporation',
-            'Municipal Corp': t('municipalCorp') || 'Municipal Corp',
-            'New Connection': t('newConnection') || 'New Connection',
-            'Power Cut': t('issue_powerOutage') || 'Power Cut',
+            'Waste Management': t('serv_WasteManagement') || 'Waste Management',
+            'New Connection': t('serv_NewConnection') || 'New Connection',
+            'Pipeline Leak': t('serv_PipelineLeak') || 'Pipeline Leak',
+            'Power Cut': t('powerOutage') || 'Power Cut',
             'Leakage': t('issue_pipelineLeak') || 'Leakage',
             'Gas Leak (Urgent)': t('issue_gasLeak') || 'Gas Leak (Urgent)',
             'Street light not working': t('issue_streetLightNotWorking') || 'Street light not working',
@@ -90,6 +104,7 @@ const ApplicationTracker: React.FC = () => {
             'RS Puram': t('rsPuram') || 'RS Puram',
             'Gandhipuram, Ward 5': t('gandhipuramWard5') || 'Gandhipuram, Ward 5'
         };
+
         return map[text] || text;
     };
 

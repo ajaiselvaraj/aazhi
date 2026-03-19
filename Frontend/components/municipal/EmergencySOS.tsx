@@ -3,7 +3,7 @@ import { AlertTriangle, Zap, Droplets, ArrowRight, ShieldAlert, Navigation, Home
 import { MunicipalAPI } from '../../services/municipalApi';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { EmergencyReport } from '../../types/municipal';
 
@@ -15,7 +15,8 @@ const EMERGENCY_TYPES_KEYS = [
 ];
 
 export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);

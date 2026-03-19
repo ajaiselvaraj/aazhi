@@ -3,7 +3,7 @@ import { ShieldCheck, X, Smartphone, ArrowRight, Lock, CheckCircle, Loader2 } fr
 import { fetchDigiLockerDocuments } from '../../../services/api/digilockerService';
 import { DigiLockerDoc } from '../../../types/digilocker';
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     requestId: string;
@@ -16,7 +16,7 @@ const DigiLockerAuth: React.FC<Props> = ({ requestId, onSuccess, onCancel, langu
     const [step, setStep] = useState<'LOGIN' | 'OTP' | 'CONSENT' | 'FETCHING'>('LOGIN');
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const handleLogin = () => {
         if (mobile.length === 10) setStep('OTP');

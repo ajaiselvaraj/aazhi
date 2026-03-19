@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X, FileText } from 'lucide-react';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface FormField {
     name: string;
@@ -22,7 +22,7 @@ interface ServiceFormProps {
 }
 
 const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, onBack, onSubmit, language }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
@@ -34,159 +34,159 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
         const formConfigs: Record<string, FormField[]> = {
             // ELECTRICITY BOARD (6 services)
             'eb_New_Connection': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true, placeholder: 'Enter your full name' },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, placeholder: '10-digit mobile number', maxLength: 10 },
-                { name: 'address', label: 'Address', type: 'textarea', required: true, placeholder: 'Enter complete address' },
-                { name: 'connectionType', label: 'Connection Type', type: 'select', required: true, options: ['Residential', 'Commercial'] },
-                { name: 'idProof', label: 'ID Proof Upload (Optional)', type: 'file', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true, placeholder: 'sf_enterFullName' },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, placeholder: 'sf_mobileHint', maxLength: 10 },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true, placeholder: 'sf_enterAddress' },
+                { name: 'connectionType', label: 'sf_connectionType', type: 'select', required: true, options: ['Residential', 'Commercial'] },
+                { name: 'idProof', label: 'sf_idProofOptional', type: 'file', required: false }
             ],
             'eb_Billing_Issue': [
-                { name: 'consumerNumber', label: 'Consumer Number', type: 'text', required: true, placeholder: 'e.g., EB-10098745' },
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Incorrect Bill Amount', 'Payment Not Updated', 'Duplicate Bill', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false, placeholder: 'Provide details if "Other" selected' }
+                { name: 'consumerNumber', label: 'sf_consumerNumber', type: 'text', required: true, placeholder: 'sf_consumerNumberHint' },
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Incorrect Bill Amount', 'Payment Not Updated', 'Duplicate Bill', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false, placeholder: 'sf_descriptionHint' }
             ],
             'eb_Meter_Fault': [
-                { name: 'consumerNumber', label: 'Consumer Number', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Meter Not Working', 'Reading Error', 'Physical Damage', 'Other'] },
-                { name: 'photo', label: 'Photo Upload (Optional)', type: 'file', required: false },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'consumerNumber', label: 'sf_consumerNumber', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Meter Not Working', 'Reading Error', 'Physical Damage', 'Other'] },
+                { name: 'photo', label: 'sf_photoOptional', type: 'file', required: false },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'eb_Load_Change': [
-                { name: 'consumerNumber', label: 'Consumer Number', type: 'text', required: true },
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'currentLoad', label: 'Current Load (kW)', type: 'text', required: true, placeholder: 'e.g., 2' },
-                { name: 'requestedLoad', label: 'Requested Load (kW)', type: 'text', required: true, placeholder: 'e.g., 5' }
+                { name: 'consumerNumber', label: 'sf_consumerNumber', type: 'text', required: true },
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'currentLoad', label: 'sf_currentLoad', type: 'text', required: true, placeholder: 'sf_currentLoadHint' },
+                { name: 'requestedLoad', label: 'sf_requestedLoad', type: 'text', required: true, placeholder: 'sf_requestedLoadHint' }
             ],
             'eb_Address_Change': [
-                { name: 'consumerNumber', label: 'Consumer Number', type: 'text', required: true },
-                { name: 'oldAddress', label: 'Old Address', type: 'textarea', required: true },
-                { name: 'newAddress', label: 'New Address', type: 'textarea', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'consumerNumber', label: 'sf_consumerNumber', type: 'text', required: true },
+                { name: 'oldAddress', label: 'sf_oldAddress', type: 'textarea', required: true },
+                { name: 'newAddress', label: 'sf_newAddress', type: 'textarea', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
             'eb_Other': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'contact', label: 'Contact Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'Describe your request or issue' }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'contact', label: 'sf_contactNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: true, placeholder: 'sf_describeRequest' }
             ],
 
             // WATER SUPPLY & SEWAGE (5 services)
             'water_Water_Connection': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'idProof', label: 'ID Proof Upload (Optional)', type: 'file', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'idProof', label: 'sf_idProofOptional', type: 'file', required: false }
             ],
             'water_Sewage_Block': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'landmark', label: 'Landmark', type: 'text', required: true, placeholder: 'Nearby landmark for easy location' },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Drain Blockage', 'Overflow', 'Bad Odor', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'landmark', label: 'sf_landmark', type: 'text', required: true, placeholder: 'sf_landmarkHint' },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Drain Blockage', 'Overflow', 'Bad Odor', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'water_Pipeline_Leak': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'location', label: 'Location', type: 'textarea', required: true },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Minor Leak', 'Major Leak', 'No Water Supply', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'location', label: 'sf_location', type: 'textarea', required: true },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Minor Leak', 'Major Leak', 'No Water Supply', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'water_Address_Change': [
-                { name: 'consumerId', label: 'Consumer ID', type: 'text', required: true },
-                { name: 'oldAddress', label: 'Old Address', type: 'textarea', required: true },
-                { name: 'newAddress', label: 'New Address', type: 'textarea', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'consumerId', label: 'sf_consumerId', type: 'text', required: true },
+                { name: 'oldAddress', label: 'sf_oldAddress', type: 'textarea', required: true },
+                { name: 'newAddress', label: 'sf_newAddress', type: 'textarea', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
             'water_Other': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'contact', label: 'Contact Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'description', label: 'Description', type: 'textarea', required: true }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'contact', label: 'sf_contactNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: true }
             ],
 
             // GAS DISTRIBUTION (5 services)
             'gas_New_Connection': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'idProof', label: 'ID Proof Upload (Optional)', type: 'file', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'idProof', label: 'sf_idProofOptional', type: 'file', required: false }
             ],
             'gas_Refill_Booking': [
-                { name: 'consumerId', label: 'Consumer ID', type: 'text', required: true },
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'consumerId', label: 'sf_consumerId', type: 'text', required: true },
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
             'gas_Leakage_Complaint': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'emergencyContact', label: 'Emergency Contact Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Cylinder Leak', 'Pipe Leak', 'Regulator Issue', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'emergencyContact', label: 'sf_emergencyContact', type: 'tel', required: true, maxLength: 10 },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Cylinder Leak', 'Pipe Leak', 'Regulator Issue', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'gas_Address_Change': [
-                { name: 'consumerId', label: 'Consumer ID', type: 'text', required: true },
-                { name: 'oldAddress', label: 'Old Address', type: 'textarea', required: true },
-                { name: 'newAddress', label: 'New Address', type: 'textarea', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'consumerId', label: 'sf_consumerId', type: 'text', required: true },
+                { name: 'oldAddress', label: 'sf_oldAddress', type: 'textarea', required: true },
+                { name: 'newAddress', label: 'sf_newAddress', type: 'textarea', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
             'gas_Other': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'description', label: 'Description', type: 'textarea', required: true }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: true }
             ],
 
             // WASTE MANAGEMENT (4 services)
             'waste_Garbage_Collection___Pickup_Request': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'areaWard', label: 'Area / Ward', type: 'text', required: true, placeholder: 'Enter your area or ward number' },
-                { name: 'wasteType', label: 'Waste Type', type: 'select', required: true, options: ['Regular Waste', 'Bulk Waste', 'Construction Debris', 'E-Waste', 'Hazardous Waste', 'Other'] },
-                { name: 'preferredDate', label: 'Preferred Date (Optional)', type: 'date', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'areaWard', label: 'sf_areaWard', type: 'text', required: true, placeholder: 'sf_areaWardHint' },
+                { name: 'wasteType', label: 'sf_wasteType', type: 'select', required: true, options: ['Regular Waste', 'Bulk Waste', 'Construction Debris', 'E-Waste', 'Hazardous Waste', 'Other'] },
+                { name: 'preferredDate', label: 'sf_preferredDateOptional', type: 'date', required: false }
             ],
             'waste_Complaint_Registration': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Garbage Not Collected', 'Overflowing Bin', 'Missed Pickup', 'Illegal Dumping', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Garbage Not Collected', 'Overflowing Bin', 'Missed Pickup', 'Illegal Dumping', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'waste_Recycling_Information': [
-                { name: 'area', label: 'Area', type: 'text', required: true },
-                { name: 'wasteType', label: 'Waste Type', type: 'select', required: true, options: ['Plastic', 'Paper', 'Glass', 'Metal', 'E-Waste', 'Organic'] }
+                { name: 'area', label: 'sf_area', type: 'text', required: true },
+                { name: 'wasteType', label: 'sf_wasteType', type: 'select', required: true, options: ['Plastic', 'Paper', 'Glass', 'Metal', 'E-Waste', 'Organic'] }
             ],
             'waste_Address_Change': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'oldAddress', label: 'Old Address', type: 'textarea', required: true },
-                { name: 'newAddress', label: 'New Address', type: 'textarea', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'oldAddress', label: 'sf_oldAddress', type: 'textarea', required: true },
+                { name: 'newAddress', label: 'sf_newAddress', type: 'textarea', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
 
             // MUNICIPAL CORPORATION (5 services)
             'municipal_Birth_Death_Cert': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'dateOfEvent', label: 'Date of Birth/Death', type: 'date', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true },
-                { name: 'idProof', label: 'ID Proof Upload (Optional)', type: 'file', required: false }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'dateOfEvent', label: 'sf_dateOfBirthDeath', type: 'date', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true },
+                { name: 'idProof', label: 'sf_idProofOptional', type: 'file', required: false }
             ],
             'municipal_Property_Tax': [
-                { name: 'propertyId', label: 'Property ID', type: 'text', required: true, placeholder: 'Enter property identification number' },
-                { name: 'ownerName', label: 'Owner Name', type: 'text', required: true },
-                { name: 'address', label: 'Address', type: 'textarea', required: true }
+                { name: 'propertyId', label: 'sf_propertyId', type: 'text', required: true, placeholder: 'sf_propertyIdHint' },
+                { name: 'ownerName', label: 'sf_ownerName', type: 'text', required: true },
+                { name: 'address', label: 'sf_address', type: 'textarea', required: true }
             ],
             'municipal_Street_Light': [
-                { name: 'location', label: 'Location', type: 'textarea', required: true },
-                { name: 'landmark', label: 'Landmark', type: 'text', required: true },
-                { name: 'complaintType', label: 'Complaint Type', type: 'select', required: true, options: ['Light Not Working', 'Blinking Light', 'Pole Damage', 'Other'] },
-                { name: 'description', label: 'Description', type: 'textarea', required: false }
+                { name: 'location', label: 'sf_location', type: 'textarea', required: true },
+                { name: 'landmark', label: 'sf_landmark', type: 'text', required: true },
+                { name: 'complaintType', label: 'sf_complaintType', type: 'select', required: true, options: ['Light Not Working', 'Blinking Light', 'Pole Damage', 'Other'] },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: false }
             ],
             'municipal_Address_Change': [
-                { name: 'serviceIdOrPropertyId', label: 'Service ID / Property ID', type: 'text', required: true },
-                { name: 'oldAddress', label: 'Old Address', type: 'textarea', required: true },
-                { name: 'newAddress', label: 'New Address', type: 'textarea', required: true },
-                { name: 'mobile', label: 'Mobile Number', type: 'tel', required: true, maxLength: 10 }
+                { name: 'serviceIdOrPropertyId', label: 'sf_servicePropertyId', type: 'text', required: true },
+                { name: 'oldAddress', label: 'sf_oldAddress', type: 'textarea', required: true },
+                { name: 'newAddress', label: 'sf_newAddress', type: 'textarea', required: true },
+                { name: 'mobile', label: 'sf_mobileNumber', type: 'tel', required: true, maxLength: 10 }
             ],
             'municipal_Other': [
-                { name: 'name', label: 'Full Name', type: 'text', required: true },
-                { name: 'contact', label: 'Contact Number', type: 'tel', required: true, maxLength: 10 },
-                { name: 'description', label: 'Description', type: 'textarea', required: true }
+                { name: 'name', label: 'sf_fullName', type: 'text', required: true },
+                { name: 'contact', label: 'sf_contactNumber', type: 'tel', required: true, maxLength: 10 },
+                { name: 'description', label: 'sf_description', type: 'textarea', required: true }
             ]
         };
 
@@ -224,13 +224,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
 
         fields.forEach(field => {
             if (field.required && !formData[field.name]) {
-                newErrors[field.name] = `${field.label} is required`;
+                newErrors[field.name] = `${t(field.label)} ${t('fieldRequired')}`;
             }
 
             // Validate mobile number
             if (field.type === 'tel' && formData[field.name]) {
                 if (!/^\d{10}$/.test(formData[field.name])) {
-                    newErrors[field.name] = 'Enter valid 10-digit mobile number';
+                    newErrors[field.name] = t('validMobile');
                 }
             }
 
@@ -238,7 +238,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
             if (field.name === 'complaintType' && formData[field.name] === 'Other') {
                 const descField = fields.find(f => f.name === 'description');
                 if (descField && !formData['description']) {
-                    newErrors['description'] = 'Description is required when "Other" is selected';
+                    newErrors['description'] = t('descRequiredOther');
                 }
             }
         });
@@ -305,7 +305,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                         return (
                             <div key={field.name} className="space-y-3">
                                 <label className="block text-sm font-black text-slate-700 uppercase tracking-wider">
-                                    {field.label}
+                                    {t(field.label)}
                                     {field.required && <span className="text-red-500 ml-1">*</span>}
                                 </label>
 
@@ -314,7 +314,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                                         type={field.type}
                                         value={formData[field.name] || ''}
                                         onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                        placeholder={field.placeholder}
+                                        placeholder={field.placeholder ? t(field.placeholder) : undefined}
                                         maxLength={field.maxLength}
                                         className={`w-full bg-slate-50 border-2 ${errors[field.name] ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-semibold outline-none focus:border-blue-500 focus:bg-white transition placeholder:text-slate-400`}
                                     />
@@ -323,7 +323,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                                         inputMode="text"
                                         value={formData[field.name] || ''}
                                         onChange={(e) => handleInputChange(field.name, e.target.value)}
-                                        placeholder={field.placeholder}
+                                        placeholder={field.placeholder ? t(field.placeholder) : undefined}
                                         rows={3}
                                         className={`w-full bg-slate-50 border-2 ${errors[field.name] ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-semibold outline-none focus:border-blue-500 focus:bg-white transition placeholder:text-slate-400 resize-none`}
                                     />

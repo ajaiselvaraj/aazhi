@@ -28,7 +28,7 @@ import { CitizenParticipation } from './municipal/CitizenParticipation';
 
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { useInactivityTimer } from '../hooks/useInactivityTimer';
 
 interface Props {
@@ -55,7 +55,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation'>(initialTab);
 
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
-  const { t } = useLanguage();
+  const { t } = useTranslation();
+  const { addServiceRequest } = useServiceComplaint();
 
   // Accessibility State
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
@@ -411,13 +412,13 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md">
           <div className="bg-white p-10 rounded-[3rem] text-center max-w-md animate-in zoom-in-95 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
             <AlertTriangle size={64} className="text-amber-500 mx-auto mb-6 animate-pulse" />
-            <h2 className="text-3xl font-black text-slate-900 mb-4">Are you still there?</h2>
+            <h2 className="text-3xl font-black text-slate-900 mb-4">{t('stillThere')}</h2>
             <p className="text-slate-500 font-medium mb-8">
-              For your privacy, your session will automatically close in <br/>
+              {t('privacyClose')} <br/>
               <span className="text-red-600 font-black text-4xl leading-relaxed">{countdown}s</span>
             </p>
             <button onClick={resetTimer} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">
-              Yes, keep me logged in
+              {t('keepLoggedIn')}
             </button>
           </div>
         </div>
@@ -449,7 +450,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     {t('navServices') || "Services"}
                   </h2>
                   <p className="text-xl text-slate-600 font-medium">
-                    {t('selectServiceCategory') || "Select a service category to get started"}
+                    {t('selectServiceCategory')}
                   </p>
                 </div>
 
@@ -492,7 +493,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                                 {deptName}
                               </h3>
                               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-1">
-                                {dept.services.length} {t('servicesAvailable') || 'Services Available'}
+                                {t('servicesAvailable', { count: dept.services.length })}
                               </p>
                             </div>
                           </div>
@@ -541,7 +542,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <div className="flex items-center justify-center gap-3 text-blue-900">
                     <Info size={24} className="text-blue-600" />
                     <p className="text-lg font-bold">
-                      Need help? Our staff is available at the counter for assistance.
+                      {t('needHelp')}
                     </p>
                   </div>
                 </div>
@@ -692,7 +693,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t('consumerNameLabel') || "Consumer Name"}</p>
-                      <p className={`font-black text-xl text-slate-900 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>Arun Kumar</p>
+                      <p className={`font-black text-xl text-slate-900 ${isPrivacyShield ? 'privacy-sensitive' : ''}`}>{MOCK_USER_PROFILE.name}</p>
                       <p className="text-xs text-slate-500 font-bold mt-1">{t('idLabel') || "ID:"} {consumerNumber}</p>
                     </div>
                     <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
@@ -891,27 +892,38 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
           <ApplicationTracker />
         )}
 
-        {/* VIEW 5: STATUS/HISTORY (Unchanged) */}
+        {/* VIEW 5: STATUS/HISTORY */}
         {activeTab === 'status' && (
           <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
             <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> {t('history') || 'History'}</h2>
             <div className="grid gap-4">
-              {userRequests.map((req) => (
-                <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
-                  <div className="flex gap-6 items-start">
-                    <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
-                    <div>
-                      <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
-                      <h4 className="font-black text-slate-900 text-xl">{req.type}</h4>
-                      <p className="text-sm text-slate-500 font-medium">{req.department} • {req.timestamp}</p>
+              {userRequests.map((req) => {
+                const serviceLabel = t(req.type) || req.type;
+                const deptLabel = t(req.department) || req.department;
+                const statusKey = req.status === 'Completed' ? 'completed'
+                  : req.status === 'Resolved' ? 'resolved'
+                  : req.status === 'Pending' ? 'pending'
+                  : req.status === 'In Progress' ? 'inProgress'
+                  : req.status; // fallback: key is already lowercase camelCase
+                const statusLabel = t(statusKey) || req.status;
+                const isResolved = req.status === 'resolved' || req.status === 'Resolved' || req.status === 'Completed' || req.status === 'completed';
+                return (
+                  <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
+                    <div className="flex gap-6 items-start">
+                      <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
+                      <div>
+                        <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
+                        <h4 className="font-black text-slate-900 text-xl">{serviceLabel}</h4>
+                        <p className="text-sm text-slate-500 font-medium">{deptLabel} • {req.timestamp}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${isResolved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{statusLabel}</span>
+                      <button className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition"><Download size={20} /></button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${req.status === 'Completed' || (req.status as string) === 'Resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{req.status}</span>
-                    <button className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition"><Download size={20} /></button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

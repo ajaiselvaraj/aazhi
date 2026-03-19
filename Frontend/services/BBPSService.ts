@@ -13,6 +13,7 @@ export interface BBPSBillResponse {
         status: 'Unpaid' | 'Paid';
     };
     error?: string;
+    errorCode?: string;
 }
 
 export interface BBPSPaymentResponse {

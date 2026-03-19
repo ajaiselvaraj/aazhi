@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Filter, Eye, ArrowRight, CheckCircle, Search, Download, Paperclip, Mail, MessageSquare } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   requests: any[];
@@ -8,11 +8,37 @@ interface Props {
 }
 
 const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    const keyMap: Record<string, string> = {
+        'Pending': t('pending') || 'Pending',
+        'In Progress': t('inProgress') || 'In Progress',
+        'Resolved': t('resolved') || 'Resolved',
+        'Completed': t('completed') || 'Completed',
+        'Rejected': t('rejected') || 'Rejected',
+        'Closed': t('closed') || 'Closed',
+        'Submitted': t('submitted') || 'Submitted',
+        'Officer Assigned': t('officerAssigned') || 'Officer Assigned',
+        'Manager Review': t('managerReview') || 'Manager Review',
+        'GM Approval': t('gmApproval') || 'GM Approval',
+        'Critical': t('severityCritical') || 'Critical',
+        'High': t('severityWarning') || 'High',
+        'Medium': t('severityInfo') || 'Medium',
+        'Low': t('severityLow') || 'Low',
+        'Electricity': t('power') || 'Electricity',
+        'Water': t('water') || 'Water',
+        'Gas': t('gas') || 'Gas',
+        'Municipal': t('municipalCorp') || 'Municipal',
+        'All': t('all') || 'All'
+    };
+    return keyMap[text] || text;
+  };
 
   const filteredRequests = requests.filter(req => {
     const matchesCategory = selectedCategory === 'All' || req.category.toLowerCase().includes(selectedCategory.toLowerCase());
@@ -76,10 +102,10 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
               onChange={(e) => setPriorityFilter(e.target.value)}
               className="border border-slate-200 bg-white px-3 py-2 rounded-xl text-sm font-bold outline-none"
             >
-              <option value="All">All Priorities</option>
-              <option value="Critical">Critical</option>
-              <option value="High">High</option>
-              <option value="Low">Low</option>
+              <option value="All">{t('all') || 'All Priorities'}</option>
+              <option value="Critical">{translateDynamic('Critical')}</option>
+              <option value="High">{translateDynamic('High')}</option>
+              <option value="Low">{translateDynamic('Low')}</option>
             </select>
 
             <button className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold transition">
@@ -105,7 +131,7 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
                   ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
                   : 'bg-white text-slate-500 hover:bg-slate-100 border border-slate-200'}`}
             >
-              {cat}
+              {translateDynamic(cat)}
             </button>
           ))}
         </div>
@@ -197,7 +223,7 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
                           req.priority === 'High' ? 'bg-orange-500 text-white' :
                             req.priority === 'Medium' ? 'bg-blue-500 text-white' :
                               'bg-slate-200 text-slate-500'}`}>
-                        {req.priority || 'Medium'} Prio
+                        {translateDynamic(req.priority || 'Medium')}
                       </span>
                       
                       {/* Interactive Stage Timeline */}
@@ -238,7 +264,7 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
                         }
                         return (
                           <div className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-500 flex items-center gap-1 border border-slate-200">
-                            <CheckCircle size={14} /> Completed
+                            <CheckCircle size={14} /> {translateDynamic('Completed')}
                           </div>
                         );
                       })()}

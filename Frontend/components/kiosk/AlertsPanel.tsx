@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle, Zap, Droplets, Info } from 'lucide-react';
 import { CityAlert, Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     alerts: CityAlert[];
@@ -9,21 +9,10 @@ interface Props {
 }
 
 const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const translateAlertMessage = (alert: CityAlert) => {
-        if (alert.message.includes("Planned maintenance in Ward")) {
-            return `${t('plannedMaintenance')} ${alert.ward} ${t('from', 'from')} 2PM - 5PM.`;
-        }
-        if (alert.message.includes("Low pressure expected in Central Zone")) {
-            return t('lowPressureAlert') + '.';
-        }
-        if (alert.message.includes("Mobile Health Camp today at Gandhi Park")) {
-            return `${t('mobileHealthCamp')} ${alert.ward}).`;
-        }
-        const alertKey = `alert_${alert.id}`;
-        const val = t(alertKey);
-        return val !== alertKey ? val : alert.message;
+        return t(alert.message) || alert.message;
     };
 
     return (
@@ -53,7 +42,7 @@ const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) =
                                     alert.severity === 'Warning' ? 'text-amber-400' : 'text-blue-200'
                                     }`}>
                                     {(() => {
-                                        const sevMap: Record<string, string> = { 'Critical': t('severityCritical'), 'Warning': t('severityWarning'), 'Info': t('severityInfo') };
+                                        const sevMap: Record<string, string> = { 'Critical': t('critical'), 'Warning': t('severityWarning'), 'Info': t('severityInfo') };
                                         return sevMap[alert.severity] || alert.severity;
                                     })()} • {alert.ward === 'Global' ? (t('cityWide') || 'City Wide') : `${t('ward') || 'Ward'} ${alert.ward}`}
                                 </span>

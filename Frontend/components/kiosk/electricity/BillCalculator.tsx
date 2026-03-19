@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calculator, Info, Zap, Factory, Home, Building2, Sprout, Landmark, GraduationCap, BatteryCharging, CheckCircle, AlertCircle } from 'lucide-react';
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onBack: () => void;
@@ -40,7 +40,7 @@ type Category = 'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL' | 'AGRICULTURE' | 'HUT'
 type Voltage = 'LT' | 'HT';
 
 const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     // State
     const [category, setCategory] = useState<Category>('DOMESTIC');

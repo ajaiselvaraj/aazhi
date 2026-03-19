@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircle } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     serviceName: string;
@@ -13,7 +13,7 @@ interface Props {
 }
 
 const ServiceSuccess: React.FC<Props> = ({ serviceName, token, mobile, onFinish, language = Language.ENGLISH }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     return (
         <div className="flex flex-col items-center justify-center py-10 animate-in bounce-in">
             <div className="bg-white p-12 rounded-[4rem] shadow-2xl border border-slate-100 max-w-lg w-full text-center relative overflow-hidden">

@@ -24,9 +24,9 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: 'waste',
-    name: 'dept_Municipal',
+    name: 'dept_municipal',
     icon: 'Trash2',
-    services: ['serv_GarbageCollectionPickupRequest', 'serv_ComplaintRegistration', 'serv_RecyclingInformation', 'serv_AddressChange']
+    services: ['serv_GarbageCollectionPickupRequest', 'serv_WasteManagement', 'serv_ComplaintRegistration', 'serv_RecyclingInformation', 'serv_AddressChange']
   },
   {
     id: 'municipal',
@@ -37,9 +37,9 @@ export const DEPARTMENTS: Department[] = [
 ];
 
 export const MOCK_ALERTS: CityAlert[] = [
-  { id: 'AL-01', type: 'Power', severity: 'Critical', ward: '12', message: 'Planned maintenance in Ward 12 from 2PM - 5PM.' },
-  { id: 'AL-02', type: 'Water', severity: 'Warning', ward: 'Global', message: 'Low pressure expected in Central Zone due to pipeline repair.' },
-  { id: 'AL-03', type: 'Civic', severity: 'Info', ward: '12', message: 'Mobile Health Camp today at Gandhi Park (Ward 12).' }
+  { id: 'AL-01', type: 'Power', severity: 'Critical', ward: '12', message: 'plannedMaintenance' },
+  { id: 'AL-02', type: 'Water', severity: 'Warning', ward: 'Global', message: 'lowPressureWarning' },
+  { id: 'AL-03', type: 'Civic', severity: 'Info', ward: '12', message: 'alert_AL-03' }
 ];
 
 export const APP_CONFIG = {
@@ -86,9 +86,9 @@ export const AREA_SUPPORT_CONTACTS: SupportContact[] = [
 ];
 
 export const MOCK_REQUESTS = [
-  { id: 'AZ-1001', type: 'New Connection', department: 'Electricity Board', citizenName: 'Arun Kumar', citizenId: 'CIT-9921', status: 'Pending', timestamp: '2024-05-15T10:30:00', details: 'Phase 3 connection for residential property.', issueCategory: 'BILLING_ERROR', ward: '12' },
-  { id: 'AZ-1002', type: 'Pipeline Leak', department: 'Water Supply', citizenName: 'Priya S', citizenId: 'CIT-8811', status: 'Resolved', timestamp: '2024-05-14T14:20:00', details: 'Leak reported near main road junction.', issueCategory: 'PIPE_LEAK', ward: '10' },
-  { id: 'AZ-1003', type: 'Waste Management', department: 'Municipal Corp', citizenName: 'John Doe', citizenId: 'CIT-7722', status: 'In Progress', timestamp: '2024-05-15T09:15:00', details: 'Regular garbage pickup missed for 3 days.', issueCategory: 'GARBAGE_COLLECTION', ward: '12' }
+  { id: 'AZ-1001', type: 'serv_NewConnection', department: 'dept_eb', citizenName: 'Arun Kumar', citizenId: 'CIT-9921', status: 'pending', timestamp: '2024-05-15T10:30:00', details: 'Phase 3 connection for residential property.', issueCategory: 'BILLING_ERROR', ward: '12' },
+  { id: 'AZ-1002', type: 'serv_PipelineLeak', department: 'dept_water', citizenName: 'Priya S', citizenId: 'CIT-8811', status: 'resolved', timestamp: '2024-05-14T14:20:00', details: 'Leak reported near main road junction.', issueCategory: 'PIPE_LEAK', ward: '10' },
+  { id: 'AZ-1003', type: 'serv_WasteManagement', department: 'dept_municipal', citizenName: 'John Doe', citizenId: 'CIT-7722', status: 'inProgress', timestamp: '2024-05-15T09:15:00', details: 'Regular garbage pickup missed for 3 days.', issueCategory: 'GARBAGE_COLLECTION', ward: '12' }
 ];
 
 

@@ -6,7 +6,7 @@ import DisruptionMap from './DisruptionMap';
 import { CityAlert, Language } from '../../types';
 import { LocalityService } from '../../services/civicService';
 import { MOCK_USER_PROFILE } from '../../constants';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     alerts: CityAlert[];
@@ -17,14 +17,14 @@ interface Props {
 
 const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citizen", language }) => {
     const wardContacts = LocalityService.getSupportContacts(MOCK_USER_PROFILE.ward);
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-10">
             {/* Greeting Section */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t('welcomeCitizen') || 'Welcome, Citizen'} <span className="privacy-sensitive">{userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}</span></h2>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t('welcomeCitizen')} <span className="privacy-sensitive">{userName === 'Citizen' ? '' : userName}</span></h2>
                     <div className="flex gap-2">
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
                             <Smartphone size={12} /> {t('eKycVerified')}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutGrid, Users } from 'lucide-react';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     serviceName: string;
@@ -11,7 +11,7 @@ interface Props {
 }
 
 const ServiceModeSelector: React.FC<Props> = ({ serviceName, onSelect, onBack, language = Language.ENGLISH }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     const svcKey = `serv_${serviceName.replace(/[\s\/]/g, '')}` as keyof typeof t;
     const translatedServiceName = t[svcKey] as string || serviceName;
     return (

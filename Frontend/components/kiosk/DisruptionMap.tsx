@@ -1,7 +1,7 @@
 import React from 'react';
 import { CloudRain, AlertTriangle, ZapOff, Hammer, CheckCircle2 } from 'lucide-react';
 import { CityAlert, Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     alerts: CityAlert[];
@@ -55,7 +55,7 @@ const CityMapSvg = ({ alerts }: { alerts: CityAlert[] }) => {
 };
 
 const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     return (
         <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-slate-100 h-full relative overflow-hidden">
             <div className="flex justify-between items-start mb-4 relative z-10">

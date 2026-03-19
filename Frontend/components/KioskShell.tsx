@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, WifiOff, Battery, BatteryCharging, Clock, Shield, EyeOff, Search } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
 import { Language } from '../types';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import VoiceNavigation from './VoiceNavigation';
 import KioskErrorBoundary from './KioskErrorBoundary';
 
@@ -86,22 +86,11 @@ const KioskShell: React.FC<KioskShellProps> = ({
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
     const [isCharging, setIsCharging] = useState(false);
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const translateAlertMessage = (alert: any) => {
         if (!alert || !alert.message) return '';
-        if (alert.message.includes("Planned maintenance in Ward")) {
-            return `${t('plannedMaintenance')} ${alert.ward} ${t('from', 'from')} 2PM - 5PM.`;
-        }
-        if (alert.message.includes("Low pressure expected in Central Zone")) {
-            return t('lowPressureAlert') + '.';
-        }
-        if (alert.message.includes("Mobile Health Camp today at Gandhi Park")) {
-            return `${t('mobileHealthCamp')} ${alert.ward}).`;
-        }
-        const alertKey = `alert_${alert.id}`;
-        const val = t(alertKey);
-        return val !== alertKey ? val : alert.message;
+        return t(alert.message) || alert.message;
     };
 
     useEffect(() => {
@@ -223,11 +212,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
-<<<<<<< Updated upstream:Frontend/components/KioskShell.tsx
-        { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
-=======
-        { id: 'tracker', label: t('navTracker') || 'Track App', icon: Search },
->>>>>>> Stashed changes:components/KioskShell.tsx
+        { id: 'tracker', label: t('trackApp'), icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];

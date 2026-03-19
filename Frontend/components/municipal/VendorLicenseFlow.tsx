@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Building2, UserCircle, Briefcase, MapPin, Search } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Application } from '../../types/municipal';
 
@@ -15,7 +15,8 @@ const BUSINESS_CATEGORIES_KEYS = [
 ];
 
 export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [applicantName, setApplicantName] = useState('');

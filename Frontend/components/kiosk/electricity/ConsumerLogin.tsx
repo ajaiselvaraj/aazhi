@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, Lock, ArrowRight, Eye, EyeOff, ShieldCheck, History, Download, FileText, AlertCircle, LogOut } from 'lucide-react';
 import { MOCK_USER_PROFILE } from '../../../constants';
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onBack: () => void;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const ConsumerLogin: React.FC<Props> = ({ onBack, language }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     const [view, setView] = useState<'LOGIN' | 'DASHBOARD'>('LOGIN');
     const [username, setUsername] = useState('04-100-2458');
     const [password, setPassword] = useState('');
