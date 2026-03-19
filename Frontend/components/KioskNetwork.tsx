@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Wifi, WifiOff, Battery, Activity, Plus, Power, Terminal, X, 
+import {
+  Wifi, WifiOff, Battery, Activity, Plus, Power, Terminal, X,
   LayoutGrid, Cpu, HardDrive, Upload, Search, Filter, Wrench, Clock,
   Map as MapIcon, Download, Printer, Users, AlertTriangle, CheckCircle,
   Settings, PenTool, FileText, MapPin, MapPinned
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -112,6 +113,7 @@ const createCustomIcon = (status: string) => {
 };
 
 const KioskNetwork: React.FC = () => {
+  const { t } = useTranslation();
   const [kiosks, setKiosks] = useState<ExtendedKiosk[]>(initialMockKiosks);
   
   // UI State
@@ -343,15 +345,15 @@ const KioskNetwork: React.FC = () => {
               <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                  <div className="bg-blue-50/50 rounded-xl p-2 border border-blue-100">
                     <span className="block font-black text-lg text-blue-700">{kiosk.stats.services}</span>
-                    <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider">Services</span>
+                    <span className="text-[9px] font-bold text-blue-500 uppercase tracking-wider">{t('navServices') || 'Services'}</span>
                  </div>
                  <div className="bg-indigo-50/50 rounded-xl p-2 border border-indigo-100">
                     <span className="block font-black text-lg text-indigo-700">{kiosk.stats.requests}</span>
-                    <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">Requests</span>
+                    <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider">{t('request') || 'Requests'}</span>
                  </div>
                  <div className="bg-rose-50/50 rounded-xl p-2 border border-rose-100">
                     <span className="block font-black text-lg text-rose-700">{kiosk.stats.complaints}</span>
-                    <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wider">Complaints</span>
+                    <span className="text-[9px] font-bold text-rose-500 uppercase tracking-wider">{t('complaints') || 'Complaints'}</span>
                  </div>
               </div>
 
@@ -416,7 +418,7 @@ const KioskNetwork: React.FC = () => {
                       <div className="grid grid-cols-2 gap-2 mt-3 mb-2">
                         <div className="bg-slate-800 rounded p-2 text-center border border-slate-700/50">
                            <span className="block text-emerald-400 font-black text-sm">{kiosk.stats.services}</span>
-                           <span className="text-[9px] uppercase font-bold text-slate-400">Services</span>
+                           <span className="text-[9px] uppercase font-bold text-slate-400">{t('navServices') || 'Services'}</span>
                         </div>
                         <div className="bg-slate-800 rounded p-2 text-center border border-slate-700/50">
                            <span className="block text-slate-300 font-black text-sm">{Math.floor(kiosk.uptimeHours)}h</span>

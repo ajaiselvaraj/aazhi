@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, Loader2, Volume2, Sparkles } from 'lucide-react';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { Language } from '../types';
 
 interface VoiceNavigationProps {
@@ -12,7 +12,10 @@ const VoiceNavigation: React.FC<VoiceNavigationProps> = ({ onCommand }) => {
     const [isThinking, setIsThinking] = useState(false);
     const [feedback, setFeedback] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const { language, setLanguage, tForLang } = useLanguage();
+    const { i18n } = useTranslation();
+    const language = i18n.language;
+    const setLanguage = (lang: string) => i18n.changeLanguage(lang);
+    const tForLang = (key: string, lang: string) => { const r = i18n.getResourceBundle(lang, 'translation'); return r && r[key] ? r[key] : key; };
 
     const recognitionRef = useRef<any>(null);
     const isManuallyStopped = useRef(false);
@@ -85,7 +88,7 @@ const VoiceNavigation: React.FC<VoiceNavigationProps> = ({ onCommand }) => {
             action = "LOGIN";
             feedbackKey = "feedback_navigating_login";
             // Check current language for feedback
-            targetLang = language;
+            targetLang = language as Language;
             match = true;
         }
 

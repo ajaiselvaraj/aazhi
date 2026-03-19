@@ -7,7 +7,8 @@ import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
-import { useLanguage } from './contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import './i18n';
 import VoiceNavigation from './components/VoiceNavigation';
 import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
@@ -54,13 +55,21 @@ const STATES = Object.keys(LOCATION_TO_LANGUAGE);
 // Scrolling Alert Banner Component
 // ─────────────────────────────────────────────
 const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> = ({ language, location }) => {
-  const { tForLang } = useLanguage();
+  const { i18n } = useTranslation();
+
+  const getLiteral = (key: string, lang: string) => {
+    const resource = i18n.getResourceBundle(lang, 'translation');
+    if (resource && resource[key]) return resource[key];
+    const enResource = i18n.getResourceBundle(Language.ENGLISH, 'translation');
+    if (enResource && enResource[key]) return enResource[key];
+    return key;
+  };
 
   const primaryAlert = MOCK_ALERTS[0];
-  const translatedMessage = tForLang(`alert_${primaryAlert.id}`, language) || primaryAlert.message;
+  const translatedMessage = getLiteral(`alert_${primaryAlert.id}`, language) || primaryAlert.message;
 
   // Use a localized prefix based on the alert language
-  const prefix = tForLang('alertUpdateFor', language) || "Important update for";
+  const prefix = getLiteral('alertUpdateFor', language) || "Important update for";
   const isRtl = language === Language.URDU;
 
   // Personalized message including location
@@ -171,7 +180,7 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
 // Admin Popup Notification Component
 // ─────────────────────────────────────────────
 const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { t } = useLanguage();
+  const { t } = useTranslation();
   return (
     <div
       className="pointer-events-auto absolute lg:left-[calc(100%+24px)] lg:top-8 top-full left-1/2 -translate-x-1/2 lg:translate-x-0 z-[100] w-[290px] lg:w-[340px] bg-slate-50/98 backdrop-blur-md border border-slate-200 rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-top-4 lg:slide-in-from-left-10 duration-700"
@@ -204,7 +213,8 @@ const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) 
 // ─────────────────────────────────────────────
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
-  const { language, setLanguage, t } = useLanguage();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing'>('home');
@@ -312,7 +322,7 @@ const App: React.FC = () => {
 
   // Logic for Login Navigation
   const handleLanguageSelect = (lang: Language) => {
-    setLanguage(lang);
+    i18n.changeLanguage(lang);
 
     // Find the language info to speak out loud
     const selectedLangConfig = LANGUAGES_CONFIG.find(l => l.code === lang);
@@ -440,27 +450,27 @@ const App: React.FC = () => {
         setView(ViewState.LOGIN);
         break;
       case 'SELECT_EN':
-        setLanguage(Language.ENGLISH);
+        i18n.changeLanguage(Language.ENGLISH);
         break;
       case 'SELECT_HI':
-        setLanguage(Language.HINDI);
+        i18n.changeLanguage(Language.HINDI);
         break;
       case 'SELECT_TA':
-        setLanguage(Language.TAMIL);
+        i18n.changeLanguage(Language.TAMIL);
         break;
       case 'SELECT_TE':
-        setLanguage(Language.TELUGU);
+        i18n.changeLanguage(Language.TELUGU);
         break;
       case 'SELECT_KN':
-        setLanguage(Language.KANNADA);
+        i18n.changeLanguage(Language.KANNADA);
         break;
       case 'SELECT_ML':
-        setLanguage(Language.MALAYALAM);
+        i18n.changeLanguage(Language.MALAYALAM);
         break;
       default:
         console.warn('Voice command ignored:', command);
     }
-  }, [setView, setLanguage]);
+  }, [setView, i18n]);
 
   // ─────────────────────────────────────────────
   // Render: LANDING (Language Selection)
@@ -910,7 +920,7 @@ const App: React.FC = () => {
             <Admin
               onBack={handleBackToLanding}
               language={language}
-              onLanguageChange={setLanguage}
+              onLanguageChange={(lang) => i18n.changeLanguage(lang)}
             />
           )}
 

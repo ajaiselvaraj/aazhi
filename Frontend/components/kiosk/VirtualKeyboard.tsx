@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Delete, Check, X, ChevronDown, Space, GripHorizontal } from 'lucide-react';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 export type KeyboardType = 'NUMERIC' | 'TEXT' | 'ALPHANUMERIC';
 
@@ -54,7 +54,7 @@ LAYOUTS[Language.TELUGU] = LAYOUTS[Language.ENGLISH];
 LAYOUTS[Language.KANNADA] = LAYOUTS[Language.ENGLISH];
 
 const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, language, onKeyPress, onDelete, onClear, onClose, onEnter }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     if (!isOpen) return null;
 

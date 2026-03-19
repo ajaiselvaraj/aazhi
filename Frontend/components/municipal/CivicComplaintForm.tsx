@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Camera, MapPin, AlertCircle, CheckCircle, Mic, Plus } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG, MOCK_USER_PROFILE } from '../../constants';
 import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
@@ -34,7 +34,8 @@ const PRIORITY_KEYS: { key: string; value: Priority }[] = [
 ];
 
 export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean; language?: any; departmentId?: string }> = ({ onBack, isPrivacyOn, departmentId }) => {
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
     const { addComplaint } = useServiceComplaint();
     const [step, setStep] = useState(1);
     const [category, setCategory] = useState('');

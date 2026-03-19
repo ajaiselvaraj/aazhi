@@ -2,7 +2,7 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Zap, Droplets, Lightbulb } from 'lucide-react';
 import { Language } from '../../types';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 const DATA = [
     { month: 'Jan', power: 240, water: 150 },
@@ -27,7 +27,7 @@ interface Props {
 }
 
 const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
     return (
         <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 h-full">
             <div className="flex items-center justify-between mb-6">

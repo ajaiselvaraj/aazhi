@@ -1,0 +1,6 @@
+[bing] [ks] => استقبال، شہری،
+[bing] [kok] Error: The language 'kok' is not supported!
+[bing] [mai] => स्वागत अछि नागरिक
+[bing] [sa] => स्वागतम् नागरिक
+[bing] [sat] Error: The language 'sat' is not supported!
+[bing] [sd] => خوش آمديد شهري

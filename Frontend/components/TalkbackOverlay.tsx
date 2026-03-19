@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { speakText } from '../utils/speak';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../constants';
 
 export const TalkbackOverlay: React.FC = () => {
     const [enabled, setEnabled] = useState(false);
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);

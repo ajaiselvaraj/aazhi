@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, QrCode, Search, ShieldCheck, CheckCircle, FileText, Smartphone } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Certificate } from '../../types/municipal';
 
@@ -16,7 +16,8 @@ const CERT_TYPES_KEYS = [
 ];
 
 export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [certData, setCertData] = useState<Certificate | null>(null);

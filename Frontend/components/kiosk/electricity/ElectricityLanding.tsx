@@ -1,7 +1,7 @@
 import React from 'react';
 import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, AlertTriangle, ArrowRight, Lock, ArrowLeft } from 'lucide-react';
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">

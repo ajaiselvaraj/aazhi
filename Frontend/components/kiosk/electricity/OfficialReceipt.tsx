@@ -1,6 +1,6 @@
 import React from 'react';
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     data: {
@@ -20,7 +20,7 @@ interface Props {
 
 const OfficialReceipt: React.FC<Props> = ({ data, language = Language.ENGLISH }) => {
     if (!data) return null;
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     return (
         <div className="hidden print:block w-[100%] max-w-[210mm] mx-auto bg-white text-black p-8 font-mono text-sm leading-relaxed">

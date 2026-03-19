@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, FileSignature, CheckSquare, Search, Play, Vote, MessageSquare, Activity, AlertCircle } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
-import { useLanguage } from '../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 
 const CIVIC_ACTIONS_KEYS = [
@@ -15,7 +15,8 @@ const CIVIC_ACTIONS_KEYS = [
 ];
 
 export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
-    const { language, t } = useLanguage();
+    const { t, i18n } = useTranslation();
+    const language = i18n.language as any;
     const [step, setStep] = useState(1);
     const [view, setView] = useState('');
 

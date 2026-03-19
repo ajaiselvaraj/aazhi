@@ -9,7 +9,7 @@ interface State {
     hasError: boolean;
 }
 
-class KioskErrorBoundary extends Component<Props, State> {
+class KioskErrorBoundary extends React.Component<Props, State> {
     public state: State = {
         hasError: false
     };
@@ -58,7 +58,7 @@ class KioskErrorBoundary extends Component<Props, State> {
             );
         }
 
-        return this.props.children;
+        return this.props.children as ReactNode;
     }
 }
 

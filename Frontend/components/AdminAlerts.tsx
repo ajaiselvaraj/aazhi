@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, ArrowLeft, Send, MapPin, History, Map, Clock, UserCheck, Settings } from 'lucide-react';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   alerts: any[];
@@ -8,6 +9,7 @@ interface Props {
 }
 
 const AdminAlerts: React.FC<Props> = ({ alerts, onViewComplaints }) => {
+  const { t } = useTranslation();
   const { acknowledgeAlert } = useServiceComplaint();
   const [viewMode, setViewMode] = useState<'Active' | 'History'>('Active');
   
@@ -63,13 +65,13 @@ const AdminAlerts: React.FC<Props> = ({ alerts, onViewComplaints }) => {
             onClick={() => setViewMode('Active')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'Active' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            Active ({alerts.length})
+            {t('activeCases') || 'Active'} ({alerts.length})
           </button>
           <button 
             onClick={() => setViewMode('History')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${viewMode === 'History' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <History size={14} /> History (4)
+            <History size={14} /> {t('archive') || 'History'} (4)
           </button>
         </div>
       </div>
@@ -122,10 +124,10 @@ const AdminAlerts: React.FC<Props> = ({ alerts, onViewComplaints }) => {
                        className="bg-transparent text-white border-none outline-none font-black uppercase px-4 py-1.5 cursor-pointer appearance-none text-center"
                        style={{ textAlignLast: 'center' }}
                     >
-                       <option value="Critical" className="bg-white text-slate-800">CRITICAL PRIO</option>
-                       <option value="High" className="bg-white text-slate-800">HIGH PRIO</option>
-                       <option value="Medium" className="bg-white text-slate-800">MEDIUM PRIO</option>
-                       <option value="Low" className="bg-white text-slate-800">LOW PRIO</option>
+                       <option value="Critical" className="bg-white text-slate-800">{t('severityCritical') || 'Critical'}</option>
+                       <option value="High" className="bg-white text-slate-800">{t('severityWarning') || 'High'}</option>
+                       <option value="Medium" className="bg-white text-slate-800">{t('severityInfo') || 'Medium'}</option>
+                       <option value="Low" className="bg-white text-slate-800">{t('severityLow') || 'Low'}</option>
                     </select>
                   </div>
 

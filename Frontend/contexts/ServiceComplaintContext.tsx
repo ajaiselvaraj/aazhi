@@ -120,8 +120,11 @@ const getPriority = (category: string, complaintType: string): "Critical" | "Hig
 
 // --- Seed Requests ---
 const SEED_REQUESTS: ServiceRequest[] = MOCK_REQUESTS.map(req => {
-    const status = req.status === 'Resolved' ? 'Completed' : req.status === 'In Progress' ? 'Under Review' : 'Submitted';
-    const currentStage = status === 'Completed' ? 'Completed' : req.status === 'In Progress' ? 'Under Review' : 'Submitted';
+    // Support both old English values and new i18n keys
+    const isResolved = req.status === 'Resolved' || req.status === 'resolved' || req.status === 'Completed' || req.status === 'completed';
+    const isInProgress = req.status === 'In Progress' || req.status === 'inProgress' || req.status === 'Under Review';
+    const status: ServiceRequest['status'] = isResolved ? 'Completed' : isInProgress ? 'Under Review' : 'Submitted';
+    const currentStage = isResolved ? 'Completed' : isInProgress ? 'Under Review' : 'Submitted';
 
     return {
         id: req.id,

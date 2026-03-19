@@ -6,7 +6,7 @@ import ConsumerLogin from './ConsumerLogin';
 import MyTransactions from './MyTransactions';
 
 import { Language } from '../../../types';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onBack: () => void;
@@ -16,7 +16,7 @@ interface Props {
 // Wrapper component to manage state between sub-modules
 const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
     const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => {
         setView(target);

@@ -8,7 +8,7 @@ import KioskNetwork from './KioskNetwork';
 import AdminRequests from './AdminRequests';
 import AdminAlerts from './AdminAlerts';
 import AdminComplaints from './AdminComplaints';
-import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onBack: () => void;
@@ -75,7 +75,33 @@ const mockDateDataGenerator = (range: string) => {
 
 const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'requests' | 'complaints' | 'alerts' | 'kiosks'>('overview');
-  const { t } = useLanguage();
+  const { t } = useTranslation();
+
+  const translateDynamic = (text: string) => {
+    if (!text) return text;
+    const keyMap: Record<string, string> = {
+        'Pending': t('pending') || 'Pending',
+        'In Progress': t('inProgress') || 'In Progress',
+        'Resolved': t('resolved') || 'Resolved',
+        'Completed': t('completed') || 'Completed',
+        'Rejected': t('rejected') || 'Rejected',
+        'Closed': t('closed') || 'Closed',
+        'Submitted': t('submitted') || 'Submitted',
+        'Officer Assigned': t('officerAssigned') || 'Officer Assigned',
+        'Manager Review': t('managerReview') || 'Manager Review',
+        'GM Approval': t('gmApproval') || 'GM Approval',
+        'Critical': t('severityCritical') || 'Critical',
+        'High': t('severityWarning') || 'High',
+        'Medium': t('severityInfo') || 'Medium',
+        'Low': t('severityLow') || 'Low',
+        'Electricity': t('power') || 'Electricity',
+        'Water': t('water') || 'Water',
+        'Gas': t('gas') || 'Gas',
+        'Municipal': t('municipalCorp') || 'Municipal',
+        'All': t('all') || 'All'
+    };
+    return keyMap[text] || text;
+  };
   const {
     serviceRequests,
     complaints,
@@ -247,8 +273,8 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               <h2 className="text-2xl font-bold text-gray-900 capitalize">
                 {activeSubTab === 'overview' ? t('adminDashboard') :
                   activeSubTab === 'requests' ? t('adminRequests') :
-                    activeSubTab === 'alerts' ? "Area Impact Alerts" :
-                      activeSubTab === 'kiosks' ? "Kiosk Network Management" : t('adminComplaints')}
+                    activeSubTab === 'alerts' ? t('adminAlerts') || "Area Impact Alerts" :
+                      activeSubTab === 'kiosks' ? t('adminKiosks') || "Kiosk Network Management" : t('adminComplaints')}
               </h2>
               <p className="text-sm text-gray-500">{t('welcomeBack')}, Admin ID: 963852</p>
             </div>
@@ -370,7 +396,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                       <div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><FileText size={24}/></div>
                    </div>
                    <h3 className="text-3xl font-black text-slate-800 relative z-10">{serviceRequests.filter(r => r.status === 'Submitted' || r.status === 'Under Review').length}</h3>
-                   <p className="font-bold text-slate-500 mt-1 relative z-10">Active Requests</p>
+                   <p className="font-bold text-slate-500 mt-1 relative z-10">{t('activeRequests') || 'Active Requests'}</p>
                    <div className="mt-4 flex items-center text-xs font-bold text-blue-500 group-hover:gap-2 transition-all">Review Pipeline <ArrowRight size={14} className="ml-1"/></div>
                 </div>
                 
@@ -393,11 +419,11 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
-                  { label: "Total Complaints", val: complaints.length, icon: AlertCircle, color: 'red' },
-                  { label: "Resolved", val: complaints.filter(c => c.status === 'Resolved').length, icon: CheckCircle, color: 'green' },
-                  { label: "Pending Requests", val: pendingRequests, icon: Clock, color: pendingColor },
-                  { label: "Today's Requests", val: todaysRequests, icon: Calendar, color: 'blue' },
-                  { label: "Average Resolution Time", val: avgResText, icon: Clock, color: 'purple' },
+                  { label: translateDynamic("Total Complaints") || "Total Complaints", val: complaints.length, icon: AlertCircle, color: 'red' },
+                  { label: translateDynamic("Resolved") || "Resolved", val: complaints.filter(c => c.status === 'Resolved').length, icon: CheckCircle, color: 'green' },
+                  { label: translateDynamic("Pending Requests") || "Pending Requests", val: pendingRequests, icon: Clock, color: pendingColor },
+                  { label: translateDynamic("Today's Requests") || "Today's Requests", val: todaysRequests, icon: Calendar, color: 'blue' },
+                  { label: translateDynamic("Average Resolution Time") || "Average Resolution Time", val: avgResText, icon: Clock, color: 'purple' },
                   { label: t('slaMet'), val: '96.4%', icon: CheckCircle, color: 'blue' },
                   { label: t('avgFeedback'), val: '4.8/5', icon: MessageSquare, color: 'purple' }
                 ].map((stat) => (

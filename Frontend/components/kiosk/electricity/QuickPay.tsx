@@ -4,7 +4,7 @@ import { MOCK_USER_PROFILE } from '../../../constants';
 import OfficialReceipt from './OfficialReceipt';
 import { Language } from '../../../types';
 import { BBPSService, BBPSBillResponse } from '../../../services/BBPSService';
-import { useLanguage } from '../../../contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     onBack: () => void;
@@ -12,7 +12,7 @@ interface Props {
 }
 
 const QuickPay: React.FC<Props> = ({ onBack, language }) => {
-    const { t } = useLanguage();
+    const { t } = useTranslation();
 
     const [step, setStep] = useState<'INPUT' | 'DETAILS' | 'PAYMENT' | 'SUCCESS'>('INPUT');
     const [consumerNo, setConsumerNo] = useState('');
