@@ -212,7 +212,12 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
+<<<<<<< HEAD
         { id: 'tracker', label: t('trackApp'), icon: Search },
+=======
+        { id: 'tracker', label: t('navTrackApp') || 'Track App', icon: Search },
+
+>>>>>>> df0b69ef8e91de0ab52568a08b13df9b52b4ea4f
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
     ];
