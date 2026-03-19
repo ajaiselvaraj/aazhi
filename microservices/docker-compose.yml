@@ -1,0 +1,90 @@
+services:
+  # 🌐 API Gateway (Entry Point)
+  gateway:
+    build: ./gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - AUTH_SERVICE_URL=http://auth-service:5001
+      - GAS_SERVICE_URL=http://gas-service:5002
+      - ELEC_SERVICE_URL=http://electricity-service:5003
+      - MUNI_SERVICE_URL=http://municipal-service:5004
+    depends_on:
+      - auth-service
+    networks:
+      - suvidha-net
+
+  # 🔑 Auth & User Service
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "5001:5001"
+    env_file: .env.auth
+    depends_on:
+      - db
+    networks:
+      - suvidha-net
+
+  # 🔥 Gas Service
+  gas-service:
+    build: ./gas-service
+    ports:
+      - "5002:5002"
+    env_file: .env.gas
+    depends_on:
+      - db
+    networks:
+      - suvidha-net
+
+  # ⚡ Electricity Service
+  electricity-service:
+    build: ./electricity-service
+    ports:
+      - "5003:5003"
+    env_file: .env.elec
+    depends_on:
+      - db
+    networks:
+      - suvidha-net
+
+  # 🏛️ Municipal Service
+  municipal-service:
+    build: ./municipal-service
+    ports:
+      - "5004:5004"
+    env_file: .env.muni
+    depends_on:
+      - db
+    networks:
+      - suvidha-net
+
+  # 💨 Centralized Memory Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - suvidha-net
+
+  # 🐘 Shared Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-suvidha_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../backend/models/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - suvidha-net
+
+networks:
+  suvidha-net:
+    driver: bridge
+
+volumes:
+  postgres_data:

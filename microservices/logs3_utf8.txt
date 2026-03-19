@@ -1,0 +1,31 @@
+﻿gas-service-1   | ≡ƒöÑ Gas Microservice running on port 5002
+db-1            | 
+db-1            | PostgreSQL Database directory appears to contain a database; Skipping initialization
+db-1            | 
+db-1            | 2026-03-18 16:13:07.599 UTC [1] LOG:  starting PostgreSQL 15.17 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+db-1            | 2026-03-18 16:13:07.600 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+db-1            | 2026-03-18 16:13:07.601 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+db-1            | 2026-03-18 16:13:07.613 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+db-1            | 2026-03-18 16:13:07.635 UTC [29] LOG:  database system was shut down at 2026-03-18 16:12:33 UTC
+db-1            | 2026-03-18 16:13:07.664 UTC [1] LOG:  database system is ready to accept connections
+auth-service-1  | node:internal/modules/esm/resolve:283
+auth-service-1  |     throw new ERR_MODULE_NOT_FOUND(
+auth-service-1  |           ^
+auth-service-1  | 
+auth-service-1  | Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/usr/src/app/services/jwt.service.js' imported from /usr/src/app/controllers/auth.controller.js
+auth-service-1  |     at finalizeResolution (node:internal/modules/esm/resolve:283:11)
+auth-service-1  |     at moduleResolve (node:internal/modules/esm/resolve:952:10)
+auth-service-1  |     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+auth-service-1  |     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+auth-service-1  |     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+auth-service-1  |     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+auth-service-1  |     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+auth-service-1  |     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+auth-service-1  |   code: 'ERR_MODULE_NOT_FOUND',
+auth-service-1  |   url: 'file:///usr/src/app/services/jwt.service.js'
+auth-service-1  | }
+auth-service-1  | 
+auth-service-1  | Node.js v20.20.1
+municipal-service-1  | ≡ƒÅ¢∩╕Å Municipal Microservice running on port 5004
+electricity-service-1  | ΓÜí Electricity Microservice running on port 5003
+gateway-1              | ≡ƒîÉ API Gateway running on port 5000

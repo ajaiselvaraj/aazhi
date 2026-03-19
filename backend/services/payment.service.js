@@ -27,10 +27,10 @@ export const verifyRazorpaySignature = (orderId, paymentId, signature) => {
     return expectedSignature === signature;
 };
 
-export const verifyWebhookSignature = (body, signature) => {
+export const verifyWebhookSignature = (rawBodyBuffer, signature) => {
     const expectedSignature = crypto
         .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
-        .update(JSON.stringify(body))
+        .update(rawBodyBuffer)
         .digest("hex");
 
     return expectedSignature === signature;

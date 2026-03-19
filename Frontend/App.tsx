@@ -347,42 +347,54 @@ const App: React.FC = () => {
   };
 
   // Logic for Sending OTP or Triggering Admin Password
-  const handleSendOtp = () => {
+  const handleSendOtp = async () => {
     setError('');
+    
+    // Hidden Admin Logic: Check for special number
+    if (loginMethod === 'MOBILE' && identifier === '963852') {
+      setIsProcessing(true);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setLoginMethod('PASSWORD');
+        setAuthStage('PASSWORD');
+        setIdentifier('');
+        setPassword('');
+      }, 500);
+      return;
+    }
+
     if (loginMethod === 'AADHAAR') {
       if (identifier.replace(/\s/g, '').length !== 12) {
         setError(t('err_aadhaar'));
         return;
       }
+      // Note: In a real app, Aadhaar OTP would come from UIDAI. 
+      // For this demo, we simulate it or use the same mobile logic.
       setIsProcessing(true);
       setTimeout(() => {
         setIsProcessing(false);
         setAuthStage('OTP');
       }, 1000);
-
-    } else if (loginMethod === 'MOBILE') {
-      // Hidden Admin Logic: Check for special number
-      if (identifier === '963852') {
-        setIsProcessing(true);
-        setTimeout(() => {
-          setIsProcessing(false);
-          setLoginMethod('PASSWORD');
-          setAuthStage('PASSWORD');
-          setIdentifier('');
-          setPassword('');
-        }, 500);
-        return;
-      }
-
+      return;
+    } 
+    
+    if (loginMethod === 'MOBILE') {
       if (identifier.length !== 10) {
         setError(t('err_mobile'));
         return;
       }
+
       setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
+      try {
+        await authService.sendOtp(identifier);
         setAuthStage('OTP');
-      }, 1000);
+        speakText({ text: t('otpSent') || "OTP sent to your mobile", language: "English" });
+      } catch (e: any) {
+        console.error("Auth Error", e);
+        setError(e.message || "Failed to send OTP. Please try again.");
+      } finally {
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -393,8 +405,9 @@ const App: React.FC = () => {
 
     try {
       if (authStage === 'PASSWORD') {
-        if (password === '789456') {
-          setView(ViewState.ADMIN);
+        if (password === '789456' && identifier === '') {
+           // Super Admin bypass
+           setView(ViewState.ADMIN);
         } else {
           // Attempt real login with mobile + password for admin/staff
           try {
@@ -408,16 +421,23 @@ const App: React.FC = () => {
              setError(e.message || t('err_adminPass'));
           }
         }
+      } else if (loginMethod === 'MOBILE') {
+        // Authenticate with backend
+        await authService.verifyOtp(identifier, otp);
+        
+        setView(ViewState.SELECTION);
+        speakText({ text: "Authentication successful", language: "English" });
       } else {
+        // Fallback for Aadhaar simulation
         if (otp.length === 6) {
            setView(ViewState.SELECTION);
         } else {
           setError(t('err_otp'));
         }
       }
-    } catch (e) {
-      console.error("Login error", e);
-      setError("Authentication service unavailable.");
+    } catch (e: any) {
+      console.error("Login submission error", e);
+      setError(e.message || "Authentication failed. Invalid OTP.");
     } finally {
       setIsProcessing(false);
     }
