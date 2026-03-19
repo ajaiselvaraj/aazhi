@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { MOCK_REQUESTS, MOCK_USER_PROFILE } from '../constants';
 import { TrackingStage, Kiosk } from '../types';
+import { GrievanceService } from '../services/civicService';
 
 // --- TYPE DEFINITIONS ---
 export interface ServiceRequest {
@@ -231,6 +232,45 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         loadDataFromStorage();
 
+        // Poll every 5 seconds: sync localStorage AND pull new records from the backend API
+        const pollInterval = setInterval(async () => {
+            loadDataFromStorage(); // Keep localStorage in sync (same-browser tab)
+
+            // Fetch backend records and merge any new ones into state (cross-device sync)
+            try {
+                const apiRequests = await GrievanceService.getAllRequestsAdmin();
+                if (Array.isArray(apiRequests) && apiRequests.length > 0) {
+                    setServiceRequests(prev => {
+                        const existingIds = new Set(prev.map(r => r.id));
+                        const newFromApi: ServiceRequest[] = apiRequests
+                            .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
+                            .map((r: any): ServiceRequest => ({
+                                id: r.ticket_number || r.id,
+                                token: r.ticket_number || r.id,
+                                name: r.citizen_name || r.name || 'Citizen',
+                                phone: r.phone || '',
+                                category: r.department || r.category || '',
+                                serviceType: r.request_type || r.serviceType || '',
+                                address: r.metadata?.address || r.address || '',
+                                description: r.description || '',
+                                status: 'Submitted',
+                                currentStage: r.current_stage || 'Submitted',
+                                stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                createdAt: r.created_at || new Date().toISOString(),
+                            }));
+
+                        if (newFromApi.length === 0) return prev; // No changes — avoid re-render
+
+                        const merged = [...newFromApi, ...prev];
+                        persistData(LOCAL_STORAGE_KEYS.SERVICES, merged);
+                        return merged;
+                    });
+                }
+            } catch {
+                // API unavailable — localStorage data is shown as fallback
+            }
+        }, 5000);
+
         const handleStorageChange = (e: StorageEvent) => {
             if (!e.key) return;
             const keys = Object.values(LOCAL_STORAGE_KEYS);
@@ -238,7 +278,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         };
 
         window.addEventListener('storage', handleStorageChange);
-        return () => window.removeEventListener('storage', handleStorageChange);
+        return () => {
+            clearInterval(pollInterval);
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, []);
 
     const persistData = (key: string, data: any) => {
@@ -253,6 +296,17 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         const newReq: ServiceRequest = { ...data, id: token, token, status: "Submitted", currentStage: "Submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setServiceRequests(prev => { const updated = [newReq, ...prev]; persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; });
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
+
+        // Mirror to backend for cross-device sync (fire-and-forget; localStorage is the primary store)
+        GrievanceService.createRequest({
+            request_type: data.serviceType,
+            department: data.category,
+            description: data.description || `Service request for ${data.serviceType}`,
+            ward: undefined,
+            phone: data.phone,
+            metadata: { token, name: data.name, address: data.address }
+        }).catch(() => { /* silently ignore — localStorage already saved it */ });
+
         return token;
     };
 
