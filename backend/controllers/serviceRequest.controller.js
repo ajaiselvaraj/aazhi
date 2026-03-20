@@ -4,13 +4,22 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { pool } from "../config/db.js";
+import { supabase } from "../config/supabaseClient.js";
 import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 
-// ─── Create Service Request ──────────────────────────────
+// ─── Create Service Request (Supabase Version) ───────────
 export const createServiceRequest = async (req, res, next) => {
     try {
+        console.log("📥 [DEBUG] Incoming Service Request Body:", req.body);
+        
+        // 1. Ensure env variables are defined (debug log)
+        if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error("❌ [ERROR] Supabase credentials (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY) are missing in .env");
+            return fail(res, "Server configuration error", 500);
+        }
+
         const citizenId = req.user.id;
         let { request_type, department, description, ward, phone, metadata } = req.body;
 
@@ -24,28 +33,80 @@ export const createServiceRequest = async (req, res, next) => {
 
         const ticketNumber = generateTicketNumber("SRQ");
 
-        const result = await pool.query(
-            `INSERT INTO service_requests 
-             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'submitted')
-             RETURNING *`,
-            [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
-        );
-
-        // Insert lifecycle stages
-        const stages = ["submitted", "under_review", "verification", "approval_pending", "completed"];
-        for (let i = 0; i < stages.length; i++) {
-            await pool.query(
-                `INSERT INTO service_request_stages (service_request_id, stage, status)
-                 VALUES ($1, $2, $3)`,
-                [result.rows[0].id, stages[i], i === 0 ? "current" : "pending"]
-            );
+        // 2. Fetch citizen name (replaces SQL subquery)
+        let citizenName = 'Unknown';
+        try {
+            const { data: citizenData, error: citizenError } = await supabase
+                .from('citizens')
+                .select('name')
+                .eq('id', citizenId)
+                .single();
+                
+            if (citizenError) {
+                console.error("⚠️ [WARN] Error fetching citizen by id:", citizenError.message);
+            } else if (citizenData) {
+                citizenName = citizenData.name;
+            }
+        } catch (e) {
+            console.error("⚠️ [WARN] Failed getting citizen name", e);
         }
 
-        logger.info("Service request created", { citizenId, ticketNumber, request_type, department });
+        // 3. Insert into Supabase
+        const insertPayload = {
+            ticket_number: ticketNumber,
+            citizen_id: citizenId,
+            citizen_name: citizenName,
+            request_type: request_type,
+            department: department,
+            description: description,
+            ward: ward || null,
+            phone: phone || null,
+            metadata: metadata || {},
+            status: 'submitted',
+            current_stage: 'submitted'
+        };
 
-        return success(res, "Service request submitted", result.rows[0], 201);
+        const { data: insertedData, error: insertError } = await supabase
+            .from("service_requests")
+            .insert([insertPayload])
+            .select();
+
+        // 4. Proper error handling
+        if (insertError) {
+            console.error("❌ [SUPABASE ERROR] Insert failed:", JSON.stringify(insertError, null, 2));
+            return fail(res, `Failed to submit service request: ${insertError.message}`, 500);
+        }
+
+        if (!insertedData || insertedData.length === 0) {
+            console.error("❌ [SUPABASE ERROR] Insert succeeded but no data returned.");
+            return fail(res, "Failed to submit service request", 500);
+        }
+
+        const requestRecord = insertedData[0];
+        console.log("✅ [DEBUG] Successfully inserted service request:", requestRecord.ticket_number);
+
+        // 5. Insert lifecycle stages using Supabase
+        const stages = ["submitted", "under_review", "verification", "approval_pending", "completed"];
+        const stagesToInsert = stages.map((stage, i) => ({
+            service_request_id: requestRecord.id,
+            stage: stage,
+            status: i === 0 ? "current" : "pending"
+        }));
+
+        const { error: stageError } = await supabase
+            .from("service_request_stages")
+            .insert(stagesToInsert);
+
+        if (stageError) {
+            console.error("❌ [SUPABASE ERROR] Insert stages failed:", JSON.stringify(stageError, null, 2));
+            // Non-fatal, but we should log it
+        }
+
+        logger.info("Service request created in Supabase", { citizenId, ticketNumber, request_type, department });
+
+        return success(res, "Service request submitted", requestRecord, 201);
     } catch (err) {
+        console.error("❌ [FATAL ERROR] Unexpected bug in createServiceRequest:", err);
         next(err);
     }
 };
