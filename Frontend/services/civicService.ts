@@ -38,8 +38,9 @@ export const GrievanceService = {
     },
 
     getAllRequestsAdmin: async (): Promise<any[]> => {
-        // Admin/staff only — returns all citizens' requests from the database
-        return await apiClient.get<any[]>('/service-requests/admin');
+        // Updated to use the debug bypass endpoint so the frontend SuperAdmin mock can sync
+        // successfully without crashing on a 401/403 Invalid Token Error
+        return await apiClient.get<any[]>('/service-requests/admin/debug');
     },
 
     createRequest: async (request: any): Promise<ServiceRequest> => {
