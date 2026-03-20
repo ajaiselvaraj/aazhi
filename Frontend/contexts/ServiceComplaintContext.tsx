@@ -57,7 +57,7 @@ interface ServiceComplaintContextType {
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
     addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stages'>) => string;
-    addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>) => string;
+    addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>) => Promise<string>;
     updateServiceStatus: (id: string, status: ServiceRequest['status']) => void;
     updateServiceStage: (id: string, stage: string) => void;
     updateComplaintStatus: (id: string, status: Complaint['status']) => void;
@@ -240,31 +240,65 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             try {
                 const apiRequests = await GrievanceService.getAllRequestsAdmin();
                 if (Array.isArray(apiRequests) && apiRequests.length > 0) {
-                    setServiceRequests(prev => {
-                        const existingIds = new Set(prev.map(r => r.id));
-                        const newFromApi: ServiceRequest[] = apiRequests
-                            .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
-                            .map((r: any): ServiceRequest => ({
-                                id: r.ticket_number || r.id,
-                                token: r.ticket_number || r.id,
-                                name: r.citizen_name || r.name || 'Citizen',
-                                phone: r.phone || '',
-                                category: r.department || r.category || '',
-                                serviceType: r.request_type || r.serviceType || '',
-                                address: r.metadata?.address || r.address || '',
-                                description: r.description || '',
-                                status: 'Submitted',
-                                currentStage: r.current_stage || 'Submitted',
-                                stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
-                                createdAt: r.created_at || new Date().toISOString(),
-                            }));
+                    
+                    // Segregate into Service Requests and Complaints
+                    const incomingServiceReqs = apiRequests.filter(r => r.metadata?.type !== 'complaint');
+                    const incomingComplaints = apiRequests.filter(r => r.metadata?.type === 'complaint');
 
-                        if (newFromApi.length === 0) return prev; // No changes — avoid re-render
+                    if (incomingServiceReqs.length > 0) {
+                        setServiceRequests(prev => {
+                            const existingIds = new Set(prev.map(r => r.id));
+                            const newFromApi: ServiceRequest[] = incomingServiceReqs
+                                .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
+                                .map((r: any): ServiceRequest => ({
+                                    id: r.ticket_number || r.id,
+                                    token: r.ticket_number || r.id,
+                                    name: r.citizen_name || r.name || 'Citizen',
+                                    phone: r.phone || '',
+                                    category: r.department || r.category || '',
+                                    serviceType: r.request_type || r.serviceType || '',
+                                    address: r.metadata?.address || r.address || '',
+                                    description: r.description || '',
+                                    status: 'Submitted',
+                                    currentStage: r.current_stage || 'Submitted',
+                                    stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                    createdAt: r.created_at || new Date().toISOString(),
+                                }));
 
-                        const merged = [...newFromApi, ...prev];
-                        persistData(LOCAL_STORAGE_KEYS.SERVICES, merged);
-                        return merged;
-                    });
+                            if (newFromApi.length === 0) return prev;
+                            const merged = [...newFromApi, ...prev];
+                            persistData(LOCAL_STORAGE_KEYS.SERVICES, merged);
+                            return merged;
+                        });
+                    }
+
+                    if (incomingComplaints.length > 0) {
+                        setComplaints(prev => {
+                            const existingIds = new Set(prev.map(c => c.id));
+                            const newFromApi: Complaint[] = incomingComplaints
+                                .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
+                                .map((r: any): Complaint => ({
+                                    id: r.ticket_number || r.id,
+                                    name: r.citizen_name || r.name || 'Citizen',
+                                    phone: r.phone || '',
+                                    category: r.department || r.category || '',
+                                    complaintType: r.request_type || r.complaintType || '',
+                                    location: r.metadata?.location || r.address || '',
+                                    area: r.ward || 'Unknown',
+                                    description: r.description || '',
+                                    priority: 'Medium',
+                                    status: 'Pending',
+                                    currentStage: r.current_stage || 'Submitted',
+                                    stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                    createdAt: r.created_at || new Date().toISOString(),
+                                }));
+
+                            if (newFromApi.length === 0) return prev;
+                            const merged = [...newFromApi, ...prev];
+                            persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, merged);
+                            return merged;
+                        });
+                    }
                 }
             } catch {
                 // API unavailable — localStorage data is shown as fallback
@@ -310,7 +344,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         return token;
     };
 
-    const addComplaint = (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>): string => {
+    const addComplaint = async (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>): Promise<string> => {
         let priority = getPriority(data.category, data.complaintType);
         let areaAlert = false;
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -326,9 +360,29 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             setAreaAlerts(prev => { const idx = prev.findIndex(a => a.area===alert.area && a.category===alert.category && a.complaintType===alert.complaintType); const updated = [...prev]; if(idx>=0) updated[idx]=alert; else updated.unshift(alert); persistData(LOCAL_STORAGE_KEYS.ALERTS, updated); return updated; });
         }
 
-        const newComplaint: Complaint = { ...data, id: `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`, priority, status: "Pending", areaAlert, currentStage: "Submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        let finalId: string | null = null;
+
+        // HYBRID: Try API first, fallback to offline ID
+        try {
+            const apiRes = await GrievanceService.createRequest({
+                request_type: data.complaintType,
+                department: data.category,
+                description: data.description || `Complaint regarding ${data.complaintType}`,
+                ward: data.area !== 'Unknown' ? data.area : undefined,
+                phone: data.phone,
+                metadata: { location: data.location, name: data.name, type: 'complaint' }
+            });
+            // Capture DB assigned ticket number
+            finalId = (apiRes as any).ticket_number || apiRes.id;
+        } catch (error) {
+            console.warn("API submission failed, falling back to offline/localStorage", error);
+        }
+
+        finalId = finalId || `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
+
+        const newComplaint: Complaint = { ...data, id: finalId, priority, status: "Pending", areaAlert, currentStage: "Submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setComplaints(prev => { const updated = [newComplaint, ...prev]; persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; });
-        return newComplaint.id;
+        return finalId;
     };
 
     const updateServiceStatus = (id: string, status: ServiceRequest['status']) => { setServiceRequests(prev => { const updated = prev.map(r => r.id===id ? {...r, status} : r); persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; }); logActivity("Request Updated", `Service request ${id} status changed to ${status}.`); };
@@ -397,7 +451,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     {children}
   </ServiceComplaintContext.Provider>
 );
-}; // ← closes ServiceComplaintProvider
+};
 
 export const useServiceComplaint = () => {
     const context = useContext(ServiceComplaintContext);

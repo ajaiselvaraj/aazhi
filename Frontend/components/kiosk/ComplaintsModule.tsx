@@ -55,14 +55,13 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
         }
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!selectedDept || !issueType) return;
 
         setIsSubmitting(true);
 
-        // Simulate network delay
-        setTimeout(() => {
-            const newId = addComplaint({
+        try {
+            const newId = await addComplaint({
                 name: MOCK_USER_PROFILE.name,
                 phone: "9876543210", // In real app, this comes from user profile
                 category: getDeptCategory(selectedDept),
@@ -74,8 +73,11 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
 
             setTicketId(newId);
             setStep('success');
+        } catch (error) {
+            console.error("Complaint generation failed", error);
+        } finally {
             setIsSubmitting(false);
-        }, 1500);
+        }
     };
 
     return (
