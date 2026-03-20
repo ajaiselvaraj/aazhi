@@ -52,8 +52,8 @@ export const createServiceRequest = async (req, res, next) => {
                 ward: ward || null,
                 phone: phone || null,
                 metadata: metadata || {},
-                status: 'submitted',
-                current_stage: 'submitted'
+                status: 'Submitted',
+                current_stage: 'Submitted'
             };
 
             const { data: insertedData, error: insertError } = await supabase.from("service_requests").insert([insertPayload]).select();
@@ -66,7 +66,7 @@ export const createServiceRequest = async (req, res, next) => {
             
             requestRecord = insertedData[0];
 
-            const stages = ["submitted", "under_review", "verification", "approval_pending", "completed"];
+            const stages = ["Submitted", "Officer Assigned", "Manager Review", "GM Approval", "Resolved"];
             const stagesToInsert = stages.map((stage, i) => ({
                 service_request_id: requestRecord.id,
                 stage: stage,
@@ -80,14 +80,14 @@ export const createServiceRequest = async (req, res, next) => {
             const result = await pool.query(
                 `INSERT INTO service_requests 
                  (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
-                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'submitted')
+                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'Submitted', 'Submitted')
                  RETURNING *`,
                 [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
             );
             
             requestRecord = result.rows[0];
 
-            const stages = ["submitted", "under_review", "verification", "approval_pending", "completed"];
+            const stages = ["Submitted", "Officer Assigned", "Manager Review", "GM Approval", "Resolved"];
             for (let i = 0; i < stages.length; i++) {
                 await pool.query(
                     `INSERT INTO service_request_stages (service_request_id, stage, status) VALUES ($1, $2, $3)`,

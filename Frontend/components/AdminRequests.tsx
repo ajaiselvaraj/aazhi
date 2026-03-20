@@ -53,6 +53,7 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
       case 'Officer Assigned': return { label: t('escalateManager'), next: 'Manager Review', color: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200' };
       case 'Manager Review': return { label: t('sendGmApproval'), next: 'GM Approval', color: 'bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200' };
       case 'GM Approval': return { label: t('markResolved'), next: 'Resolved', color: 'bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-200' };
+      case 'Resolved': return null;
       default: return null;
     }
   };

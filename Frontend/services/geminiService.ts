@@ -39,13 +39,76 @@ class SuvidhaIntelligence {
     session = { step: 'WELCOME', data: {} };
   }
 
+  // NLP Intent Detection Engine
+  static detectIntent(q: string) {
+    if (q.match(/\b(pay|bill|payment|dues)\b/i) && q.match(/\b(electric|power|tneb)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Electricity' };
+    if (q.match(/\b(pay|bill|payment)\b/i) && q.match(/\b(water|metro)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Water' };
+    if (q.match(/\b(pay|bill|payment)\b/i) && q.match(/\b(gas|png)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Gas' };
+    
+    if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(water|leak|pipe)\b/i)) return { intent: 'COMPLAINT_DIRECT', dept: 'Water' };
+    if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(electric|power|spark|wire)\b/i)) return { intent: 'COMPLAINT_DIRECT', dept: 'Electricity' };
+
+    if (q.match(/\b(pay|bill|payment|dues)\b/i)) return { intent: 'START_BILL' };
+    if (q.match(/\b(complain|complaint|issue|report|broken|fix)\b/i)) return { intent: 'START_COMPLAINT' };
+    if (q.match(/\b(status|track|history|check)\b/i)) return { intent: 'CHECK_STATUS' };
+    if (q.match(/\b(service|apply|new connection)\b/i)) return { intent: 'NEW_SERVICE' };
+    if (q.match(/\b(help|guide|how to|support)\b/i)) return { intent: 'HELP' };
+    
+    return { intent: 'UNKNOWN' };
+  }
+
   static getResponse(query: string, voiceEnabled: boolean, t: (key: string) => string): AIResponse {
     const q = query.toLowerCase().trim();
 
     // GLOBAL RESET
-    if (q === 'home' || q === 'reset' || q === 'cancel' || q === 'start') {
+    if (q === 'home' || q === 'reset' || q === 'cancel' || q === 'start' || q === 'hi' || q === 'hello' || q === 'menu') {
       this.resetSession();
       return this.renderWelcome(voiceEnabled, t);
+    }
+
+    // ZERO-SHOT NLP ROUTING (Interrupts current state if a strong new intent is found)
+    const nlp = this.detectIntent(q);
+    
+    if (nlp.intent === 'CHECK_STATUS') {
+      this.resetSession();
+      return {
+        text: t('ai_statusNavText') || "Taking you to your application and complaint history...",
+        voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to history." : undefined,
+        actions: [{ type: 'NAVIGATE', payload: 'status' }]
+      };
+    }
+
+    if (nlp.intent === 'NEW_SERVICE' && session.step === 'WELCOME') {
+      return {
+        text: t('ai_serviceLoading') || "Opening the services portal for you...",
+        voice: voiceEnabled ? t('ai_openServiceRequest') || "Opening services portal." : undefined,
+        actions: [{ type: 'NAVIGATE', payload: 'services' }]
+      };
+    }
+
+    if (nlp.intent === 'PAY_BILL_DIRECT') {
+      session.data.billType = nlp.dept;
+      session.step = 'BILL_CONSUMER_ID';
+      const label = nlp.dept === 'Electricity' ? t('ai_consumerNumber') || "Consumer Number" : t('ai_connectionId') || "Connection ID";
+      const enterMsg = (t('ai_enterConsumerId') || "Please enter your {billType} {label} to proceed.")
+        .replace('{billType}', session.data.billType)
+        .replace('{label}', label);
+      return { text: `Got it! You want to pay your ${nlp.dept} bill.\n\n${enterMsg}`, voice: voiceEnabled ? enterMsg : undefined };
+    }
+
+    if (nlp.intent === 'COMPLAINT_DIRECT') {
+      session.data.dept = nlp.dept;
+      session.step = 'COMPLAINT_ID';
+      return {
+        text: `I can help you report an issue with ${nlp.dept}.\n\nPlease enter the location or area ID so we can dispatch a team.`,
+        voice: voiceEnabled ? "Please tell me the area ID or location." : undefined
+      };
+    }
+
+    if (nlp.intent === 'START_BILL' && session.step === 'WELCOME') {
+      q === '1'; // simulate picking option 1
+    } else if (nlp.intent === 'START_COMPLAINT' && session.step === 'WELCOME') {
+      q === '3'; // simulate picking option 3
     }
 
     // STATE MACHINE
@@ -75,7 +138,7 @@ class SuvidhaIntelligence {
             actions: [{ type: 'NAVIGATE', payload: 'services' }]
           };
         }
-        if (q === '3' || q.includes('complaint')) {
+        if (q === '3' || nlp.intent === 'START_COMPLAINT') {
           session.step = 'COMPLAINT_DEPT';
           return {
             text: `${t('ai_selectDept')}\n1. ${t('ai_deptElec')}\n2. ${t('ai_deptWater')}\n3. ${t('ai_deptSanitation')}\n4. ${t('ai_deptMunicipal')}\n5. ${t('ai_backOption')}`,
@@ -92,8 +155,25 @@ class SuvidhaIntelligence {
             }
           }
         }
+        if (q === '4' || nlp.intent === 'CHECK_STATUS') {
+          return {
+            text: t('ai_statusNavText') || "Taking you to your application and complaint history...",
+            voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to history." : undefined,
+            actions: [{ type: 'NAVIGATE', payload: 'status' }]
+          };
+        }
+        
+        // NLP Helper for unknown commands in Welcome state
+        if (nlp.intent !== 'UNKNOWN') {
+           return { text: "I can help with that, please follow the menu options below to get started.", menu: this.renderWelcome(voiceEnabled, t).menu };
+        }
+
         // Default Welcome
-        return this.renderWelcome(voiceEnabled, t);
+        return {
+           text: `I'm not exactly sure what you mean by "${query}". Here is the main menu.`,
+           menu: this.renderWelcome(voiceEnabled, t).menu,
+           voice: voiceEnabled ? "I didn't catch that. Here is the main menu." : undefined
+        };
 
       case 'BILL_TYPE':
         if (q === '5') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
@@ -109,10 +189,13 @@ class SuvidhaIntelligence {
             voice: voiceEnabled ? enterMsg : undefined
           };
         }
-        return { text: t('ai_invalidSelection'), voice: voiceEnabled ? t('ai_invalidSelection') : undefined };
+        return { text: t('ai_invalidSelection') || "Please select a valid option from the menu or type what you need.", voice: voiceEnabled ? t('ai_invalidSelection') : undefined, menu: {
+            heading: "Valid Options:",
+            options: [{ id: '1', label: t('ai_billElec') }, { id: '2', label: t('ai_billWater') }, { id: '3', label: t('ai_billGas') }, { id: '5', label: t('ai_backOption') }]
+        } };
 
       case 'BILL_CONSUMER_ID':
-        if (q.length < 5) return { text: t('ai_invalidNumber'), voice: voiceEnabled ? t('ai_invalidNumber') : undefined };
+        if (q.length < 3) return { text: t('ai_invalidNumber') || "That consumer ID seems too short. Please try again.", voice: voiceEnabled ? t('ai_invalidNumber') : undefined };
 
         session.data.consumerId = q;
         session.step = 'BILL_DETAILS';

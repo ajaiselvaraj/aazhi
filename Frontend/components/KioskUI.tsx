@@ -25,6 +25,7 @@ import { CertificateDownload } from './municipal/CertificateDownload';
 import { VendorLicenseFlow } from './municipal/VendorLicenseFlow';
 import { PropertyServices } from './municipal/PropertyServices';
 import { CitizenParticipation } from './municipal/CitizenParticipation';
+import HistoryReceipt from './kiosk/HistoryReceipt';
 
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
@@ -93,6 +94,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [generatedToken, setGeneratedToken] = useState<string>('');
   const [fetchedBill, setFetchedBill] = useState<any>(null);
   const [selectedComplaintDept, setSelectedComplaintDept] = useState<string | undefined>(undefined);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<ServiceRequest | null>(null);
 
   const [userRequests, setUserRequests] = useState<ServiceRequest[]>(MOCK_REQUESTS as unknown as ServiceRequest[]);
 
@@ -923,7 +925,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${isResolved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{statusLabel}</span>
-                      <button className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition"><Download size={20} /></button>
+                      <button onClick={() => setSelectedHistoryItem(req)} className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition" title="Download Document as PDF"><Download size={20} /></button>
                     </div>
                   </div>
                 );
@@ -968,6 +970,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       </div>
       {showReceiptPreview && <PaymentReceipt data={receiptDetails} onClose={() => setShowReceiptPreview(false)} />}
+      {selectedHistoryItem && <HistoryReceipt data={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />}
     </KioskShell >
   );
 };
