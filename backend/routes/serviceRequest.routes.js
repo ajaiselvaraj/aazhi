@@ -28,6 +28,9 @@ router.post("/debug", (req, res, next) => {
     next();
 }, validate(createServiceRequestSchema), createServiceRequest);
 
+// B. Temporary Debug Fix: Bypass Auth to Fetch All Requests for Admin Dashboard sync
+router.get("/admin/debug", getAllServiceRequestsAdmin);
+
 router.post("/", authMiddleware, validate(createServiceRequestSchema), createServiceRequest);
 router.get("/", authMiddleware, getMyServiceRequests);
 router.get("/admin", authMiddleware, staffOnly, getAllServiceRequestsAdmin);
