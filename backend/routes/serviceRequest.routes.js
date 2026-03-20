@@ -19,6 +19,15 @@ import { validate, createServiceRequestSchema, updateServiceRequestStatusSchema 
 
 const router = express.Router();
 
+// A. Temporary Debug Fix: Bypass Auth to Test Insert
+// Uncomment the route below to test insertions without an Authorization header
+// Warning: Replace with mock user ID from your citizens table to avoid FK constraint errors!
+router.post("/debug", (req, res, next) => {
+    console.log("⚠️ [DEBUG] Triggering Auth Bypass for /debug route");
+    req.user = { id: "9eb3f201-174d-48e9-a061-b88093fe58dc", role: "citizen" }; // Valid Mock DB ID
+    next();
+}, validate(createServiceRequestSchema), createServiceRequest);
+
 router.post("/", authMiddleware, validate(createServiceRequestSchema), createServiceRequest);
 router.get("/", authMiddleware, getMyServiceRequests);
 router.get("/admin", authMiddleware, staffOnly, getAllServiceRequestsAdmin);

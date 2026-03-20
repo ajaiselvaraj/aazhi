@@ -12,8 +12,8 @@ import logger from "../utils/logger.js";
 const auditLogger = (req, res, next) => {
   const start = Date.now();
 
-  // Extract user info from Auth0 session (if available)
-  const user = req.oidc?.user?.email || req.oidc?.user?.sub || "anonymous";
+  // Extract user info from JWT (req.user) or Auth0 session (if available)
+  const user = req.user?.id || req.user?.name || req.oidc?.user?.email || req.oidc?.user?.sub || "anonymous";
 
   // Log on response finish to capture status code and duration
   res.on("finish", () => {

@@ -9,8 +9,11 @@ import { fail } from "../utils/response.js";
 export default function authMiddleware(req, res, next) {
     try {
         const authHeader = req.headers.authorization;
+        console.log(`\n🛡️ [AUTH] Validating request to: ${req.method} ${req.originalUrl}`);
+        console.log(`🛡️ [AUTH] Authorization Header:`, authHeader ? authHeader.substring(0, 20) + "..." : "MISSING");
 
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.warn(`🛡️ [AUTH DEBUG] Request blocked. Missing or malformed Bearer token.`);
             return fail(res, "Access denied. No token provided.", 401);
         }
 
@@ -22,9 +25,11 @@ export default function authMiddleware(req, res, next) {
             role: decoded.role,
             name: decoded.name,
         };
-
+        
+        console.log(`✅ [AUTH DEBUG] Token valid. User decoded -> ID: ${req.user.id} | Role: ${req.user.role}`);
         next();
     } catch (err) {
+        console.error(`❌ [AUTH ERROR] JWT Verification failed:`, err.message);
         if (err.name === "TokenExpiredError") {
             return fail(res, "Token expired. Please login again.", 401);
         }
