@@ -44,6 +44,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
     const [isTrackingLoc, setIsTrackingLoc] = useState(false);
+    const [submittedTicket, setSubmittedTicket] = useState('');
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);
@@ -97,7 +98,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             else if (departmentId === 'water') deptCat = 'Water';
             else if (departmentId === 'gas') deptCat = 'Gas';
 
-            addComplaint({
+            const ticketId = await addComplaint({
                 name: MOCK_USER_PROFILE.name,
                 phone: MOCK_USER_PROFILE.mobile,
                 category: deptCat,
@@ -106,6 +107,8 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 location: location.address,
                 area: MOCK_USER_PROFILE.ward || 'Unknown'
             });
+
+            setSubmittedTicket(ticketId);
 
             speakText({
                 text: t("civic_successMsg"),
@@ -238,6 +241,9 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             <CheckCircle size={64} />
                         </div>
                         <h3 className="text-4xl font-black text-slate-800 mb-4">{t("civic_reportFiled")}</h3>
+                        <p className="text-2xl font-bold text-blue-600 mb-4 bg-blue-50 py-3 rounded-xl border border-blue-100 drop-shadow-sm">
+                            Ticket: {submittedTicket}
+                        </p>
                         <p className="text-xl text-slate-500 font-medium mb-12">
                             {t("civic_officerNotified")}
                         </p>

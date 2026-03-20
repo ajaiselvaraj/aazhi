@@ -5,7 +5,7 @@
  */
 
 const MAX_RETRIES = parseInt(
-  (import.meta as any).env?.VITE_API_RETRY_MAX || '5',
+  (import.meta as any).env?.VITE_API_RETRY_MAX || '3',
   10
 );
 const BASE_DELAY_MS = 2000;
@@ -70,19 +70,30 @@ export async function callWithRetry<T>(
 
       const status = error?.status ?? error?.response?.status;
       const isRateLimit = status === 429;
+      const isNetworkError =
+        error instanceof TypeError ||
+        error?.message?.includes('Failed to fetch') ||
+        error?.message?.includes('NetworkError') ||
+        error?.message?.includes('aborted');
       const isResourceExhausted =
         error?.message?.includes('RESOURCE_EXHAUSTED') ||
         error?.message?.includes('quota');
 
-      if ((isRateLimit || isResourceExhausted) && attempt < maxRetries) {
+      // ── RETRYABLE ERRORS ────────────────────────────────────────────────
+      // We retry on rate limits (429) AND generic network failures
+      if (
+        (isRateLimit || isNetworkError || isResourceExhausted) &&
+        attempt < maxRetries
+      ) {
         // Exponential backoff with jitter: baseDelay * 2^attempt ± 20 %
         const exponentialDelay = baseDelay * Math.pow(2, attempt);
         const jitter = exponentialDelay * 0.2 * (Math.random() - 0.5);
         const waitTime = Math.round(exponentialDelay + jitter);
 
         console.warn(
-          `[${label}] Rate limit hit (attempt ${attempt + 1}/${maxRetries}). ` +
-            `Retrying in ${waitTime}ms…`
+          `[${label}] ${isNetworkError ? 'Network error' : 'Rate limit'} hit (attempt ${
+            attempt + 1
+          }/${maxRetries}). ` + `Retrying in ${waitTime}ms…`
         );
 
         await delay(waitTime);
