@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { MOCK_REQUESTS, MOCK_USER_PROFILE } from '../constants';
 import { TrackingStage, Kiosk } from '../types';
 import { GrievanceService } from '../services/civicService';
 
@@ -80,13 +79,6 @@ const LOCAL_STORAGE_KEYS = {
     ACTIVITY: "aazhi_activity_log"
 };
 
-// --- Seed Kiosks ---
-const SEED_KIOSKS: Kiosk[] = [
-    { id: 'K-001', location: 'Central Bus Stand', status: 'Online', battery: 85, network: 'Good', userLoad: 'High', lastActive: new Date().toISOString(), todayUsers: 142, complaintsToday: 12 },
-    { id: 'K-002', location: 'Gandhi Market', status: 'Online', battery: 45, network: 'Weak', userLoad: 'Medium', lastActive: new Date().toISOString(), todayUsers: 89, complaintsToday: 5 },
-    { id: 'K-003', location: 'Railway Station', status: 'Offline', battery: 12, network: 'Disconnected', userLoad: 'Low', lastActive: new Date(Date.now() - 3600000).toISOString(), todayUsers: 34, complaintsToday: 2 }
-];
-
 // --- Priority Helper ---
 const getPriority = (category: string, complaintType: string): "Critical" | "High" | "Medium" | "Low" => {
     const cat = category.toLowerCase();
@@ -119,89 +111,6 @@ const getPriority = (category: string, complaintType: string): "Critical" | "Hig
     return "Low";
 };
 
-// --- Seed Requests ---
-const SEED_REQUESTS: ServiceRequest[] = MOCK_REQUESTS.map(req => {
-    // Support both old English values and new i18n keys
-    const isResolved = req.status === 'Resolved' || req.status === 'resolved' || req.status === 'Completed' || req.status === 'completed';
-    const isInProgress = req.status === 'In Progress' || req.status === 'inProgress' || req.status === 'Under Review';
-    const status: ServiceRequest['status'] = isResolved ? 'Completed' : isInProgress ? 'Under Review' : 'Submitted';
-    const currentStage = isResolved ? 'Completed' : isInProgress ? 'Under Review' : 'Submitted';
-
-    return {
-        id: req.id,
-        token: req.id,
-        name: req.citizenName,
-        phone: MOCK_USER_PROFILE.mobile,
-        category: req.department,
-        serviceType: req.type,
-        address: `Ward ${req.ward}`,
-        description: req.details,
-        status,
-        currentStage,
-        stages: [
-            { stage: "Submitted", status: "Completed", updatedAt: new Date(req.timestamp).toISOString() },
-            { stage: currentStage, status: "Current", updatedAt: new Date().toISOString() }
-        ],
-        createdAt: new Date(req.timestamp).toISOString()
-    };
-});
-
-// --- Seed Complaints ---
-const SEED_COMPLAINTS: Complaint[] = [
-    {
-        id: 'CMP-2024-001',
-        name: 'Rajesh Kumar',
-        phone: '9876543210',
-        category: 'Electricity',
-        complaintType: 'Power Cut',
-        description: 'Frequent power cuts in the evening.',
-        location: 'Gandhipuram, Ward 5',
-        area: 'Ward 5',
-        priority: 'High',
-        status: 'Pending',
-        currentStage: 'Submitted',
-        stages: [{ stage: 'Submitted', status: 'Current', updatedAt: new Date(Date.now() - 86400000).toISOString() }],
-        createdAt: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-        id: 'CMP-2024-002',
-        name: 'Priya S',
-        phone: '9876543211',
-        category: 'Water',
-        complaintType: 'Leakage',
-        description: 'Main pipe leaking near the park.',
-        location: 'RS Puram',
-        area: 'RS Puram',
-        priority: 'High',
-        status: 'In Progress',
-        currentStage: 'Manager Review',
-        stages: [
-            { stage: 'Submitted', status: 'Completed', updatedAt: new Date(Date.now() - 172800000).toISOString() },
-            { stage: 'Officer Assigned', status: 'Completed', updatedAt: new Date(Date.now() - 86400000).toISOString() },
-            { stage: 'Manager Review', status: 'Current', updatedAt: new Date().toISOString() }
-        ],
-        createdAt: new Date(Date.now() - 172800000).toISOString()
-    },
-    {
-        id: 'CMP-2024-003',
-        name: 'Suresh M',
-        phone: '9876543212',
-        category: 'Gas',
-        complaintType: 'Gas Leak (Urgent)',
-        description: 'Smell of gas in kitchen area.',
-        location: 'Ward 10',
-        area: 'Ward 10',
-        priority: 'Critical',
-        status: 'Pending',
-        currentStage: 'Officer Assigned',
-        stages: [
-            { stage: 'Submitted', status: 'Completed', updatedAt: new Date(Date.now() - 3600000).toISOString() },
-            { stage: 'Officer Assigned', status: 'Current', updatedAt: new Date().toISOString() }
-        ],
-        createdAt: new Date(Date.now() - 3600000).toISOString()
-    }
-];
-
 // --- CONTEXT PROVIDER ---
 export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
@@ -220,10 +129,21 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 const kiosksData = localStorage.getItem(LOCAL_STORAGE_KEYS.KIOSKS);
                 const logData = localStorage.getItem(LOCAL_STORAGE_KEYS.ACTIVITY);
 
-                setServiceRequests(services ? JSON.parse(services) : SEED_REQUESTS);
-                setComplaints(complaintsData ? JSON.parse(complaintsData) : SEED_COMPLAINTS);
+                // Clear any leftover mock data from previous sessions
+                if (services && (services.includes('REQ-2024') || services.includes('Rajesh Kumar'))) {
+                     localStorage.removeItem(LOCAL_STORAGE_KEYS.SERVICES);
+                     localStorage.removeItem(LOCAL_STORAGE_KEYS.COMPLAINTS);
+                     localStorage.removeItem(LOCAL_STORAGE_KEYS.ALERTS);
+                     localStorage.removeItem(LOCAL_STORAGE_KEYS.KIOSKS);
+                     localStorage.removeItem(LOCAL_STORAGE_KEYS.ACTIVITY);
+                     window.location.reload();
+                     return;
+                }
+
+                setServiceRequests(services ? JSON.parse(services) : []);
+                setComplaints(complaintsData ? JSON.parse(complaintsData) : []);
                 setAreaAlerts(alertsData ? JSON.parse(alertsData) : []);
-                setKiosks(kiosksData ? JSON.parse(kiosksData) : SEED_KIOSKS);
+                setKiosks(kiosksData ? JSON.parse(kiosksData) : []);
                 setActivityLog(logData ? JSON.parse(logData) : [{ id: '1', action: 'System Init', details: 'Dashboard boot sequence complete.', timestamp: new Date().toISOString() }]);
             } catch (error) {
                 console.error("Failed to load data from localStorage", error);
@@ -242,28 +162,41 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 if (Array.isArray(apiRequests) && apiRequests.length > 0) {
                     
                     // Segregate into Service Requests and Complaints
-                    const incomingServiceReqs = apiRequests.filter(r => r.metadata?.type !== 'complaint');
-                    const incomingComplaints = apiRequests.filter(r => r.metadata?.type === 'complaint');
+                    const incomingServiceReqsData = apiRequests.filter(r => r.metadata?.type !== 'complaint');
+                    const incomingComplaintsData = apiRequests.filter(r => r.metadata?.type === 'complaint');
 
-                    if (incomingServiceReqs.length > 0) {
+                    if (incomingServiceReqsData.length > 0) {
                         setServiceRequests(prev => {
                             const existingIds = new Set(prev.map(r => r.id));
-                            const newFromApi: ServiceRequest[] = incomingServiceReqs
+                            const newFromApi: ServiceRequest[] = incomingServiceReqsData
                                 .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
-                                .map((r: any): ServiceRequest => ({
-                                    id: r.ticket_number || r.id,
-                                    token: r.ticket_number || r.id,
-                                    name: r.citizen_name || r.name || 'Citizen',
-                                    phone: r.phone || '',
-                                    category: r.department || r.category || '',
-                                    serviceType: r.request_type || r.serviceType || '',
-                                    address: r.metadata?.address || r.address || '',
-                                    description: r.description || '',
-                                    status: 'Submitted',
-                                    currentStage: r.current_stage || 'Submitted',
-                                    stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
-                                    createdAt: r.created_at || new Date().toISOString(),
-                                }));
+                                .map((r: any): ServiceRequest => {
+                                    // Normalize stage for TitleCase matching in Admin Dashboard
+                                    let rawStage = r.current_stage || 'Submitted';
+                                    const stageMap: Record<string, string> = {
+                                        'submitted': 'Submitted',
+                                        'under_review': 'Officer Assigned',
+                                        'verification': 'Manager Review',
+                                        'approval_pending': 'GM Approval',
+                                        'completed': 'Resolved'
+                                    };
+                                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+
+                                    return {
+                                        id: r.ticket_number || r.id,
+                                        token: r.ticket_number || r.id,
+                                        name: r.citizen_name || r.name || 'Citizen',
+                                        phone: r.phone || '',
+                                        category: r.department || r.category || '',
+                                        serviceType: r.request_type || r.serviceType || '',
+                                        address: r.metadata?.address || r.address || '',
+                                        description: r.description || '',
+                                        status: normalizedStage as any,
+                                        currentStage: normalizedStage,
+                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                        createdAt: r.created_at || new Date().toISOString(),
+                                    };
+                                });
 
                             if (newFromApi.length === 0) return prev;
                             const merged = [...newFromApi, ...prev];
@@ -272,26 +205,39 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         });
                     }
 
-                    if (incomingComplaints.length > 0) {
+                    if (incomingComplaintsData.length > 0) {
                         setComplaints(prev => {
                             const existingIds = new Set(prev.map(c => c.id));
-                            const newFromApi: Complaint[] = incomingComplaints
+                            const newFromApi: Complaint[] = incomingComplaintsData
                                 .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
-                                .map((r: any): Complaint => ({
-                                    id: r.ticket_number || r.id,
-                                    name: r.citizen_name || r.name || 'Citizen',
-                                    phone: r.phone || '',
-                                    category: r.department || r.category || '',
-                                    complaintType: r.request_type || r.complaintType || '',
-                                    location: r.metadata?.location || r.address || '',
-                                    area: r.ward || 'Unknown',
-                                    description: r.description || '',
-                                    priority: 'Medium',
-                                    status: 'Pending',
-                                    currentStage: r.current_stage || 'Submitted',
-                                    stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
-                                    createdAt: r.created_at || new Date().toISOString(),
-                                }));
+                                .map((r: any): Complaint => {
+                                    // Normalize stage
+                                    let rawStage = r.current_stage || 'Submitted';
+                                    const stageMap: Record<string, string> = {
+                                        'submitted': 'Submitted',
+                                        'under_review': 'Officer Assigned',
+                                        'verification': 'Manager Review',
+                                        'approval_pending': 'GM Approval',
+                                        'completed': 'Resolved'
+                                    };
+                                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+
+                                    return {
+                                        id: r.ticket_number || r.id,
+                                        name: r.citizen_name || r.name || 'Citizen',
+                                        phone: r.phone || '',
+                                        category: r.department || r.category || '',
+                                        complaintType: r.request_type || r.complaintType || '',
+                                        location: r.metadata?.location || r.address || '',
+                                        area: r.ward || 'Unknown',
+                                        description: r.description || '',
+                                        priority: 'Medium',
+                                        status: 'Pending',
+                                        currentStage: normalizedStage,
+                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                        createdAt: r.created_at || new Date().toISOString(),
+                                    };
+                                });
 
                             if (newFromApi.length === 0) return prev;
                             const merged = [...newFromApi, ...prev];
@@ -413,7 +359,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 if(c.currentStage!==stage) stages.push({ stage, status:"Current", updatedAt:now });
                 return { ...c, currentStage: stage, stages };
             });
-            persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated);
+            persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
             return updated;
         });
         logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
