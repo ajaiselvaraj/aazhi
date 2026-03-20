@@ -220,8 +220,8 @@ const App: React.FC = () => {
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing'>('home');
   const timerRef = useRef<number | null>(null);
 
-  // Refactored Login States
-  const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE' | 'PASSWORD'>('AADHAAR');
+  // Refactored Login States - Defaulting to MOBILE to ensure backend Auth runs
+  const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE' | 'PASSWORD'>('MOBILE');
   const [authStage, setAuthStage] = useState<'INPUT' | 'OTP' | 'PASSWORD'>('INPUT');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -429,11 +429,8 @@ const App: React.FC = () => {
         speakText({ text: "Authentication successful", language: "English" });
       } else {
         // Fallback for Aadhaar simulation
-        if (otp.length === 6) {
-           setView(ViewState.SELECTION);
-        } else {
-          setError(t('err_otp'));
-        }
+        // The old code simulated login without getting a JWT token causing all API routes to return 401 Anonymous.
+        setError("Aadhaar authentication is currently mocked and skips token generation. Please use Mobile OTP.");
       }
     } catch (e: any) {
       console.error("Login submission error", e);
