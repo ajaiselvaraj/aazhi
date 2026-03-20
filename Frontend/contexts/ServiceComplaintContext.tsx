@@ -244,20 +244,33 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         const existingIds = new Set(prev.map(r => r.id));
                         const newFromApi: ServiceRequest[] = apiRequests
                             .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
-                            .map((r: any): ServiceRequest => ({
-                                id: r.ticket_number || r.id,
-                                token: r.ticket_number || r.id,
-                                name: r.citizen_name || r.name || 'Citizen',
-                                phone: r.phone || '',
-                                category: r.department || r.category || '',
-                                serviceType: r.request_type || r.serviceType || '',
-                                address: r.metadata?.address || r.address || '',
-                                description: r.description || '',
-                                status: 'Submitted',
-                                currentStage: r.current_stage || 'Submitted',
-                                stages: [{ stage: 'Submitted', status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
-                                createdAt: r.created_at || new Date().toISOString(),
-                            }));
+                            .map((r: any): ServiceRequest => {
+                                // Normalize stage for TitleCase matching in Admin Dashboard
+                                let rawStage = r.current_stage || 'Submitted';
+                                const stageMap: Record<string, string> = {
+                                    'submitted': 'Submitted',
+                                    'under_review': 'Officer Assigned',
+                                    'verification': 'Manager Review',
+                                    'approval_pending': 'GM Approval',
+                                    'completed': 'Resolved'
+                                };
+                                const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+
+                                return {
+                                    id: r.ticket_number || r.id,
+                                    token: r.ticket_number || r.id,
+                                    name: r.citizen_name || r.name || 'Citizen',
+                                    phone: r.phone || '',
+                                    category: r.department || r.category || '',
+                                    serviceType: r.request_type || r.serviceType || '',
+                                    address: r.metadata?.address || r.address || '',
+                                    description: r.description || '',
+                                    status: normalizedStage as any,
+                                    currentStage: normalizedStage,
+                                    stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                    createdAt: r.created_at || new Date().toISOString(),
+                                };
+                            });
 
                         if (newFromApi.length === 0) return prev; // No changes — avoid re-render
 
