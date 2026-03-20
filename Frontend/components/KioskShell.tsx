@@ -5,6 +5,7 @@ import { Language } from '../types';
 import { useTranslation } from 'react-i18next';
 import VoiceNavigation from './VoiceNavigation';
 import KioskErrorBoundary from './KioskErrorBoundary';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -247,14 +248,16 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     {NAV_ITEMS.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
-                            <button
+                            <motion.button
                                 key={item.id}
                                 onClick={() => onNavigate(item.id)}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 className={`
-                  relative group flex flex-col items-center justify-center w-24 h-24 rounded-2xl transition-all duration-300
+                  relative group flex flex-col items-center justify-center w-24 h-24 rounded-2xl transition-colors duration-300
                   ${isActive
-                                        ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 scale-110 z-10'
-                                        : 'text-slate-400 hover:bg-slate-50 active:scale-95'
+                                        ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
+                                        : 'text-slate-400 hover:bg-slate-50'
                                     }
                 `}
                             >
@@ -272,9 +275,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
 
                                 {isActive && (
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-blue-600 rounded-r-full"></div>
+                                    <motion.div layoutId="activeTabIndicator" className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-blue-600 rounded-r-full"></motion.div>
                                 )}
-                            </button>
+                            </motion.button>
                         )
                     })}
                 </div>
@@ -363,12 +366,20 @@ const KioskShell: React.FC<KioskShellProps> = ({
            - No padding constraints (handled by children or internal wrapper)
         */}
                 <div className="flex-1 overflow-y-auto overflow-x-hidden relative p-6 md:p-8 w-full">
-                    {/* Content Wrapper for breathability */}
-                    <div className="h-full w-full max-w-[1920px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <KioskErrorBoundary>
-                            {children}
-                        </KioskErrorBoundary>
-                    </div>
+                    <AnimatePresence mode="wait">
+                        <motion.div 
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 15, scale: 0.98, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                            exit={{ opacity: 0, y: -15, scale: 0.98, filter: "blur(4px)" }}
+                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                            className="h-full w-full max-w-[1920px] mx-auto"
+                        >
+                            <KioskErrorBoundary>
+                                {children}
+                            </KioskErrorBoundary>
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
 
                 {/* City Alert Ticker - Fixed Bottom Overlay */}

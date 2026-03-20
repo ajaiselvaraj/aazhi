@@ -7,6 +7,20 @@ import { CityAlert, Language } from '../../types';
 import { LocalityService } from '../../services/civicService';
 import { MOCK_USER_PROFILE } from '../../constants';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: { staggerChildren: 0.1 }
+    }
+};
+
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
 
 interface Props {
     alerts: CityAlert[];
@@ -20,9 +34,9 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
     const { t } = useTranslation();
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in pb-10">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-6xl mx-auto space-y-6 pb-10">
             {/* Greeting Section */}
-            <div className="flex justify-between items-end">
+            <motion.div variants={itemVariants} className="flex justify-between items-end">
                 <div>
                     <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-2">{t('welcomeCitizen')} <span className="privacy-sensitive">{userName === 'Citizen' ? '' : userName}</span></h2>
                     <div className="flex gap-2">
@@ -50,16 +64,18 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         </div>
                     </div>
                 )}
-            </div>
+            </motion.div>
 
             {/* Top Row: Alerts and Quick Actions */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-1 h-full">
                     <AlertsPanel alerts={alerts} language={language} />
                 </div>
 
                 <div className="lg:col-span-2 grid grid-cols-3 gap-4">
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('services')}
                         className="group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left h-full"
                     >
@@ -78,9 +94,11 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 </div>
                             </div>
                         </div>
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('billing')}
                         className="group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left h-full"
                     >
@@ -99,9 +117,11 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 </div>
                             </div>
                         </div>
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
+                        whileHover={{ scale: 1.02, y: -5 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('complaints')}
                         className="group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left h-full"
                     >
@@ -120,18 +140,18 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                                 </div>
                             </div>
                         </div>
-                    </button>
+                    </motion.button>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Middle Row: Advanced Visuals (Analytics & Map) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <ConsumptionAnalytics language={language} />
                 <DisruptionMap alerts={alerts} language={language} />
-            </div>
+            </motion.div>
 
             {/* Bottom Row: Zero-Document / DigiLocker Showcase */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-[2.5rem] p-8 relative overflow-hidden mt-10">
+            <motion.div variants={itemVariants} className="bg-indigo-50 border border-indigo-100 rounded-[2.5rem] p-8 relative overflow-hidden mt-10">
                 <div className="flex justify-between items-center relative z-10">
                     <div className="flex gap-6 items-center">
                         <div className="bg-white p-4 rounded-2xl shadow-sm text-indigo-600">
@@ -153,10 +173,10 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                 </div>
 
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-100 to-transparent"></div>
-            </div>
+            </motion.div>
 
             {/* Extra Kiosk Links Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                 <button onClick={() => onNavigate('emergency')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-red-200 transition group">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition shadow-sm">
@@ -195,8 +215,8 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                     </div>
                     <ArrowRight size={20} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
                 </button>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 };
 
