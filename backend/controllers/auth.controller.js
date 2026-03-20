@@ -73,3 +73,48 @@ export const verifyOtpController = async (req, res, next) => {
         return serverError(res, "Failed to verify OTP due to server issue.", 500);
     }
 };
+
+/**
+ * MOCK AADHAAR LOGIN (For Demo/Simulation with Real JWT Sync)
+ * Route: POST /api/auth/mock-aadhaar
+ */
+export const mockAadhaarLogin = async (req, res, next) => {
+    try {
+        const { aadhaarNumber } = req.body;
+        
+        // 1. Validate Aadhaar Format (12 digits)
+        if (!aadhaarNumber || aadhaarNumber.replace(/\s/g, '').length !== 12) {
+            return fail(res, "Invalid Aadhaar number format.", 400);
+        }
+
+        // 2. We use our Demo Citizen ID from the database
+        // This is the same ID I used in the debug routes: 9eb3f201-174d-48e9-a061-b88093fe58dc
+        const demoCitizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
+        
+        const result = await pool.query("SELECT * FROM citizens WHERE id = $1", [demoCitizenId]);
+        if (result.rows.length === 0) {
+            return fail(res, "Demo citizen not found in database. Run test_db.js first.", 500);
+        }
+
+        const citizen = result.rows[0];
+        const { accessToken, refreshToken } = generateTokens(citizen);
+
+        logger.info(`[Auth Controller] Mock Aadhaar login success for citizen ${citizen.id}`);
+
+        return success(res, "Aadhaar verified (Demo Mode)", {
+            citizen: {
+                id: citizen.id,
+                mobile: citizen.mobile,
+                name: citizen.name || "Aadhaar User",
+                role: citizen.role
+            },
+            tokens: {
+                accessToken,
+                refreshToken
+            }
+        }, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Mock Aadhaar Error: ${error.message}`);
+        return serverError(res, "Failed to process mock Aadhaar login.", 500);
+    }
+};

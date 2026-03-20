@@ -42,6 +42,19 @@ export const authService = {
         return authData;
     },
 
+    mockAadhaar: async (aadhaarNumber: string): Promise<AuthResponse> => {
+        const data = await apiClient.post<any>('/auth/mock-aadhaar', { aadhaarNumber });
+        const { citizen, tokens } = data;
+        const authData: AuthResponse = {
+            user: citizen,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        };
+        localStorage.setItem('aazhi_token', authData.accessToken);
+        localStorage.setItem('aazhi_user', JSON.stringify(authData.user));
+        return authData;
+    },
+
     register: async (userData: any): Promise<AuthResponse> => {
         const data = await apiClient.post<AuthResponse>('/auth/register', userData);
         localStorage.setItem('aazhi_token', data.accessToken);
