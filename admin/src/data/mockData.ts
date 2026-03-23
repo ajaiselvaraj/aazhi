@@ -241,6 +241,32 @@ export const heatPoints: HeatPoint[] = [
   { lat: 10.9920, lng: 76.9680, intensity: 'medium', ward: 'Sector 6', count: 19, dept: 'Gas Distribution' },
 ]
 
+// ── Map Markers Data ──────────────────────────────────────────
+export interface LiveMapIssue {
+  id: string
+  lat: number
+  lng: number
+  title: string
+  ward: string
+  dept: string
+  priority: 'Critical' | 'High' | 'Medium' | 'Low'
+  ticket: string
+  reportedAt: string
+}
+
+export const liveMapIssues: LiveMapIssue[] = [
+  { id: 'M-1', lat: 26.1445, lng: 91.7362, title: 'Power Outage', ward: 'Guwahati Sector 12', dept: 'Electricity', priority: 'High', ticket: 'SRQ-20341', reportedAt: '12 mins ago' },
+  { id: 'M-2', lat: 27.4728, lng: 94.9120, title: 'Pipeline Burst', ward: 'Dibrugarh Ward 3', dept: 'Water Supply', priority: 'Critical', ticket: 'SRQ-20342', reportedAt: '3 mins ago' },
+  { id: 'M-3', lat: 24.8333, lng: 92.7789, title: 'Gas Leakage', ward: 'Silchar Sector 8', dept: 'Gas Distribution', priority: 'Critical', ticket: 'SRQ-20343', reportedAt: 'Just now' },
+  { id: 'M-4', lat: 26.6528, lng: 92.7926, title: 'Garbage Overflow', ward: 'Tezpur Ward 7', dept: 'Municipal', priority: 'Medium', ticket: 'SRQ-20344', reportedAt: '2 hrs ago' },
+  { id: 'M-5', lat: 25.5788, lng: 91.8906, title: 'Streetlight Failure', ward: 'Shillong Ward 19', dept: 'Electricity', priority: 'Medium', ticket: 'SRQ-20345', reportedAt: '5 hrs ago' },
+  { id: 'M-6', lat: 24.8170, lng: 93.9368, title: 'Water Contamination', ward: 'Imphal Zone 5', dept: 'Water Supply', priority: 'High', ticket: 'SRQ-20346', reportedAt: '28 mins ago' },
+  { id: 'M-7', lat: 23.7367, lng: 92.7146, title: 'Pothole Damage', ward: 'Aizawl Sector 11', dept: 'Municipal', priority: 'Low', ticket: 'SRQ-20347', reportedAt: '1 day ago' },
+  { id: 'M-8', lat: 23.8315, lng: 91.2868, title: 'Transformer Fire', ward: 'Agartala Ward 21', dept: 'Electricity', priority: 'Critical', ticket: 'SRQ-20348', reportedAt: '7 mins ago' },
+  { id: 'M-9', lat: 27.0844, lng: 93.6053, title: 'Sewage Blockage', ward: 'Itanagar Zone 2', dept: 'Municipal', priority: 'High', ticket: 'SRQ-20349', reportedAt: '42 mins ago' },
+  { id: 'M-10', lat: 25.6751, lng: 94.1086, title: 'Low Gas Pressure', ward: 'Kohima Sector 6', dept: 'Gas Distribution', priority: 'Medium', ticket: 'SRQ-20350', reportedAt: '1 hr ago' },
+]
+
 // ── Overview Stats ────────────────────────────────────────────
 export const overviewStats = {
   totalComplaints: 1284,
