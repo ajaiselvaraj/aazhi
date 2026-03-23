@@ -1,0 +1,12 @@
+# ═══════════════════════════════════════════════════════════
+# AAZHI AI Service — Python Dependencies
+# CPU-only PyTorch to keep Docker image small (~1.5 GB)
+# ═══════════════════════════════════════════════════════════
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+transformers==4.44.0
+pydantic==2.9.0
+
+# CPU-only torch — installed via --extra-index-url in Dockerfile
+# torch==2.4.0+cpu

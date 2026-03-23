@@ -17,22 +17,67 @@ export interface TriageComplaint {
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
   confidence: number
   status: 'Routed' | 'Pending' | 'Review Needed' | 'Resolved'
+  sentiment: 'Angry' | 'Frustrated' | 'Neutral' | 'Positive'
+  urgency: number
+  keyPhrases: string[]
+  aiClassified: boolean
 }
 
 export const triageComplaints: TriageComplaint[] = [
-  { id: 'CMP-8841', text: 'No electricity for 3 days in Ward 7, entire block affected', predictedDept: 'Electricity Dept', priority: 'Critical', confidence: 97, status: 'Routed' },
-  { id: 'CMP-8839', text: 'Water pipeline burst near Gandhi Nagar main road', predictedDept: 'Water Supply Dept', priority: 'Critical', confidence: 95, status: 'Routed' },
-  { id: 'CMP-8837', text: 'Suspected gas leakage smell near Sector 12 B', predictedDept: 'Gas Distribution', priority: 'Critical', confidence: 93, status: 'Routed' },
-  { id: 'CMP-8835', text: 'Street lights not working for 2 weeks on MG Road', predictedDept: 'Electricity Dept', priority: 'High', confidence: 88, status: 'Routed' },
-  { id: 'CMP-8833', text: 'Water discolouration and bad smell from taps in flat complex', predictedDept: 'Water Supply Dept', priority: 'High', confidence: 85, status: 'Pending' },
-  { id: 'CMP-8831', text: 'Garbage bins overflowing outside school premises', predictedDept: 'Municipal Services', priority: 'High', confidence: 82, status: 'Pending' },
-  { id: 'CMP-8829', text: 'Pothole on highway causing accidents near flyover', predictedDept: 'Municipal Services', priority: 'Medium', confidence: 79, status: 'Review Needed' },
-  { id: 'CMP-8827', text: 'Park lights issue could be electricity or municipal', predictedDept: 'Electricity Dept', priority: 'Medium', confidence: 54, status: 'Review Needed' },
-  { id: 'CMP-8825', text: 'Transformer making loud noise near residential area', predictedDept: 'Electricity Dept', priority: 'High', confidence: 91, status: 'Routed' },
-  { id: 'CMP-8823', text: 'Sewage overflow on main street creating health hazard', predictedDept: 'Municipal Services', priority: 'Critical', confidence: 96, status: 'Routed' },
-  { id: 'CMP-8821', text: 'Low water pressure for past week entire colony affected', predictedDept: 'Water Supply Dept', priority: 'High', confidence: 87, status: 'Pending' },
-  { id: 'CMP-8819', text: 'Issue could be water or sewage, unclear situation', predictedDept: 'Municipal Services', priority: 'Medium', confidence: 48, status: 'Review Needed' },
+  { id: 'CMP-8841', text: 'No electricity for 3 days in Ward 7, entire block affected', predictedDept: 'Electricity Dept', priority: 'Critical', confidence: 97, status: 'Routed', sentiment: 'Angry', urgency: 5, keyPhrases: ['no electricity', '3 days', 'entire block'], aiClassified: true },
+  { id: 'CMP-8839', text: 'Water pipeline burst near Gandhi Nagar main road', predictedDept: 'Water Supply Dept', priority: 'Critical', confidence: 95, status: 'Routed', sentiment: 'Frustrated', urgency: 5, keyPhrases: ['pipeline burst', 'main road'], aiClassified: true },
+  { id: 'CMP-8837', text: 'Suspected gas leakage smell near Sector 12 B', predictedDept: 'Gas Distribution', priority: 'Critical', confidence: 93, status: 'Routed', sentiment: 'Angry', urgency: 5, keyPhrases: ['gas leakage', 'smell'], aiClassified: true },
+  { id: 'CMP-8835', text: 'Street lights not working for 2 weeks on MG Road', predictedDept: 'Electricity Dept', priority: 'High', confidence: 88, status: 'Routed', sentiment: 'Frustrated', urgency: 3, keyPhrases: ['street lights', '2 weeks'], aiClassified: true },
+  { id: 'CMP-8833', text: 'Water discolouration and bad smell from taps in flat complex', predictedDept: 'Water Supply Dept', priority: 'High', confidence: 85, status: 'Pending', sentiment: 'Frustrated', urgency: 4, keyPhrases: ['discolouration', 'bad smell', 'taps'], aiClassified: true },
+  { id: 'CMP-8831', text: 'Garbage bins overflowing outside school premises', predictedDept: 'Municipal Services', priority: 'High', confidence: 82, status: 'Pending', sentiment: 'Frustrated', urgency: 3, keyPhrases: ['garbage bins', 'overflowing', 'school'], aiClassified: true },
+  { id: 'CMP-8829', text: 'Pothole on highway causing accidents near flyover', predictedDept: 'Municipal Services', priority: 'Medium', confidence: 79, status: 'Review Needed', sentiment: 'Neutral', urgency: 3, keyPhrases: ['pothole', 'accidents', 'flyover'], aiClassified: true },
+  { id: 'CMP-8827', text: 'Park lights issue could be electricity or municipal', predictedDept: 'Electricity Dept', priority: 'Medium', confidence: 54, status: 'Review Needed', sentiment: 'Neutral', urgency: 2, keyPhrases: ['park lights'], aiClassified: false },
+  { id: 'CMP-8825', text: 'Transformer making loud noise near residential area', predictedDept: 'Electricity Dept', priority: 'High', confidence: 91, status: 'Routed', sentiment: 'Frustrated', urgency: 4, keyPhrases: ['transformer', 'loud noise', 'residential'], aiClassified: true },
+  { id: 'CMP-8823', text: 'Sewage overflow on main street creating health hazard', predictedDept: 'Municipal Services', priority: 'Critical', confidence: 96, status: 'Routed', sentiment: 'Angry', urgency: 5, keyPhrases: ['sewage overflow', 'health hazard'], aiClassified: true },
+  { id: 'CMP-8821', text: 'Low water pressure for past week entire colony affected', predictedDept: 'Water Supply Dept', priority: 'High', confidence: 87, status: 'Pending', sentiment: 'Frustrated', urgency: 3, keyPhrases: ['low pressure', 'past week', 'entire colony'], aiClassified: true },
+  { id: 'CMP-8819', text: 'Issue could be water or sewage, unclear situation', predictedDept: 'Municipal Services', priority: 'Medium', confidence: 48, status: 'Review Needed', sentiment: 'Neutral', urgency: 2, keyPhrases: ['unclear'], aiClassified: false },
 ]
+
+// ── AI Insights Chart Data ────────────────────────────────────
+export const aiComplaintTrend = [
+  { day: 'Mon', complaints: 42, resolved: 38 },
+  { day: 'Tue', complaints: 58, resolved: 51 },
+  { day: 'Wed', complaints: 45, resolved: 42 },
+  { day: 'Thu', complaints: 67, resolved: 59 },
+  { day: 'Fri', complaints: 52, resolved: 47 },
+  { day: 'Sat', complaints: 38, resolved: 35 },
+  { day: 'Sun', complaints: 29, resolved: 27 },
+]
+
+export const aiDeptDistribution = [
+  { name: 'Electricity', value: 34, color: '#FFA940' },
+  { name: 'Water Supply', value: 28, color: '#2F6BFF' },
+  { name: 'Municipal', value: 25, color: '#2ECC71' },
+  { name: 'Gas', value: 13, color: '#FF4D4F' },
+]
+
+export const aiPriorityBreakdown = [
+  { name: 'Critical', count: 31, color: '#FF4D4F' },
+  { name: 'High', count: 84, color: '#FFA940' },
+  { name: 'Medium', count: 127, color: '#2F6BFF' },
+  { name: 'Low', count: 58, color: '#2ECC71' },
+]
+
+export const aiSentimentDistribution = [
+  { name: 'Angry', value: 18, color: '#FF4D4F' },
+  { name: 'Frustrated', value: 42, color: '#FFA940' },
+  { name: 'Neutral', value: 31, color: '#94a3b8' },
+  { name: 'Positive', value: 9, color: '#2ECC71' },
+]
+
+export const aiModelHealth = {
+  accuracy: 94.2,
+  avgLatency: 12,
+  uptime: 99.97,
+  totalClassified: 1102,
+  lastRetrained: '2 hours ago',
+  topKeywords: ['pipeline', 'electricity', 'water', 'garbage', 'sewage', 'pothole', 'transformer', 'gas leak', 'street light', 'overflow'],
+}
 
 // ── Duplicate Clusters ────────────────────────────────────────
 export interface DuplicateCluster {

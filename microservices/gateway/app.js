@@ -21,6 +21,7 @@ const AUTH_SERVICE = process.env.AUTH_SERVICE_URL || 'http://auth-service:5001';
 const GAS_SERVICE = process.env.GAS_SERVICE_URL || 'http://gas-service:5002';
 const ELEC_SERVICE = process.env.ELEC_SERVICE_URL || 'http://electricity-service:5003';
 const MUNI_SERVICE = process.env.MUNI_SERVICE_URL || 'http://municipal-service:5004';
+const AI_SERVICE = process.env.AI_SERVICE_URL || 'http://ai-service:5005';
 
 // ─── Health check ───────────────────────────────
 app.get('/health', (req, res) => {
@@ -34,6 +35,7 @@ app.use('/users', proxy(AUTH_SERVICE, { proxyPriority: 10 }));
 app.use('/gas', proxy(GAS_SERVICE, { proxyPriority: 10 }));
 app.use('/electricity', proxy(ELEC_SERVICE, { proxyPriority: 10 }));
 app.use('/municipal', proxy(MUNI_SERVICE, { proxyPriority: 10 }));
+app.use('/ai', proxy(AI_SERVICE, { proxyPriority: 10 }));
 
 // ─── Error handling ─────────────────────────────
 app.use((req, res) => {
