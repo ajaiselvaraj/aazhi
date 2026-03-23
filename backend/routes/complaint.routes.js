@@ -23,9 +23,21 @@ const router = express.Router();
 router.use(checkServiceEnabled("complaints"));
 
 // A. Temporary Debug Fix: Bypass Auth to Test Insert
-router.post("/debug", (req, res, next) => {
-    req.user = { id: "9eb3f201-174d-48e9-a061-b88093fe58dc", role: "citizen" }; // Valid Mock DB ID
-    next();
+router.post("/debug", async (req, res, next) => {
+    try {
+        const dbRes = await import("../config/db.js").then(m => m.pool.query("SELECT id FROM citizens LIMIT 1"));
+        let citizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
+        if (dbRes.rows.length > 0) {
+            citizenId = dbRes.rows[0].id;
+        } else {
+            const newCit = await import("../config/db.js").then(m => m.pool.query("INSERT INTO citizens (mobile, role) VALUES ('0000000000', 'citizen') RETURNING id"));
+            citizenId = newCit.rows[0].id;
+        }
+        req.user = { id: citizenId, role: "citizen" };
+        next();
+    } catch (e) {
+        next(e);
+    }
 }, validate(createComplaintSchema), registerComplaint);
 
 // B. Temporary Debug Fix: Bypass Auth to Fetch All for Frontend sync
