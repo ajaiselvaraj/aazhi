@@ -9,7 +9,7 @@ export const generateTokens = (user) => {
     const payload = {
         id: user.id,
         mobile: user.mobile,
-        role: "citizen" // Identify role if there are multiple user types
+        role: user.role || "citizen"
     };
 
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
