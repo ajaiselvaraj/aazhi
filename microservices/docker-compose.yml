@@ -10,8 +10,10 @@ services:
       - GAS_SERVICE_URL=http://gas-service:5002
       - ELEC_SERVICE_URL=http://electricity-service:5003
       - MUNI_SERVICE_URL=http://municipal-service:5004
+      - AI_SERVICE_URL=http://ai-service:5005
     depends_on:
       - auth-service
+      - ai-service
     networks:
       - suvidha-net
 
@@ -54,8 +56,23 @@ services:
     ports:
       - "5004:5004"
     env_file: .env.muni
+    environment:
+      - AI_SERVICE_URL=http://ai-service:5005
     depends_on:
       - db
+      - ai-service
+    networks:
+      - suvidha-net
+
+  # 🤖 AI Spam Filter Service
+  ai-service:
+    build: ./ai-service
+    ports:
+      - "5005:5005"
+    environment:
+      - TRANSFORMERS_OFFLINE=1
+      - HF_HUB_OFFLINE=1
+      - PORT=5005
     networks:
       - suvidha-net
 

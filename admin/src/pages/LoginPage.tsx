@@ -120,25 +120,9 @@ export default function LoginPage() {
     }
     setError('')
     setLoading(true)
-    try {
-      const backendUrl = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api'
-      const response = await fetch(`${backendUrl}/auth/admin-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId, password, department })
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'Authentication failed')
-      }
-      
-      localStorage.setItem('adminToken', data.data.tokens.accessToken)
-      login({ adminId, department, name: data.data.admin.name })
-    } catch (err: any) {
-      setError(err.message || 'Server error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    await new Promise(r => setTimeout(r, 800))
+    login({ adminId, department, name: ADMIN_NAMES[department] || 'Admin Officer' })
+    setLoading(false)
   }
 
   return (

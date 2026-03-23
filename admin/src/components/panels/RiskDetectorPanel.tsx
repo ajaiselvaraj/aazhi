@@ -1,5 +1,5 @@
 import React from 'react'
-import { ShieldAlert, CheckCircle, AlertTriangle, Clock } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
 import { riskEvents, RiskEvent } from '../../data/mockData'
 
 const SEVERITY_CONFIG = {

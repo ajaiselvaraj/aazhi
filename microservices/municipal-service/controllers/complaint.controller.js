@@ -8,11 +8,106 @@ import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 
+// ─── AI Service URL ──────────────────────────────────────
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://ai-service:5005";
+
+// ─── Spam Filter Helper ──────────────────────────────────
+const checkSpam = async (text) => {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+        const response = await fetch(`${AI_SERVICE_URL}/api/ai/validate-complaint`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            logger.warn("AI service returned non-OK status", { status: response.status });
+            return { is_spam: false, reason: "AI service error — allowing through" };
+        }
+
+        const result = await response.json();
+        return result.data || { is_spam: false, reason: "No data in AI response" };
+    } catch (err) {
+        // Fail-open: if AI service is down, don't block citizens
+        logger.warn("AI spam check unavailable — allowing complaint through", { error: err.message });
+        return { is_spam: false, reason: "AI service unavailable — fail-open" };
+    }
+};
+
+// ─── Duplicate Check Helper ──────────────────────────────
+const checkDuplicate = async (text, citizenId) => {
+    try {
+        // Fetch citizen's complaints from the last 30 days
+        const recent = await pool.query(
+            `SELECT id, ticket_number, subject, description FROM complaints 
+             WHERE citizen_id = $1 AND created_at > NOW() - INTERVAL '30 days'
+             ORDER BY created_at DESC LIMIT 20`,
+            [citizenId]
+        );
+
+        if (recent.rows.length === 0) {
+            return { is_duplicate: false, reason: "No recent complaints" };
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
+        const response = await fetch(`${AI_SERVICE_URL}/api/ai/check-duplicate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                text,
+                existing_complaints: recent.rows.map(r => ({
+                    id: r.id,
+                    ticket_number: r.ticket_number,
+                    subject: r.subject || "",
+                    description: r.description || "",
+                })),
+            }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            logger.warn("AI duplicate check returned non-OK", { status: response.status });
+            return { is_duplicate: false, reason: "AI service error — allowing through" };
+        }
+
+        const result = await response.json();
+        return result.data || { is_duplicate: false, reason: "No data in AI response" };
+    } catch (err) {
+        logger.warn("AI duplicate check unavailable — allowing through", { error: err.message });
+        return { is_duplicate: false, reason: "AI service unavailable — fail-open" };
+    }
+};
+
 // ─── Register Complaint ──────────────────────────────────
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
         const { category, issue_category, department, subject, description, ward, priority } = req.body;
+
+        // 🤖 AI Spam Filter — check before persisting
+        const complaintText = `${subject || ""} ${description || ""}`.trim();
+        if (complaintText.length >= 5) {
+            const spamResult = await checkSpam(complaintText);
+            if (spamResult.is_spam) {
+                logger.warn("Spam complaint blocked", { citizenId, reason: spamResult.reason, confidence: spamResult.confidence });
+                return fail(res, "Your complaint was flagged as spam. If this is a mistake, please rephrase and try again.", 400);
+            }
+
+            // 🔁 Duplicate Check — block repeated complaints
+            const dupResult = await checkDuplicate(complaintText, citizenId);
+            if (dupResult.is_duplicate) {
+                logger.warn("Duplicate complaint blocked", { citizenId, similarity: dupResult.similarity, matched_ticket: dupResult.matched_ticket });
+                return fail(res, `This complaint appears to be a duplicate of ticket ${dupResult.matched_ticket} (${Math.round(dupResult.similarity * 100)}% similar). Please check your existing complaints.`, 409);
+            }
+        }
 
         const ticketNumber = generateTicketNumber("CMP");
 
