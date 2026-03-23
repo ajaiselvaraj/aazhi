@@ -224,3 +224,47 @@ export const addMessage = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Get All Complaints (Admin/Staff Only) ───────────────
+export const getAllComplaintsAdmin = async (req, res, next) => {
+    try {
+        const { status, department, page = 1, limit = 50 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let query = `
+            SELECT c.*, ci.name AS citizen_name, ci.mobile AS citizen_mobile
+            FROM complaints c
+            LEFT JOIN citizens ci ON c.citizen_id = ci.id
+        `;
+        const params = [];
+
+        const conditions = [];
+        if (status) {
+            conditions.push(`c.status = $${params.length + 1}`);
+            params.push(status);
+        }
+        if (department) {
+            conditions.push(`c.department = $${params.length + 1}`);
+            params.push(department);
+        }
+        if (conditions.length > 0) {
+            query += ` WHERE ${conditions.join(' AND ')}`;
+        }
+
+        const countQuery = `SELECT COUNT(*) FROM complaints c${conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''}`;
+        const countResult = await pool.query(countQuery, params);
+
+        query += ` ORDER BY c.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+
+        const result = await pool.query(query, params);
+
+        return paginated(res, "All complaints retrieved", result.rows, {
+            total: parseInt(countResult.rows[0].count),
+            page: parseInt(page),
+            limit: parseInt(limit),
+        });
+    } catch (err) {
+        next(err);
+    }
+};
