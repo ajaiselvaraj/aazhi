@@ -3,6 +3,7 @@ import { X, Printer, Download, CheckCircle2, ShieldCheck, Landmark, FileText } f
 import QRCode from 'react-qr-code';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
+import html2pdf from 'html2pdf.js';
 import { ServiceRequest } from '../../types';
 
 interface Props {
@@ -16,6 +17,13 @@ const HistoryReceipt: React.FC<Props> = ({ data, onClose }) => {
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownload = () => {
+        const element = document.getElementById("history-receipt-container");
+        if (element) {
+            html2pdf().from(element).save(`document_${data.id}.pdf`);
+        }
     };
 
     // Determine header based on service type
@@ -79,7 +87,7 @@ const HistoryReceipt: React.FC<Props> = ({ data, onClose }) => {
 
                     {/* Receipt Body - Thermal Paper Style */}
                     <div className="flex-1 overflow-y-auto p-8 bg-slate-100/50 flex justify-center">
-                        <div className="bg-white shadow-xl w-full max-w-[400px] p-8 font-mono text-sm text-slate-800 relative receipt-paper min-h-[600px]">
+                        <div id="history-receipt-container" className="bg-white shadow-xl w-full max-w-[400px] p-8 font-mono text-sm text-slate-800 relative receipt-paper min-h-[600px]">
                             {/* Decorative Top Edge */}
                             <div className="absolute top-0 left-0 right-0 h-1 bg-[radial-gradient(circle_at_50%_100%,transparent_4px,#f1f5f9_4px)] bg-[length:12px_12px] bg-repeat-x rotate-180"></div>
 
@@ -153,7 +161,7 @@ const HistoryReceipt: React.FC<Props> = ({ data, onClose }) => {
                     {/* Modal Footer / Actions */}
                     <div className="p-8 border-t bg-white flex gap-4">
                         <button 
-                            onClick={handlePrint}
+                            onClick={handleDownload}
                             className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-3 shadow-xl shadow-blue-100"
                         >
                             <Download size={20} /> Convert to PDF

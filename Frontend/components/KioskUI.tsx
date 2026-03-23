@@ -10,6 +10,8 @@ import { ViewState, Language, ServiceRequest } from '../types';
 import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
 import { getAssistantResponse, generateCitizenImage, AIResponse, AIMenu } from '../services/geminiService';
 import { BillingService, GrievanceService } from '../services/civicService';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
+import html2pdf from 'html2pdf.js';
 
 // New Components
 import DashboardHome from './kiosk/DashboardHome';
@@ -58,6 +60,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
   const { t } = useTranslation();
   const { addServiceRequest } = useServiceComplaint();
+
+  // New Assistant Payment Flow States
+  const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
+  const [assistantStep, setAssistantStep] = useState<string | null>(null);
 
   // Accessibility State
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
@@ -169,6 +175,55 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const handleAiSearch = async (queryOverride?: string) => {
     const query = queryOverride || aiQuery;
     if (!query.trim()) return;
+
+    // Handle Assistant Payment Flow Intercepts
+    if (assistantStep === 'paymentSuccess') {
+      if (query === '1') {
+        const element = document.getElementById("receipt-container");
+        if (element) {
+          html2pdf().from(element).save(`receipt_ASSISTANT.pdf`);
+        }
+        setAiQuery('');
+        return;
+      } else if (query === '2') {
+        setActiveTab('home');
+        setAssistantStep(null);
+        setAiQuery('');
+        return;
+      }
+    } else if (selectedPayment === 'UPI') {
+      // We are waiting for them to pay via the QR
+      if (query === '1' || query.toLowerCase().includes('payment completed') || query.toLowerCase() === 'paid') {
+        setAssistantStep('paymentSuccess');
+        setSelectedPayment(null);
+        
+        // Generate mock receipt data so the DOM physically renders it for PDF export
+        setReceiptDetails({
+            serviceName: 'Utility Payment (Assistant)',
+            consumerId: 'AST-' + Date.now().toString().slice(-4),
+            consumerName: 'Kiosk User',
+            amount: '₹850',
+            txnId: 'TXN' + Date.now(),
+            date: new Date().toLocaleString(),
+            mode: 'UPI'
+        });
+        
+        // let the bot handle the context update
+      } else if (query === '2' || query.toLowerCase().includes('cancel')) {
+        setSelectedPayment(null);
+        setAssistantStep(null);
+        // let the bot handle the cancel context
+      }
+    } else {
+      // Normal Chat Flow
+      const lastBotMsg = [...chatHistory].reverse().find(m => m.sender === 'bot');
+      const isAskingForPayment = lastBotMsg && (lastBotMsg.text.toLowerCase().includes('payment') || lastBotMsg.text.toLowerCase().includes('upi'));
+      
+      // Catch "UPI" text or ID from menu based on context
+      if ((query === '1' && isAskingForPayment) || query.toLowerCase().includes('upi')) {
+        setSelectedPayment('UPI');
+      }
+    }
 
     // Only show user message if it's NOT a system trigger like 'start'
     if (query !== 'start') {
@@ -813,9 +868,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
               </div>
             </div>
 
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col p-6 overflow-hidden bg-slate-50">
-              <div className="flex-1 overflow-y-auto space-y-6 pr-4">
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden bg-slate-50">
+              
+              {/* Chat Area */}
+              <div className={`flex flex-col p-6 overflow-hidden ${(selectedPayment === 'UPI' || assistantStep === 'paymentSuccess') ? 'w-2/3 border-r border-slate-200' : 'w-full'}`}>
+                <div className="flex-1 overflow-y-auto space-y-6 pr-4">
                 {chatHistory.map((msg) => (
                   <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`
@@ -890,6 +948,55 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 </button>
               </div>
             </div>
+
+            {/* Right Side Panel */}
+            {(selectedPayment === 'UPI' || assistantStep === 'paymentSuccess') && (
+              <div className="w-1/3 p-6 flex flex-col items-center justify-center animate-in slide-in-from-right-4 bg-white overflow-y-auto">
+                {assistantStep === 'paymentSuccess' && (
+                  <div className="w-full max-w-sm space-y-4">
+                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 text-center">
+                      <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle size={32} />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-800 mb-2">Payment Successful ✅</h3>
+                      <p className="text-sm font-medium text-slate-500 mb-6">What would you like to do next?</p>
+
+                      <div className="space-y-3 text-left">
+                        <button onClick={() => handleAiSearch('1')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl transition group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition">1</div>
+                            <span className="font-bold text-slate-700">Download Receipt</span>
+                          </div>
+                          <Download size={20} className="text-slate-400 group-hover:text-indigo-600 transition" />
+                        </button>
+
+                        <button onClick={() => handleAiSearch('2')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl transition group">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-slate-900 group-hover:text-white transition">2</div>
+                            <span className="font-bold text-slate-700">Go to Home</span>
+                          </div>
+                          <Home size={20} className="text-slate-400 group-hover:text-slate-900 transition" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {selectedPayment === 'UPI' && assistantStep !== 'paymentSuccess' && (
+                  <div className="w-full max-w-sm">
+                    <div className="upi-qr-container text-center bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                      <div className="bg-white p-4 rounded-2xl inline-block shadow-sm mb-4">
+                        <QRCode
+                          value={`upi://pay?pa=suvidha@upi&pn=Suvidha&am=850&cu=INR`}
+                          size={220}
+                        />
+                      </div>
+                      <p className="font-bold text-slate-600">Scan & Pay using any UPI App</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+           </div>
           </div>
         )}
 
@@ -970,6 +1077,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       </div>
       {showReceiptPreview && <PaymentReceipt data={receiptDetails} onClose={() => setShowReceiptPreview(false)} />}
+      {assistantStep === 'paymentSuccess' && <PaymentReceipt data={receiptDetails} isBackground={true} onClose={() => {}} />}
       {selectedHistoryItem && <HistoryReceipt data={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />}
     </KioskShell >
   );
