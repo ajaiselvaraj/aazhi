@@ -159,11 +159,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             // Fetch backend records and merge any new ones into state (cross-device sync)
             try {
                 const apiRequests = await GrievanceService.getAllRequestsAdmin();
+                const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
+                
                 if (Array.isArray(apiRequests) && apiRequests.length > 0) {
-                    
-                    // Segregate into Service Requests and Complaints
-                    const incomingServiceReqsData = apiRequests.filter(r => r.metadata?.type !== 'complaint');
-                    const incomingComplaintsData = apiRequests.filter(r => r.metadata?.type === 'complaint');
+                    const incomingServiceReqsData = apiRequests;
 
                     if (incomingServiceReqsData.length > 0) {
                         setServiceRequests(prev => {
@@ -204,7 +203,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             return merged;
                         });
                     }
+                }
 
+                if (Array.isArray(apiComplaints) && apiComplaints.length > 0) {
+                    const incomingComplaintsData = apiComplaints;
                     if (incomingComplaintsData.length > 0) {
                         setComplaints(prev => {
                             const existingIds = new Set(prev.map(c => c.id));
@@ -310,13 +312,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         // HYBRID: Try API first, fallback to offline ID
         try {
-            const apiRes = await GrievanceService.createRequest({
-                request_type: data.complaintType,
-                department: data.category,
+            const apiRes = await GrievanceService.createComplaint({
+                category: data.complaintType || 'General',
+                department: data.category || 'General',
+                subject: `Complaint regarding ${data.complaintType}`,
                 description: data.description || `Complaint regarding ${data.complaintType}`,
                 ward: data.area !== 'Unknown' ? data.area : undefined,
-                phone: data.phone,
-                metadata: { location: data.location, name: data.name, type: 'complaint' }
+                priority: priority.toLowerCase()
             });
             // Capture DB assigned ticket number
             finalId = (apiRes as any).ticket_number || apiRes.id;
