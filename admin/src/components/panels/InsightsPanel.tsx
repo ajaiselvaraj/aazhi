@@ -1,6 +1,8 @@
 import React from 'react'
 import { BarChart2, TrendingUp, TrendingDown } from 'lucide-react'
 import { aiInsights, AIInsight } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 const CATEGORY_COLORS = {
   'Trend':    '#2F6BFF',
@@ -16,6 +18,8 @@ const CATEGORY_BG = {
 }
 
 export default function InsightsPanel() {
+  const { user } = useAuth()
+  const insights = user ? filterByDept(aiInsights, user.department) : aiInsights
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
       {/* Header */}
@@ -25,14 +29,14 @@ export default function InsightsPanel() {
           AI Insights Engine
         </div>
         <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
-          <span className="badge badge-info"><BarChart2 size={10} /> {aiInsights.length} Active Insights</span>
+          <span className="badge badge-info"><BarChart2 size={10} /> {insights.length} Active Insights</span>
           <span className="live-dot">Live</span>
         </div>
       </div>
 
       {/* Insight Cards */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))', gap: '1rem' }}>
-        {aiInsights.map(ins => {
+        {insights.map(ins => {
           const catColor = CATEGORY_COLORS[ins.category]
           const catBg    = CATEGORY_BG[ins.category]
           return (

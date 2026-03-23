@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react'
 
+const SESSION_KEY = 'aazhi_admin_session'
+
 interface AuthUser {
   adminId: string
   department: string
@@ -14,11 +16,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
+function loadSession(): AuthUser | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    return raw ? (JSON.parse(raw) as AuthUser) : null
+  } catch {
+    return null
+  }
+}
 
-  const login = (u: AuthUser) => setUser(u)
-  const logout = () => setUser(null)
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(loadSession)
+
+  const login = (u: AuthUser) => {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(u))
+    setUser(u)
+  }
+
+  const logout = () => {
+    localStorage.removeItem(SESSION_KEY)
+    setUser(null)
+  }
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

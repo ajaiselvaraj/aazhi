@@ -1,6 +1,8 @@
 import React from 'react'
 import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
 import { riskEvents, RiskEvent } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 const SEVERITY_CONFIG = {
   'Critical': { color: 'var(--alert)',   bg: '#fff1f0', icon: '🔴', lineColor: '#FF4D4F' },
@@ -10,7 +12,9 @@ const SEVERITY_CONFIG = {
 }
 
 export default function RiskDetectorPanel() {
-  const active = riskEvents.filter(e => !e.resolved).length
+  const { user } = useAuth()
+  const events = user ? filterByDept(riskEvents, user.department) : riskEvents
+  const active = events.filter(e => !e.resolved).length
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -23,7 +27,7 @@ export default function RiskDetectorPanel() {
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span className="badge badge-danger">{active} Active Risks</span>
           <span className="badge badge-success">
-            <CheckCircle size={10} /> {riskEvents.length - active} Resolved
+            <CheckCircle size={10} /> {events.length - active} Resolved
           </span>
         </div>
       </div>
@@ -38,7 +42,7 @@ export default function RiskDetectorPanel() {
           }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {riskEvents.map((evt, i) => {
+            {events.map((evt, i) => {
               const cfg = SEVERITY_CONFIG[evt.severity]
               return (
                 <div key={evt.id} style={{ display: 'flex', gap: '1.25rem', alignItems: 'flex-start', animationDelay: `${i * .08}s` }} className="animate-in">
