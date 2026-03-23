@@ -11,6 +11,7 @@ import InsightsPanel from '../components/panels/InsightsPanel'
 import WorkloadForecastPanel from '../components/panels/WorkloadForecastPanel'
 import PredictiveAlertsPanel from '../components/panels/PredictiveAlertsPanel'
 import RiskDetectorPanel from '../components/panels/RiskDetectorPanel'
+import SettingsPanel from '../components/panels/SettingsPanel'
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -25,6 +26,7 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   forecast:   WorkloadForecastPanel,
   alerts:     PredictiveAlertsPanel,
   risk:       RiskDetectorPanel,
+  settings:   SettingsPanel,
 }
 
 export default function DashboardPage() {
@@ -37,7 +39,7 @@ export default function DashboardPage() {
     <div className="app-shell">
       <Sidebar active={activeNav} onNav={setActiveNav} onLogout={logout} />
       <div className="main-area">
-        <TopBar />
+        <TopBar onProfile={() => setActiveNav('settings')} />
         <main className="page-content" key={activeNav}>
           <Panel />
         </main>
