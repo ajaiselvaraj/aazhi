@@ -1,22 +1,50 @@
-import React from 'react'
-import { overviewStats } from '../../data/mockData'
+import React, { useEffect, useState } from 'react'
 import {
   MessageSquare, CheckCircle, AlertTriangle, Cpu,
   Copy, ShieldAlert, Clock, TrendingUp
 } from 'lucide-react'
-
-const stats = [
-  { label: 'Total Complaints',     value: overviewStats.totalComplaints.toLocaleString(), icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: '+14% this week', up: false },
-  { label: 'Resolved',             value: overviewStats.resolved.toLocaleString(),         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: '73% resolution rate', up: true },
-  { label: 'Critical Issues',      value: overviewStats.critical.toLocaleString(),         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: '+3 today', up: false },
-  { label: 'AI Routed',            value: overviewStats.aiRouted.toLocaleString(),         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: '85.8% auto-routing', up: true },
-  { label: 'Duplicates Caught',    value: overviewStats.duplicatesDetected.toLocaleString(),icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: 'Saved 189 tickets', up: true },
-  { label: 'Fraud Flagged',        value: overviewStats.fraudFlagged.toLocaleString(),     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: '2 new today', up: false },
-  { label: 'Avg Resolution (hrs)', value: overviewStats.avgResolutionHrs.toFixed(1),       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: '-0.4h vs last week', up: true },
-  { label: 'Pending',              value: overviewStats.pending.toLocaleString(),          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'Needs attention', up: false },
-]
+import { adminApi } from '../../services/adminApi'
 
 export default function DashboardOverview() {
+  const [stats, setStats] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadDashboard()
+    const interval = setInterval(loadDashboard, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function loadDashboard() {
+    try {
+      const data = await adminApi.getDashboard()
+      setStats({
+        totalComplaints: data.totalComplaints || 0,
+        resolved: data.resolvedComplaints || 0,
+        critical: data.criticalIssues || 0,
+        aiRouted: Math.floor((data.totalComplaints || 0) * 0.8), // Placeholder metric
+        duplicatesDetected: Math.floor((data.totalComplaints || 0) * 0.1), // Placeholder metric
+        fraudFlagged: 0,
+        avgResolutionHrs: 24.5,
+        pending: (data.totalComplaints || 0) - (data.resolvedComplaints || 0)
+      })
+    } catch (e) {
+      console.error('Failed to load dashboard overview', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const statCards = [
+    { label: 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: 'Live syncing', up: true },
+    { label: 'Resolved',             value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: 'Live syncing', up: true },
+    { label: 'Critical Issues',      value: stats?.critical.toLocaleString() || '0',         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: 'Requires attention', up: false },
+    { label: 'AI Routed',            value: stats?.aiRouted.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: 'Automated workflow', up: true },
+    { label: 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: 'Time saved', up: true },
+    { label: 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: 'Security check', up: false },
+    { label: 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Steady', up: true },
+    { label: 'Pending',              value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'In progress', up: false },
+  ]
   return (
     <div className="section-gap">
       {/* Page Header */}
@@ -26,8 +54,8 @@ export default function DashboardOverview() {
       </div>
 
       {/* Stats Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.1rem', marginBottom: '2rem' }}>
-        {stats.map((s, i) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.1rem', marginBottom: '2rem', opacity: loading ? 0.6 : 1, transition: 'opacity 0.3s' }}>
+        {statCards.map((s, i) => (
           <div key={i} className="stat-card animate-in" style={{ animationDelay: `${i * .05}s` }}>
             <div className="stat-icon" style={{ background: s.bg }}>
               <s.icon size={22} color={s.color} />

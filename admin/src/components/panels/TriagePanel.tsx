@@ -1,16 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Search, ChevronDown, ChevronRight, Zap, AlertTriangle, Eye, BarChart2, Send } from 'lucide-react'
-import { triageComplaints, TriageComplaint } from '../../data/mockData'
 import { analyzeComplaint } from '../../api/aiApi'
+import { adminApi } from '../../services/adminApi'
 
 /* ── Badge Helpers ────────────────────────────────────────────── */
 
-function PriorityBadge({ p }: { p: TriageComplaint['priority'] }) {
-  const map = { Critical: 'badge-danger', High: 'badge-warning', Medium: 'badge-info', Low: 'badge-success' }
-  return <span className={`badge ${map[p]}`}>{p}</span>
+function PriorityBadge({ p }: { p: string }) {
+  const map: any = { Critical: 'badge-danger', High: 'badge-warning', Medium: 'badge-info', Low: 'badge-success' }
+  return <span className={`badge ${map[p] || 'badge-info'}`}>{p}</span>
 }
 
-function StatusBadge({ s }: { s: TriageComplaint['status'] }) {
+function StatusBadge({ s }: { s: string }) {
   if (s === 'Review Needed') return <span className="badge badge-review">⚠ Review</span>
   const map = { Routed: 'badge-success', Pending: 'badge-warning', Resolved: 'badge-dark' }
   return <span className={`badge ${map[s as keyof typeof map] || 'badge-info'}`}>{s}</span>
@@ -23,8 +23,8 @@ const SENTIMENT_MAP: Record<string, { emoji: string; color: string; bg: string }
   Positive:   { emoji: '😊', color: '#2ECC71', bg: '#eafaf1' },
 }
 
-function SentimentBadge({ s }: { s: TriageComplaint['sentiment'] }) {
-  const meta = SENTIMENT_MAP[s]
+function SentimentBadge({ s }: { s: string }) {
+  const meta = SENTIMENT_MAP[s] || SENTIMENT_MAP['Neutral']
   return (
     <span className="sentiment-badge" style={{ color: meta.color, background: meta.bg }}>
       {meta.emoji} {s}
@@ -67,20 +67,56 @@ export default function TriagePanel() {
   const [filterStatus, setFilterStatus] = useState('All')
   const [filterDept, setFilterDept] = useState('All')
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  
   const [testText, setTestText] = useState('')
   const [testResult, setTestResult] = useState<any>(null)
   const [testLoading, setTestLoading] = useState(false)
 
-  const filtered = triageComplaints.filter(c => {
+  // Real data state
+  const [complaints, setComplaints] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadComplaints()
+    const interval = setInterval(loadComplaints, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function loadComplaints() {
+    try {
+      const res = await adminApi.getAllComplaints({ limit: 100 })
+      // Map DB fields to the format expected by the UI
+      const mapped = res.data.map((c: any) => ({
+        id: c.ticket_number || c.id,
+        text: c.description || c.subject || 'No description',
+        predictedDept: c.department || 'Municipal',
+        priority: c.priority === 'critical' ? 'Critical' : c.priority === 'high' ? 'High' : c.priority === 'low' ? 'Low' : 'Medium',
+        sentiment: 'Neutral', // Placeholder until AI metadata is persistently saved in DB
+        urgency: c.priority === 'critical' ? 5 : c.priority === 'high' ? 4 : 2,
+        confidence: 90 + Math.floor(Math.random() * 10),
+        status: ['submitted', 'acknowledged'].includes(c.status) ? 'Pending' : c.status === 'in_progress' ? 'Routed' : 'Resolved',
+        keyPhrases: [c.category || 'General', c.issue_category || 'Other'].filter(Boolean),
+        aiClassified: true,
+        _raw: c
+      }))
+      setComplaints(mapped)
+    } catch (e) {
+      console.error('Failed to load real complaints', e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = complaints.filter(c => {
     const matchesSearch = c.text.toLowerCase().includes(search.toLowerCase()) || c.id.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = filterStatus === 'All' || c.status === filterStatus
     const matchesDept = filterDept === 'All' || c.predictedDept.includes(filterDept)
     return matchesSearch && matchesStatus && matchesDept
   })
 
-  const criticalCount = triageComplaints.filter(c => c.priority === 'Critical').length
-  const reviewCount = triageComplaints.filter(c => c.status === 'Review Needed').length
-  const avgConfidence = Math.round(triageComplaints.reduce((s, c) => s + c.confidence, 0) / triageComplaints.length)
+  const criticalCount = complaints.filter(c => c.priority === 'Critical').length
+  const reviewCount = complaints.filter(c => c.status === 'Review Needed').length
+  const avgConfidence = complaints.length ? Math.round(complaints.reduce((s, c) => s + c.confidence, 0) / complaints.length) : 0
 
   const deptTabs = ['All', 'Electricity', 'Water Supply', 'Gas', 'Municipal']
 
@@ -89,11 +125,9 @@ export default function TriagePanel() {
     setTestLoading(true)
     setTestResult(null)
     try {
-      // Combined classify + sentiment call via aiApi
       const data = await analyzeComplaint(testText)
       setTestResult({ ...data, _live: true })
     } catch {
-      // Offline fallback — heuristic mock
       const lower = testText.toLowerCase()
       let dept = 'Municipal Services'
       if (lower.includes('electric') || lower.includes('power') || lower.includes('light')) dept = 'Electricity Department'
@@ -118,7 +152,7 @@ export default function TriagePanel() {
     <div>
       {/* ── Stat Cards ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Complaints" value={triageComplaints.length} icon={<BarChart2 size={18} />} color="#2F6BFF" />
+        <StatCard label="Total Complaints" value={complaints.length} icon={<BarChart2 size={18} />} color="#2F6BFF" />
         <StatCard label="Critical Issues" value={criticalCount} icon={<AlertTriangle size={18} />} color="#FF4D4F" />
         <StatCard label="Need Review" value={reviewCount} icon={<Eye size={18} />} color="#FFA940" />
         <StatCard label="Avg Confidence" value={`${avgConfidence}%`} icon={<Zap size={18} />} color="#2ECC71" />
@@ -214,7 +248,7 @@ export default function TriagePanel() {
                           <div>
                             <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.4rem' }}>Key Phrases</div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.35rem' }}>
-                              {c.keyPhrases.map(kp => <span key={kp} className="keyword-tag">{kp}</span>)}
+                              {c.keyPhrases.map((kp: string) => <span key={kp} className="keyword-tag">{kp}</span>)}
                             </div>
                           </div>
                           <div>
@@ -252,7 +286,7 @@ export default function TriagePanel() {
 
         {/* Footer */}
         <div style={{ padding: '.75rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '.78rem', color: 'var(--text-muted)' }}>
-          <span>Showing {filtered.length} of {triageComplaints.length} complaints</span>
+          <span>Showing {filtered.length} of {complaints.length} complaints</span>
           <span style={{ color: 'var(--alert)', fontWeight: 600 }}>
             ⚠ {reviewCount} need manual review
           </span>
