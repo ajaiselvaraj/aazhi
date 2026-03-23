@@ -1,6 +1,8 @@
 import React from 'react'
 import { Copy, GitMerge, Users } from 'lucide-react'
 import { duplicateClusters, DuplicateCluster } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 function StatusChip({ s }: { s: DuplicateCluster['status'] }) {
   if (s === 'Merged Into Master Ticket') return <span className="badge badge-success">✓ Merged</span>
@@ -16,8 +18,11 @@ const DEPT_COLORS: Record<string, string> = {
 }
 
 export default function DuplicatePanel() {
-  const total = duplicateClusters.reduce((a, c) => a + c.reportCount, 0)
-  const merged = duplicateClusters.filter(c => c.status === 'Merged Into Master Ticket').length
+  const { user } = useAuth()
+  const clusters = user ? filterByDept(duplicateClusters, user.department) : duplicateClusters
+
+  const total = clusters.reduce((a, c) => a + c.reportCount, 0)
+  const merged = clusters.filter(c => c.status === 'Merged Into Master Ticket').length
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -29,7 +34,7 @@ export default function DuplicatePanel() {
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span style={{ fontSize: '.78rem', color: 'var(--text-muted)' }}>
-            {merged}/{duplicateClusters.length} merged
+            {merged}/{clusters.length} merged
           </span>
           <span className="badge badge-info">
             <Copy size={10} /> {total} Total Reports
@@ -39,7 +44,7 @@ export default function DuplicatePanel() {
 
       {/* Cards Grid */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-        {duplicateClusters.map(cluster => {
+        {clusters.map(cluster => {
           const deptColor = DEPT_COLORS[cluster.dept] || 'var(--primary)'
           return (
             <div key={cluster.id} style={{

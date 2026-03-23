@@ -1,6 +1,8 @@
 import React from 'react'
 import { BellRing, Clock } from 'lucide-react'
 import { predictiveAlerts, PredictiveAlert } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 const SEVERITY_STYLES = {
   'Critical': { bg: '#fff1f0', border: '#FF4D4F', text: '#c0392b', badge: 'badge-danger' },
@@ -9,7 +11,9 @@ const SEVERITY_STYLES = {
 }
 
 export default function PredictiveAlertsPanel() {
-  const critical = predictiveAlerts.filter(a => a.severity === 'Critical').length
+  const { user } = useAuth()
+  const alerts = user ? filterByDept(predictiveAlerts, user.department) : predictiveAlerts
+  const critical = alerts.filter(a => a.severity === 'Critical').length
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -29,7 +33,7 @@ export default function PredictiveAlertsPanel() {
 
       {/* Alert Cards */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '.875rem' }}>
-        {predictiveAlerts.map(alert => {
+        {alerts.map(alert => {
           const sty = SEVERITY_STYLES[alert.severity]
           return (
             <div key={alert.id} style={{
