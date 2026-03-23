@@ -9,9 +9,10 @@ function getInitials(name: string) {
 interface TopBarProps {
   pageTitle?: string
   onNotifications?: () => void
+  onProfile?: () => void
 }
 
-export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
+export default function TopBar({ pageTitle, onNotifications, onProfile }: TopBarProps) {
   const { user } = useAuth()
   const [time, setTime] = useState(new Date())
 
@@ -120,6 +121,7 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
 
         {/* Admin avatar */}
         <div
+          onClick={onProfile}
           title={`${user?.name || 'Admin'} — Profile`}
           style={{
             width: 36, height: 36, borderRadius: '50%',

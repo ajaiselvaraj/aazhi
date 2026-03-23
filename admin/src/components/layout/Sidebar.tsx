@@ -25,9 +25,9 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
-      { id: 'priority',  icon: ListOrdered,     label: 'Priority Queue' },
-      { id: 'insights',  icon: BarChart2,       label: 'Insights & Analytics' },
-      { id: 'forecast',  icon: TrendingUp,      label: 'Workload Forecast' },
+      { id: 'priority',  icon: ListOrdered,     label: 'Service Requests' },
+      { id: 'insights',  icon: BarChart2,       label: 'Analytics & Payments' },
+      { id: 'forecast',  icon: TrendingUp,      label: 'Citizens List' },
     ],
   },
   {
@@ -87,7 +87,11 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <button className="nav-item" style={{ color: 'rgba(255,255,255,.4)', marginBottom: '.25rem' }}>
+        <button 
+          className={`nav-item${active === 'settings' ? ' active' : ''}`}
+          onClick={() => onNav('settings')}
+          style={{ color: active === 'settings' ? '#2F6BFF' : 'rgba(255,255,255,.4)', marginBottom: '.25rem' }}
+        >
           <Settings size={16} />
           <span>Settings</span>
         </button>
