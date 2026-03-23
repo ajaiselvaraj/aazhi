@@ -22,10 +22,22 @@ const router = express.Router();
 // A. Temporary Debug Fix: Bypass Auth to Test Insert
 // Uncomment the route below to test insertions without an Authorization header
 // Warning: Replace with mock user ID from your citizens table to avoid FK constraint errors!
-router.post("/debug", (req, res, next) => {
+router.post("/debug", async (req, res, next) => {
     console.log("⚠️ [DEBUG] Triggering Auth Bypass for /debug route");
-    req.user = { id: "9eb3f201-174d-48e9-a061-b88093fe58dc", role: "citizen" }; // Valid Mock DB ID
-    next();
+    try {
+        const dbRes = await import("../config/db.js").then(m => m.pool.query("SELECT id FROM citizens LIMIT 1"));
+        let citizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
+        if (dbRes.rows.length > 0) {
+            citizenId = dbRes.rows[0].id;
+        } else {
+            const newCit = await import("../config/db.js").then(m => m.pool.query("INSERT INTO citizens (mobile, role) VALUES ('0000000000', 'citizen') RETURNING id"));
+            citizenId = newCit.rows[0].id;
+        }
+        req.user = { id: citizenId, role: "citizen" };
+        next();
+    } catch (e) {
+        next(e);
+    }
 }, validate(createServiceRequestSchema), createServiceRequest);
 
 // B. Temporary Debug Fix: Bypass Auth to Fetch All Requests for Admin Dashboard sync

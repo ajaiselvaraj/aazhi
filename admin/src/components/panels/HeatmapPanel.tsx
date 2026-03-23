@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
-
 import { heatPoints } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 const INTENSITY_COLORS = {
   high:   '#FF4D4F',
@@ -15,6 +16,9 @@ const INTENSITY_RADIUS = {
 }
 
 export default function HeatmapPanel() {
+  const { user } = useAuth()
+  const pts = user ? filterByDept(heatPoints, user.department) : heatPoints
+
   const mapRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +47,7 @@ export default function HeatmapPanel() {
       maxZoom: 19,
     }).addTo(map)
 
-    heatPoints.forEach(pt => {
+    pts.forEach(pt => {
       const color = INTENSITY_COLORS[pt.intensity]
       const radius = INTENSITY_RADIUS[pt.intensity]
 
@@ -93,7 +97,7 @@ export default function HeatmapPanel() {
         style={{ width: '100%', height: 420, background: '#162236', position: 'relative' }}
       >
         {/* SVG Fallback render */}
-        <SVGHeatmap />
+        <SVGHeatmap pts={pts} />
       </div>
 
       {/* Stats row */}
@@ -102,10 +106,10 @@ export default function HeatmapPanel() {
         borderTop: '1px solid var(--border)',
       }}>
         {[
-          { label: 'High Density Zones', value: heatPoints.filter(p => p.intensity === 'high').length, color: '#FF4D4F' },
-          { label: 'Medium Density', value: heatPoints.filter(p => p.intensity === 'medium').length, color: '#FFA940' },
-          { label: 'Low Density', value: heatPoints.filter(p => p.intensity === 'low').length, color: '#2ECC71' },
-          { label: 'Total Hotspots', value: heatPoints.length, color: '#2F6BFF' },
+          { label: 'High Density Zones', value: pts.filter(p => p.intensity === 'high').length, color: '#FF4D4F' },
+          { label: 'Medium Density', value: pts.filter(p => p.intensity === 'medium').length, color: '#FFA940' },
+          { label: 'Low Density', value: pts.filter(p => p.intensity === 'low').length, color: '#2ECC71' },
+          { label: 'Total Hotspots', value: pts.length, color: '#2F6BFF' },
         ].map((s, i) => (
           <div key={i} style={{
             padding: '1rem 1.25rem',
@@ -121,7 +125,7 @@ export default function HeatmapPanel() {
   )
 }
 
-function SVGHeatmap() {
+function SVGHeatmap({ pts }: { pts: typeof heatPoints }) {
   // City map SVG with positioned complaint clusters
   const WIDTH = 900
   const HEIGHT = 420
@@ -163,7 +167,7 @@ function SVGHeatmap() {
       <rect x={580} y={240} width={220} height={150} rx={8} fill="rgba(47,107,255,.03)" stroke="rgba(47,107,255,.06)" strokeWidth={1} />
 
       {/* Heatmap circles */}
-      {heatPoints.map((pt, i) => {
+      {pts.map((pt, i) => {
         const x = toX(pt.lng)
         const y = toY(pt.lat)
         const color = pt.intensity === 'high' ? '#FF4D4F' : pt.intensity === 'medium' ? '#FFA940' : '#2ECC71'

@@ -187,13 +187,14 @@ export interface PredictiveAlert {
   ward: string
   time: string
   icon: string
+  dept: string
 }
 
 export const predictiveAlerts: PredictiveAlert[] = [
-  { id: 'ALT-01', severity: 'Critical', title: 'Pipeline Leak Cluster Detected', description: 'Multiple pipeline leak complaints detected in Ward 12 within 30 minutes. Infrastructure failure likely.', ward: 'Ward 12', time: '5 min ago', icon: '💧' },
-  { id: 'ALT-02', severity: 'Critical', title: 'Power Grid Overload Risk', description: 'Simultaneous outage reports from 3 adjacent wards. Grid stress approaching failure threshold.', ward: 'Wards 7, 8, 9', time: '12 min ago', icon: '⚡' },
-  { id: 'ALT-03', severity: 'High', title: 'Gas Complaints Spike', description: 'Gas-related complaints in Sector 6 increased 300% in last 2 hours. Possible distribution failure.', ward: 'Sector 6', time: '18 min ago', icon: '🔥' },
-  { id: 'ALT-04', severity: 'High', title: 'Sewage Overflow Imminent', description: 'Drain blockage cascade reported across Zone 4. Historical pattern indicates overflow in 2–4 hours.', ward: 'Zone 4', time: '25 min ago', icon: '🚨' },
+  { id: 'ALT-01', severity: 'Critical', title: 'Pipeline Leak Cluster Detected', description: 'Multiple pipeline leak complaints detected in Ward 12 within 30 minutes. Infrastructure failure likely.', ward: 'Ward 12', time: '5 min ago', icon: '💧', dept: 'Water Supply' },
+  { id: 'ALT-02', severity: 'Critical', title: 'Power Grid Overload Risk', description: 'Simultaneous outage reports from 3 adjacent wards. Grid stress approaching failure threshold.', ward: 'Wards 7, 8, 9', time: '12 min ago', icon: '⚡', dept: 'Electricity' },
+  { id: 'ALT-03', severity: 'High', title: 'Gas Complaints Spike', description: 'Gas-related complaints in Sector 6 increased 300% in last 2 hours. Possible distribution failure.', ward: 'Sector 6', time: '18 min ago', icon: '🔥', dept: 'Gas Distribution' },
+  { id: 'ALT-04', severity: 'High', title: 'Sewage Overflow Imminent', description: 'Drain blockage cascade reported across Zone 4. Historical pattern indicates overflow in 2–4 hours.', ward: 'Zone 4', time: '25 min ago', icon: '🚨', dept: 'Municipal' },
 ]
 
 // ── Civic Risk Timeline ───────────────────────────────────────
@@ -205,15 +206,16 @@ export interface RiskEvent {
   ward: string
   time: string
   resolved: boolean
+  dept: string
 }
 
 export const riskEvents: RiskEvent[] = [
-  { id: 'RSK-01', title: 'Power Outage Spike Detected', description: 'Anomaly: 47 outage reports in Ward 12 within 1 hour. AI flags as infrastructure failure.', severity: 'Critical', ward: 'Ward 12', time: '09:15 AM', resolved: false },
-  { id: 'RSK-02', title: 'Water Pressure Anomaly', description: 'Pressure readings from 3 zones show simultaneous drop — possible main line failure.', severity: 'High', ward: 'Zones 2, 3, 5', time: '09:42 AM', resolved: false },
-  { id: 'RSK-03', title: 'Transformer Overheating Signal', description: 'IoT sensor alert: transformer temp exceeds 85°C in Sector 11.', severity: 'High', ward: 'Sector 11', time: '10:08 AM', resolved: true },
-  { id: 'RSK-04', title: 'Road Subsidence Pattern', description: 'Recurring pothole complaints on same 200m stretch indicate underground erosion risk.', severity: 'Medium', ward: 'Zone 5', time: '10:33 AM', resolved: false },
-  { id: 'RSK-05', title: 'Garbage Accumulation Risk', description: 'Missed collection for 4 consecutive days — public health risk threshold approaching.', severity: 'Medium', ward: 'Sector 8', time: '11:01 AM', resolved: true },
-  { id: 'RSK-06', title: 'Gas Leak Mitigation Complete', description: 'Ward 7 gas leak contained. 3 officers dispatched, area secured. System status: Normal.', severity: 'Low', ward: 'Ward 7', time: '11:20 AM', resolved: true },
+  { id: 'RSK-01', title: 'Power Outage Spike Detected', description: 'Anomaly: 47 outage reports in Ward 12 within 1 hour. AI flags as infrastructure failure.', severity: 'Critical', ward: 'Ward 12', time: '09:15 AM', resolved: false, dept: 'Electricity' },
+  { id: 'RSK-02', title: 'Water Pressure Anomaly', description: 'Pressure readings from 3 zones show simultaneous drop — possible main line failure.', severity: 'High', ward: 'Zones 2, 3, 5', time: '09:42 AM', resolved: false, dept: 'Water Supply' },
+  { id: 'RSK-03', title: 'Transformer Overheating Signal', description: 'IoT sensor alert: transformer temp exceeds 85°C in Sector 11.', severity: 'High', ward: 'Sector 11', time: '10:08 AM', resolved: true, dept: 'Electricity' },
+  { id: 'RSK-04', title: 'Road Subsidence Pattern', description: 'Recurring pothole complaints on same 200m stretch indicate underground erosion risk.', severity: 'Medium', ward: 'Zone 5', time: '10:33 AM', resolved: false, dept: 'Municipal' },
+  { id: 'RSK-05', title: 'Garbage Accumulation Risk', description: 'Missed collection for 4 consecutive days — public health risk threshold approaching.', severity: 'Medium', ward: 'Sector 8', time: '11:01 AM', resolved: true, dept: 'Municipal' },
+  { id: 'RSK-06', title: 'Gas Leak Mitigation Complete', description: 'Ward 7 gas leak contained. 3 officers dispatched, area secured. System status: Normal.', severity: 'Low', ward: 'Ward 7', time: '11:20 AM', resolved: true, dept: 'Gas Distribution' },
 ]
 
 // ── Heatmap Points ────────────────────────────────────────────

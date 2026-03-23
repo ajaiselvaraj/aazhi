@@ -5,6 +5,8 @@ import {
   Tooltip, Legend, ResponsiveContainer, Area, AreaChart,
 } from 'recharts'
 import { workloadForecast, tomorrowForecast } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { deptKey } from '../../utils/deptFilter'
 
 const SERIES = [
   { key: 'electricity', label: 'Electricity', color: '#FFA940' },
@@ -32,6 +34,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 }
 
 export default function WorkloadForecastPanel() {
+  const { user } = useAuth()
+  const myDeptKey = user ? deptKey(user.department) : ''
+
+  // Filter to only the series that match the logged-in dept
+  const filteredSeries = SERIES.filter(s => {
+    if (!myDeptKey) return true
+    return s.label.toLowerCase().includes(myDeptKey.toLowerCase()) ||
+           myDeptKey.toLowerCase().includes(s.label.toLowerCase())
+  })
+  // fallback: show all if no match (e.g., unknown dept)
+  const activeSeries = filteredSeries.length > 0 ? filteredSeries : SERIES
+
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
       {/* Header */}
@@ -50,7 +64,7 @@ export default function WorkloadForecastPanel() {
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
         borderBottom: '1px solid var(--border)',
       }}>
-        {SERIES.map((s, i) => {
+        {activeSeries.map((s, i) => {
           const val = tomorrowForecast[s.key as keyof typeof tomorrowForecast]
           const isHigh = val > 60
           return (
@@ -78,7 +92,7 @@ export default function WorkloadForecastPanel() {
         <ResponsiveContainer width="100%" height={300}>
           <AreaChart data={workloadForecast} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
             <defs>
-              {SERIES.map(s => (
+              {activeSeries.map(s => (
                 <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={s.color} stopOpacity={0.2} />
                   <stop offset="95%" stopColor={s.color} stopOpacity={0.01} />
@@ -93,7 +107,7 @@ export default function WorkloadForecastPanel() {
               wrapperStyle={{ fontSize: '.78rem', paddingTop: '1rem' }}
               formatter={(v) => <span style={{ color: 'var(--text-secondary)' }}>{v}</span>}
             />
-            {SERIES.map(s => (
+            {activeSeries.map(s => (
               <Area
                 key={s.key}
                 type="monotone"

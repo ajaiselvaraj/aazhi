@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Search, ChevronDown, ChevronRight, Zap, AlertTriangle, Eye, BarChart2, Send } from 'lucide-react'
 import { analyzeComplaint } from '../../api/aiApi'
 import { adminApi } from '../../services/adminApi'
+import { useAuth } from '../../context/AuthContext'
+import { deptKey } from '../../utils/deptFilter'
 
 /* ── Badge Helpers ────────────────────────────────────────────── */
 
@@ -63,9 +65,11 @@ function StatCard({ label, value, icon, color }: { label: string; value: string 
 /* ── Main Panel ───────────────────────────────────────────────── */
 
 export default function TriagePanel() {
+  const { user } = useAuth()
+  const myDept = user ? deptKey(user.department) : ''
+
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('All')
-  const [filterDept, setFilterDept] = useState('All')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   
   const [testText, setTestText] = useState('')
@@ -107,16 +111,22 @@ export default function TriagePanel() {
     }
   }
 
-  const filtered = complaints.filter(c => {
+  // Enforce dept isolation — only show complaints belonging to the logged-in department
+  const deptComplaints = complaints.filter(c =>
+    c.predictedDept.toLowerCase().includes(myDept.toLowerCase())
+  )
+
+  const filtered = deptComplaints.filter(c => {
     const matchesSearch = c.text.toLowerCase().includes(search.toLowerCase()) || c.id.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = filterStatus === 'All' || c.status === filterStatus
-    const matchesDept = filterDept === 'All' || c.predictedDept.includes(filterDept)
-    return matchesSearch && matchesStatus && matchesDept
+    return matchesSearch && matchesStatus
   })
 
-  const criticalCount = complaints.filter(c => c.priority === 'Critical').length
-  const reviewCount = complaints.filter(c => c.status === 'Review Needed').length
-  const avgConfidence = complaints.length ? Math.round(complaints.reduce((s, c) => s + c.confidence, 0) / complaints.length) : 0
+  const criticalCount = deptComplaints.filter(c => c.priority === 'Critical').length
+  const reviewCount = deptComplaints.filter(c => c.status === 'Review Needed').length
+  const avgConfidence = deptComplaints.length
+    ? Math.round(deptComplaints.reduce((s, c) => s + c.confidence, 0) / deptComplaints.length)
+    : 0
 
   const deptTabs = ['All', 'Electricity', 'Water Supply', 'Gas', 'Municipal']
 
@@ -181,15 +191,6 @@ export default function TriagePanel() {
             </select>
             <span className="live-dot">Live</span>
           </div>
-        </div>
-
-        {/* Department pills */}
-        <div className="pill-tabs">
-          {deptTabs.map(d => (
-            <button key={d} className={`pill-tab${filterDept === d ? ' active' : ''}`} onClick={() => setFilterDept(d)}>
-              {d === 'All' ? '🏛 All Depts' : d}
-            </button>
-          ))}
         </div>
 
         {/* Table */}

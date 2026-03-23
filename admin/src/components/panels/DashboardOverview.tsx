@@ -4,10 +4,13 @@ import {
   Copy, ShieldAlert, Clock, TrendingUp
 } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
+import { useAuth } from '../../context/AuthContext'
 
 export default function DashboardOverview() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { user } = useAuth()
+  const dept = user?.department ?? 'All Departments'
 
   useEffect(() => {
     loadDashboard()
@@ -18,15 +21,18 @@ export default function DashboardOverview() {
   async function loadDashboard() {
     try {
       const data = await adminApi.getDashboard()
+      const totalComplaints = parseInt(data.complaints?.total) || 0;
+      const resolvedComplaints = parseInt(data.complaints?.resolved) || 0;
+
       setStats({
-        totalComplaints: data.totalComplaints || 0,
-        resolved: data.resolvedComplaints || 0,
-        critical: data.criticalIssues || 0,
-        aiRouted: Math.floor((data.totalComplaints || 0) * 0.8), // Placeholder metric
-        duplicatesDetected: Math.floor((data.totalComplaints || 0) * 0.1), // Placeholder metric
+        totalComplaints: totalComplaints,
+        resolved: resolvedComplaints,
+        critical: 0,
+        aiRouted: Math.floor(totalComplaints * 0.8), // Placeholder metric
+        duplicatesDetected: Math.floor(totalComplaints * 0.1), // Placeholder metric
         fraudFlagged: 0,
         avgResolutionHrs: 24.5,
-        pending: (data.totalComplaints || 0) - (data.resolvedComplaints || 0)
+        pending: totalComplaints - resolvedComplaints
       })
     } catch (e) {
       console.error('Failed to load dashboard overview', e)
@@ -42,15 +48,15 @@ export default function DashboardOverview() {
     { label: 'AI Routed',            value: stats?.aiRouted.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: 'Automated workflow', up: true },
     { label: 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: 'Time saved', up: true },
     { label: 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: 'Security check', up: false },
-    { label: 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Steady', up: true },
+    { label: 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs?.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Steady', up: true },
     { label: 'Pending',              value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'In progress', up: false },
   ]
   return (
     <div className="section-gap">
       {/* Page Header */}
       <div className="page-header">
-        <h1>Dashboard Overview</h1>
-        <p>Real-time summary of city complaints, AI processing, and infrastructure health.</p>
+        <h1>{dept} — Dashboard Overview</h1>
+        <p>Real-time summary of {dept.toLowerCase()} complaints, AI processing, and infrastructure health.</p>
       </div>
 
       {/* Stats Grid */}
