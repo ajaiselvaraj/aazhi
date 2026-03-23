@@ -1,140 +1,114 @@
-import React, { useEffect, useState } from 'react'
-import { adminApi } from '../../services/adminApi'
-import { TrendingUp, RefreshCw, AlertTriangle, Users, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import React from 'react'
+import { TrendingUp } from 'lucide-react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, Area, AreaChart,
+} from 'recharts'
+import { workloadForecast, tomorrowForecast } from '../../data/mockData'
+
+const SERIES = [
+  { key: 'electricity', label: 'Electricity', color: '#FFA940' },
+  { key: 'water',       label: 'Water Supply', color: '#2F6BFF' },
+  { key: 'gas',         label: 'Gas Distribution', color: '#FF4D4F' },
+  { key: 'municipal',   label: 'Municipal', color: '#2ECC71' },
+]
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{
+      background: 'var(--dark)', border: '1px solid rgba(255,255,255,.1)',
+      borderRadius: 10, padding: '.75rem 1rem', minWidth: 180,
+    }}>
+      <div style={{ color: 'rgba(255,255,255,.6)', fontSize: '.75rem', marginBottom: '.5rem' }}>{label}</div>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '.2rem' }}>
+          <span style={{ color: p.color, fontSize: '.8rem', fontWeight: 500 }}>{p.name}</span>
+          <span style={{ color: '#fff', fontWeight: 700, fontSize: '.85rem' }}>{p.value}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function WorkloadForecastPanel() {
-  const [citizens, setCitizens] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [page, setPage] = useState(1)
-  const [total, setTotal] = useState(0)
-  const [search, setSearch] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const limit = 20
-
-  const fetchCitizens = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const result = await adminApi.getAllCitizens({ page, limit, search: search || undefined })
-      if (Array.isArray(result)) {
-        setCitizens(result)
-        setTotal(result.length)
-      } else {
-        setCitizens(result.data || result.rows || [])
-        setTotal(result.pagination?.total || result.total || 0)
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load citizens')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { fetchCitizens() }, [page, search])
-
-  const handleSearch = () => {
-    setPage(1)
-    setSearch(searchInput)
-  }
-
-  const totalPages = Math.ceil(total / limit) || 1
-
   return (
-    <div className="section-gap animate-in">
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1>Citizens & Workload</h1>
-          <p>Registered citizens from the database. Total: {total}</p>
+    <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="section-title" style={{ marginBottom: 0 }}>
+          <div className="icon-dot" />
+          Department Workload Prediction
         </div>
-        <button className="btn btn-ghost" onClick={fetchCitizens}><RefreshCw size={16} /> Refresh</button>
+        <div style={{ display: 'flex', gap: '.5rem' }}>
+          <span className="badge badge-info"><TrendingUp size={10} /> 7-Day Forecast</span>
+        </div>
       </div>
 
-      {/* Search */}
-      <div style={{ display: 'flex', gap: '.75rem', marginBottom: '1.5rem' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 350 }}>
-          <input
-            type="text"
-            value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-            placeholder="Search by name or mobile…"
-            className="form-input"
-            style={{ borderRadius: 10, paddingLeft: '2.5rem', fontSize: '.85rem' }}
-          />
-          <Search size={16} style={{ position: 'absolute', left: '.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-        </div>
-        <button className="btn btn-primary" onClick={handleSearch}><Search size={16} /> Search</button>
-      </div>
-
-      {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-          <div style={{ textAlign: 'center' }}>
-            <RefreshCw size={28} color="var(--primary)" style={{ animation: 'spin 1s linear infinite' }} />
-            <p style={{ marginTop: '.5rem', color: 'var(--text-muted)', fontWeight: 600 }}>Loading…</p>
-          </div>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
-      ) : error ? (
-        <div className="card card-danger" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
-          <AlertTriangle size={24} color="var(--alert)" />
-          <div><div style={{ fontWeight: 700 }}>Error</div><p style={{ fontSize: '.85rem' }}>{error}</p></div>
-          <button className="btn btn-primary" onClick={fetchCitizens} style={{ marginLeft: 'auto' }}><RefreshCw size={16} /> Retry</button>
-        </div>
-      ) : citizens.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <Users size={40} color="var(--text-muted)" style={{ margin: '0 auto .75rem' }} />
-          <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>No citizens found</p>
-        </div>
-      ) : (
-        <>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Mobile</th>
-                  <th>Role</th>
-                  <th>Ward</th>
-                  <th>Zone</th>
-                  <th>Active</th>
-                  <th>Registered</th>
-                </tr>
-              </thead>
-              <tbody>
-                {citizens.map((c: any) => (
-                  <tr key={c.id}>
-                    <td style={{ fontWeight: 600 }}>{c.name || '—'}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '.85rem' }}>{c.mobile || '—'}</td>
-                    <td><span className={`badge ${c.role === 'admin' ? 'badge-danger' : c.role === 'staff' ? 'badge-warning' : 'badge-info'}`}>{c.role}</span></td>
-                    <td>{c.ward || '—'}</td>
-                    <td>{c.zone || '—'}</td>
-                    <td>
-                      <span style={{
-                        width: 8, height: 8, borderRadius: '50%',
-                        background: c.is_active ? 'var(--success)' : 'var(--alert)',
-                        display: 'inline-block'
-                      }} />
-                    </td>
-                    <td style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>
-                      {c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-            <span style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Page {page} of {totalPages} ({total} total)</span>
-            <div style={{ display: 'flex', gap: '.5rem' }}>
-              <button className="btn btn-ghost" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeft size={16} /> Prev</button>
-              <button className="btn btn-ghost" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next <ChevronRight size={16} /></button>
+      {/* Tomorrow's snapshot */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        {SERIES.map((s, i) => {
+          const val = tomorrowForecast[s.key as keyof typeof tomorrowForecast]
+          const isHigh = val > 60
+          return (
+            <div key={s.key} style={{
+              padding: '.875rem 1.25rem',
+              borderRight: i < 3 ? '1px solid var(--border)' : 'none',
+              textAlign: 'center',
+            }}>
+              <div style={{ fontSize: '.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.3rem' }}>
+                Tomorrow · {s.label}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, fontFamily: 'Poppins,sans-serif' }}>
+                {val}
+              </div>
+              <div style={{ fontSize: '.72rem', marginTop: '.2rem', color: isHigh ? 'var(--alert)' : 'var(--success)', fontWeight: 600 }}>
+                {isHigh ? '↑ High Load' : '✓ Normal'}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          )
+        })}
+      </div>
+
+      {/* Chart */}
+      <div style={{ padding: '1.5rem', paddingTop: '1.25rem' }}>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={workloadForecast} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
+            <defs>
+              {SERIES.map(s => (
+                <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={s.color} stopOpacity={0.2} />
+                  <stop offset="95%" stopColor={s.color} stopOpacity={0.01} />
+                </linearGradient>
+              ))}
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              wrapperStyle={{ fontSize: '.78rem', paddingTop: '1rem' }}
+              formatter={(v) => <span style={{ color: 'var(--text-secondary)' }}>{v}</span>}
+            />
+            {SERIES.map(s => (
+              <Area
+                key={s.key}
+                type="monotone"
+                dataKey={s.key}
+                name={s.label}
+                stroke={s.color}
+                strokeWidth={2}
+                fill={`url(#grad-${s.key})`}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0 }}
+              />
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }

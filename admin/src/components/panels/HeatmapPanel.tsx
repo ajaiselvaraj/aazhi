@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Map, Info } from 'lucide-react'
+
 import { heatPoints } from '../../data/mockData'
 
 const INTENSITY_COLORS = {
