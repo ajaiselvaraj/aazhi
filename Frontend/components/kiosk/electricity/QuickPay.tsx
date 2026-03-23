@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, CreditCard, Printer, ShieldCheck, Zap, QrCode } from 'lucide-react';
+import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { MOCK_USER_PROFILE } from '../../../constants';
 import OfficialReceipt from './OfficialReceipt';
 import PaymentReceipt from '../PaymentReceipt';
@@ -210,8 +211,11 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 <div className="text-center animate-in fade-in zoom-in-95">
                                     <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">{t('scanPaymentQR')}</h4>
                                     <div className="bg-white p-4 rounded-xl inline-block shadow-sm border border-slate-200 mb-4">
-                                        <div className="w-40 h-40 bg-white relative mx-auto flex items-center justify-center overflow-hidden">
-                                            <QrCode size={140} className="text-slate-900" />
+                                        <div className="bg-white relative mx-auto flex items-center justify-center overflow-hidden p-2">
+                                            <QRCode 
+                                                value={`upi://pay?pa=suvidha@upi&pn=SuvidhaService&am=${billData.amount}&cu=INR`} 
+                                                size={220} 
+                                            />
                                         </div>
                                     </div>
                                     <p className="text-xs font-bold text-slate-400">{t('scanViaUPI')}</p>

@@ -893,29 +893,8 @@ const App: React.FC = () => {
 
         {/* Error Toast */}
         {error && (
-          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-red-600/95 backdrop-blur-md text-white px-8 py-4 rounded-2xl font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-10 flex items-center gap-4 text-base border border-red-500/20">
-            <div className="flex-1 flex items-center gap-3">
-              <AlertTriangle size={20} className="text-red-200" /> 
-              <span>{error}</span>
-            </div>
-            
-            <button 
-              onClick={() => {
-                setError('');
-                if (authStage === 'OTP') handleLoginSubmit();
-                else handleSendOtp();
-              }}
-              className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all border border-white/20 uppercase text-[10px] tracking-widest"
-            >
-              {t('retryBtn') || 'Retry'}
-            </button>
-
-            <button 
-              onClick={() => setError('')}
-              className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
-            >
-              <X size={18} />
-            </button>
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-10 flex items-center gap-3 text-sm">
+            <AlertTriangle size={18} /> {error}
           </div>
         )}
       </div>

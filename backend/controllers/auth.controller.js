@@ -6,6 +6,7 @@ import { requestOtp, confirmOtp } from "../services/otp.service.js";
 import { generateTokens } from "../services/jwt.service.js";
 import { success, fail, error as serverError } from "../utils/response.js";
 import logger from "../utils/logger.js";
+import { pool } from "../config/db.js";
 
 /**
  * Handles generating and sending OTP to a given mobile number
@@ -91,9 +92,17 @@ export const mockAadhaarLogin = async (req, res, next) => {
         // This is the same ID I used in the debug routes: 9eb3f201-174d-48e9-a061-b88093fe58dc
         const demoCitizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
         
-        const result = await pool.query("SELECT * FROM citizens WHERE id = $1", [demoCitizenId]);
+        let result = await pool.query("SELECT * FROM citizens WHERE id = $1", [demoCitizenId]);
         if (result.rows.length === 0) {
-            return fail(res, "Demo citizen not found in database. Run test_db.js first.", 500);
+            result = await pool.query("SELECT * FROM citizens LIMIT 1");
+            if (result.rows.length === 0) {
+                // Insert a dummy citizen if none exist
+                result = await pool.query(`
+                    INSERT INTO citizens (mobile, name, role) 
+                    VALUES ('9999999999', 'Mock Aadhaar User', 'citizen') 
+                    RETURNING *
+                `);
+            }
         }
 
         const citizen = result.rows[0];

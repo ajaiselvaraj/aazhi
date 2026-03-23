@@ -359,7 +359,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 if(c.currentStage!==stage) stages.push({ stage, status:"Current", updatedAt:now });
                 return { ...c, currentStage: stage, stages };
             });
-            persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
+            persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated);
             return updated;
         });
         logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
