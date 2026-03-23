@@ -221,8 +221,8 @@ const App: React.FC = () => {
   const timerRef = useRef<number | null>(null);
 
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
-  const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE' | 'PASSWORD'>('AADHAAR');
-  const [authStage, setAuthStage] = useState<'INPUT' | 'OTP' | 'PASSWORD'>('INPUT');
+  const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE'>('AADHAAR');
+  const [authStage, setAuthStage] = useState<'INPUT' | 'OTP'>('INPUT');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -350,18 +350,6 @@ const App: React.FC = () => {
   const handleSendOtp = async () => {
     setError('');
     
-    // Hidden Admin Logic: Check for special number
-    if (loginMethod === 'MOBILE' && identifier === '963852') {
-      setIsProcessing(true);
-      setTimeout(() => {
-        setIsProcessing(false);
-        setLoginMethod('PASSWORD');
-        setAuthStage('PASSWORD');
-        setIdentifier('');
-        setPassword('');
-      }, 500);
-      return;
-    }
 
     if (loginMethod === 'AADHAAR') {
       if (identifier.replace(/\s/g, '').length !== 12) {
@@ -404,24 +392,7 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      if (authStage === 'PASSWORD') {
-        if (password === '789456' && identifier === '') {
-           // Super Admin bypass
-           setView(ViewState.ADMIN);
-        } else {
-          // Attempt real login with mobile + password for admin/staff
-          try {
-             const response = await authService.login(identifier, password);
-             if (response.user.role === 'admin' || response.user.role === 'staff') {
-                setView(ViewState.ADMIN);
-             } else {
-                setView(ViewState.SELECTION);
-             }
-          } catch (e: any) {
-             setError(e.message || t('err_adminPass'));
-          }
-        }
-      } else if (loginMethod === 'MOBILE') {
+      if (loginMethod === 'MOBILE') {
         // Authenticate with backend
         await authService.verifyOtp(identifier, otp);
         
@@ -797,17 +768,13 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              {/* 2. MOBILE FLOW & 3. HIDDEN ADMIN PASSWORD FLOW */}
-              {(loginMethod === 'MOBILE' || loginMethod === 'PASSWORD') && (
+              {/* 2. MOBILE FLOW */}
+              {(loginMethod === 'MOBILE') && (
                 <div className="animate-in fade-in slide-in-from-right-8">
                   {authStage === 'INPUT' ? (
                     <>
                       <div className="flex justify-between items-end mb-2">
                         <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('mobileOTP')}</label>
-                        <div className="flex gap-3 text-[10px] text-slate-400 font-medium mb-0.5">
-                          <span>admin = 963852</span>
-                          <span>pass = 789456</span>
-                        </div>
                       </div>
                       <div className="relative group">
                         <input
@@ -833,34 +800,6 @@ const App: React.FC = () => {
                         {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('sendOTP')} <ArrowRight size={20} /></>}
                       </button>
                     </>
-                  ) : authStage === 'PASSWORD' ? (
-                    /* HIDDEN ADMIN PASSWORD UI */
-                    <div className="animate-in fade-in slide-in-from-right-8">
-                      <div className="flex justify-between items-end mb-2">
-                        <label className="block text-xs font-bold text-slate-900 ml-1 uppercase tracking-wider">{t('adminPasswordLabel')}</label>
-                        <span className="text-[10px] text-slate-500 tracking-wide">Password: 789456</span>
-                      </div>
-                      <div className="relative group">
-                        <input
-                          id="admin-password-input"
-                          type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          className="w-full bg-slate-50 border border-slate-200 p-5 rounded-2xl text-xl font-bold outline-none focus:border-indigo-600 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition placeholder:text-slate-300"
-                          placeholder="••••••"
-                        />
-                        <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                      </div>
-                      <button
-                        id="admin-access-btn"
-                        onClick={handleLoginSubmit}
-                        disabled={isProcessing || !password}
-                        className="w-full bg-indigo-900 text-white p-5 rounded-2xl font-bold text-lg hover:bg-indigo-950 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-[0.98] transition-all disabled:opacity-50 disabled:shadow-none mt-6 flex items-center justify-center gap-2"
-                      >
-                        {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('accessSystem')} <Lock size={20} /></>}
-                      </button>
-                      <button onClick={() => { setAuthStage('INPUT'); setLoginMethod('MOBILE'); setIdentifier(''); }} className="text-sm font-bold text-slate-400 hover:text-blue-600 mt-4 block mx-auto">{t('cancelAdmin')}</button>
-                    </div>
                   ) : (
                     /* STANDARD OTP UI */
                     <div className="text-center space-y-6">

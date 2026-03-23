@@ -127,3 +127,54 @@ export const mockAadhaarLogin = async (req, res, next) => {
         return serverError(res, "Failed to process mock Aadhaar login.", 500);
     }
 };
+
+/**
+ * ADMIN LOGIN (For Admin Dashboard)
+ * Route: POST /api/auth/admin-login
+ */
+export const adminLogin = async (req, res, next) => {
+    try {
+        const { adminId, password, department } = req.body;
+
+        if (!adminId || !password || !department) {
+            return fail(res, "Admin ID, password, and department are required.", 400);
+        }
+
+        // Just a mock check for demonstration, or we can query real DB if we want to store admins.
+        // Let's check for an admin user in DB.
+        let result = await pool.query("SELECT * FROM citizens WHERE role = 'admin' LIMIT 1");
+        
+        if (result.rows.length === 0) {
+            // Insert a dummy admin if none exist
+            result = await pool.query(`
+                INSERT INTO citizens (mobile, name, role) 
+                VALUES ('0000000000', 'Admin Officer', 'admin') 
+                RETURNING *
+            `);
+        }
+
+        const admin = result.rows[0];
+
+        // Tokens usually generated based on citizen. But generateTokens function likely just grabs id, role, name.
+        const { accessToken, refreshToken } = generateTokens(admin);
+
+        logger.info(`[Auth Controller] Admin login success for ${adminId} in ${department}`);
+
+        return success(res, "Admin verification successful.", {
+            admin: {
+                id: admin.id,
+                adminId,
+                name: admin.name || "Admin Officer",
+                department,
+                role: "admin"
+            },
+            tokens: {
+                accessToken,
+                refreshToken
+            }
+        }, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Admin Login Error: ${error.message}`);
+        return serverError(res, "Failed to process admin login.", 500);
+    }
+};

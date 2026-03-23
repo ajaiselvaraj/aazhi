@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
@@ -28,5 +28,12 @@ router.post("/verify-otp", authLimiter, verifyOtpController);
  * @access  Public
  */
 router.post("/mock-aadhaar", mockAadhaarLogin);
+
+/**
+ * @desc    Admin login
+ * @route   POST /api/auth/admin-login
+ * @access  Public
+ */
+router.post("/admin-login", adminLogin);
 
 export default router;
