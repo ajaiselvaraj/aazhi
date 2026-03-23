@@ -1,6 +1,8 @@
 import React from 'react'
 import { UserCheck, Clock } from 'lucide-react'
 import { priorityIssues, PriorityIssue } from '../../data/mockData'
+import { useAuth } from '../../context/AuthContext'
+import { filterByDept } from '../../utils/deptFilter'
 
 const PRIORITY_STYLES = {
   'P0 — Emergency': { bg: '#fff1f0', border: '#FF4D4F', color: '#c0392b', badge: 'badge-danger' },
@@ -9,7 +11,9 @@ const PRIORITY_STYLES = {
 }
 
 export default function PriorityQueuePanel() {
-  const emergency = priorityIssues.filter(i => i.priority === 'P0 — Emergency').length
+  const { user } = useAuth()
+  const issues = user ? filterByDept(priorityIssues, user.department) : priorityIssues
+  const emergency = issues.filter(i => i.priority === 'P0 — Emergency').length
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -29,7 +33,7 @@ export default function PriorityQueuePanel() {
 
       {/* Cards Grid */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-        {priorityIssues.map(issue => {
+        {issues.map(issue => {
           const style = PRIORITY_STYLES[issue.priority]
           return (
             <div key={issue.id} style={{

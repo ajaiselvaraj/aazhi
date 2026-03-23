@@ -4,6 +4,7 @@ import {
   MessageSquare, CheckCircle, AlertTriangle, Cpu,
   Copy, ShieldAlert, Clock, TrendingUp
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const stats = [
   { label: 'Total Complaints',     value: overviewStats.totalComplaints.toLocaleString(), icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: '+14% this week', up: false },
@@ -17,12 +18,14 @@ const stats = [
 ]
 
 export default function DashboardOverview() {
+  const { user } = useAuth()
+  const dept = user?.department ?? 'All Departments'
   return (
     <div className="section-gap">
       {/* Page Header */}
       <div className="page-header">
-        <h1>Dashboard Overview</h1>
-        <p>Real-time summary of city complaints, AI processing, and infrastructure health.</p>
+        <h1>{dept} — Dashboard Overview</h1>
+        <p>Real-time summary of {dept.toLowerCase()} complaints, AI processing, and infrastructure health.</p>
       </div>
 
       {/* Stats Grid */}

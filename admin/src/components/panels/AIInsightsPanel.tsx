@@ -9,6 +9,8 @@ import {
   aiSentimentDistribution, aiModelHealth,
 } from '../../data/mockData'
 import { checkHealth, type HealthResult } from '../../api/aiApi'
+import { useAuth } from '../../context/AuthContext'
+import { deptKey } from '../../utils/deptFilter'
 
 /* ── Metric Card ──────────────────────────────────────────────── */
 
@@ -83,6 +85,13 @@ function ChartCard({ title, children, span = 1 }: { title: string; children: Rea
 /* ── Main Panel ───────────────────────────────────────────────── */
 
 export default function AIInsightsPanel() {
+  const { user } = useAuth()
+  const myKey = user ? deptKey(user.department) : ''
+  // Filter dept-distribution pie to show only the logged-in dept's slice
+  const deptDistData = myKey
+    ? aiDeptDistribution.filter(d => d.name.toLowerCase().includes(myKey.toLowerCase()))
+    : aiDeptDistribution
+
   const [health, setHealth] = useState<HealthResult | null>(null)
 
   useEffect(() => {
@@ -149,11 +158,11 @@ export default function AIInsightsPanel() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
-                data={aiDeptDistribution} dataKey="value" nameKey="name"
+                data={deptDistData} dataKey="value" nameKey="name"
                 cx="50%" cy="50%" innerRadius={55} outerRadius={80}
                 paddingAngle={4} strokeWidth={0}
               >
-                {aiDeptDistribution.map((d, i) => <Cell key={i} fill={d.color} />)}
+                {deptDistData.map((d, i) => <Cell key={i} fill={d.color} />)}
               </Pie>
               <Tooltip contentStyle={{ background: '#162236', border: 'none', borderRadius: 10, fontSize: '.78rem', color: '#fff' }} />
               <Legend iconSize={8} wrapperStyle={{ fontSize: '.74rem', color: '#94a3b8' }} />
