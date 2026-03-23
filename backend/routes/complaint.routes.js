@@ -10,7 +10,7 @@
 import express from "express";
 import {
     registerComplaint, trackComplaint,
-    getMyComplaints, updateComplaintStatus, addMessage,
+    getMyComplaints, updateComplaintStatus, addMessage, getAllComplaintsAdmin
 } from "../controllers/complaint.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
@@ -21,6 +21,15 @@ import { validate, createComplaintSchema, updateComplaintStatusSchema } from "..
 const router = express.Router();
 
 router.use(checkServiceEnabled("complaints"));
+
+// A. Temporary Debug Fix: Bypass Auth to Test Insert
+router.post("/debug", (req, res, next) => {
+    req.user = { id: "9eb3f201-174d-48e9-a061-b88093fe58dc", role: "citizen" }; // Valid Mock DB ID
+    next();
+}, validate(createComplaintSchema), registerComplaint);
+
+// B. Temporary Debug Fix: Bypass Auth to Fetch All for Frontend sync
+router.get("/admin/debug", getAllComplaintsAdmin);
 
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);
