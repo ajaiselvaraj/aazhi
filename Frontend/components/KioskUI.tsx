@@ -109,6 +109,49 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     onLogout();
   });
 
+  // Voice Command Handler
+  const handleVoiceCommand = (command: string) => {
+    console.log('[KioskUI] Voice Command Received:', command);
+    switch (command) {
+      case 'home':
+        setActiveTab('home');
+        break;
+      case 'service':
+        setActiveTab('services');
+        setSubmissionStep('select');
+        break;
+      case 'complaints':
+        setActiveTab('complaints');
+        break;
+      case 'trackapp':
+        setActiveTab('tracker');
+        break;
+      case 'assistant':
+        setActiveTab('ai');
+        break;
+      case 'paybill':
+        setActiveTab('billing');
+        setBillingStep('select');
+        break;
+      case 'history':
+        setActiveTab('status');
+        break;
+      case 'exit':
+        onLogout();
+        break;
+      case 'submit':
+        if (activeTab === 'services' && submissionStep === 'form') {
+           // Simulate submission if needed, or prompt user.
+           setSubmissionStep('success'); // just moving forward for demo
+        } else if (activeTab === 'billing' && billingStep === 'details') {
+           setBillingStep('success');
+        }
+        break;
+      default:
+        console.warn('Unhandled command in KioskUI:', command);
+    }
+  };
+
   // Initialize Chat with Welcome Message on Load
   useEffect(() => {
     if (chatHistory.length === 0) {
@@ -467,6 +510,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       timer={timer}
       isPrivacyShield={isPrivacyShield}
       onTogglePrivacy={onTogglePrivacy}
+      onVoiceCommand={handleVoiceCommand as any}
     >
       {/* KIOSK WALK-AWAY WARNING MODAL */}
       {isWarning && (

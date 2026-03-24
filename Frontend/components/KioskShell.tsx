@@ -3,7 +3,7 @@ import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, Log
 import { APP_CONFIG } from '../constants';
 import { Language } from '../types';
 import { useTranslation } from 'react-i18next';
-import VoiceNavigation from './VoiceNavigation';
+import SuvidhaVoiceControl from './SuvidhaVoiceControl';
 import KioskErrorBoundary from './KioskErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemService } from '../services/systemService';
@@ -316,7 +316,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
                     <div className="flex items-center gap-6">
                         {onVoiceCommand && (
-                            <VoiceNavigation onCommand={onVoiceCommand} />
+                            <SuvidhaVoiceControl onCommand={onVoiceCommand as any} ttsLanguage={language} variant="inline" />
                         )}
 
 

@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import KioskUI from './components/KioskUI';
 import Documentation from './components/Documentation';
 import Admin from './components/Admin';
-import { Globe, ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, X, Navigation, CheckCircle } from 'lucide-react';
+import { Globe, ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import './i18n';
-import VoiceNavigation from './components/VoiceNavigation';
+import SuvidhaVoiceControl from './components/SuvidhaVoiceControl';
 import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
 import { authService } from './services/authService';
@@ -177,38 +177,6 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
 };
 
 // ─────────────────────────────────────────────
-// Admin Popup Notification Component
-// ─────────────────────────────────────────────
-const AdminPopupNotification: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const { t } = useTranslation();
-  return (
-    <div
-      className="pointer-events-auto absolute lg:left-[calc(100%+24px)] lg:top-8 top-full left-1/2 -translate-x-1/2 lg:translate-x-0 z-[100] w-[290px] lg:w-[340px] bg-slate-50/98 backdrop-blur-md border border-slate-200 rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-top-4 lg:slide-in-from-left-10 duration-700"
-    >
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-5 p-1.5 hover:bg-slate-200/50 rounded-full transition-colors text-slate-400"
-      >
-        <X size={18} />
-      </button>
-
-      <div className="flex flex-col items-center justify-center text-center">
-        <p className="text-[15px] font-bold text-slate-800 leading-relaxed px-2 mb-3">
-          {t('adminPopupMsg')}
-        </p>
-        <div className="space-y-1">
-          <p className="text-[13px] font-medium text-slate-500">{t('adminPopupId')}: <span className="text-slate-700 font-bold">963852</span></p>
-          <p className="text-[13px] font-medium text-slate-500">{t('adminPopupPass')}: <span className="text-slate-700 font-bold">789456</span></p>
-        </div>
-      </div>
-
-      {/* Visual connector for desktop */}
-      <div className="hidden lg:block absolute -left-2 top-10 w-4 h-4 bg-slate-50 border-l border-b border-slate-200 rotate-45 z-10" />
-    </div>
-  );
-};
-
-// ─────────────────────────────────────────────
 // Main App
 // ─────────────────────────────────────────────
 const App: React.FC = () => {
@@ -234,23 +202,10 @@ const App: React.FC = () => {
   const [locationInfo, setLocationInfo] = useState<string>('Detecting location...');
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
-  // ── Admin popup state (once per session) ──
-  const [showAdminPopup, setShowAdminPopup] = useState(false);
-  const adminPopupShownRef = useRef(false);
-
   // Alert language is strictly location-based and separate from UI language
   // (Sync effect removed)
 
-  // Trigger admin popup once when login view is shown
-  useEffect(() => {
-    if (view === ViewState.LOGIN && !adminPopupShownRef.current) {
-      const timer = setTimeout(() => {
-        setShowAdminPopup(true);
-        adminPopupShownRef.current = true;
-      }, 600);
-      return () => clearTimeout(timer);
-    }
-  }, [view]);
+
 
   // Handle location auto-detect
   const handleAutoDetectLocation = useCallback(() => {
@@ -435,31 +390,32 @@ const App: React.FC = () => {
   const handleVoiceCommand = useCallback((command: string) => {
     console.log('App received voice command:', command);
     switch (command) {
-      case 'LOGIN':
+      case 'login':
         setView(ViewState.LOGIN);
         break;
-      case 'SELECT_EN':
-        i18n.changeLanguage(Language.ENGLISH);
+      case 'home':
+        setDashboardInitialTab('home');
+        setView(ViewState.DASHBOARD);
         break;
-      case 'SELECT_HI':
-        i18n.changeLanguage(Language.HINDI);
+      case 'assistant':
+        setDashboardInitialTab('ai');
+        setView(ViewState.DASHBOARD);
         break;
-      case 'SELECT_TA':
-        i18n.changeLanguage(Language.TAMIL);
+      case 'paybill':
+        setDashboardInitialTab('billing');
+        setView(ViewState.DASHBOARD);
         break;
-      case 'SELECT_TE':
-        i18n.changeLanguage(Language.TELUGU);
+      case 'history':
+        setDashboardInitialTab('status');
+        setView(ViewState.DASHBOARD);
         break;
-      case 'SELECT_KN':
-        i18n.changeLanguage(Language.KANNADA);
-        break;
-      case 'SELECT_ML':
-        i18n.changeLanguage(Language.MALAYALAM);
+      case 'exit':
+        handleBackToLanding();
         break;
       default:
-        console.warn('Voice command ignored:', command);
+        console.warn('Unhandled app-level command:', command);
     }
-  }, [setView, i18n]);
+  }, [setView, handleBackToLanding]);
 
   // ─────────────────────────────────────────────
   // Render: LANDING (Language Selection)
@@ -488,7 +444,7 @@ const App: React.FC = () => {
       <div style={{
         position: 'absolute', top: '24px', left: '32px', zIndex: 40,
       }}>
-        <VoiceNavigation onCommand={handleVoiceCommand} />
+        <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} showTTS={false} />
       </div>
 
 
@@ -649,7 +605,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <VoiceNavigation onCommand={handleVoiceCommand} />
+          <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} variant="inline" />
           <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
@@ -660,12 +616,6 @@ const App: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex items-center justify-center p-6 relative">
         <div className="relative w-full max-w-2xl"> {/* Positioning wrapper */}
-          {/* Admin Popup Notification (once per session) */}
-          {showAdminPopup && (
-            <AdminPopupNotification
-              onClose={() => setShowAdminPopup(false)}
-            />
-          )}
           <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-12 text-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
 
             {/* Decoration */}
