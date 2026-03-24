@@ -194,7 +194,7 @@ export const getAllComplaints = async (req, res, next) => {
         const { status, department, priority, page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
 
-        const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const useSupabase = supabase !== null;
 
         if (useSupabase) {
             console.log("📡 [ADMIN] Fetching complaints via SUPABASE CLIENT");
@@ -318,7 +318,7 @@ export const getAllServiceRequests = async (req, res, next) => {
         const { status, department, page = 1, limit = 25 } = req.query;
         const offset = (page - 1) * limit;
 
-        const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const useSupabase = supabase !== null;
         
         if (useSupabase) {
             console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
