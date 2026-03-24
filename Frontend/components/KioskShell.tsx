@@ -210,7 +210,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'home', label: t('navHome') || 'Home', icon: Home },
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
-        { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
+        { id: 'complaints', label: t('navComplaints') || 'Complaints', icon: AlertTriangle },
         { id: 'tracker', label: t('trackApp'), icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
@@ -255,7 +255,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                   relative group flex flex-col items-center justify-center w-24 h-24 rounded-2xl transition-colors duration-300
                   ${isActive
                                         ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
-                                        : 'text-slate-400 hover:bg-slate-50'
+                                        : 'text-slate-400 hover:bg-slate-50 border-2 border-transparent'
                                     }
                 `}
                             >
@@ -273,7 +273,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
 
                                 {isActive && (
-                                    <motion.div layoutId="activeTabIndicator" className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-blue-600 rounded-r-full"></motion.div>
+                                    <motion.div layoutId="activeTabIndicator" className="absolute left-[3px] top-2 bottom-2 w-1 bg-blue-600 rounded-full"></motion.div>
                                 )}
                             </motion.button>
                         )
