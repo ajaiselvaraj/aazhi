@@ -57,8 +57,6 @@ export default function ServiceRequestsPanel() {
     r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
     r.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
     r.request_type.toLowerCase().includes(search.toLowerCase())
-  ).filter(r => 
-     !myDept || r.department.toLowerCase().includes(myDept.toLowerCase())
   )
 
   return (
