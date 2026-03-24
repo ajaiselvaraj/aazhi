@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { ShieldCheck, LogIn, Eye, EyeOff, Lock } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTMENTS } from '../data/mockData'
+import { adminApi } from '../services/adminApi'
 
 const ADMIN_NAMES: Record<string, string> = {
   'Electricity Department':  'Ramprasad Krishnan',
@@ -120,9 +121,15 @@ export default function LoginPage() {
     }
     setError('')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    login({ adminId, department, name: ADMIN_NAMES[department] || 'Admin Officer' })
-    setLoading(false)
+    try {
+      const data = await adminApi.login({ adminId, password, department })
+      localStorage.setItem('adminToken', data.tokens.accessToken)
+      login({ adminId, department, name: data.admin.name })
+    } catch (err: any) {
+      setError(err.message || 'Login failed! Check credentials.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
