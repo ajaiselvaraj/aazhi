@@ -190,48 +190,83 @@ export const getPaymentStats = async (req, res, next) => {
 // ─── All Complaints (Admin View) ─────────────────────────
 export const getAllComplaints = async (req, res, next) => {
     try {
-        const { status, department, priority, page = 1, limit = 25 } = req.query;
+        const { status, department, priority, page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = `
-            SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile,
-                   staff.name as assigned_to_name
-            FROM complaints c
-            JOIN citizens ci ON c.citizen_id = ci.id
-            LEFT JOIN citizens staff ON c.assigned_to = staff.id
-            WHERE 1=1`;
-        const params = [];
+        const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (status) {
-            params.push(status);
-            query += ` AND c.status = $${params.length}`;
+        if (useSupabase) {
+            console.log("📡 [ADMIN] Fetching complaints via SUPABASE CLIENT");
+            let query = supabase
+                .from('complaints')
+                .select('*, citizen:citizens!complaints_citizen_id_fkey(name, mobile)', { count: 'exact' });
+
+            if (status) query = query.eq('status', status);
+            if (department) query = query.ilike('department', `%${department}%`);
+            if (priority) query = query.eq('priority', priority);
+
+            const { data, count, error } = await query
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+            if (error) {
+                console.error("❌ Supabase query error:", error);
+                throw error;
+            }
+
+            const mapped = data.map(c => ({
+                ...c,
+                citizen_name: c.citizen?.name,
+                citizen_mobile: c.citizen?.mobile
+            }));
+
+            return paginated(res, "All complaints", mapped, {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+            });
+        } else {
+            // Fallback to pool query
+            console.log("📡 [ADMIN] Fetching complaints via POOL QUERY (Direct DB)");
+            let query = `
+                SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile,
+                       staff.name as assigned_to_name
+                FROM complaints c
+                JOIN citizens ci ON c.citizen_id = ci.id
+                LEFT JOIN citizens staff ON c.assigned_to = staff.id
+                WHERE 1=1`;
+            const params = [];
+
+            if (status) {
+                params.push(status);
+                query += ` AND c.status = $${params.length}`;
+            }
+            if (department) {
+                params.push(department);
+                query += ` AND c.department = $${params.length}`;
+            }
+            if (priority) {
+                params.push(priority);
+                query += ` AND c.priority = $${params.length}`;
+            }
+
+            const totalQuery = `SELECT COUNT(*) FROM complaints c WHERE 1=1 ${status ? 'AND status=$1' : ''} ${department ? `AND department=$${status ? 2 : 1}` : ''} ${priority ? `AND priority=$${params.length}` : ''}`;
+            const totalResult = await pool.query(totalQuery, params);
+            const total = parseInt(totalResult.rows[0].count);
+
+            query += ` ORDER BY c.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+            params.push(parseInt(limit), parseInt(offset));
+
+            const result = await pool.query(query, params);
+
+            return paginated(res, "All complaints", result.rows, {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+            });
         }
-        if (department) {
-            params.push(department);
-            query += ` AND c.department = $${params.length}`;
-        }
-        if (priority) {
-            params.push(priority);
-            query += ` AND c.priority = $${params.length}`;
-        }
-
-        const totalResult = await pool.query(
-          `SELECT COUNT(*) FROM complaints c WHERE 1=1 ${status ? 'AND status = $1' : ''} ${department ? `AND department = $${status ? 2 : 1}` : ''}`,
-          params.slice(0, (status ? 1 : 0) + (department ? 1 : 0))
-        );
-        const total = parseInt(totalResult.rows[0].count);
-
-        query += ` ORDER BY c.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(parseInt(limit), parseInt(offset));
-
-        const result = await pool.query(query, params);
-
-        return paginated(res, "All complaints", result.rows, {
-            total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-        });
     } catch (err) {
+        console.error("❌ [ADMIN ERROR] getAllComplaints failed:", err);
         next(err);
     }
 };

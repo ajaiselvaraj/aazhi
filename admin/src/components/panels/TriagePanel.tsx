@@ -1,388 +1,255 @@
 import React, { useState, useEffect } from 'react'
-import { Search, ChevronDown, ChevronRight, Zap, AlertTriangle, Eye, BarChart2, Send } from 'lucide-react'
-import { analyzeComplaint } from '../../api/aiApi'
+import { Search, RefreshCw, Eye, MoreVertical, Calendar, Clock, BarChart2, AlertTriangle } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
 
-/* ── Badge Helpers ────────────────────────────────────────────── */
-
-function PriorityBadge({ p }: { p: string }) {
-  const map: any = { Critical: 'badge-danger', High: 'badge-warning', Medium: 'badge-info', Low: 'badge-success' }
-  return <span className={`badge ${map[p] || 'badge-info'}`}>{p}</span>
-}
-
+/* ── Status Badge ────────────────────────────────────────────── */
 function StatusBadge({ s }: { s: string }) {
-  if (s === 'Review Needed') return <span className="badge badge-review">⚠ Review</span>
-  const map = { Routed: 'badge-success', Pending: 'badge-warning', Resolved: 'badge-dark' }
-  return <span className={`badge ${map[s as keyof typeof map] || 'badge-info'}`}>{s}</span>
+  const map: any = {
+    'submitted': { label: 'New', class: 'badge-info' },
+    'acknowledged': { label: 'Pending', class: 'badge-warning' },
+    'in_progress': { label: 'In Progress', class: 'badge-warning' },
+    'resolved': { label: 'Resolved', class: 'badge-success' },
+    'rejected': { label: 'Rejected', class: 'badge-danger' },
+  }
+  const status = map[s] || { label: s, class: 'badge-info' }
+  return <span className={`badge ${status.class}`}>{status.label}</span>
 }
 
-const SENTIMENT_MAP: Record<string, { emoji: string; color: string; bg: string }> = {
-  Angry:      { emoji: '😡', color: '#FF4D4F', bg: '#fff1f0' },
-  Frustrated: { emoji: '😤', color: '#FFA940', bg: '#fff7e6' },
-  Neutral:    { emoji: '😐', color: '#94a3b8', bg: '#f1f5f9' },
-  Positive:   { emoji: '😊', color: '#2ECC71', bg: '#eafaf1' },
+/* ── Priority Badge ──────────────────────────────────────────── */
+function PriorityBadge({ p }: { p: string }) {
+  const map: any = { 
+    'critical': 'badge-danger', 
+    'high': 'badge-warning', 
+    'medium': 'badge-info', 
+    'low': 'badge-success' 
+  }
+  // Convert DB value to Title Case for display
+  const display = p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Medium'
+  return <span className={`badge ${map[p] || 'badge-info'}`}>{display}</span>
 }
-
-function SentimentBadge({ s }: { s: string }) {
-  const meta = SENTIMENT_MAP[s] || SENTIMENT_MAP['Neutral']
-  return (
-    <span className="sentiment-badge" style={{ color: meta.color, background: meta.bg }}>
-      {meta.emoji} {s}
-    </span>
-  )
-}
-
-function UrgencyDots({ level }: { level: number }) {
-  return (
-    <span className="urgency-dots">
-      {[1, 2, 3, 4, 5].map(n => (
-        <span key={n} className={`urgency-dot${n <= level ? ' active' : ''}`}
-          style={{ background: n <= level ? (level >= 4 ? '#FF4D4F' : level >= 3 ? '#FFA940' : '#94a3b8') : 'var(--border)' }}
-        />
-      ))}
-    </span>
-  )
-}
-
-/* ── Stat Card ────────────────────────────────────────────────── */
-
-function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: React.ReactNode; color: string }) {
-  return (
-    <div className="card" style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 170 }}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
-        {icon}
-      </div>
-      <div>
-        <div style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>{value}</div>
-        <div style={{ fontSize: '.72rem', color: 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>{label}</div>
-      </div>
-    </div>
-  )
-}
-
-/* ── Main Panel ───────────────────────────────────────────────── */
 
 export default function TriagePanel() {
   const { user } = useAuth()
   const myDept = user ? deptKey(user.department) : ''
 
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('All')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  
-  const [testText, setTestText] = useState('')
-  const [testResult, setTestResult] = useState<any>(null)
-  const [testLoading, setTestLoading] = useState(false)
-
-  // Real data state
   const [complaints, setComplaints] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
     loadComplaints()
-    const interval = setInterval(loadComplaints, 10000)
-    return () => clearInterval(interval)
-  }, [])
+  }, [page, statusFilter])
 
   async function loadComplaints() {
+    setLoading(true)
     try {
-      const res = await adminApi.getAllComplaints({ limit: 100 })
-      // Map DB fields to the format expected by the UI
-      const mapped = res.data.map((c: any) => ({
-        id: c.ticket_number || c.id,
-        text: c.description || c.subject || 'No description',
-        predictedDept: c.department || 'Municipal',
-        priority: c.priority === 'critical' ? 'Critical' : c.priority === 'high' ? 'High' : c.priority === 'low' ? 'Low' : 'Medium',
-        sentiment: 'Neutral', // Placeholder until AI metadata is persistently saved in DB
-        urgency: c.priority === 'critical' ? 5 : c.priority === 'high' ? 4 : 2,
-        confidence: 90 + Math.floor(Math.random() * 10),
-        status: ['submitted', 'acknowledged'].includes(c.status) ? 'Pending' : c.status === 'in_progress' ? 'Routed' : 'Resolved',
-        keyPhrases: [c.category || 'General', c.issue_category || 'Other'].filter(Boolean),
-        aiClassified: true,
-        _raw: c
-      }))
-      setComplaints(mapped)
-    } catch (e) {
-      console.error('Failed to load real complaints', e)
+      const params: any = { page, limit: 100 }
+      if (statusFilter !== 'All') params.status = statusFilter
+      
+      console.log('📡 [Admin] Fetching all complaints...', params)
+      const res = await adminApi.getAllComplaints(params)
+      console.log('✅ [Admin] Received complaints:', res.data?.length)
+      
+      setComplaints(res.data || [])
+      setTotal(res.pagination?.total || 0)
+    } catch (err) {
+      console.error('❌ [Admin] Failed to fetch complaints:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Enforce dept isolation — only show complaints belonging to the logged-in department
-  const deptComplaints = complaints.filter(c =>
-    c.predictedDept.toLowerCase().includes(myDept.toLowerCase())
+  // Frontend filtering for search and department isolation
+  const filtered = complaints.filter(c => 
+    (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
+     c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
+     c.description?.toLowerCase().includes(search.toLowerCase()) ||
+     c.category?.toLowerCase().includes(search.toLowerCase()))
+  ).filter(c => 
+     !myDept || (c.department && c.department.toLowerCase().includes(myDept.toLowerCase()))
   )
 
-  const filtered = deptComplaints.filter(c => {
-    const matchesSearch = c.text.toLowerCase().includes(search.toLowerCase()) || c.id.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = filterStatus === 'All' || c.status === filterStatus
-    return matchesSearch && matchesStatus
-  })
-
-  const criticalCount = deptComplaints.filter(c => c.priority === 'Critical').length
-  const reviewCount = deptComplaints.filter(c => c.status === 'Review Needed').length
-  const avgConfidence = deptComplaints.length
-    ? Math.round(deptComplaints.reduce((s, c) => s + c.confidence, 0) / deptComplaints.length)
-    : 0
-
-  const deptTabs = ['All', 'Electricity', 'Water Supply', 'Gas', 'Municipal']
-
-  async function handleTestAI() {
-    if (!testText.trim()) return
-    setTestLoading(true)
-    setTestResult(null)
-    try {
-      const data = await analyzeComplaint(testText)
-      setTestResult({ ...data, _live: true })
-    } catch {
-      const lower = testText.toLowerCase()
-      let dept = 'Municipal Services'
-      if (lower.includes('electric') || lower.includes('power') || lower.includes('light')) dept = 'Electricity Department'
-      else if (lower.includes('water') || lower.includes('pipe') || lower.includes('tap')) dept = 'Water Supply Department'
-      else if (lower.includes('gas') || lower.includes('leak')) dept = 'Gas Distribution'
-      setTestResult({
-        department: dept,
-        priority: lower.includes('emergency') || lower.includes('danger') ? 'Critical' : 'Medium',
-        confidence: 72 + Math.floor(Math.random() * 20),
-        keywords_matched: lower.split(' ').filter((w: string) => w.length > 4).slice(0, 3),
-        sentiment: 'Neutral',
-        urgency: 2,
-        key_phrases: [],
-        _live: false,
-      })
-    } finally {
-      setTestLoading(false)
-    }
-  }
+  const criticalCount = complaints.filter(c => c.priority === 'critical').length
+  const pendingCount = complaints.filter(c => ['submitted', 'acknowledged', 'in_progress'].includes(c.status)).length
 
   return (
-    <div>
-      {/* ── Stat Cards ─────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Complaints" value={complaints.length} icon={<BarChart2 size={18} />} color="#2F6BFF" />
-        <StatCard label="Critical Issues" value={criticalCount} icon={<AlertTriangle size={18} />} color="#FF4D4F" />
-        <StatCard label="Need Review" value={reviewCount} icon={<Eye size={18} />} color="#FFA940" />
-        <StatCard label="Avg Confidence" value={`${avgConfidence}%`} icon={<Zap size={18} />} color="#2ECC71" />
-      </div>
-
-      {/* ── Main Card ──────────────────────────────────────────── */}
-      <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* Header */}
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '.75rem' }}>
-          <div className="section-title" style={{ marginBottom: 0 }}>
-            <div className="icon-dot" />
-            AI Request Categorization
-          </div>
-          <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={14} style={{ position: 'absolute', left: '.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                type="text" placeholder="Search complaints..."
-                value={search} onChange={e => setSearch(e.target.value)}
-                style={{ paddingLeft: '2.25rem', paddingRight: '1rem', paddingTop: '.5rem', paddingBottom: '.5rem', fontSize: '.8rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', width: 200 }}
-              />
+    <div className="animate-in fade-in duration-500">
+      {/* ── Page Header & Stats ─────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="page-header" style={{ marginBottom: 0 }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            All Complaints
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>Manage and triage citizen complaints across all departments.</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="card" style={{ padding: '.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '.75rem', minWidth: 140 }}>
+            <div style={{ padding: '.5rem', borderRadius: 8, background: '#FF4D4F15', color: '#FF4D4F' }}>
+              <AlertTriangle size={18} />
             </div>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-              style={{ padding: '.5rem .75rem', fontSize: '.8rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--text-primary)', cursor: 'pointer', outline: 'none' }}>
-              <option>All</option><option>Routed</option><option>Pending</option><option>Review Needed</option><option>Resolved</option>
-            </select>
-            <span className="live-dot">Live</span>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{criticalCount}</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Critical Priority</div>
+            </div>
+          </div>
+          <div className="card" style={{ padding: '.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '.75rem', minWidth: 140 }}>
+            <div style={{ padding: '.5rem', borderRadius: 8, background: '#FFA94015', color: '#FFA940' }}>
+              <BarChart2 size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{pendingCount}</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Issues</div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Table */}
+      {/* ── Filter Bar ──────────────────────────────────────────── */}
+      <div className="card" style={{ padding: '1.25rem', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 250 }}>
+          <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input 
+            type="text" 
+            placeholder="Search by ID, name, or description..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', padding: '.75rem 1rem .75rem 2.5rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '.75rem' }}>
+          <select 
+            value={statusFilter} 
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="All">All Statuses</option>
+            <option value="submitted">New / Submitted</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
+
+          <button 
+            onClick={() => loadComplaints()}
+            className="btn btn-outline" 
+            style={{ padding: '.75rem', borderRadius: 12 }}
+            title="Refresh list"
+          >
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Data Table ──────────────────────────────────────────── */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: 32 }}></th>
-                <th>ID</th>
-                <th>Complaint Text</th>
+                <th>Ticket ID</th>
+                <th>Citizen Details</th>
+                <th>Category / Details</th>
                 <th>Department</th>
                 <th>Priority</th>
-                <th>Sentiment</th>
-                <th>Urgency</th>
-                <th>Confidence</th>
+                <th>Submitted On</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(c => (
-                <React.Fragment key={c.id}>
-                  <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
-                    <td style={{ textAlign: 'center' }}>
-                      {expandedId === c.id ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {loading && complaints.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '4rem' }}>
+                    <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.5 }} />
+                    <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Fetching all complaints...</p>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '4rem' }}>
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📭</div>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No complaints found</p>
+                    <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Try adjusting your search or filters.</p>
+                  </td>
+                </tr>
+              ) : (
+                filtered.map(c => (
+                  <tr key={c.id}>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
+                        {c.ticket_number || c.id.substring(0,8).toUpperCase()}
+                      </span>
                     </td>
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 600, fontSize: '.8rem', color: 'var(--primary)' }}>{c.id}</span>
-                    </td>
-                    <td style={{ maxWidth: 240, wordBreak: 'break-word', fontSize: '.82rem' }}>{c.text}</td>
-                    <td><span style={{ fontSize: '.82rem', fontWeight: 500 }}>{c.predictedDept}</span></td>
-                    <td><PriorityBadge p={c.priority} /></td>
-                    <td><SentimentBadge s={c.sentiment} /></td>
-                    <td><UrgencyDots level={c.urgency} /></td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                        <div style={{ width: 60, height: 5, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{
-                            width: `${c.confidence}%`, height: '100%', borderRadius: 3,
-                            background: c.confidence >= 80 ? 'var(--success)' : c.confidence >= 60 ? 'var(--warning)' : 'var(--alert)',
-                            transition: 'width .6s ease',
-                          }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.8rem', fontWeight: 800 }}>
+                          {c.citizen_name?.charAt(0) || 'C'}
                         </div>
-                        <span style={{ fontSize: '.78rem', fontWeight: 600, color: c.confidence >= 80 ? 'var(--success)' : c.confidence >= 60 ? 'var(--warning)' : 'var(--alert)' }}>
-                          {c.confidence}%
-                        </span>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{c.citizen_name || 'Anonymous'}</div>
+                          <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{c.citizen_mobile || 'No Phone'}</div>
+                        </div>
                       </div>
                     </td>
-                    <td><StatusBadge s={c.status} /></td>
-                  </tr>
-
-                  {/* Expandable row detail */}
-                  {expandedId === c.id && (
-                    <tr className="expand-row">
-                      <td colSpan={9}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.25rem', padding: '.5rem 0' }}>
-                          <div>
-                            <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.4rem' }}>Key Phrases</div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.35rem' }}>
-                              {c.keyPhrases.map((kp: string) => <span key={kp} className="keyword-tag">{kp}</span>)}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.4rem' }}>AI Reasoning</div>
-                            <p style={{ fontSize: '.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                              {c.aiClassified
-                                ? `Classified to ${c.predictedDept} with ${c.confidence}% confidence based on keyword matching: "${c.keyPhrases.join('", "')}". Sentiment detected as ${c.sentiment.toLowerCase()} with urgency level ${c.urgency}/5.`
-                                : 'Low confidence — multiple departments matched. Manual review recommended.'}
-                            </p>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.4rem' }}>Suggested Actions</div>
-                            <div style={{ fontSize: '.82rem', color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-                              {c.priority === 'Critical' && <div>🚨 Immediate dispatch to field team</div>}
-                              {c.urgency >= 4 && <div>⏱ Escalate — high urgency detected</div>}
-                              {c.confidence < 70 && <div>👁 Needs manual department verification</div>}
-                              {c.sentiment === 'Angry' && <div>💢 Prioritize — citizen frustration high</div>}
-                              {c.confidence >= 80 && c.priority !== 'Critical' && <div>✅ Auto-route approved</div>}
-                            </div>
-                          </div>
+                    <td>
+                      <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--text-primary)' }}>
+                        {c.category || 'General Issue'}
+                      </div>
+                      <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', display: '-webkit-box' }}>
+                        {c.description}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
+                        {c.department || 'Unassigned'}
+                      </span>
+                    </td>
+                    <td>
+                      <PriorityBadge p={c.priority} />
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                          <Calendar size={12} /> {new Date(c.created_at).toLocaleDateString()}
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              ))}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
+                          <Clock size={12} /> {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <StatusBadge s={c.status} />
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
+                        <button className="btn btn-ghost" style={{ padding: '.4rem' }} title="View Details">
+                          <Eye size={16} />
+                        </button>
+                        <button className="btn btn-ghost" style={{ padding: '.4rem' }}>
+                          <MoreVertical size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          {filtered.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)', fontSize: '.875rem' }}>
-              No complaints match your filters.
-            </div>
-          )}
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '.75rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '.78rem', color: 'var(--text-muted)' }}>
-          <span>Showing {filtered.length} of {complaints.length} complaints</span>
-          <span style={{ color: 'var(--alert)', fontWeight: 600 }}>
-            ⚠ {reviewCount} need manual review
-          </span>
-        </div>
-      </div>
-
-      {/* ── Test AI Classification ─────────────────────────────── */}
-      <div className="card ai-test-section" style={{ marginTop: '1.5rem' }}>
-        <div className="section-title" style={{ marginBottom: '.75rem' }}>
-          <div className="icon-dot" style={{ background: 'var(--primary)' }} />
-          Test AI Classification
-        </div>
-        <p style={{ fontSize: '.82rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-          Enter a complaint text below to see how the AI engine classifies it in real-time.
-        </p>
-        <div style={{ display: 'flex', gap: '.75rem' }}>
-          <textarea
-            value={testText}
-            onChange={e => setTestText(e.target.value)}
-            placeholder="e.g. There has been no water supply for 3 days in our colony..."
-            rows={2}
-            style={{ flex: 1, padding: '.75rem 1rem', fontSize: '.82rem', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', resize: 'vertical', fontFamily: 'var(--font-body)' }}
-          />
-          <button
-            onClick={handleTestAI}
-            disabled={testLoading || !testText.trim()}
-            style={{
-              padding: '.75rem 1.5rem', background: testLoading ? 'var(--border)' : 'var(--primary)',
-              color: '#fff', border: 'none', borderRadius: 8, cursor: testLoading ? 'wait' : 'pointer',
-              fontWeight: 600, fontSize: '.82rem', display: 'flex', alignItems: 'center', gap: '.4rem', flexShrink: 0,
-            }}
-          >
-            <Send size={14} />
-            {testLoading ? 'Classifying...' : 'Classify'}
-          </button>
-        </div>
-
-        {/* Result */}
-        {testResult && (
-          <div style={{ marginTop: '1rem', padding: '1rem 1.25rem', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
-            {/* Live / Offline indicator */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '.5rem' }}>
-              <span style={{
-                fontSize: '.65rem', fontWeight: 600, padding: '.15rem .5rem', borderRadius: 6,
-                background: testResult._live ? '#2ECC7120' : '#FF4D4F20',
-                color: testResult._live ? '#2ECC71' : '#FF4D4F',
-              }}>
-                {testResult._live ? '● Live API' : '○ Offline Mock'}
-              </span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Department</div>
-                <div style={{ fontSize: '.95rem', fontWeight: 700, color: 'var(--primary)', marginTop: '.25rem' }}>{testResult.department}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Priority</div>
-                <div style={{ marginTop: '.25rem' }}><PriorityBadge p={testResult.priority} /></div>
-              </div>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Confidence</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginTop: '.25rem' }}>
-                  <div style={{ width: 80, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-                    <div style={{
-                      width: `${testResult.confidence}%`, height: '100%', borderRadius: 3,
-                      background: testResult.confidence >= 80 ? 'var(--success)' : testResult.confidence >= 60 ? 'var(--warning)' : 'var(--alert)',
-                      transition: 'width .8s ease',
-                    }} />
-                  </div>
-                  <span style={{ fontSize: '.82rem', fontWeight: 700, color: testResult.confidence >= 80 ? 'var(--success)' : testResult.confidence >= 60 ? 'var(--warning)' : 'var(--alert)' }}>
-                    {testResult.confidence}%
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Sentiment</div>
-                <div style={{ marginTop: '.25rem' }}>
-                  {testResult.sentiment && <SentimentBadge s={testResult.sentiment} />}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Urgency</div>
-                <div style={{ marginTop: '.25rem' }}>
-                  {testResult.urgency != null && <UrgencyDots level={testResult.urgency} />}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>Keywords</div>
-                <div style={{ display: 'flex', gap: '.3rem', flexWrap: 'wrap', marginTop: '.35rem' }}>
-                  {(testResult.keywords_matched || testResult.key_phrases || []).map((k: string) => <span key={k} className="keyword-tag">{k}</span>)}
-                </div>
-              </div>
-            </div>
+        {/* ── Pagination ─────────────────────────────────────────── */}
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>
+            Showing <strong>{filtered.length}</strong> of <strong>{complaints.length}</strong> complaints
           </div>
-        )}
+        </div>
       </div>
     </div>
   )

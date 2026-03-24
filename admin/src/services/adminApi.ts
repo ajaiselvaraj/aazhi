@@ -81,6 +81,7 @@ export const adminApi = {
     if (params.priority) q.set('priority', params.priority);
 
     const json = await request(`/admin/complaints?${q.toString()}`);
+    console.log(`📥 [API] getAllComplaints received ${json.data?.length || 0} items`);
     return json;
   },
 
