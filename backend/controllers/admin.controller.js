@@ -282,39 +282,72 @@ export const getAllServiceRequests = async (req, res, next) => {
         const { status, department, page = 1, limit = 25 } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = `
-            SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
-            FROM service_requests sr
-            JOIN citizens c ON sr.citizen_id = c.id
-            WHERE 1=1`;
-        const params = [];
+        const useSupabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
+        
+        if (useSupabase) {
+            console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
+            let query = supabase
+                .from('service_requests')
+                .select('*, citizen:citizens(name, mobile)', { count: 'exact' });
 
-        if (status) {
-            params.push(status);
-            query += ` AND sr.status = $${params.length}`;
+            if (status) query = query.eq('status', status);
+            if (department) query = query.ilike('department', `%${department}%`);
+
+            const { data, count, error } = await query
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1);
+
+            if (error) throw error;
+
+            const mapped = data.map(sr => ({
+                ...sr,
+                citizen_name: sr.citizen?.name,
+                citizen_mobile: sr.citizen?.mobile
+            }));
+
+            return paginated(res, "All service requests", mapped, {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+            });
+        } else {
+            // Fallback to pool query
+            console.log("📡 [ADMIN] Fetching service requests via POOL QUERY (Direct DB)");
+            let query = `
+                SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+                FROM service_requests sr
+                JOIN citizens c ON sr.citizen_id = c.id
+                WHERE 1=1`;
+            const params = [];
+
+            if (status) {
+                params.push(status);
+                query += ` AND sr.status = $${params.length}`;
+            }
+            if (department) {
+                params.push(department);
+                query += ` AND sr.department = $${params.length}`;
+            }
+
+            const totalResult = await pool.query(
+                `SELECT COUNT(*) FROM service_requests sr WHERE 1=1 ${status ? 'AND status = $1' : ''} ${department ? `AND department = $${status ? 2 : 1}` : ''}`,
+                params.slice(0, (status ? 1 : 0) + (department ? 1 : 0))
+            );
+            const total = parseInt(totalResult.rows[0].count);
+
+            query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+            params.push(parseInt(limit), parseInt(offset));
+
+            const result = await pool.query(query, params);
+
+            return paginated(res, "All service requests", result.rows, {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+            });
         }
-        if (department) {
-            params.push(department);
-            query += ` AND sr.department = $${params.length}`;
-        }
-
-        const totalResult = await pool.query(
-          `SELECT COUNT(*) FROM service_requests sr WHERE 1=1 ${status ? 'AND status = $1' : ''} ${department ? `AND department = $${status ? 2 : 1}` : ''}`,
-          params.slice(0, (status ? 1 : 0) + (department ? 1 : 0))
-        );
-        const total = parseInt(totalResult.rows[0].count);
-
-        query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(parseInt(limit), parseInt(offset));
-
-        const result = await pool.query(query, params);
-
-        return paginated(res, "All service requests", result.rows, {
-            total,
-            page: parseInt(page),
-            limit: parseInt(limit),
-        });
     } catch (err) {
+        console.error("❌ [ADMIN ERROR] getAllServiceRequests failed:", err);
         next(err);
     }
 };

@@ -12,6 +12,7 @@ const navGroups = [
       { id: 'overview',  icon: LayoutDashboard, label: 'Dashboard Overview' },
       { id: 'heatmap',   icon: Map,             label: 'Live Issue Map' },
       { id: 'complaints',icon: MessageSquare,   label: 'Complaints' },
+      { id: 'service-requests', icon: ListOrdered, label: 'Service Requests' },
     ],
   },
   {

@@ -98,6 +98,7 @@ export const adminApi = {
     if (params.department) q.set('department', params.department);
 
     const json = await request(`/admin/service-requests?${q.toString()}`);
+    console.log(`📥 [API] getAllServiceRequests received ${json.data?.length || 0} items`);
     return json;
   },
 
