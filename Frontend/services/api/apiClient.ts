@@ -7,8 +7,14 @@
 import { callWithRetry, RateLimitError } from '../../utils/apiRetry';
 import { enqueue } from '../../utils/apiThrottle';
 
-const API_BASE_URL =
-  (import.meta as any).env.VITE_API_URL || 'http://localhost:5000/api';
+const VITE_API_URL = (import.meta as any).env.VITE_API_URL;
+const API_BASE_URL = VITE_API_URL || 'http://localhost:5000/api';
+
+if (!VITE_API_URL) {
+  console.warn("⚠️ [apiClient] VITE_API_URL is missing! Falling back to localhost. Requests will fail in production.");
+} else {
+  console.log("🌐 [apiClient] Connecting to:", API_BASE_URL);
+}
 
 // ── Error Class ───────────────────────────────────────────────────────────
 export class APIError extends Error {
@@ -46,7 +52,10 @@ async function singleRequest<T>(
     headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  console.log(`🚀 [API Request] ${config.method} ${fullUrl}`);
+
+  const response = await fetch(fullUrl, config);
 
   // Handle 401 Unauthorized (expired token)
   if (response.status === 401) {

@@ -52,17 +52,26 @@ export const createServiceRequest = async (req, res, next) => {
                 ward: ward || null,
                 phone: phone || null,
                 metadata: metadata || {},
-                status: 'Submitted',
-                current_stage: 'Submitted'
+                status: 'submitted', // MATCHES DB CHECK CONSTRAINT
+                current_stage: 'submitted'
             };
 
+            console.log("🚀 [SUPABASE] Attempting insert into 'service_requests':", insertPayload.ticket_number);
             const { data: insertedData, error: insertError } = await supabase.from("service_requests").insert([insertPayload]).select();
 
             if (insertError) {
-                console.error("❌ [SUPABASE ERROR] Insert failed:", JSON.stringify(insertError));
-                return fail(res, `Failed to submit service request: ${insertError.message}`, 500);
+                console.error("❌ [SUPABASE ERROR] Insert rejected by Database:", {
+                    message: insertError.message,
+                    details: insertError.details,
+                    hint: insertError.hint,
+                    code: insertError.code
+                });
+                return fail(res, `Database error: ${insertError.message}`, 500);
             }
-            if (!insertedData || insertedData.length === 0) return fail(res, "Failed to submit service request", 500);
+            if (!insertedData || insertedData.length === 0) {
+                console.error("❌ [SUPABASE ERROR] Insert succeeded but no data returned. Check RLS policies.");
+                return fail(res, "Request created but failed to retrieve confirmation.", 500);
+            }
             
             requestRecord = insertedData[0];
 
@@ -80,7 +89,7 @@ export const createServiceRequest = async (req, res, next) => {
             const result = await pool.query(
                 `INSERT INTO service_requests 
                  (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
-                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'Submitted', 'Submitted')
+                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'submitted')
                  RETURNING *`,
                 [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
             );

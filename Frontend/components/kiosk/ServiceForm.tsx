@@ -220,6 +220,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
     };
 
     const validateForm = (): boolean => {
+        console.log("🕵️ [Form] Starting validation for:", formData);
         const newErrors: Record<string, string> = {};
 
         fields.forEach(field => {
@@ -243,15 +244,28 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
             }
         });
 
+        if (Object.keys(newErrors).length > 0) {
+            console.warn("⚠️ [Form] Validation failed:", newErrors);
+        } else {
+            console.log("✅ [Form] Validation passed.");
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
+        console.log("🖱️ [Form] Submit button clicked");
         e.preventDefault();
+        console.log("✨ [Form] event.preventDefault() called successfully");
 
-        if (validateForm()) {
-            onSubmit(formData);
+        try {
+            if (validateForm()) {
+                console.log("🚀 [Form] Triggering onSubmit parent handler...");
+                onSubmit(formData);
+            }
+        } catch (err) {
+            console.error("❌ [Form] Critical error during submission execution:", err);
         }
     };
 

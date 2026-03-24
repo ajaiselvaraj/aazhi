@@ -280,14 +280,26 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
 
         // Mirror to backend for cross-device sync (fire-and-forget; localStorage is the primary store)
-        GrievanceService.createRequest({
-            request_type: data.serviceType,
-            department: data.category,
-            description: data.description || `Service request for ${data.serviceType}`,
-            ward: undefined,
-            phone: data.phone,
-            metadata: { token, name: data.name, address: data.address }
-        }).catch(() => { /* silently ignore — localStorage already saved it */ });
+        // Log for investigation
+        console.log("📤 [API] Attempting to mirror service request to backend...");
+
+        // Fire-and-forget but with proper error logging
+        (async () => { // Wrap in an async IIFE to use await
+            try {
+                const res = await GrievanceService.createRequest({
+                    request_type: data.serviceType,
+                    department: data.category,
+                    description: data.description || `Service request for ${data.serviceType}`,
+                    ward: undefined,
+                    phone: data.phone,
+                    metadata: { token, name: data.name, address: data.address }
+                });
+                console.log("✅ [API] Backend mirrored successfully:", res);
+            } catch (err: any) { 
+                console.error("❌ [API] Failed to mirror service request to backend:", err.message || err);
+                // We keep localStorage data but at least the developer knows it failed
+            }
+        })();
 
         return token;
     };

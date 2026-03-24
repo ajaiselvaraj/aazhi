@@ -88,9 +88,15 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
     // Step 3: Handle Final Submission
     const handleSubmit = async () => {
-        if (!category || !location) return;
+        console.log("🖱️ [Civic] Submit button clicked in Step 3");
+        if (!category || !location) {
+            console.warn("⚠️ [Civic] Cannot submit: category and/or location missing", { category, location });
+            return;
+        }
 
         setIsSubmitting(true);
+        console.log("⏳ [Civic] Starting API submission process...");
+
         try {
             // Map the department ID to category
             let deptCat = 'Municipal';
@@ -98,6 +104,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             else if (departmentId === 'water') deptCat = 'Water';
             else if (departmentId === 'gas') deptCat = 'Gas';
 
+            console.log(`🚀 [Civic] Calling addComplaint for department: ${deptCat}`);
             const ticketId = await addComplaint({
                 name: MOCK_USER_PROFILE.name,
                 phone: MOCK_USER_PROFILE.mobile,
@@ -108,6 +115,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 area: MOCK_USER_PROFILE.ward || 'Unknown'
             });
 
+            console.log("✅ [Civic] Submission success. Ticket received:", ticketId);
             setSubmittedTicket(ticketId);
 
             speakText({
@@ -117,11 +125,12 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             });
 
             setStep(4); // Success screen
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            console.error("❌ [Civic] Critical submission failure:", e?.message || e);
             speakText({ text: t("civic_errorMsg"), language: getLanguageName() });
         } finally {
             setIsSubmitting(false);
+            console.log("🏳️ [Civic] Submission flow ended.");
         }
     };
 
