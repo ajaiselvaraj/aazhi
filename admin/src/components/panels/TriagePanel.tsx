@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, RefreshCw, Eye, MoreVertical, Calendar, Clock, BarChart2, AlertTriangle } from 'lucide-react'
+import { Search, RefreshCw, Eye, MoreVertical, Calendar, Clock, BarChart2, AlertTriangle, CheckCircle2, Circle } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
@@ -30,6 +30,74 @@ function PriorityBadge({ p }: { p: string }) {
   return <span className={`badge ${map[p] || 'badge-info'}`}>{display}</span>
 }
 
+/* ── Processing Hierarchy Component ──────────────────────────── */
+const HIERARCHY_STAGES = [
+  { id: 'submitted', label: 'Submitted' },
+  { id: 'acknowledged', label: 'Officer Assigned' },
+  { id: 'assigned', label: 'Manager Review' },
+  { id: 'in_progress', label: 'GM Approval' },
+  { id: 'resolved', label: 'Resolved' }
+];
+
+function ProcessingHierarchy({ currentStatus, createdAt }: { currentStatus: string, createdAt: string }) {
+  let currentIndex = 0;
+  if (currentStatus === 'acknowledged') currentIndex = 1;
+  else if (currentStatus === 'assigned') currentIndex = 2;
+  else if (currentStatus === 'in_progress') currentIndex = 3;
+  else if (currentStatus === 'resolved' || currentStatus === 'closed') currentIndex = 4;
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingBottom: '1rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
+      {/* Background Track Line */}
+      <div style={{ position: 'absolute', top: '13px', left: '10%', right: '10%', height: '2px', background: 'var(--border)', zIndex: 0 }}></div>
+      
+      {/* Active Fill Line */}
+      <div style={{ 
+        position: 'absolute', top: '13px', left: '10%', height: '2px', background: 'var(--primary)', zIndex: 0, 
+        width: `${(currentIndex / (HIERARCHY_STAGES.length - 1)) * 80}%`, 
+        transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' 
+      }}></div>
+
+      {HIERARCHY_STAGES.map((stage, idx) => {
+        const isCompleted = idx < currentIndex;
+        const isCurrent = idx === currentIndex;
+
+        return (
+          <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, minWidth: '120px' }}>
+            <div style={{ 
+              width: 28, height: 28, borderRadius: '50%', 
+              background: isCompleted ? 'var(--primary)' : isCurrent ? 'var(--bg)' : 'var(--bg)',
+              border: isCompleted ? 'none' : isCurrent ? '3px solid var(--primary)' : '2px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: isCompleted ? '#FFF' : 'var(--border)',
+              boxShadow: isCurrent ? '0 0 0 4px var(--primary-light)' : 'none',
+              transition: 'all 0.3s ease'
+            }}>
+              {isCompleted ? <CheckCircle2 size={16} /> : isCurrent ? <Circle size={10} fill="var(--primary)" color="var(--primary)" /> : <Circle size={10} />}
+            </div>
+            
+            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '.75rem', fontWeight: isCurrent ? 800 : 700, color: isCurrent || isCompleted ? 'var(--text-primary)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {stage.label}
+              </div>
+              {isCurrent && (
+                <div style={{ fontSize: '.7rem', color: 'var(--primary)', marginTop: '.35rem', fontWeight: 700 }}>
+                  Current Level
+                </div>
+              )}
+              {isCompleted && idx === 0 && (
+                <div style={{ fontSize: '.65rem', color: 'var(--text-secondary)', marginTop: '.35rem' }}>
+                  {new Date(createdAt).toLocaleDateString()}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function TriagePanel() {
   const { user } = useAuth()
   const myDept = user ? deptKey(user.department) : ''
@@ -40,13 +108,18 @@ export default function TriagePanel() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
   useEffect(() => {
     loadComplaints()
+    const interval = setInterval(() => {
+      loadComplaints(true); // silent refresh (pass true to avoid spinner jump if we want, currently will just re-fire)
+    }, 30000)
+    return () => clearInterval(interval)
   }, [page, statusFilter])
 
-  async function loadComplaints() {
-    setLoading(true)
+  async function loadComplaints(silent = false) {
+    if (!silent) setLoading(true)
     try {
       const params: any = { page, limit: 100 }
       if (statusFilter !== 'All') params.status = statusFilter
@@ -179,63 +252,86 @@ export default function TriagePanel() {
                 </tr>
               ) : (
                 filtered.map(c => (
-                  <tr key={c.id}>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
-                        {c.ticket_number || c.id.substring(0,8).toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.8rem', fontWeight: 800 }}>
-                          {c.citizen_name?.charAt(0) || 'C'}
+                  <React.Fragment key={c.id}>
+                    <tr>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
+                          {c.ticket_number || c.id.substring(0,8).toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.8rem', fontWeight: 800 }}>
+                            {c.citizen_name?.charAt(0) || 'C'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{c.citizen_name || 'Anonymous'}</div>
+                            <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{c.citizen_mobile || 'No Phone'}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{c.citizen_name || 'Anonymous'}</div>
-                          <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{c.citizen_mobile || 'No Phone'}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--text-primary)' }}>
+                          {c.category || 'General Issue'}
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--text-primary)' }}>
-                        {c.category || 'General Issue'}
-                      </div>
-                      <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', display: '-webkit-box' }}>
-                        {c.description}
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                        {c.department || 'Unassigned'}
-                      </span>
-                    </td>
-                    <td>
-                      <PriorityBadge p={c.priority} />
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                          <Calendar size={12} /> {new Date(c.created_at).toLocaleDateString()}
+                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', display: '-webkit-box' }}>
+                          {c.description}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
-                          <Clock size={12} /> {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
+                          {c.department || 'Unassigned'}
+                        </span>
+                      </td>
+                      <td>
+                        <PriorityBadge p={c.priority} />
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                            <Calendar size={12} /> {new Date(c.created_at).toLocaleDateString()}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
+                            <Clock size={12} /> {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td>
-                      <StatusBadge s={c.status} />
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-ghost" style={{ padding: '.4rem' }} title="View Details">
-                          <Eye size={16} />
-                        </button>
-                        <button className="btn btn-ghost" style={{ padding: '.4rem' }}>
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                      <td>
+                        <StatusBadge s={c.status} />
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '.4rem', background: expandedRow === c.id ? 'var(--primary-light)' : 'transparent' }} 
+                            title={expandedRow === c.id ? "Close Details" : "View Processing Hierarchy"}
+                            onClick={() => setExpandedRow(expandedRow === c.id ? null : c.id)}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button className="btn btn-ghost" style={{ padding: '.4rem' }}>
+                            <MoreVertical size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedRow === c.id && (
+                      <tr>
+                        <td colSpan={8} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ padding: '2rem', animation: 'fadeIn 0.2s ease-in-out' }}>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '.25rem' }}>Processing Hierarchy Tracker</h4>
+                              <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
+                            </div>
+                            
+                            <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                              <ProcessingHierarchy currentStatus={c.status} createdAt={c.created_at} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>
