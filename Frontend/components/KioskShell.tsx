@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import VoiceNavigation from './VoiceNavigation';
 import KioskErrorBoundary from './KioskErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SystemService } from '../services/systemService';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -156,20 +157,17 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
     // Security: Hardware Tamper/Heartbeat Monitor
     useEffect(() => {
+        // Send heartbeat every 5 minutes (300000ms) to avoid spamming the console
         const heartbeat = setInterval(() => {
             if (isOnline) {
-                fetch('/api/system/heartbeat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        terminalId: 'CBE-02',
-                        batteryLevel,
-                        isCharging,
-                        timestamp: new Date().toISOString()
-                    })
-                }).catch(() => { /* Silently fail on transient network drops */ });
+                SystemService.sendHeartbeat({
+                    terminalId: 'CBE-02',
+                    batteryLevel,
+                    isCharging,
+                    timestamp: new Date().toISOString()
+                });
             }
-        }, 30000); // Send heartbeat every 30 seconds
+        }, 300000); 
         return () => clearInterval(heartbeat);
     }, [isOnline, batteryLevel, isCharging]);
 

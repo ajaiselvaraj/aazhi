@@ -44,9 +44,8 @@ export const GrievanceService = {
     },
 
     createRequest: async (request: any): Promise<ServiceRequest> => {
-        // Fallback to debug if no auth token is handled by the component.
-        // Actually, let's keep it hitting the main/debug based on component logic.
-        return await apiClient.post<ServiceRequest>('/service-requests/debug', request);
+        // Now accurately pointing to correct production POST endpoint
+        return await apiClient.post<ServiceRequest>('/service-requests', request);
     },
 
     getAllComplaintsAdmin: async (): Promise<any[]> => {
@@ -54,7 +53,7 @@ export const GrievanceService = {
     },
 
     createComplaint: async (complaint: any): Promise<any> => {
-        return await apiClient.post<any>('/complaints/debug', complaint);
+        return await apiClient.post<any>('/complaints', complaint);
     },
 
     trackRequest: async (ticketNumber: string): Promise<ServiceRequest> => {
