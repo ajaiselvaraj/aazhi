@@ -145,6 +145,19 @@ export default function TriagePanel() {
      c.category?.toLowerCase().includes(search.toLowerCase()))
   )
 
+  async function handleUpdateStatus(id: string, newStatus: string) {
+    try {
+      setLoading(true)
+      await adminApi.updateComplaintStatus(id, newStatus)
+      await loadComplaints(true) // Refresh state silently
+    } catch (err) {
+      console.error(err)
+      alert('Failed to update status. Ensure you have proper permissions.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const criticalCount = complaints.filter(c => c.priority === 'critical').length
   const pendingCount = complaints.filter(c => ['submitted', 'acknowledged', 'in_progress'].includes(c.status)).length
 
@@ -319,9 +332,26 @@ export default function TriagePanel() {
                       <tr>
                         <td colSpan={8} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                           <div style={{ padding: '2rem', animation: 'fadeIn 0.2s ease-in-out' }}>
-                            <div style={{ marginBottom: '1rem' }}>
-                              <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '.25rem' }}>Processing Hierarchy Tracker</h4>
-                              <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                              <div>
+                                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '.25rem' }}>Processing Hierarchy Tracker</h4>
+                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                <label style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Update Stage:</label>
+                                <select 
+                                  value={['closed', 'rejected'].includes(c.status) ? 'resolved' : c.status}
+                                  onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
+                                  disabled={loading}
+                                  style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', outline: 'none', background: 'var(--bg-light)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                  <option value="submitted">Submitted</option>
+                                  <option value="acknowledged">Officer Assigned</option>
+                                  <option value="assigned">Manager Review</option>
+                                  <option value="in_progress">GM Approval</option>
+                                  <option value="resolved">Resolved</option>
+                                </select>
+                              </div>
                             </div>
                             
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>
