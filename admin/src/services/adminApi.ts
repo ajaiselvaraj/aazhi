@@ -24,6 +24,15 @@ async function request(endpoint: string, options: RequestInit = {}) {
     headers,
   });
 
+  // 🔴 401 Unauthorized Handling — Force Logout
+  if (res.status === 401) {
+    console.error("🔴 [AUTH] 401 Unauthorized. Token expired or invalid.");
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('aazhi_admin_session');
+    window.location.href = '/login';
+    throw new Error('Session expired. Please log in again.');
+  }
+
   // 🔴 Handle non-JSON safely
   let json;
   try {
