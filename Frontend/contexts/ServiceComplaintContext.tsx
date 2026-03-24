@@ -166,18 +166,17 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                     if (incomingServiceReqsData.length > 0) {
                         setServiceRequests(prev => {
-                            const existingIds = new Set(prev.map(r => r.id));
                             const newFromApi: ServiceRequest[] = incomingServiceReqsData
-                                .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
                                 .map((r: any): ServiceRequest => {
                                     // Normalize stage for TitleCase matching in Admin Dashboard
-                                    let rawStage = r.current_stage || 'Submitted';
+                                    let rawStage = r.current_stage || r.status || 'Submitted';
                                     const stageMap: Record<string, string> = {
                                         'submitted': 'Submitted',
                                         'under_review': 'Officer Assigned',
                                         'verification': 'Manager Review',
                                         'approval_pending': 'GM Approval',
-                                        'completed': 'Resolved'
+                                        'completed': 'Resolved',
+                                        'rejected': 'Rejected'
                                     };
                                     const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
 
@@ -192,13 +191,36 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                         description: r.description || '',
                                         status: normalizedStage as any,
                                         currentStage: normalizedStage,
-                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
                                         createdAt: r.created_at || new Date().toISOString(),
                                     };
                                 });
 
                             if (newFromApi.length === 0) return prev;
-                            const merged = [...newFromApi, ...prev];
+                            
+                            const mergedMap = new Map();
+                            prev.forEach(p => mergedMap.set(p.id, p));
+                            let updated = false;
+
+                            newFromApi.forEach(n => {
+                                if (mergedMap.has(n.id)) {
+                                    const existing = mergedMap.get(n.id);
+                                    if (existing.currentStage !== n.currentStage) {
+                                        existing.currentStage = n.currentStage;
+                                        existing.status = n.status;
+                                        existing.stages = n.stages;
+                                        updated = true;
+                                    }
+                                } else {
+                                    mergedMap.set(n.id, n);
+                                    updated = true;
+                                }
+                            });
+
+                            if (!updated) return prev;
+
+                            const merged = Array.from(mergedMap.values());
+                            merged.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                             persistData(LOCAL_STORAGE_KEYS.SERVICES, merged);
                             return merged;
                         });
@@ -209,18 +231,18 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     const incomingComplaintsData = apiComplaints;
                     if (incomingComplaintsData.length > 0) {
                         setComplaints(prev => {
-                            const existingIds = new Set(prev.map(c => c.id));
                             const newFromApi: Complaint[] = incomingComplaintsData
-                                .filter((r: any) => !existingIds.has(r.id) && !existingIds.has(r.ticket_number))
                                 .map((r: any): Complaint => {
                                     // Normalize stage
-                                    let rawStage = r.current_stage || 'Submitted';
+                                    let rawStage = r.current_stage || r.status || 'Submitted';
                                     const stageMap: Record<string, string> = {
                                         'submitted': 'Submitted',
-                                        'under_review': 'Officer Assigned',
-                                        'verification': 'Manager Review',
-                                        'approval_pending': 'GM Approval',
-                                        'completed': 'Resolved'
+                                        'acknowledged': 'Officer Assigned',
+                                        'assigned': 'Manager Review',
+                                        'in_progress': 'GM Approval',
+                                        'resolved': 'Resolved',
+                                        'closed': 'Resolved',
+                                        'rejected': 'Rejected'
                                     };
                                     const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
 
@@ -236,13 +258,35 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                         priority: 'Medium',
                                         status: 'Pending',
                                         currentStage: normalizedStage,
-                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.created_at || new Date().toISOString() }],
+                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
                                         createdAt: r.created_at || new Date().toISOString(),
                                     };
                                 });
 
                             if (newFromApi.length === 0) return prev;
-                            const merged = [...newFromApi, ...prev];
+                            
+                            const mergedMap = new Map();
+                            prev.forEach(p => mergedMap.set(p.id, p));
+                            let updated = false;
+
+                            newFromApi.forEach(n => {
+                                if (mergedMap.has(n.id)) {
+                                    const existing = mergedMap.get(n.id);
+                                    if (existing.currentStage !== n.currentStage) {
+                                        existing.currentStage = n.currentStage;
+                                        existing.stages = n.stages;
+                                        updated = true;
+                                    }
+                                } else {
+                                    mergedMap.set(n.id, n);
+                                    updated = true;
+                                }
+                            });
+
+                            if (!updated) return prev;
+
+                            const merged = Array.from(mergedMap.values());
+                            merged.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                             persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, merged);
                             return merged;
                         });
