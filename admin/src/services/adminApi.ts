@@ -13,6 +13,15 @@ async function request(endpoint: string, options: RequestInit = {}) {
 }
 
 export const adminApi = {
+  // ── Auth ──
+  login: async (credentials: any) => {
+    const json = await request('/auth/admin-login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+    return json.data;
+  },
+
   // ── Dashboard ──
   getDashboard: async () => {
     const json = await request('/admin/dashboard');
@@ -20,12 +29,13 @@ export const adminApi = {
   },
 
   // ── Complaints ──
-  getAllComplaints: async (params: { page?: number; limit?: number; status?: string; department?: string } = {}) => {
+  getAllComplaints: async (params: { page?: number; limit?: number; status?: string; department?: string; priority?: string } = {}) => {
     const q = new URLSearchParams();
     if (params.page) q.set('page', String(params.page));
     if (params.limit) q.set('limit', String(params.limit));
     if (params.status) q.set('status', params.status);
     if (params.department) q.set('department', params.department);
+    if (params.priority) q.set('priority', params.priority);
     const json = await request(`/admin/complaints?${q.toString()}`);
     return json;
   },

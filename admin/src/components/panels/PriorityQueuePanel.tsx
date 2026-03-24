@@ -1,8 +1,8 @@
 import React from 'react'
 import { UserCheck, Clock } from 'lucide-react'
-import { priorityIssues, PriorityIssue } from '../../data/mockData'
+import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
-import { filterByDept } from '../../utils/deptFilter'
+import { deptKey } from '../../utils/deptFilter'
 
 const PRIORITY_STYLES = {
   'P0 — Emergency': { border: '#FF4D4F', badge: 'badge-danger' },
@@ -12,8 +12,45 @@ const PRIORITY_STYLES = {
 
 export default function PriorityQueuePanel() {
   const { user } = useAuth()
-  const issues = user ? filterByDept(priorityIssues, user.department) : priorityIssues
-  const emergency = issues.filter(i => i.priority === 'P0 — Emergency').length
+  const myDept = user ? deptKey(user.department) : ''
+  const [issues, setIssues] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    loadIssues()
+    const interval = setInterval(loadIssues, 15000)
+    return () => clearInterval(interval)
+  }, [])
+
+  async function loadIssues() {
+    try {
+      // Assuming 'critical' is the priority string in backend
+      const res = await adminApi.getAllComplaints({ priority: 'critical', limit: 20 })
+      const mapped = res.data.map((c: any) => ({
+        id: c.ticket_number || c.id,
+        title: c.subject || c.category || 'Critical Issue',
+        dept: c.department,
+        ward: c.ward || 'Unknown Ward',
+        priority: 'P1 — Critical',
+        icon: '🚨',
+        officer: c.assigned_to_name || null,
+        reportedAt: new Date(c.created_at).toLocaleString(),
+        raw: c
+      }))
+      setIssues(mapped)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Enforce dept isolation
+  const deptIssues = issues.filter(i => 
+    i.dept?.toLowerCase().includes(myDept.toLowerCase()) || myDept === ''
+  )
+  
+  const emergency = deptIssues.filter(i => i.priority.includes('Critical')).length
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -32,9 +69,11 @@ export default function PriorityQueuePanel() {
       </div>
 
       {/* Cards Stack */}
-      <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {issues.map(issue => {
-          const style = PRIORITY_STYLES[issue.priority]
+      <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', opacity: loading ? 0.6 : 1 }}>
+        {deptIssues.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No critical issues found.</div>
+        ) : deptIssues.map(issue => {
+          const style = PRIORITY_STYLES[issue.priority as keyof typeof PRIORITY_STYLES] || PRIORITY_STYLES['P1 — Critical']
           return (
             <div key={issue.id} style={{
               background: '#ffffff',
@@ -59,7 +98,7 @@ export default function PriorityQueuePanel() {
                   </div>
                 </div>
                 <span className={`badge ${style.badge}`} style={{ flexShrink: 0, padding: '.35rem .6rem', fontSize: '.8rem' }}>
-                  {issue.priority.split(' ')[0]}
+                  Critical
                 </span>
               </div>
 
@@ -83,7 +122,14 @@ export default function PriorityQueuePanel() {
                 <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}>
                   Assign Officer
                 </button>
-                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto', color: 'var(--success)' }}>
+                <button 
+                  className="btn btn-ghost" 
+                  style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto', color: 'var(--success)' }}
+                  onClick={async () => {
+                    await adminApi.updateComplaintStatus(issue.raw.id, 'resolved');
+                    loadIssues();
+                  }}
+                >
                   Mark Resolved
                 </button>
               </div>

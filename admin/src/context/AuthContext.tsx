@@ -35,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem(SESSION_KEY)
+    localStorage.removeItem('adminToken')
     setUser(null)
   }
 
