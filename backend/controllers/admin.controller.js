@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { pool } from "../config/db.js";
+import { supabase } from "../config/supabaseClient.js";
 import { success, fail, paginated } from "../utils/response.js";
 import logger from "../utils/logger.js";
 
