@@ -124,15 +124,25 @@ export default function TriagePanel() {
       const params: any = { page, limit: 100 }
       if (statusFilter !== 'All') params.status = statusFilter
       
-      console.log('📡 [Admin] Fetching all complaints...', params)
       const res = await adminApi.getAllComplaints(params)
-      console.log('✅ [Admin] Received complaints:', res.data?.length)
-      
       setComplaints(res.data || [])
       setTotal(res.pagination?.total || 0)
     } catch (err) {
       console.error('❌ [Admin] Failed to fetch complaints:', err)
     } finally {
+      if (!silent) setLoading(false)
+    }
+  }
+
+  async function handleUpdateStatus(id: string, newStatus: string) {
+    try {
+      setLoading(true) // UI feedback
+      await adminApi.updateComplaintStatus(id, newStatus)
+      await loadComplaints(true) // silent refresh to pull updated stages
+      setLoading(false)
+    } catch (err) {
+      console.error(err)
+      alert('Failed to update status. Ensure you have proper admin permissions.')
       setLoading(false)
     }
   }
@@ -319,9 +329,35 @@ export default function TriagePanel() {
                       <tr>
                         <td colSpan={8} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                           <div style={{ padding: '2rem', animation: 'fadeIn 0.2s ease-in-out' }}>
-                            <div style={{ marginBottom: '1rem' }}>
-                              <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '.25rem' }}>Processing Hierarchy Tracker</h4>
-                              <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
+                            
+                            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                              <div>
+                                <h4 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '.25rem' }}>Processing Hierarchy Tracker</h4>
+                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                {c.status === 'submitted' && (
+                                  <button onClick={() => handleUpdateStatus(c.id, 'acknowledged')} className="btn btn-primary" style={{ fontSize: '.85rem', padding: '.5rem 1rem' }}>
+                                    Assign Officer
+                                  </button>
+                                )}
+                                {c.status === 'acknowledged' && (
+                                  <button onClick={() => handleUpdateStatus(c.id, 'assigned')} className="btn btn-primary" style={{ fontSize: '.85rem', padding: '.5rem 1rem' }}>
+                                    Pass to Manager Review
+                                  </button>
+                                )}
+                                {c.status === 'assigned' && (
+                                  <button onClick={() => handleUpdateStatus(c.id, 'in_progress')} className="btn btn-primary" style={{ fontSize: '.85rem', padding: '.5rem 1rem' }}>
+                                    Approve for GM
+                                  </button>
+                                )}
+                                {c.status === 'in_progress' && (
+                                  <button onClick={() => handleUpdateStatus(c.id, 'resolved')} className="btn btn-primary" style={{ background: 'var(--success)', borderColor: 'var(--success)', fontSize: '.85rem', padding: '.5rem 1rem' }}>
+                                    Mark as Resolved
+                                  </button>
+                                )}
+                              </div>
                             </div>
                             
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>
