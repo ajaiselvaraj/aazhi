@@ -365,10 +365,8 @@ export const getAllServiceRequests = async (req, res, next) => {
                 query += ` AND sr.department = $${params.length}`;
             }
 
-            const totalResult = await pool.query(
-                `SELECT COUNT(*) FROM service_requests sr WHERE 1=1 ${status ? 'AND status = $1' : ''} ${department ? `AND department = $${status ? 2 : 1}` : ''}`,
-                params.slice(0, (status ? 1 : 0) + (department ? 1 : 0))
-            );
+            const countQuery = query.replace(/SELECT sr\.\*.*FROM/i, "SELECT COUNT(*) FROM");
+            const totalResult = await pool.query(countQuery, params);
             const total = parseInt(totalResult.rows[0].count);
 
             query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
@@ -402,10 +400,8 @@ export const getAllCitizens = async (req, res, next) => {
             query += ` AND (name ILIKE $${params.length} OR mobile ILIKE $${params.length})`;
         }
 
-        const totalResult = await pool.query(
-          `SELECT COUNT(*) FROM citizens WHERE 1=1 ${search ? 'AND (name ILIKE $1 OR mobile ILIKE $1)' : ''}`,
-          params.slice(0, (search ? 1 : 0))
-        );
+        const countQuery = query.replace(/SELECT (.*?) FROM/i, "SELECT COUNT(*) FROM");
+        const totalResult = await pool.query(countQuery, params);
         const total = parseInt(totalResult.rows[0].count);
 
         query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;

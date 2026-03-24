@@ -189,7 +189,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                     label={isTrackingLoc ? t("civic_locatingBtn") : t("civic_autoDetect")}
                                     language={getLanguageName()}
                                     onClick={handleLocationDetect}
-                                    className="bg-blue-600 text-white w-full hover:bg-blue-700 border-none"
+                                    className="!text-white bg-blue-600 w-full hover:bg-blue-700 active:bg-blue-800 border-none shadow-xl shadow-blue-200 transition-colors disabled:opacity-50 !p-6"
                                     disabled={isTrackingLoc}
                                 />
                             )}
