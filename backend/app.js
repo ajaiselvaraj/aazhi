@@ -34,12 +34,24 @@ app.use(SecurityEngine.applySecurityHeaders);
 
 // ─── CORS CONFIG ───────────────────────────────────────
 const allowedOrigins = (process.env.FRONTEND_URL ||
-    "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173,http://localhost:5174")
+    "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173,http://localhost:5174,http://localhost:5175")
     .split(",")
     .map(o => o.trim());
 
+// ⭐ DEBUG LOG: Show allowed origins on startup
+console.log("🔒 [CORS] Allowed Origins:", allowedOrigins);
+
 app.use(cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        // allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+            callback(null, true);
+        } else {
+            console.warn(`🛑 [CORS BLOCKED] Origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 
@@ -55,6 +67,12 @@ app.use(express.urlencoded({ extended: true }));
 
 
 // ─── Logging ──────────────────────────────────────────
+// ⭐ RAW REQUEST LOGGING (BEFORE BODY PARSING) ⭐
+app.use((req, res, next) => {
+    console.log(`📡 [RAW] ${req.method} ${req.url} - Origin: ${req.headers.origin || 'N/A'}`);
+    next();
+});
+
 app.use(morgan("combined"));
 
 
