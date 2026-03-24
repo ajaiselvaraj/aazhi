@@ -19,7 +19,16 @@ async function request(endpoint: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  // Prevent caching for all admin requests by forcing no-store
+  // Additionally, if it's a GET request, append a cache-busting timestamp
+  let finalEndpoint = endpoint;
+  if (!options.method || options.method.toUpperCase() === 'GET') {
+    const separator = finalEndpoint.includes('?') ? '&' : '?';
+    finalEndpoint += `${separator}_t=${Date.now()}`;
+  }
+
+  const res = await fetch(`${API_BASE}${finalEndpoint}`, {
+    cache: 'no-store',
     ...options,
     headers,
   });
