@@ -70,8 +70,6 @@ export default function TriagePanel() {
      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
      c.description?.toLowerCase().includes(search.toLowerCase()) ||
      c.category?.toLowerCase().includes(search.toLowerCase()))
-  ).filter(c => 
-     !myDept || (c.department && c.department.toLowerCase().includes(myDept.toLowerCase()))
   )
 
   const criticalCount = complaints.filter(c => c.priority === 'critical').length
