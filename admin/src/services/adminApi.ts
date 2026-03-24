@@ -1,14 +1,41 @@
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
+/**
+ * AAZHI Admin API Client (PRODUCTION SAFE)
+ */
+
+const API_BASE: string = import.meta.env.VITE_API_URL as string;
+
+// 🔍 Debug (remove later if needed)
+console.log("✅ API_BASE:", API_BASE);
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('adminToken');
-  const headers: any = { 'Content-Type': 'application/json', ...options.headers };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  const json = await res.json();
+  const headers: any = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
 
-  if (!res.ok) throw new Error(json.message || `Request failed (${res.status})`);
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  // 🔴 Handle non-JSON safely
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    throw new Error(`Invalid JSON response (${res.status})`);
+  }
+
+  if (!res.ok) {
+    throw new Error(json.message || `Request failed (${res.status})`);
+  }
+
   return json;
 }
 
@@ -29,13 +56,21 @@ export const adminApi = {
   },
 
   // ── Complaints ──
-  getAllComplaints: async (params: { page?: number; limit?: number; status?: string; department?: string; priority?: string } = {}) => {
+  getAllComplaints: async (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    department?: string;
+    priority?: string;
+  } = {}) => {
     const q = new URLSearchParams();
+
     if (params.page) q.set('page', String(params.page));
     if (params.limit) q.set('limit', String(params.limit));
     if (params.status) q.set('status', params.status);
     if (params.department) q.set('department', params.department);
     if (params.priority) q.set('priority', params.priority);
+
     const json = await request(`/admin/complaints?${q.toString()}`);
     return json;
   },
@@ -49,12 +84,19 @@ export const adminApi = {
   },
 
   // ── Service Requests ──
-  getAllServiceRequests: async (params: { page?: number; limit?: number; status?: string; department?: string } = {}) => {
+  getAllServiceRequests: async (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    department?: string;
+  } = {}) => {
     const q = new URLSearchParams();
+
     if (params.page) q.set('page', String(params.page));
     if (params.limit) q.set('limit', String(params.limit));
     if (params.status) q.set('status', params.status);
     if (params.department) q.set('department', params.department);
+
     const json = await request(`/admin/service-requests?${q.toString()}`);
     return json;
   },
@@ -69,21 +111,31 @@ export const adminApi = {
 
   // ── Analytics ──
   getServiceRequestAnalytics: async (period = 30) => {
-    const json = await request(`/admin/analytics/service-requests?period=${period}`);
+    const json = await request(
+      `/admin/analytics/service-requests?period=${period}`
+    );
     return json.data;
   },
 
   getPaymentStats: async (period = 30) => {
-    const json = await request(`/admin/analytics/payments?period=${period}`);
+    const json = await request(
+      `/admin/analytics/payments?period=${period}`
+    );
     return json.data;
   },
 
   // ── Citizens ──
-  getAllCitizens: async (params: { page?: number; limit?: number; search?: string } = {}) => {
+  getAllCitizens: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+  } = {}) => {
     const q = new URLSearchParams();
+
     if (params.page) q.set('page', String(params.page));
     if (params.limit) q.set('limit', String(params.limit));
     if (params.search) q.set('search', params.search);
+
     const json = await request(`/admin/citizens?${q.toString()}`);
     return json;
   },
