@@ -23,12 +23,15 @@ export default function DashboardOverview() {
       const data = await adminApi.getDashboard()
       const totalComplaints = parseInt(data.complaints?.total) || 0;
       const resolvedComplaints = parseInt(data.complaints?.resolved) || 0;
+      const totalSR = parseInt(data.service_requests?.total) || 0;
+      const completedSR = parseInt(data.service_requests?.completed) || 0;
 
       setStats({
         totalComplaints: totalComplaints,
+        totalSR: totalSR,
         resolved: resolvedComplaints,
         critical: 0,
-        aiRouted: Math.floor(totalComplaints * 0.8), // Placeholder metric
+        pendingSR: totalSR - completedSR,
         duplicatesDetected: Math.floor(totalComplaints * 0.1), // Placeholder metric
         fraudFlagged: 0,
         avgResolutionHrs: 24.5,
@@ -43,13 +46,13 @@ export default function DashboardOverview() {
 
   const statCards = [
     { label: 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: 'Live syncing', up: true },
-    { label: 'Resolved',             value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: 'Live syncing', up: true },
+    { label: 'Service Requests',     value: stats?.totalSR.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: 'Utility apps', up: true },
+    { label: 'Resolved (Issues)',    value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: 'Live syncing', up: true },
     { label: 'Critical Issues',      value: stats?.critical.toLocaleString() || '0',         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: 'Requires attention', up: false },
-    { label: 'AI Routed',            value: stats?.aiRouted.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: 'Automated workflow', up: true },
     { label: 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: 'Time saved', up: true },
     { label: 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: 'Security check', up: false },
     { label: 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs?.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Steady', up: true },
-    { label: 'Pending',              value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'In progress', up: false },
+    { label: 'Pending (Issues)',     value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'In progress', up: false },
   ]
   return (
     <div className="section-gap">

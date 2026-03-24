@@ -13,12 +13,14 @@ import PredictiveAlertsPanel from '../components/panels/PredictiveAlertsPanel'
 import RiskDetectorPanel from '../components/panels/RiskDetectorPanel'
 import AIInsightsPanel from '../components/panels/AIInsightsPanel'
 import SettingsPanel from '../components/panels/SettingsPanel'
+import ServiceRequestsPanel from '../components/panels/ServiceRequestsPanel'
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
   overview:   DashboardOverview,
   heatmap:    HeatmapPanel,
   complaints: TriagePanel,
+  'service-requests': ServiceRequestsPanel,
   triage:     TriagePanel,
   duplicate:  DuplicatePanel,
   fraud:      FraudPanel,
