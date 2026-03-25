@@ -18,9 +18,6 @@ async function request(endpoint: string, options: RequestInit = {}) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-
-  // Prevent caching for all admin requests by forcing no-store
-  // Additionally, if it's a GET request, append a cache-busting timestamp
   let finalEndpoint = endpoint;
   if (!options.method || options.method.toUpperCase() === 'GET') {
     const separator = finalEndpoint.includes('?') ? '&' : '?';
