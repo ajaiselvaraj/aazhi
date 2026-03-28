@@ -198,7 +198,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
 
   // Calculate new dashboard metrics
   const totalCount = serviceRequests.length + complaints.length;
-  const resolvedCount = serviceRequests.filter(r => r.status === 'Completed' || r.status === 'Resolved').length + 
+  const resolvedCount = serviceRequests.filter(r => r.status === 'Completed').length + 
                         complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
   const pendingRequests = totalCount - resolvedCount;
   const pendingColor = pendingRequests < 10 ? 'green' : pendingRequests < 40 ? 'orange' : 'red';
@@ -207,7 +207,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
   const todaysRequests = serviceRequests.filter(r => new Date(r.createdAt).toDateString() === todayStr).length +
                          complaints.filter(c => new Date(c.createdAt).toDateString() === todayStr).length;
 
-  const resolvedItems = [...serviceRequests.filter(r => r.status === 'Completed' || r.status === 'Resolved'), ...complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed')];
+  const resolvedItems = [...serviceRequests.filter(r => r.status === 'Completed'), ...complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed')];
   
   let avgResText = "Not enough data";
   if (resolvedItems.length > 0) {

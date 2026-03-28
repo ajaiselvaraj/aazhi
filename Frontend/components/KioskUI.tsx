@@ -42,7 +42,7 @@ interface Props {
   timer: number;
   onTogglePrivacy: () => void;
   initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation';
-
+  onVoiceCommand?: (command: string) => void;
 }
 
 interface ChatMessage {
