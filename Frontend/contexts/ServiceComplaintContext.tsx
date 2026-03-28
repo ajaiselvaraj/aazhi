@@ -396,8 +396,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             const updated = prev.map(r => {
                 if(r.id !== id) return r;
                 const now = new Date().toISOString();
-                const stages = r.stages.map(s => s.status==="Current" ? {...s, status:"Completed", updatedAt: now} : s);
-                stages.push({ stage, status: "Current", updatedAt: now });
+                const stages: TrackingStage[] = r.stages.map(s => s.status==="Current" ? ({...s, status:"Completed" as const, updatedAt: now}) : s);
+                stages.push({ stage, status: "Current" as const, updatedAt: now });
                 return { ...r, currentStage: stage, status: stage as ServiceRequest['status'], stages };
             });
             persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
@@ -413,8 +413,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             const updated = prev.map(c => {
                 if(c.id!==id) return c;
                 const now = new Date().toISOString();
-                const stages = c.stages.map(s => s.stage===c.currentStage ? {...s, status:"Completed", updatedAt:now} : s);
-                if(c.currentStage!==stage) stages.push({ stage, status:"Current", updatedAt:now });
+                const stages: TrackingStage[] = c.stages.map(s => s.stage===c.currentStage ? ({...s, status:"Completed" as const, updatedAt:now}) : s);
+                if(c.currentStage!==stage) stages.push({ stage, status:"Current" as const, updatedAt:now });
                 return { ...c, currentStage: stage, stages };
             });
             persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated);

@@ -14,6 +14,8 @@ import { speakText, loadVoices } from './utils/speak';
 import TalkbackOverlay from './components/TalkbackOverlay';
 import { authService } from './services/authService';
 import { GrievanceService } from './services/civicService';
+import cdacLogo from './assets/cdac_logo.png';
+
 
 
 enum ViewState {
@@ -141,11 +143,11 @@ const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> =
 // Location Selector Component
 // ─────────────────────────────────────────────
 interface LocationSelectorProps {
-  selectedState: string | null;
+  selectedState?: string | null;
   locationInfo: string;
-  onStateSelect: (state: string | null) => void;
-  onAutoDetect: () => void;
-  isDetecting: boolean;
+  onStateSelect?: (state: string | null) => void;
+  onAutoDetect?: () => void;
+  isDetecting?: boolean;
 }
 
 const LocationSelector: React.FC<LocationSelectorProps> = ({
@@ -185,7 +187,7 @@ const App: React.FC = () => {
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
-  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing'>('home');
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker'>('home');
   const timerRef = useRef<number | null>(null);
 
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
@@ -431,14 +433,17 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Top-right Location Selector */}
+      {/* Top-right Location Selector & CDAC Logo */}
       <div style={{
         position: 'absolute', top: '24px', right: '32px', zIndex: 40,
+        display: 'flex', alignItems: 'center', gap: '1.5rem'
       }}>
+        <img src={cdacLogo} alt="CDAC Logo" className="h-12 w-auto object-contain" />
         <LocationSelector
           locationInfo={locationInfo}
         />
       </div>
+
 
       {/* Top-left Voice Navigation */}
       <div style={{
@@ -545,7 +550,11 @@ const App: React.FC = () => {
             <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">{t('sel_welcomeUser')}</p>
           </div>
         </div>
+        <div>
+          <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain" />
+        </div>
       </header>
+
 
       <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 z-10 animate-in zoom-in-95 duration-500">
         <button onClick={() => handleSelection('ai')} className="group relative bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center overflow-hidden">
@@ -610,7 +619,9 @@ const App: React.FC = () => {
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
           </div>
+          <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain ml-2" />
         </div>
+
       </header>
 
       {/* Main Content */}
@@ -809,7 +820,7 @@ const App: React.FC = () => {
           {view === ViewState.DASHBOARD && (
             <KioskUI
               language={language}
-              onNavigate={setView}
+              onNavigate={(v: any) => setView(v)}
               onLogout={handleBackToLanding}
               isPrivacyShield={isPrivacyShieldOn}
               timer={timer}

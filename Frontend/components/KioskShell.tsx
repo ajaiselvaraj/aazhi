@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, WifiOff, Battery, BatteryCharging, Clock, Shield, EyeOff, Search } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
+import cdacLogo from '../assets/cdac_logo.png';
+
 import { Language } from '../types';
 import { useTranslation } from 'react-i18next';
 import SuvidhaVoiceControl from './SuvidhaVoiceControl';
@@ -332,11 +334,11 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                             <div className="flex gap-2 text-slate-300">
                                 {isOnline ? (
-                                    <Wifi size={18} className="text-green-500" title={t('statusOnline') || "Online"} />
+                                    <Wifi size={18} className="text-green-500" />
                                 ) : (
-                                    <WifiOff size={18} className="text-red-500" title={t('statusOffline') || "Offline"} />
+                                    <WifiOff size={18} className="text-red-500" />
                                 )}
-                                <div className="flex items-center" title={batteryLevel !== null ? `${t('statusBattery') || 'Battery'}: ${batteryLevel}%` : (t('statusBattery') || 'Battery')}>
+                                <div className="flex items-center">
                                     <DynamicBatteryIcon level={batteryLevel} isCharging={isCharging} />
                                 </div>
                             </div>
@@ -352,10 +354,14 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
                             </div>
 
-
+                            {/* CDAC Logo Section */}
+                            <div className="flex items-center pl-6 border-l border-slate-200">
+                                <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                            </div>
                         </div>
                     </div>
                 </header>
+
 
                 {/* 
            REGION 3: DYNAMIC CONTENT AREA 
@@ -393,6 +399,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                         </div>
                     </div>
+
                 )}
             </main>
 
