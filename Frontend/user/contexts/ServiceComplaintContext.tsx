@@ -12,8 +12,10 @@ export interface ServiceRequest {
     serviceType: string;
     address: string;
     description: string;
-    status: "Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Completed" | "Rejected";
+    status: "active" | "resolved" | "rejected";
     currentStage: string;
+    stage: string;
+    rejection_reason?: string;
     stages: TrackingStage[];
     createdAt: string;
 }
@@ -27,9 +29,11 @@ export interface Complaint {
     location: string;
     description: string;
     priority: "Critical" | "High" | "Medium" | "Low";
-    status: "Pending" | "In Progress" | "Resolved" | "Closed";
+    status: "active" | "resolved" | "rejected";
     area: string;
     areaAlert?: boolean;
+    stage: string;
+    rejection_reason?: string;
     currentStage: string;
     stages: TrackingStage[];
     createdAt: string;
@@ -55,8 +59,8 @@ interface ServiceComplaintContextType {
     serviceRequests: ServiceRequest[];
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
-    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stages'>) => string;
-    addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>) => Promise<string>;
+    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => string;
+    addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
     updateServiceStatus: (id: string, status: ServiceRequest['status']) => void;
     updateServiceStage: (id: string, stage: string) => void;
     updateComplaintStatus: (id: string, status: Complaint['status']) => void;
@@ -169,14 +173,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             const newFromApi: ServiceRequest[] = incomingServiceReqsData
                                 .map((r: any): ServiceRequest => {
                                     // Normalize stage for TitleCase matching in Admin Dashboard
-                                    let rawStage = r.current_stage || r.status || 'Submitted';
+                                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
                                     const stageMap: Record<string, string> = {
                                         'submitted': 'Submitted',
-                                        'under_review': 'Officer Assigned',
-                                        'verification': 'Manager Review',
-                                        'approval_pending': 'GM Approval',
-                                        'completed': 'Resolved',
-                                        'rejected': 'Rejected'
+                                        'officer_assigned': 'Officer Assigned',
+                                        'manager_review': 'Manager Review',
+                                        'gm_approval': 'GM Approval',
+                                        'resolved': 'Resolved'
                                     };
                                     const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
 
@@ -189,9 +192,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                         serviceType: r.request_type || r.serviceType || '',
                                         address: r.metadata?.address || r.address || '',
                                         description: r.description || '',
-                                        status: normalizedStage as any,
+                                        status: r.status || 'active',
                                         currentStage: normalizedStage,
-                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                                        stage: rawStage,
+                                        rejection_reason: r.rejection_reason,
+                                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
                                         createdAt: r.created_at || new Date().toISOString(),
                                     };
                                 });
@@ -234,15 +239,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             const newFromApi: Complaint[] = incomingComplaintsData
                                 .map((r: any): Complaint => {
                                     // Normalize stage
-                                    let rawStage = r.current_stage || r.status || 'Submitted';
+                                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
                                     const stageMap: Record<string, string> = {
                                         'submitted': 'Submitted',
-                                        'acknowledged': 'Officer Assigned',
-                                        'assigned': 'Manager Review',
-                                        'in_progress': 'GM Approval',
-                                        'resolved': 'Resolved',
-                                        'closed': 'Resolved',
-                                        'rejected': 'Rejected'
+                                        'officer_assigned': 'Officer Assigned',
+                                        'manager_review': 'Manager Review',
+                                        'gm_approval': 'GM Approval',
+                                        'resolved': 'Resolved'
                                     };
                                     const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
 
@@ -256,9 +259,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                         area: r.ward || 'Unknown',
                                         description: r.description || '',
                                         priority: 'Medium',
-                                        status: 'Pending',
+                                        status: r.status || 'active',
                                         currentStage: normalizedStage,
-                                        stages: [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                                        stage: rawStage,
+                                        rejection_reason: r.rejection_reason,
+                                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
                                         createdAt: r.created_at || new Date().toISOString(),
                                     };
                                 });
@@ -317,9 +322,9 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     // --- CRUD FUNCTIONS ---
     const addKiosk = (kiosk: Kiosk) => { setKiosks(prev => { const updated = [...prev, kiosk]; persistData(LOCAL_STORAGE_KEYS.KIOSKS, updated); return updated; }); };
     
-    const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stages'>): string => {
+    const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): string => {
         const token = `TKT-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
-        const newReq: ServiceRequest = { ...data, id: token, token, status: "Submitted", currentStage: "Submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const newReq: ServiceRequest = { ...data, id: token, token, status: "active", currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setServiceRequests(prev => { const updated = [newReq, ...prev]; persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; });
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
 
@@ -348,7 +353,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         return token;
     };
 
-    const addComplaint = async (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stages'>): Promise<string> => {
+    const addComplaint = async (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): Promise<string> => {
         let priority = getPriority(data.category, data.complaintType);
         let areaAlert = false;
         const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -384,7 +389,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         finalId = finalId || `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
 
-        const newComplaint: Complaint = { ...data, id: finalId, priority, status: "Pending", areaAlert, currentStage: "Submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const newComplaint: Complaint = { ...data, id: finalId, priority, status: "active", areaAlert, currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setComplaints(prev => { const updated = [newComplaint, ...prev]; persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; });
         return finalId;
     };
@@ -398,7 +403,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 const now = new Date().toISOString();
                 const stages: TrackingStage[] = r.stages.map(s => s.status==="Current" ? ({...s, status:"Completed" as const, updatedAt: now}) : s);
                 stages.push({ stage, status: "Current" as const, updatedAt: now });
-                return { ...r, currentStage: stage, status: stage as ServiceRequest['status'], stages };
+                const status = stage === 'Resolved' || stage.toLowerCase() === 'resolved' ? 'resolved' : 'active';
+                return { ...r, currentStage: stage, status: status as any, stage: stage.toLowerCase(), stages };
             });
             persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
             return updated;
@@ -415,7 +421,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 const now = new Date().toISOString();
                 const stages: TrackingStage[] = c.stages.map(s => s.stage===c.currentStage ? ({...s, status:"Completed" as const, updatedAt:now}) : s);
                 if(c.currentStage!==stage) stages.push({ stage, status:"Current" as const, updatedAt:now });
-                return { ...c, currentStage: stage, stages };
+                const status = stage === 'Resolved' || stage.toLowerCase() === 'resolved' ? 'resolved' : 'active';
+                return { ...c, currentStage: stage, status: status as any, stage: stage.toLowerCase(), stages };
             });
             persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated);
             return updated;

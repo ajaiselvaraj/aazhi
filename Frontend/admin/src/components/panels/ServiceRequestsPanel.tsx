@@ -7,16 +7,70 @@ import { deptKey } from '../../utils/deptFilter'
 /* ── Status Badge ────────────────────────────────────────────── */
 function RequestStatusBadge({ s }: { s: string }) {
   const map: any = {
-    'submitted': { label: 'New', class: 'badge-info' },
-    'under_review': { label: 'Review', class: 'badge-warning' },
-    'verification': { label: 'Verify', class: 'badge-warning' },
-    'approval_pending': { label: 'Pending', class: 'badge-warning' },
-    'completed': { label: 'Closed', class: 'badge-success' },
+    'active': { label: 'Active', class: 'badge-info' },
+    'resolved': { label: 'Resolved', class: 'badge-success' },
     'rejected': { label: 'Rejected', class: 'badge-danger' },
   }
   const status = map[s] || { label: s, class: 'badge-info' }
   return <span className={`badge ${status.class}`}>{status.label}</span>
 }
+
+const HIERARCHY_STAGES = [
+  { id: 'submitted', label: 'Submitted' },
+  { id: 'officer_assigned', label: 'Officer Assigned' },
+  { id: 'manager_review', label: 'Manager Review' },
+  { id: 'gm_approval', label: 'GM Approval' },
+  { id: 'resolved', label: 'Resolved' }
+];
+
+function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { stage: string, status: string, createdAt: string, rejectionReason?: string }) {
+  const isRejected = status === 'rejected';
+  let currentIndex = HIERARCHY_STAGES.findIndex(s => s.id === stage);
+  if (currentIndex === -1) currentIndex = 0;
+  if (status === 'resolved') currentIndex = 4;
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingBottom: '1rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
+      <div style={{ position: 'absolute', top: '13px', left: '10%', right: '10%', height: '2px', background: 'var(--border)', zIndex: 0 }}></div>
+      <div style={{ 
+        position: 'absolute', top: '13px', left: '10%', height: '2px', 
+        background: isRejected ? 'var(--danger)' : 'var(--primary)', zIndex: 0, 
+        width: `${(currentIndex / (HIERARCHY_STAGES.length - 1)) * 80}%`, 
+        transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' 
+      }}></div>
+
+      {HIERARCHY_STAGES.map((s, idx) => {
+        const isCompleted = idx < currentIndex;
+        const isCurrent = idx === currentIndex;
+        const stageColor = isRejected && isCurrent ? 'var(--danger)' : 'var(--primary)';
+
+        return (
+          <div key={s.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, minWidth: '120px' }}>
+            <div style={{ 
+              width: 28, height: 28, borderRadius: '50%', 
+              background: isCompleted ? (isRejected ? 'var(--danger)' : 'var(--primary)') : isCurrent ? 'var(--bg)' : 'var(--bg)',
+              border: isCompleted ? 'none' : isCurrent ? `3px solid ${stageColor}` : '2px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: isCompleted ? '#FFF' : 'var(--border)',
+              boxShadow: isCurrent ? `0 0 0 4px ${isRejected ? 'rgba(255, 77, 79, 0.2)' : 'var(--primary-light)'}` : 'none',
+              transition: 'all 0.3s ease'
+            }}>
+              {isCompleted ? <CheckCircle2 size={16} /> : isCurrent ? (isRejected ? <AlertTriangle size={16} color="var(--danger)" /> : <Circle size={10} fill="var(--primary)" color="var(--primary)" />) : <Circle size={10} />}
+            </div>
+            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+              <div style={{ fontSize: '.75rem', fontWeight: isCurrent ? 800 : 700, color: isCurrent || isCompleted ? 'var(--text-primary)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {s.label}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Re-using icon
+import { CheckCircle2, Circle, AlertTriangle } from 'lucide-react'
 
 export default function ServiceRequestsPanel() {
   const { user } = useAuth()
@@ -28,6 +82,7 @@ export default function ServiceRequestsPanel() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
   useEffect(() => {
     loadRequests()
@@ -40,7 +95,7 @@ export default function ServiceRequestsPanel() {
       if (statusFilter !== 'All') params.status = statusFilter
       
       console.log('📡 [Admin] Fetching service requests...', params)
-      const res = await adminApi.getAllServiceRequests(params)
+      const res = await adminApi.getAllServiceRequests({ ...params, status: 'active' })
       console.log('✅ [Admin] Received requests:', res.data?.length)
       
       setRequests(res.data || [])
@@ -54,11 +109,50 @@ export default function ServiceRequestsPanel() {
 
   // Frontend filtering for search
   const filtered = requests.filter(r => 
-    r.status !== 'resolved' && r.status !== 'completed' &&
+    r.status === 'active' &&
     (r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
     r.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
     r.request_type.toLowerCase().includes(search.toLowerCase()))
   )
+
+  async function handleUpdateStage(id: string, newStage: string) {
+    try {
+      setLoading(true)
+      await adminApi.updateServiceRequestStatus(id, { stage: newStage })
+      await loadRequests()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleReject(id: string) {
+    const reason = prompt("Enter rejection reason (optional):");
+    if (reason === null) return;
+    try {
+      setLoading(true)
+      await adminApi.updateServiceRequestStatus(id, { status: 'rejected', rejection_reason: reason })
+      await loadRequests()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResolve(id: string) {
+    if (!confirm("Are you sure you want to resolve this request?")) return;
+    try {
+      setLoading(true)
+      await adminApi.updateServiceRequestStatus(id, { stage: 'resolved', status: 'resolved' })
+      await loadRequests()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -89,10 +183,7 @@ export default function ServiceRequestsPanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="All">All Active Statuses</option>
-            <option value="submitted">New Requests</option>
-            <option value="under_review">Under Review</option>
-            <option value="rejected">Rejected</option>
+            <option value="active">Active</option>
           </select>
 
           <button 
@@ -139,51 +230,93 @@ export default function ServiceRequestsPanel() {
                 </tr>
               ) : (
                 filtered.map(r => (
-                  <tr key={r.id}>
-                    <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
-                        {r.ticket_number}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.8rem', fontWeight: 800 }}>
-                          {r.citizen_name?.charAt(0) || 'C'}
+                  <React.Fragment key={r.id}>
+                    <tr>
+                      <td>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
+                          {r.ticket_number}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.8rem', fontWeight: 800 }}>
+                            {r.citizen_name?.charAt(0) || 'C'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || 'Anonymous'}</div>
+                            <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{r.citizen_mobile || 'No Phone'}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || 'Anonymous'}</div>
-                          <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{r.citizen_mobile || 'No Phone'}</div>
+                      </td>
+                      <td style={{ fontWeight: 600, fontSize: '.85rem' }}>{r.request_type}</td>
+                      <td>
+                        <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>{r.department}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                            <Calendar size={12} /> {new Date(r.created_at).toLocaleDateString()}
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
+                            <Clock size={12} /> {new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 600, fontSize: '.85rem' }}>{r.request_type}</td>
-                    <td>
-                      <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>{r.department}</span>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                          <Calendar size={12} /> {new Date(r.created_at).toLocaleDateString()}
+                      </td>
+                      <td>
+                        <RequestStatusBadge s={r.status} />
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="btn btn-ghost" 
+                            style={{ padding: '.4rem', background: expandedRow === r.id ? 'var(--primary-light)' : 'transparent' }} 
+                            title="View Tracker"
+                            onClick={() => setExpandedRow(expandedRow === r.id ? null : r.id)}
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button className="btn btn-ghost" style={{ padding: '.4rem' }}>
+                            <MoreVertical size={16} />
+                          </button>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
-                          <Clock size={12} /> {new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <RequestStatusBadge s={r.status} />
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '.5rem', justifyContent: 'flex-end' }}>
-                        <button className="btn btn-ghost" style={{ padding: '.4rem' }} title="View Details">
-                          <Eye size={16} />
-                        </button>
-                        <button className="btn btn-ghost" style={{ padding: '.4rem' }}>
-                          <MoreVertical size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                      </td>
+                    </tr>
+                    {expandedRow === r.id && (
+                      <tr>
+                        <td colSpan={7} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ padding: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                              <div>
+                                <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>Workflow Progression</h4>
+                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Stage-based lifecycle for service inquiries.</p>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
+                                <label style={{ fontSize: '.85rem', fontWeight: 700 }}>Stage:</label>
+                                <select 
+                                  value={r.stage || 'submitted'}
+                                  onChange={(e) => handleUpdateStage(r.id, e.target.value)}
+                                  disabled={loading || r.status !== 'active'}
+                                  style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', background: 'var(--bg-light)', fontWeight: 600 }}
+                                >
+                                  {HIERARCHY_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                                </select>
+                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || r.status !== 'active'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
+                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || r.status !== 'active'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
+                              </div>
+                            </div>
+                            <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)' }}>
+                              <ProcessingHierarchy stage={r.stage || 'submitted'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
+                              {r.rejection_reason && (
+                                <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
+                                  <strong>Rejection Reason:</strong> {r.rejection_reason}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>

@@ -7,9 +7,7 @@ import { deptKey } from '../../utils/deptFilter'
 /* ── Status Badge ────────────────────────────────────────────── */
 function StatusBadge({ s }: { s: string }) {
   const map: any = {
-    'submitted': { label: 'New', class: 'badge-info' },
-    'acknowledged': { label: 'Pending', class: 'badge-warning' },
-    'in_progress': { label: 'In Progress', class: 'badge-warning' },
+    'active': { label: 'Active', class: 'badge-info' },
     'resolved': { label: 'Resolved', class: 'badge-success' },
     'rejected': { label: 'Rejected', class: 'badge-danger' },
   }
@@ -33,18 +31,17 @@ function PriorityBadge({ p }: { p: string }) {
 /* ── Processing Hierarchy Component ──────────────────────────── */
 const HIERARCHY_STAGES = [
   { id: 'submitted', label: 'Submitted' },
-  { id: 'acknowledged', label: 'Officer Assigned' },
-  { id: 'assigned', label: 'Manager Review' },
-  { id: 'in_progress', label: 'GM Approval' },
+  { id: 'officer_assigned', label: 'Officer Assigned' },
+  { id: 'manager_review', label: 'Manager Review' },
+  { id: 'gm_approval', label: 'GM Approval' },
   { id: 'resolved', label: 'Resolved' }
 ];
 
-function ProcessingHierarchy({ currentStatus, createdAt }: { currentStatus: string, createdAt: string }) {
-  let currentIndex = 0;
-  if (currentStatus === 'acknowledged') currentIndex = 1;
-  else if (currentStatus === 'assigned') currentIndex = 2;
-  else if (currentStatus === 'in_progress') currentIndex = 3;
-  else if (currentStatus === 'resolved' || currentStatus === 'closed') currentIndex = 4;
+function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { stage: string, status: string, createdAt: string, rejectionReason?: string }) {
+  const isRejected = status === 'rejected';
+  let currentIndex = HIERARCHY_STAGES.findIndex(s => s.id === stage);
+  if (currentIndex === -1) currentIndex = 0;
+  if (status === 'resolved') currentIndex = 4;
 
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingBottom: '1rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
@@ -53,41 +50,38 @@ function ProcessingHierarchy({ currentStatus, createdAt }: { currentStatus: stri
       
       {/* Active Fill Line */}
       <div style={{ 
-        position: 'absolute', top: '13px', left: '10%', height: '2px', background: 'var(--primary)', zIndex: 0, 
+        position: 'absolute', top: '13px', left: '10%', height: '2px', 
+        background: isRejected ? 'var(--danger)' : 'var(--primary)', zIndex: 0, 
         width: `${(currentIndex / (HIERARCHY_STAGES.length - 1)) * 80}%`, 
         transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' 
       }}></div>
 
-      {HIERARCHY_STAGES.map((stage, idx) => {
+      {HIERARCHY_STAGES.map((s, idx) => {
         const isCompleted = idx < currentIndex;
         const isCurrent = idx === currentIndex;
+        const stageColor = isRejected && isCurrent ? 'var(--danger)' : 'var(--primary)';
 
         return (
-          <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, minWidth: '120px' }}>
+          <div key={s.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 1, flex: 1, minWidth: '120px' }}>
             <div style={{ 
               width: 28, height: 28, borderRadius: '50%', 
-              background: isCompleted ? 'var(--primary)' : isCurrent ? 'var(--bg)' : 'var(--bg)',
-              border: isCompleted ? 'none' : isCurrent ? '3px solid var(--primary)' : '2px solid var(--border)',
+              background: isCompleted ? (isRejected ? 'var(--danger)' : 'var(--primary)') : isCurrent ? 'var(--bg)' : 'var(--bg)',
+              border: isCompleted ? 'none' : isCurrent ? `3px solid ${stageColor}` : '2px solid var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: isCompleted ? '#FFF' : 'var(--border)',
-              boxShadow: isCurrent ? '0 0 0 4px var(--primary-light)' : 'none',
+              boxShadow: isCurrent ? `0 0 0 4px ${isRejected ? 'rgba(255, 77, 79, 0.2)' : 'var(--primary-light)'}` : 'none',
               transition: 'all 0.3s ease'
             }}>
-              {isCompleted ? <CheckCircle2 size={16} /> : isCurrent ? <Circle size={10} fill="var(--primary)" color="var(--primary)" /> : <Circle size={10} />}
+              {isCompleted ? <CheckCircle2 size={16} /> : isCurrent ? (isRejected ? <AlertTriangle size={16} color="var(--danger)" /> : <Circle size={10} fill="var(--primary)" color="var(--primary)" />) : <Circle size={10} />}
             </div>
             
             <div style={{ marginTop: '1rem', textAlign: 'center' }}>
               <div style={{ fontSize: '.75rem', fontWeight: isCurrent ? 800 : 700, color: isCurrent || isCompleted ? 'var(--text-primary)' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {stage.label}
+                {s.label}
               </div>
               {isCurrent && (
-                <div style={{ fontSize: '.7rem', color: 'var(--primary)', marginTop: '.35rem', fontWeight: 700 }}>
-                  Current Level
-                </div>
-              )}
-              {isCompleted && idx === 0 && (
-                <div style={{ fontSize: '.65rem', color: 'var(--text-secondary)', marginTop: '.35rem' }}>
-                  {new Date(createdAt).toLocaleDateString()}
+                <div style={{ fontSize: '.7rem', color: stageColor, marginTop: '.35rem', fontWeight: 700 }}>
+                  {isRejected ? 'Rejected Here' : 'Current Level'}
                 </div>
               )}
             </div>
@@ -125,7 +119,7 @@ export default function TriagePanel() {
       if (statusFilter !== 'All') params.status = statusFilter
       
       console.log('📡 [Admin] Fetching all complaints...', params)
-      const res = await adminApi.getAllComplaints(params)
+      const res = await adminApi.getAllComplaints({ ...params, status: 'active' })
       console.log('✅ [Admin] Received complaints:', res.data?.length)
       
       setComplaints(res.data || [])
@@ -139,21 +133,47 @@ export default function TriagePanel() {
 
   // Frontend filtering for search and department isolation
   const filtered = complaints.filter(c => 
-    c.status !== 'resolved' &&
+    c.status === 'active' &&
     (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
      c.description?.toLowerCase().includes(search.toLowerCase()) ||
      c.category?.toLowerCase().includes(search.toLowerCase()))
   )
 
-  async function handleUpdateStatus(id: string, newStatus: string) {
+  async function handleUpdateStage(id: string, newStage: string) {
     try {
       setLoading(true)
-      await adminApi.updateComplaintStatus(id, newStatus)
-      await loadComplaints(true) // Refresh state silently
+      await adminApi.updateComplaintStatus(id, { stage: newStage })
+      await loadComplaints(true)
     } catch (err) {
       console.error(err)
-      alert('Failed to update status. Ensure you have proper permissions.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleReject(id: string) {
+    const reason = prompt("Enter rejection reason (optional):");
+    if (reason === null) return;
+    try {
+      setLoading(true)
+      await adminApi.updateComplaintStatus(id, { status: 'rejected', rejection_reason: reason })
+      await loadComplaints(true)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleResolve(id: string) {
+    if (!confirm("Are you sure you want to resolve this complaint?")) return;
+    try {
+      setLoading(true)
+      await adminApi.updateComplaintStatus(id, { stage: 'resolved', status: 'resolved' })
+      await loadComplaints(true)
+    } catch (err) {
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -215,9 +235,7 @@ export default function TriagePanel() {
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
             <option value="All">All Active Statuses</option>
-            <option value="submitted">New / Submitted</option>
-            <option value="acknowledged">Acknowledged</option>
-            <option value="in_progress">In Progress</option>
+            <option value="active">Active</option>
           </select>
 
           <button 
@@ -338,24 +356,44 @@ export default function TriagePanel() {
                                 <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                <label style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Update Stage:</label>
+                                <label style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Workflow Stage:</label>
                                 <select 
-                                  value={['closed', 'rejected'].includes(c.status) ? 'resolved' : c.status}
-                                  onChange={(e) => handleUpdateStatus(c.id, e.target.value)}
-                                  disabled={loading}
+                                  value={c.stage || 'submitted'}
+                                  onChange={(e) => handleUpdateStage(c.id, e.target.value)}
+                                  disabled={loading || c.status !== 'active'}
                                   style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', outline: 'none', background: 'var(--bg-light)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}
                                 >
-                                  <option value="submitted">Submitted</option>
-                                  <option value="acknowledged">Officer Assigned</option>
-                                  <option value="assigned">Manager Review</option>
-                                  <option value="in_progress">GM Approval</option>
-                                  <option value="resolved">Resolved</option>
+                                  {HIERARCHY_STAGES.map(s => (
+                                    <option key={s.id} value={s.id}>{s.label}</option>
+                                  ))}
                                 </select>
+                                <div style={{ width: '1px', height: '20px', background: 'var(--border)', margin: '0 0.5rem' }}></div>
+                                <button 
+                                  onClick={() => handleResolve(c.id)}
+                                  className="btn btn-success" 
+                                  style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+                                  disabled={loading || c.status !== 'active'}
+                                >
+                                  ✅ Resolve
+                                </button>
+                                <button 
+                                  onClick={() => handleReject(c.id)}
+                                  className="btn btn-danger" 
+                                  style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+                                  disabled={loading || c.status !== 'active'}
+                                >
+                                  ❌ Reject
+                                </button>
                               </div>
                             </div>
                             
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                              <ProcessingHierarchy currentStatus={c.status} createdAt={c.created_at} />
+                              <ProcessingHierarchy stage={c.stage || 'submitted'} status={c.status} createdAt={c.created_at} rejectionReason={c.rejection_reason} />
+                              {c.rejection_reason && (
+                                <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
+                                  <strong>Rejection Reason:</strong> {c.rejection_reason}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>

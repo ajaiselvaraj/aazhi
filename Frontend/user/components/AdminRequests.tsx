@@ -17,11 +17,14 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
   const translateDynamic = (text: string) => {
     if (!text) return text;
     const keyMap: Record<string, string> = {
+        'active': t('active') || 'Active',
+        'resolved': t('resolved') || 'Resolved',
+        'rejected': t('rejected') || 'Rejected',
         'Pending': t('pending') || 'Pending',
-        'In Progress': t('inProgress') || 'In Progress',
         'Resolved': t('resolved') || 'Resolved',
-        'Completed': t('completed') || 'Completed',
+        'In Progress': t('inProgress') || 'In Progress',
         'Rejected': t('rejected') || 'Rejected',
+        'Completed': t('completed') || 'Completed',
         'Closed': t('closed') || 'Closed',
         'Submitted': t('submitted') || 'Submitted',
         'Officer Assigned': t('officerAssigned') || 'Officer Assigned',
