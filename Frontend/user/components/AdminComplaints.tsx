@@ -37,10 +37,12 @@ const AdminComplaints: React.FC<Props> = ({
   const translateDynamic = (text: string) => {
     if (!text) return text;
     const keyMap: Record<string, string> = {
+        'active': t('active') || 'Active',
+        'resolved': t('resolved') || 'Resolved',
+        'rejected': t('rejected') || 'Rejected',
         'Pending': t('pending') || 'Pending',
-        'In Progress': t('inProgress') || 'In Progress',
         'Resolved': t('resolved') || 'Resolved',
-        'Completed': t('completed') || 'Completed',
+        'In Progress': t('inProgress') || 'In Progress',
         'Rejected': t('rejected') || 'Rejected',
         'Closed': t('closed') || 'Closed',
         'Submitted': t('submitted') || 'Submitted',
@@ -61,9 +63,9 @@ const AdminComplaints: React.FC<Props> = ({
   };
 
   const filteredComplaints = complaints.filter(c => {
-     // Apply view mode filter
-     if (viewMode === 'Resolved' && c.status !== 'Resolved') return false;
-     if (viewMode === 'Active' && c.status === 'Resolved') return false;
+      // Apply view mode filter
+      if (viewMode === 'Resolved' && (c.status !== 'resolved' && c.status !== 'Resolved')) return false;
+      if (viewMode === 'Active' && (c.status === 'resolved' || c.status === 'Resolved')) return false;
      
      // Apply category filter matches external prop selectedCategory
      // priorityFilter is handled externally in sorting, but we can do secondary checks here if needed.
@@ -211,9 +213,9 @@ const AdminComplaints: React.FC<Props> = ({
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center flex-wrap gap-2 mb-2 pr-8 md:pr-0">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
-                        ${complaint.status === 'Pending' ? 'bg-red-50 text-red-600' :
-                          complaint.status === 'In Progress' ? 'bg-orange-50 text-orange-600' :
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase
+                        ${complaint.status === 'active' ? 'bg-blue-50 text-blue-600' :
+                          complaint.status === 'rejected' ? 'bg-red-50 text-red-600' :
                             'bg-green-50 text-green-600'}`}>
                         {translateDynamic(complaint.status)}
                       </span>

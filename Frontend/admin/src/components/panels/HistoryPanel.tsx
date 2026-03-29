@@ -41,42 +41,33 @@ function PriorityBadge({ p }: { p: string }) {
 }
 
 export default function HistoryPanel() {
-  const [activeTab, setActiveTab] = useState<'complaints' | 'service-requests'>('complaints')
-  const [items, setItems] = useState<any[]>([])
+  const [complaints, setComplaints] = useState<any[]>([])
+  const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'resolved' | 'rejected'>('resolved')
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    loadItems()
-  }, [activeTab, page])
+    loadHistory()
+  }, [activeTab])
 
   useEffect(() => {
     setPage(1)
     setSearch('')
   }, [activeTab])
 
-  async function loadItems() {
+  async function loadHistory() {
     setLoading(true)
     try {
-      if (activeTab === 'complaints') {
-        // Fetch only resolved complaints
-        const res = await adminApi.getAllComplaints({ page, limit: 50, status: 'resolved' })
-        setItems(res.data || [])
-        setTotal(res.pagination?.total || 0)
-      } else {
-        // Fetch resolved service requests
-        const res = await adminApi.getAllServiceRequests({ page, limit: 50 }) // Since API doesn't fully support custom status query, let's fetch and filter frontend if necessary, or pass status
-        // Some APIs support status: 'completed' instead of resolved, but we'll try API with status: 'completed' first
-        // Let's filter on frontend since we might have 'resolved' and 'completed'
-        // But for pagination, it's better to fetch resolved/completed if possible. Given `getAllServiceRequests` supports `status`, let's just pass nothing and filter, or try `status: 'completed'`.
-        // I will do full fetch and filter locally just to be safe if `status` query param is strict.
-        const resAll = await adminApi.getAllServiceRequests({ page, limit: 100 })
-        const resolvedItems = (resAll.data || []).filter((r: any) => r.status === 'resolved' || r.status === 'completed')
-        setItems(resolvedItems)
-        setTotal(resolvedItems.length) // this is approx since backend pagination
-      }
+      const statusMap = { 'resolved': ['resolved', 'completed'], 'rejected': ['rejected'] }
+      const [cRes, rRes] = await Promise.all([
+        adminApi.getAllComplaints({ limit: 100 }),
+        adminApi.getAllServiceRequests({ limit: 100 })
+      ])
+      setComplaints((cRes.data || []).filter((i: any) => statusMap[activeTab].includes(i.status)))
+      setRequests((rRes.data || []).filter((i: any) => statusMap[activeTab].includes(i.status)))
     } catch (err) {
       console.error('❌ [Admin] Failed to fetch history items:', err)
     } finally {
@@ -84,7 +75,7 @@ export default function HistoryPanel() {
     }
   }
 
-  // Frontend filtering for search
+  const items = [...complaints, ...requests]
   const filtered = items.filter(item => {
     const id = item.ticket_number?.toLowerCase() || ''
     const name = item.citizen_name?.toLowerCase() || ''
@@ -104,32 +95,20 @@ export default function HistoryPanel() {
       </div>
 
       {/* ── Tabs ────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid var(--border)', marginBottom: '1.5rem' }}>
-        <button
-          className="btn btn-ghost"
-          style={{
-            padding: '0.75rem 1.5rem',
-            borderBottom: activeTab === 'complaints' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'complaints' ? 'var(--primary)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'complaints' ? 700 : 500,
-            borderRadius: '8px 8px 0 0'
-          }}
-          onClick={() => setActiveTab('complaints')}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', background: 'var(--bg)', padding: '0.4rem', borderRadius: 16, width: 'fit-content', border: '1px solid var(--border)' }}>
+        <button 
+          onClick={() => setActiveTab('resolved')}
+          className={`btn ${activeTab === 'resolved' ? 'btn-primary' : 'btn-ghost'}`}
+          style={{ borderRadius: 12, padding: '0.6rem 1.5rem' }}
         >
-          Resolved Complaints
+          Resolved Archive
         </button>
-        <button
-          className="btn btn-ghost"
-          style={{
-            padding: '0.75rem 1.5rem',
-            borderBottom: activeTab === 'service-requests' ? '2px solid var(--primary)' : '2px solid transparent',
-            color: activeTab === 'service-requests' ? 'var(--primary)' : 'var(--text-muted)',
-            fontWeight: activeTab === 'service-requests' ? 700 : 500,
-            borderRadius: '8px 8px 0 0'
-          }}
-          onClick={() => setActiveTab('service-requests')}
+        <button 
+          onClick={() => setActiveTab('rejected')}
+          className={`btn ${activeTab === 'rejected' ? 'btn-danger' : 'btn-ghost'}`}
+          style={{ borderRadius: 12, padding: '0.6rem 1.5rem' }}
         >
-          Completed Service Requests
+          Rejection History
         </button>
       </div>
 
@@ -139,7 +118,7 @@ export default function HistoryPanel() {
           <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder={`Search ${activeTab === 'complaints' ? 'complaints' : 'requests'}...`}
+            placeholder={`Search history...`}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '.75rem 1rem .75rem 2.5rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' }}
@@ -147,7 +126,7 @@ export default function HistoryPanel() {
         </div>
 
         <button 
-          onClick={() => loadItems()}
+          onClick={() => loadHistory()}
           className="btn btn-outline" 
           style={{ padding: '.75rem', borderRadius: 12 }}
           title="Refresh list"
@@ -166,7 +145,7 @@ export default function HistoryPanel() {
         <div style={{ textAlign: 'center', padding: '4rem' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}><Inbox size={48} color="var(--border)" /></div>
           <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No history available</p>
-          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>There are no resolved items matching your criteria.</p>
+          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>There are no items matching your criteria.</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -178,19 +157,19 @@ export default function HistoryPanel() {
                     #{item.ticket_number || item.id.substring(0,8).toUpperCase()}
                   </div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    {activeTab === 'complaints' ? (item.category || 'General Issue') : (item.request_type || 'Service Request')}
+                    {item.category || item.request_type || 'General Issue'}
                   </h3>
                 </div>
-                <StatusBadge s={item.status} type={activeTab === 'complaints' ? 'complaint' : 'service'} />
+                <StatusBadge s={item.status} type={item.request_type ? 'service' : 'complaint'} />
               </div>
 
               <div style={{ fontSize: '.9rem', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {item.description || "No description provided."}
               </div>
 
-              {activeTab === 'complaints' && item.priority && (
-                <div>
-                  <PriorityBadge p={item.priority}  />
+              {activeTab === 'rejected' && item.rejection_reason && (
+                <div style={{ background: 'var(--bg-danger)', padding: '0.75rem', borderRadius: 8, fontSize: '.85rem', color: 'var(--danger)' }}>
+                  <strong>Reason:</strong> {item.rejection_reason}
                 </div>
               )}
 
@@ -216,9 +195,8 @@ export default function HistoryPanel() {
       {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
           <div style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{filtered.length}</strong> {activeTab === 'complaints' ? 'complaints' : 'requests'}
+            Showing <strong>{filtered.length}</strong> items
           </div>
-          {/* Add pagination controls if fully implemented via API, currently static mapping */}
         </div>
       )}
     </div>

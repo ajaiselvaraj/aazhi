@@ -91,10 +91,10 @@ export const adminApi = {
     return json;
   },
 
-  updateComplaintStatus: async (id: string, status: string) => {
+  updateComplaintStatus: async (id: string, updates: { stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
     const json = await request(`/complaints/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(updates),
     });
     return json.data;
   },
@@ -118,10 +118,10 @@ export const adminApi = {
     return json;
   },
 
-  updateServiceRequestStatus: async (id: string, status: string) => {
+  updateServiceRequestStatus: async (id: string, updates: { stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
     const json = await request(`/service-requests/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify(updates),
     });
     return json.data;
   },

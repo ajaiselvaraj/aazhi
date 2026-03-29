@@ -18,8 +18,8 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, stage, status)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted', 'active')
              RETURNING *`,
             [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
@@ -143,7 +143,7 @@ export const getMyComplaints = async (req, res, next) => {
 export const updateComplaintStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, notes, assigned_to, resolution_note } = req.body;
+        const { stage, status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
         // Get current complaint
@@ -152,9 +152,20 @@ export const updateComplaintStatus = async (req, res, next) => {
             return fail(res, "Complaint not found.", 404);
         }
 
+        // Logical overrides
+        let finalStatus = status || current.rows[0].status;
+        let finalStage = stage || current.rows[0].stage;
+
+        if (finalStage === "resolved") {
+            finalStatus = "resolved";
+        }
+        if (finalStatus === "rejected") {
+            // rejection stays rejected
+        }
+
         // Update complaint
-        const updateFields = ["status = $2", "updated_at = NOW()"];
-        const updateParams = [id, status];
+        const updateFields = ["stage = $2", "status = $3", "updated_at = NOW()"];
+        const updateParams = [id, finalStage, finalStatus];
 
         if (assigned_to) {
             updateFields.push(`assigned_to = $${updateParams.length + 1}`);
@@ -164,10 +175,14 @@ export const updateComplaintStatus = async (req, res, next) => {
             updateFields.push(`resolution_note = $${updateParams.length + 1}`);
             updateParams.push(resolution_note);
         }
-        if (status === "resolved") {
+        if (rejection_reason) {
+            updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
+            updateParams.push(rejection_reason);
+        }
+        if (finalStatus === "resolved" || finalStage === "resolved") {
             updateFields.push("resolved_at = NOW()");
         }
-        if (status === "closed") {
+        if (finalStatus === "closed") {
             updateFields.push("closed_at = NOW()");
         }
 
@@ -176,7 +191,7 @@ export const updateComplaintStatus = async (req, res, next) => {
             updateParams
         );
 
-        // Update complaint stages
+        // Update complaint stages table (lifecycle tracker)
         // Mark previous stage as completed
         await pool.query(
             `UPDATE complaint_stages SET status = 'completed', updated_at = NOW()
@@ -188,7 +203,7 @@ export const updateComplaintStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE complaint_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || rejection_reason || null, updatedBy, id, finalStage]
         );
 
         logger.info("Complaint status updated", { complaintId: id, oldStatus: current.rows[0].status, newStatus: status, updatedBy });

@@ -52,8 +52,8 @@ export const createServiceRequest = async (req, res, next) => {
                 ward: ward || null,
                 phone: phone || null,
                 metadata: metadata || {},
-                status: 'submitted', // MATCHES DB CHECK CONSTRAINT
-                current_stage: 'submitted'
+                stage: 'submitted', 
+                status: 'active'
             };
 
             console.log("🚀 [SUPABASE] Attempting insert into 'service_requests':", insertPayload.ticket_number);
@@ -88,8 +88,8 @@ export const createServiceRequest = async (req, res, next) => {
             // ─── POSTGRES DIRECT DRIVER MODE (FALLBACK) ───
             const result = await pool.query(
                 `INSERT INTO service_requests 
-                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
-                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'submitted')
+                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, stage, status)
+                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'active')
                  RETURNING *`,
                 [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
             );
@@ -246,7 +246,7 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
 export const updateServiceRequestStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, notes } = req.body;
+        const { stage, status, notes, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
         const current = await pool.query("SELECT * FROM service_requests WHERE id = $1", [id]);
@@ -254,11 +254,26 @@ export const updateServiceRequestStatus = async (req, res, next) => {
             return fail(res, "Service request not found.", 404);
         }
 
+        // Logical overrides
+        let finalStatus = status || current.rows[0].status;
+        let finalStage = stage || current.rows[0].stage;
+
+        if (finalStage === "resolved") {
+            finalStatus = "resolved";
+        }
+
         // Update request
+        const updateFields = ["stage = $1", "status = $2", "updated_at = NOW()"];
+        const updateParams = [finalStage, finalStatus, id];
+
+        if (rejection_reason) {
+            updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
+            updateParams.push(rejection_reason);
+        }
+
         const result = await pool.query(
-            `UPDATE service_requests SET status = $1, current_stage = $1, updated_at = NOW()
-             WHERE id = $2 RETURNING *`,
-            [status, id]
+            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $3 RETURNING *`,
+            updateParams
         );
 
         // Update stages
@@ -271,7 +286,7 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE service_request_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || rejection_reason || null, updatedBy, id, finalStage]
         );
 
         logger.info("Service request updated", { requestId: id, newStatus: status, updatedBy });

@@ -128,11 +128,11 @@ CREATE TABLE IF NOT EXISTS complaints (
     ward            VARCHAR(10),
     priority        VARCHAR(20) DEFAULT 'medium'
                     CHECK (priority IN ('low', 'medium', 'high', 'critical')),
-    status          VARCHAR(30) DEFAULT 'submitted'
-                    CHECK (status IN (
-                        'submitted', 'acknowledged', 'assigned', 'in_progress',
-                        'resolved', 'closed', 'reopened', 'rejected'
-                    )),
+    status          VARCHAR(30) DEFAULT 'active'
+                    CHECK (status IN ('active', 'resolved', 'rejected', 'closed')),
+    stage           VARCHAR(50) DEFAULT 'submitted'
+                    CHECK (stage IN ('submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved')),
+    rejection_reason TEXT,
     assigned_to     UUID REFERENCES citizens(id),
     resolution_note TEXT,
     resolved_at     TIMESTAMP,
@@ -174,12 +174,12 @@ CREATE TABLE IF NOT EXISTS service_requests (
     description     TEXT NOT NULL,
     ward            VARCHAR(10),
     phone           VARCHAR(15),
-    status          VARCHAR(30) DEFAULT 'submitted'
-                    CHECK (status IN (
-                        'submitted', 'under_review', 'verification',
-                        'approval_pending', 'completed', 'rejected'
-                    )),
-    current_stage   VARCHAR(50) DEFAULT 'submitted',
+    status          VARCHAR(30) DEFAULT 'active'
+                    CHECK (status IN ('active', 'resolved', 'rejected')),
+    stage           VARCHAR(50) DEFAULT 'submitted'
+                    CHECK (stage IN ('submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved')),
+    rejection_reason TEXT,
+    current_stage   VARCHAR(50) DEFAULT 'submitted', -- Deprecated in favor of stage, keeping for compat if needed
     metadata        JSONB DEFAULT '{}',
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
