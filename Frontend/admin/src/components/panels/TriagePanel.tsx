@@ -139,6 +139,7 @@ export default function TriagePanel() {
 
   // Frontend filtering for search and department isolation
   const filtered = complaints.filter(c => 
+    c.status !== 'resolved' &&
     (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
      c.description?.toLowerCase().includes(search.toLowerCase()) ||
@@ -213,11 +214,10 @@ export default function TriagePanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="All">All Statuses</option>
+            <option value="All">All Active Statuses</option>
             <option value="submitted">New / Submitted</option>
             <option value="acknowledged">Acknowledged</option>
             <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
           </select>
 
           <button 
