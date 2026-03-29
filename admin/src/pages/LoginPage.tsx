@@ -3,6 +3,8 @@ import { ShieldCheck, LogIn, Eye, EyeOff, Lock } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTMENTS } from '../data/mockData'
 import { adminApi } from '../services/adminApi'
+import cdacLogo from '../assets/cdac_logo.png'
+
 
 const ADMIN_NAMES: Record<string, string> = {
   'Electricity Department':  'Ramprasad Krishnan',
@@ -258,7 +260,23 @@ export default function LoginPage() {
         justifyContent: 'center',
         padding: '3rem 2.5rem',
         overflowY: 'auto',
+        position: 'relative',
       }}>
+        {/* CDAC Logo in Top Right */}
+        <img 
+          src={cdacLogo} 
+          alt="CDAC Logo" 
+          style={{ 
+            position: 'absolute', 
+            top: '1.5rem', 
+            right: '1.5rem', 
+            height: '45px', 
+            width: 'auto',
+            objectFit: 'contain',
+            zIndex: 10
+          }} 
+        />
+
         {/* Card */}
         <div style={{
           width: '100%',

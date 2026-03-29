@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Bell, Wifi } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import cdacLogo from '../../assets/cdac_logo.png'
+
 
 function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
@@ -132,7 +134,19 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
         >
           {getInitials(user?.name || 'Admin')}
         </div>
+
+        {/* CDAC Logo Section */}
+        <div style={{ 
+          marginLeft: '0.5rem', 
+          paddingLeft: '1rem', 
+          borderLeft: '1px solid #E5E7EB', 
+          display: 'flex', 
+          alignItems: 'center' 
+        }}>
+          <img src={cdacLogo} alt="CDAC Logo" style={{ height: '34px', width: 'auto', objectFit: 'contain' }} />
+        </div>
       </div>
+
     </header>
   )
 }
