@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   LayoutDashboard, Map, MessageSquare, Cpu, Copy,
   AlertTriangle, ListOrdered, BarChart2, TrendingUp,
-  BellRing, ShieldAlert, Settings, LogOut, Zap, Brain
+  BellRing, ShieldAlert, Settings, LogOut, Zap, Brain, History
 } from 'lucide-react'
 
 const navGroups = [
@@ -27,7 +27,7 @@ const navGroups = [
   {
     label: 'Operations',
     items: [
-      { id: 'priority',  icon: ListOrdered,     label: 'Priority Queue' },
+      { id: 'history',   icon: History,         label: 'History' },
       { id: 'insights',  icon: BarChart2,       label: 'Insights & Analytics' },
       { id: 'forecast',  icon: TrendingUp,      label: 'Workload Forecast' },
     ],

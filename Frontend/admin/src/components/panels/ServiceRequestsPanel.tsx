@@ -54,9 +54,10 @@ export default function ServiceRequestsPanel() {
 
   // Frontend filtering for search
   const filtered = requests.filter(r => 
-    r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
+    r.status !== 'resolved' && r.status !== 'completed' &&
+    (r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
     r.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.request_type.toLowerCase().includes(search.toLowerCase())
+    r.request_type.toLowerCase().includes(search.toLowerCase()))
   )
 
   return (
@@ -88,10 +89,9 @@ export default function ServiceRequestsPanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="All">All Statuses</option>
+            <option value="All">All Active Statuses</option>
             <option value="submitted">New Requests</option>
             <option value="under_review">Under Review</option>
-            <option value="completed">Completed</option>
             <option value="rejected">Rejected</option>
           </select>
 

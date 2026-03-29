@@ -6,7 +6,7 @@ import HeatmapPanel from '../components/panels/HeatmapPanel'
 import TriagePanel from '../components/panels/TriagePanel'
 import DuplicatePanel from '../components/panels/DuplicatePanel'
 import FraudPanel from '../components/panels/FraudPanel'
-import PriorityQueuePanel from '../components/panels/PriorityQueuePanel'
+import HistoryPanel from '../components/panels/HistoryPanel'
 import InsightsPanel from '../components/panels/InsightsPanel'
 import WorkloadForecastPanel from '../components/panels/WorkloadForecastPanel'
 import PredictiveAlertsPanel from '../components/panels/PredictiveAlertsPanel'
@@ -24,7 +24,7 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   triage:     TriagePanel,
   duplicate:  DuplicatePanel,
   fraud:      FraudPanel,
-  priority:   PriorityQueuePanel,
+  history:    HistoryPanel,
   insights:   InsightsPanel,
   forecast:   WorkloadForecastPanel,
   alerts:     PredictiveAlertsPanel,
