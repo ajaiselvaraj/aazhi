@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, WifiOff, Battery, BatteryCharging, Clock, Shield, EyeOff, Search } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
+import cdacLogo from '../assets/cdac_logo.png';
+
 import { Language } from '../types';
 import { useTranslation } from 'react-i18next';
-import VoiceNavigation from './VoiceNavigation';
+import SuvidhaVoiceControl from './SuvidhaVoiceControl';
 import KioskErrorBoundary from './KioskErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemService } from '../services/systemService';
@@ -210,7 +212,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'home', label: t('navHome') || 'Home', icon: Home },
         { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
-        { id: 'complaints', label: t('navHelp') || 'Help', icon: AlertTriangle },
+        { id: 'complaints', label: t('navComplaints') || 'Complaints', icon: AlertTriangle },
         { id: 'tracker', label: t('trackApp'), icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
@@ -255,7 +257,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                   relative group flex flex-col items-center justify-center w-24 h-24 rounded-2xl transition-colors duration-300
                   ${isActive
                                         ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
-                                        : 'text-slate-400 hover:bg-slate-50'
+                                        : 'text-slate-400 hover:bg-slate-50 border-2 border-transparent'
                                     }
                 `}
                             >
@@ -273,7 +275,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
 
                                 {isActive && (
-                                    <motion.div layoutId="activeTabIndicator" className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 bg-blue-600 rounded-r-full"></motion.div>
+                                    <motion.div layoutId="activeTabIndicator" className="absolute left-[3px] top-2 bottom-2 w-1 bg-blue-600 rounded-full"></motion.div>
                                 )}
                             </motion.button>
                         )
@@ -316,7 +318,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
                     <div className="flex items-center gap-6">
                         {onVoiceCommand && (
-                            <VoiceNavigation onCommand={onVoiceCommand} />
+                            <SuvidhaVoiceControl onCommand={onVoiceCommand as any} ttsLanguage={language} variant="inline" />
                         )}
 
 
@@ -332,11 +334,11 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                             <div className="flex gap-2 text-slate-300">
                                 {isOnline ? (
-                                    <Wifi size={18} className="text-green-500" title={t('statusOnline') || "Online"} />
+                                    <Wifi size={18} className="text-green-500" />
                                 ) : (
-                                    <WifiOff size={18} className="text-red-500" title={t('statusOffline') || "Offline"} />
+                                    <WifiOff size={18} className="text-red-500" />
                                 )}
-                                <div className="flex items-center" title={batteryLevel !== null ? `${t('statusBattery') || 'Battery'}: ${batteryLevel}%` : (t('statusBattery') || 'Battery')}>
+                                <div className="flex items-center">
                                     <DynamicBatteryIcon level={batteryLevel} isCharging={isCharging} />
                                 </div>
                             </div>
@@ -352,10 +354,14 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 </span>
                             </div>
 
-
+                            {/* CDAC Logo Section */}
+                            <div className="flex items-center pl-6 border-l border-slate-200">
+                                <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                            </div>
                         </div>
                     </div>
                 </header>
+
 
                 {/* 
            REGION 3: DYNAMIC CONTENT AREA 
@@ -393,6 +399,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                         </div>
                     </div>
+
                 )}
             </main>
 

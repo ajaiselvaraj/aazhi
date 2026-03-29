@@ -9,7 +9,7 @@ interface State {
     hasError: boolean;
 }
 
-class KioskErrorBoundary extends React.Component<Props, State> {
+class KioskErrorBoundary extends Component<Props, State> {
     public state: State = {
         hasError: false
     };

@@ -1,0 +1,94 @@
+﻿App.tsx(442,10): error TS2739: Type '{ locationInfo: string; }' is missing the following properties from type 'LocationSelectorProps': selectedState, onStateSelect, onAutoDetect, isDetecting
+App.tsx(825,15): error TS2322: Type '{ language: Language; onNavigate: (v: any) => void; onLogout: () => void; isPrivacyShield: boolean; timer: number; onTogglePrivacy: () => void; initialTab: any; onVoiceCommand: (command: string) => void; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'onVoiceCommand' does not exist on type 'IntrinsicAttributes & Props'.
+components/Admin.tsx(201,81): error TS2367: This comparison appears to be unintentional because the types '"Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Rejected"' and '"Resolved"' have no overlap.
+components/Admin.tsx(210,85): error TS2367: This comparison appears to be unintentional because the types '"Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Rejected"' and '"Resolved"' have no overlap.
+components/kiosk/DashboardHome.tsx(39,25): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any>'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType'.
+components/kiosk/DashboardHome.tsx(70,25): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any>'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType'.
+components/kiosk/DashboardHome.tsx(148,25): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any>'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType'.
+components/kiosk/DashboardHome.tsx(154,25): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any>'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType'.
+components/kiosk/DashboardHome.tsx(179,25): error TS2322: Type '{ hidden: { opacity: number; y: number; }; show: { opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }; }' is not assignable to type 'Variants'.
+  Property 'show' is incompatible with index signature.
+    Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'Variant'.
+      Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type 'TargetAndTransition'.
+        Type '{ opacity: number; y: number; transition: { type: string; stiffness: number; damping: number; }; }' is not assignable to type '{ transition?: Transition<any>; transitionEnd?: ResolvedValues$1; }'.
+          Types of property 'transition' are incompatible.
+            Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'Transition<any>'.
+              Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'TransitionWithValueOverrides<any>'.
+                Type '{ type: string; stiffness: number; damping: number; }' is not assignable to type 'ValueAnimationTransition<any>'.
+                  Types of property 'type' are incompatible.
+                    Type 'string' is not assignable to type 'AnimationGeneratorType'.
+components/kiosk/HistoryReceipt.tsx(31,28): error TS2339: Property 'category' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(60,32): error TS2339: Property 'serviceType' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(60,87): error TS2339: Property 'serviceType' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(62,26): error TS2339: Property 'createdAt' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(111,101): error TS2339: Property 'name' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(127,103): error TS2339: Property 'description' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(219,80): error TS2339: Property 'name' does not exist on type 'ServiceRequest'.
+components/kiosk/HistoryReceipt.tsx(233,70): error TS2339: Property 'description' does not exist on type 'ServiceRequest'.
+components/kiosk/ServiceFormWizard.tsx(200,18): error TS2741: Property 'language' is missing in type '{ requestId: string; onSuccess: (docs: DigiLockerDoc[]) => void; onCancel: () => void; }' but required in type 'Props'.
+components/VoiceDemo.tsx(55,7): error TS2739: Type '{ login: { label: string; icon: Element; color: string; }; home: { label: string; icon: Element; color: string; }; service: { label: string; icon: Element; color: string; }; complaints: { ...; }; trackapp: { ...; }; assistant: { ...; }; submit: { ...; }; }' is missing the following properties from type 'Record<VoiceCommand, { label: string; icon: ReactNode; color: string; }>': exit, paybill, history
+contexts/ServiceComplaintContext.tsx(395,28): error TS2345: Argument of type '(prev: ServiceRequest[]) => { currentStage: string; status: "Completed" | "Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Rejected"; stages: (TrackingStage | { ...; })[]; ... 8 more ...; createdAt: string; }[]' is not assignable to parameter of type 'SetStateAction<ServiceRequest[]>'.
+  Type '(prev: ServiceRequest[]) => { currentStage: string; status: "Completed" | "Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Rejected"; stages: (TrackingStage | { ...; })[]; ... 8 more ...; createdAt: string; }[]' is not assignable to type '(prevState: ServiceRequest[]) => ServiceRequest[]'.
+    Type '{ currentStage: string; status: "Completed" | "Submitted" | "Under Review" | "Verification" | "Approval Pending" | "Rejected"; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; ... 8 more ...; createdAt: string; }[]' is not assignable to type 'ServiceRequest[]'.
+      Type '{ currentStage: string; status: ServiceRequest["status"]; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; id: string; token?: string; name: string; ... 5 more ...; createdAt: string; }' is not assignable to type 'ServiceRequest'.
+        Types of property 'stages' are incompatible.
+          Type '(TrackingStage | { status: string; updatedAt: string; stage: string; })[]' is not assignable to type 'TrackingStage[]'.
+            Type 'TrackingStage | { status: string; updatedAt: string; stage: string; }' is not assignable to type 'TrackingStage'.
+              Type '{ status: string; updatedAt: string; stage: string; }' is not assignable to type 'TrackingStage'.
+                Types of property 'status' are incompatible.
+                  Type 'string' is not assignable to type '"Completed" | "Current" | "Pending"'.
+contexts/ServiceComplaintContext.tsx(412,23): error TS2345: Argument of type '(prev: Complaint[]) => { currentStage: string; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; id: string; name: string; phone: string; ... 8 more ...; createdAt: string; }[]' is not assignable to parameter of type 'SetStateAction<Complaint[]>'.
+  Type '(prev: Complaint[]) => { currentStage: string; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; id: string; name: string; phone: string; ... 8 more ...; createdAt: string; }[]' is not assignable to type '(prevState: Complaint[]) => Complaint[]'.
+    Type '{ currentStage: string; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; id: string; name: string; phone: string; category: string; complaintType: string; ... 6 more ...; createdAt: string; }[]' is not assignable to type 'Complaint[]'.
+      Type '{ currentStage: string; stages: (TrackingStage | { status: string; updatedAt: string; stage: string; })[]; id: string; name: string; phone: string; category: string; complaintType: string; ... 6 more ...; createdAt: string; }' is not assignable to type 'Complaint'.
+        Types of property 'stages' are incompatible.
+          Type '(TrackingStage | { status: string; updatedAt: string; stage: string; })[]' is not assignable to type 'TrackingStage[]'.
+            Type 'TrackingStage | { status: string; updatedAt: string; stage: string; }' is not assignable to type 'TrackingStage'.
+              Type '{ status: string; updatedAt: string; stage: string; }' is not assignable to type 'TrackingStage'.
+                Types of property 'status' are incompatible.
+                  Type 'string' is not assignable to type '"Completed" | "Current" | "Pending"'.
+hooks/useErrorTranslation.ts(52,9): error TS2322: Type '(errorCode: string, fallback?: string) => { success: boolean; error: string; }' is not assignable to type '(errorCode: string, fallback?: string) => { success: false; error: string; }'.
+  Call signature return types '{ success: boolean; error: string; }' and '{ success: false; error: string; }' are incompatible.
+    The types of 'success' are incompatible between these types.
+      Type 'boolean' is not assignable to type 'false'.
