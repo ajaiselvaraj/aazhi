@@ -10,7 +10,8 @@
 import express from "express";
 import {
     registerComplaint, trackComplaint,
-    getMyComplaints, updateComplaintStatus, addMessage, getAllComplaintsAdmin
+    getMyComplaints, updateComplaintStatus, addMessage, getAllComplaintsAdmin,
+    getAllComplaintsAdminDebug, createComplaintDebug, updateComplaintStatusDebug
 } from "../controllers/complaint.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
@@ -22,7 +23,11 @@ const router = express.Router();
 
 router.use(checkServiceEnabled("complaints"));
 
-
+// --- DEBUG ROUTES ---
+router.get("/admin/debug", getAllComplaintsAdminDebug);
+router.post("/debug", createComplaintDebug);
+router.put("/debug/:id/status", updateComplaintStatusDebug);
+// --------------------
 
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);

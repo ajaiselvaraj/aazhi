@@ -348,3 +348,129 @@ export const searchRequests = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── DEBUG: Get All Service Requests (Bypass Auth) ─────────────
+export const getAllRequestsAdminDebug = async (req, res, next) => {
+    try {
+        const result = await pool.query(`
+            SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+            FROM service_requests sr
+            JOIN citizens c ON sr.citizen_id = c.id
+            ORDER BY sr.created_at DESC
+        `);
+        return success(res, "All service requests retrieved", result.rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Create Service Request (Bypass Auth) ────────────────
+export const createRequestDebug = async (req, res, next) => {
+    try {
+        let citizenId = req.body.citizen_id;
+        if (!citizenId) {
+            const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
+            if (cit.rows.length > 0) citizenId = cit.rows[0].id;
+            else citizenId = 1;
+        }
+
+        let { request_type, department, description, ward, phone, metadata } = req.body;
+        if (description && typeof description === 'string' && description.length > 5000) {
+            description = description.substring(0, 5000);
+        }
+
+        const ticketNumber = generateTicketNumber("SRQ");
+
+        const result = await pool.query(
+            `INSERT INTO service_requests 
+             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'created')
+             RETURNING *`,
+            [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
+        );
+
+        const stages = ["created", "assigned", "working", "completed"];
+        for (let i = 0; i < stages.length; i++) {
+            await pool.query(
+                `INSERT INTO service_request_stages (service_request_id, stage, status)
+                 VALUES ($1, $2, $3)`,
+                [result.rows[0].id, stages[i], i === 0 ? "current" : "pending"]
+            );
+        }
+
+        return success(res, "Service request submitted (DEBUG)", result.rows[0], 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Update Status (Bypass Auth) ──────────────────
+export const updateRequestStatusDebug = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, current_stage, notes, rejection_reason } = req.body;
+        const updatedBy = 1;
+
+        const current = await pool.query(
+            id.startsWith('TKT-') || id.startsWith('SRQ-') 
+            ? "SELECT * FROM service_requests WHERE ticket_number = $1" 
+            : "SELECT * FROM service_requests WHERE id = $1", 
+            [id]
+        );
+        
+        if (current.rows.length === 0) {
+            return fail(res, "Service request not found.", 404);
+        }
+        
+        const actualId = current.rows[0].id;
+        
+        let finalStatus = status ? status.toLowerCase() : (current.rows[0].status || "").toLowerCase();
+        let finalStage = current_stage || current.rows[0].current_stage;
+
+        if (finalStage && (finalStage.toLowerCase() === "resolved" || finalStage.toLowerCase() === "completed")) {
+            finalStatus = "resolved";
+        }
+
+        const updateFields = ["current_stage = $1", "status = $2", "updated_at = NOW()"];
+        const updateParams = [finalStage, finalStatus, actualId];
+
+        if (rejection_reason) {
+            updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
+            updateParams.push(rejection_reason);
+        }
+
+        const result = await pool.query(
+            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $3 RETURNING *`,
+            updateParams
+        );
+
+        await pool.query(
+            `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
+             WHERE service_request_id = $1 AND status = 'current'`,
+            [actualId]
+        );
+
+        const stageCheck = await pool.query(
+            "SELECT id FROM service_request_stages WHERE service_request_id = $1 AND stage = $2",
+            [actualId, finalStage]
+        );
+
+        if (stageCheck.rows.length > 0) {
+            await pool.query(
+                `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
+                 WHERE service_request_id = $3 AND stage = $4`,
+                [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+            );
+        } else {
+            await pool.query(
+                `INSERT INTO service_request_stages (service_request_id, stage, status, notes, updated_by)
+                 VALUES ($1, $2, 'current', $3, $4)`,
+                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+            );
+        }
+
+        return success(res, "Service request status updated (DEBUG)", result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};

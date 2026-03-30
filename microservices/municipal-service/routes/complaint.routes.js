@@ -11,6 +11,7 @@ import express from "express";
 import {
     registerComplaint, trackComplaint,
     getMyComplaints, updateComplaintStatus, addMessage,
+    getAllComplaintsAdminDebug, createComplaintDebug, updateComplaintStatusDebug
 } from "../controllers/complaint.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
@@ -24,6 +25,12 @@ router.use(checkServiceEnabled("complaints"));
 
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);
+
+// --- DEBUG ROUTES ---
+router.get("/admin/debug", getAllComplaintsAdminDebug);
+router.post("/debug", createComplaintDebug);
+router.put("/debug/:id/status", updateComplaintStatusDebug);
+// --------------------
 router.get("/track/:ticketNumber", optionalAuth, trackComplaint);
 router.put("/:id/status", authMiddleware, staffOnly, validate(updateComplaintStatusSchema), updateComplaintStatus);
 router.post("/:id/messages", authMiddleware, addMessage);
