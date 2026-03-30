@@ -2,10 +2,15 @@
  * AAZHI Admin API Client (PRODUCTION SAFE)
  */
 
-const API_BASE: string = import.meta.env.VITE_API_URL as string;
+const VITE_API_URL = import.meta.env.VITE_API_URL as string;
+const API_BASE = VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
 
 // 🔍 Debug (remove later if needed)
-console.log("✅ API_BASE:", API_BASE);
+if (!VITE_API_URL) {
+  console.warn("⚠️ [adminApi] VITE_API_URL is missing! Falling back to Render URL.");
+} else {
+  console.log("🌐 [adminApi] Connecting to:", API_BASE);
+}
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('adminToken');
@@ -18,13 +23,17 @@ async function request(endpoint: string, options: RequestInit = {}) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
+  
   let finalEndpoint = endpoint;
   if (!options.method || options.method.toUpperCase() === 'GET') {
     const separator = finalEndpoint.includes('?') ? '&' : '?';
     finalEndpoint += `${separator}_t=${Date.now()}`;
   }
 
-  const res = await fetch(`${API_BASE}${finalEndpoint}`, {
+  const fullUrl = `${API_BASE}${finalEndpoint}`;
+  console.log(`📤 [API request start] ${options.method || 'GET'} ${fullUrl}`);
+
+  const res = await fetch(fullUrl, {
     cache: 'no-store',
     ...options,
     headers,
@@ -35,23 +44,23 @@ async function request(endpoint: string, options: RequestInit = {}) {
     console.error("🔴 [AUTH] 401 Unauthorized. Token expired or invalid.");
     localStorage.removeItem('adminToken');
     localStorage.removeItem('aazhi_admin_session');
-    // Using root instead of /login to avoid 404 in production state-transitioning SPA.
-    window.location.href = '/'; 
     throw new Error('Session expired. Please log in again.');
   }
 
-  // 🔴 Handle non-JSON safely
-  let json;
+  let json: any = {};
   try {
     json = await res.json();
   } catch {
+    console.error(`❌ [API error] ${options.method || 'GET'} ${fullUrl}: Invalid JSON response (${res.status})`);
     throw new Error(`Invalid JSON response (${res.status})`);
   }
 
   if (!res.ok) {
-    throw new Error(json.message || `Request failed (${res.status})`);
+    console.error(`❌ [API error] ${options.method || 'GET'} ${fullUrl}: ${(json as any).message || res.statusText}`);
+    throw new Error((json as any).message || `Request failed (${res.status})`);
   }
 
+  console.log(`✅ [API success] ${options.method || 'GET'} ${fullUrl}`);
   return json;
 }
 

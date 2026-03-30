@@ -261,12 +261,14 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         const actualId = current.rows[0].id;
 
         // Logical overrides
-        let finalStatus = status || current.rows[0].status;
+        let finalStatus = (status || current.rows[0].status).toLowerCase();
         let finalStage = stage || current.rows[0].stage;
 
-        if (finalStage === "resolved") {
+        if (finalStage.toLowerCase() === "resolved" || finalStage === "Completed") {
             finalStatus = "resolved";
         }
+        
+        console.log(`🔄 [DEBUG] Updating Service Request ${actualId}: stage=${finalStage}, status=${finalStatus}`);
 
         // Update request
         const updateFields = ["stage = $1", "status = $2", "updated_at = NOW()"];
@@ -283,19 +285,35 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         );
 
         // Update stages
+        // Mark previous current stage as completed
         await pool.query(
             `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
              WHERE service_request_id = $1 AND status = 'current'`,
             [actualId]
         );
 
-        await pool.query(
-            `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
-             WHERE service_request_id = $3 AND stage = $4`,
-            [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+        // Handle case where specific stage might not exist in the pre-defined list
+        const stageCheck = await pool.query(
+            "SELECT id FROM service_request_stages WHERE service_request_id = $1 AND stage = $2",
+            [actualId, finalStage]
         );
 
-        logger.info("Service request updated", { requestId: actualId, newStatus: status, updatedBy });
+        if (stageCheck.rows.length > 0) {
+            await pool.query(
+                `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
+                 WHERE service_request_id = $3 AND stage = $4`,
+                [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+            );
+        } else {
+            // Flexible stage insertion
+            await pool.query(
+                `INSERT INTO service_request_stages (service_request_id, stage, status, notes, updated_by)
+                 VALUES ($1, $2, 'current', $3, $4)`,
+                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+            );
+        }
+
+        logger.info("Service request updated", { requestId: actualId, newStatus: finalStatus, updatedBy });
 
         return success(res, "Service request status updated", result.rows[0]);
     } catch (err) {

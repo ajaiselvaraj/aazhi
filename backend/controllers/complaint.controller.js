@@ -162,12 +162,15 @@ export const updateComplaintStatus = async (req, res, next) => {
         let finalStatus = status || current.rows[0].status;
         let finalStage = stage || current.rows[0].stage;
 
-        if (finalStage === "resolved") {
+        // Normalize stage/status values for DB consistency
+        const normalizedStage = finalStage.toLowerCase();
+        const normalizedStatus = finalStatus.toLowerCase();
+
+        if (normalizedStage === "resolved" || normalizedStage === "completed") {
             finalStatus = "resolved";
         }
-        if (finalStatus === "rejected") {
-            // rejection stays rejected
-        }
+        
+        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: stage=${finalStage}, status=${finalStatus}`);
 
         // Update complaint
         const updateFields = ["stage = $2", "status = $3", "updated_at = NOW()"];
@@ -185,10 +188,10 @@ export const updateComplaintStatus = async (req, res, next) => {
             updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
             updateParams.push(rejection_reason);
         }
-        if (finalStatus === "resolved" || finalStage === "resolved") {
+        if (finalStatus === "resolved" || finalStage === "resolved" || finalStage === "Resolved") {
             updateFields.push("resolved_at = NOW()");
         }
-        if (finalStatus === "closed") {
+        if (finalStatus === "closed" || finalStatus === "Closed") {
             updateFields.push("closed_at = NOW()");
         }
 
@@ -206,13 +209,28 @@ export const updateComplaintStatus = async (req, res, next) => {
         );
 
         // Mark new stage as current
-        await pool.query(
-            `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
-             WHERE complaint_id = $3 AND stage = $4`,
-            [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+        // Try to find the exact stage or fallback to creating one if missing
+        const stageCheck = await pool.query(
+            "SELECT id FROM complaint_stages WHERE complaint_id = $1 AND stage = $2",
+            [actualId, finalStage]
         );
 
-        logger.info("Complaint status updated", { complaintId: actualId, oldStatus: current.rows[0].status, newStatus: status, updatedBy });
+        if (stageCheck.rows.length > 0) {
+            await pool.query(
+                `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
+                 WHERE complaint_id = $3 AND stage = $4`,
+                [notes || rejection_reason || resolution_note || null, updatedBy, actualId, finalStage]
+            );
+        } else {
+            // If the frontend sent a stage we don't have in the static list, insert it
+            await pool.query(
+                `INSERT INTO complaint_stages (complaint_id, stage, status, notes, updated_by)
+                 VALUES ($1, $2, 'current', $3, $4)`,
+                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+            );
+        }
+
+        logger.info("Complaint status updated", { complaintId: actualId, oldStatus: current.rows[0].status, newStatus: finalStatus, updatedBy });
 
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {

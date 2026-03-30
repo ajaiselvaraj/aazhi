@@ -8,10 +8,10 @@ import { callWithRetry, RateLimitError } from '../../utils/apiRetry';
 import { enqueue } from '../../utils/apiThrottle';
 
 const VITE_API_URL = (import.meta as any).env.VITE_API_URL;
-const API_BASE_URL = VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
 
 if (!VITE_API_URL) {
-  console.warn("⚠️ [apiClient] VITE_API_URL is missing! Falling back to localhost. Requests will fail in production.");
+  console.warn("⚠️ [apiClient] VITE_API_URL is missing! Falling back to Render URL.");
 } else {
   console.log("🌐 [apiClient] Connecting to:", API_BASE_URL);
 }
@@ -50,10 +50,11 @@ async function singleRequest<T>(
   const config: RequestInit = {
     ...options,
     headers,
+    cache: 'no-store'
   };
 
   const fullUrl = `${API_BASE_URL}${endpoint}`;
-  console.log(`🚀 [API Request] ${config.method} ${fullUrl}`);
+  console.log(`📤 [API request start] ${config.method} ${fullUrl}`);
 
   const response = await fetch(fullUrl, config);
 
@@ -75,9 +76,10 @@ async function singleRequest<T>(
     );
   }
 
-  const result = await response.json();
+  const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    console.error(`❌ [API error] ${config.method} ${fullUrl}: ${result.message || response.statusText}`);
     throw new APIError(
       result.message || 'Something went wrong',
       response.status,
@@ -85,7 +87,8 @@ async function singleRequest<T>(
     );
   }
 
-  return result.data;
+  console.log(`✅ [API success] ${config.method} ${fullUrl}`);
+  return result.data || result;
 }
 
 // ── Resilient request: throttled → retried → safe ─────────────────────────
