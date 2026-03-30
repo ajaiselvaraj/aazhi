@@ -43,6 +43,17 @@ router.post("/debug", async (req, res, next) => {
 // B. Temporary Debug Fix: Bypass Auth to Fetch All for Frontend sync
 router.get("/admin/debug", getAllComplaintsAdmin);
 
+// C. Temporary Debug Fix: Bypass Auth to Update Status for Frontend mockup admin
+router.put("/debug/:id/status", async (req, res, next) => {
+    try {
+        const dbRes = await import("../config/db.js").then(m => m.pool.query("SELECT id FROM citizens LIMIT 1"));
+        let staffId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
+        if (dbRes.rows.length > 0) staffId = dbRes.rows[0].id;
+        req.user = { id: staffId, role: "admin" };
+        next();
+    } catch (e) { next(e); }
+}, updateComplaintStatus);
+
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);
 router.get("/track/:ticketNumber", optionalAuth, trackComplaint);

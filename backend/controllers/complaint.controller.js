@@ -146,11 +146,17 @@ export const updateComplaintStatus = async (req, res, next) => {
         const { stage, status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
-        // Get current complaint
-        const current = await pool.query("SELECT * FROM complaints WHERE id = $1", [id]);
+        // Get current complaint bypass UUID cast error by checking ticket_number or id
+        const idCheckQuery = id.startsWith('CMP-') || id.startsWith('TKT-') 
+             ? "SELECT * FROM complaints WHERE ticket_number = $1" 
+             : "SELECT * FROM complaints WHERE id = $1";
+             
+        const current = await pool.query(idCheckQuery, [id]);
         if (current.rows.length === 0) {
             return fail(res, "Complaint not found.", 404);
         }
+        
+        const actualId = current.rows[0].id;
 
         // Logical overrides
         let finalStatus = status || current.rows[0].status;
@@ -165,7 +171,7 @@ export const updateComplaintStatus = async (req, res, next) => {
 
         // Update complaint
         const updateFields = ["stage = $2", "status = $3", "updated_at = NOW()"];
-        const updateParams = [id, finalStage, finalStatus];
+        const updateParams = [actualId, finalStage, finalStatus];
 
         if (assigned_to) {
             updateFields.push(`assigned_to = $${updateParams.length + 1}`);
@@ -196,17 +202,17 @@ export const updateComplaintStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE complaint_stages SET status = 'completed', updated_at = NOW()
              WHERE complaint_id = $1 AND status = 'current'`,
-            [id]
+            [actualId]
         );
 
         // Mark new stage as current
         await pool.query(
             `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE complaint_id = $3 AND stage = $4`,
-            [notes || rejection_reason || null, updatedBy, id, finalStage]
+            [notes || rejection_reason || null, updatedBy, actualId, finalStage]
         );
 
-        logger.info("Complaint status updated", { complaintId: id, oldStatus: current.rows[0].status, newStatus: status, updatedBy });
+        logger.info("Complaint status updated", { complaintId: actualId, oldStatus: current.rows[0].status, newStatus: status, updatedBy });
 
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {

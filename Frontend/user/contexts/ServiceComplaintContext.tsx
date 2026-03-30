@@ -394,7 +394,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         return finalId;
     };
 
-    const updateServiceStatus = (id: string, status: ServiceRequest['status']) => { setServiceRequests(prev => { const updated = prev.map(r => r.id===id ? {...r, status} : r); persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; }); logActivity("Request Updated", `Service request ${id} status changed to ${status}.`); };
+    const updateServiceStatus = (id: string, status: ServiceRequest['status']) => { 
+        setServiceRequests(prev => { const updated = prev.map(r => r.id===id ? {...r, status} : r); persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; }); 
+        logActivity("Request Updated", `Service request ${id} status changed to ${status}.`); 
+        GrievanceService.updateRequestStatusAdmin(id, { status }).catch(e => console.error("Failed to update status on server", e));
+    };
 
     const updateServiceStage = (id: string, stage: string) => {
         setServiceRequests(prev => {
@@ -410,15 +414,40 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             return updated;
         });
         logActivity("Request Stage Advanced", `Service request ${id} stage advanced to ${stage}.`);
+        
+        let apiStage = stage.toLowerCase();
+        let apiStatus = stage === 'Resolved' || apiStage === 'resolved' ? 'resolved' : 'active';
+        
+        // Match the backend valid stages
+        if (apiStage === 'officer assigned') apiStage = 'officer_assigned';
+        if (apiStage === 'manager review') apiStage = 'manager_review';
+        if (apiStage === 'gm approval') apiStage = 'gm_approval';
+        if (apiStage === 'rejected') apiStatus = 'rejected';
+
+        // Keep stage valid for enum
+        const validStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
+        const payload: any = { status: apiStatus };
+        if (validStages.includes(apiStage)) {
+            payload.stage = apiStage;
+        } else if (apiStage === 'rejected') {
+            payload.rejection_reason = "Rejected in admin dashboard";
+        }
+
+        GrievanceService.updateRequestStatusAdmin(id, payload).catch(e => console.error("Failed to update stage on server", e));
     };
 
-    const updateComplaintStatus = (id: string, status: Complaint['status']) => { setComplaints(prev => { const updated = prev.map(c => c.id===id ? {...c, status} : c); persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; }); logActivity("Complaint Updated", `Complaint ${id} flagged as ${status}.`); };
+    const updateComplaintStatus = (id: string, status: Complaint['status']) => { 
+        setComplaints(prev => { const updated = prev.map(c => c.id===id ? {...c, status} : c); persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; }); 
+        logActivity("Complaint Updated", `Complaint ${id} flagged as ${status}.`); 
+        GrievanceService.updateComplaintStatusAdmin(id, { status }).catch(e => console.error("Failed to update status on server", e));
+    };
 
     const updateComplaintStage = (id: string, stage: string) => {
         setComplaints(prev => {
             const updated = prev.map(c => {
                 if(c.id!==id) return c;
                 const now = new Date().toISOString();
+                // Map the frontend currentStage explicitly
                 const stages: TrackingStage[] = c.stages.map(s => s.stage===c.currentStage ? ({...s, status:"Completed" as const, updatedAt:now}) : s);
                 if(c.currentStage!==stage) stages.push({ stage, status:"Current" as const, updatedAt:now });
                 const status = stage === 'Resolved' || stage.toLowerCase() === 'resolved' ? 'resolved' : 'active';
@@ -428,6 +457,27 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             return updated;
         });
         logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
+        
+        let apiStage = stage.toLowerCase();
+        let apiStatus = stage === 'Resolved' || apiStage === 'resolved' ? 'resolved' : 'active';
+        
+        // Match the backend valid stages
+        if (apiStage === 'officer assigned') apiStage = 'officer_assigned';
+        if (apiStage === 'manager review') apiStage = 'manager_review';
+        if (apiStage === 'gm approval') apiStage = 'gm_approval';
+        if (apiStage === 'rejected') apiStatus = 'rejected';
+
+        // Keep stage valid for enum (if rejected there are no 'rejected' stages in DB enum)
+        const validStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
+        const payload: any = { status: apiStatus };
+        if (validStages.includes(apiStage)) {
+            payload.stage = apiStage;
+        } else if (apiStage === 'rejected') {
+            payload.rejection_reason = "Rejected in admin dashboard";
+            // keep the stage same or resolved depending on logic, backend ignores invalid enum if absent
+        }
+
+        GrievanceService.updateComplaintStatusAdmin(id, payload).catch(e => console.error("Failed to update stage on server", e));
     };
 
     const acknowledgeAlert = (area: string, operator: string) => { logActivity("Area Alert Acknowledged", `Priority alert for ${area} acknowledged by ${operator}. Team dispatched.`); };

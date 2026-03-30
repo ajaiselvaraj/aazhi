@@ -258,12 +258,20 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
                         const action = getNextStageAction(req.currentStage || 'Submitted');
                         if (action) {
                           return (
-                            <button
-                              onClick={() => updateStage(req.id, action.next)}
-                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${action.color}`}
-                            >
-                              {action.label} <ArrowRight size={14} />
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => updateStage(req.id, 'Rejected')}
+                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white text-red-600 hover:bg-red-50 border border-red-200 shadow-sm"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                onClick={() => updateStage(req.id, action.next)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${action.color}`}
+                              >
+                                {action.label} <ArrowRight size={14} />
+                              </button>
+                            </div>
                           );
                         }
                         return (
