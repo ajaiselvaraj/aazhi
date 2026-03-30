@@ -5,9 +5,23 @@ import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../constants';
 
 export const TalkbackOverlay: React.FC = () => {
-    const [enabled, setEnabled] = useState(false);
+    const [enabled, setEnabled] = useState(() => {
+        return localStorage.getItem('voice_enabled') === 'true';
+    });
+
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+
+    // Listen for storage changes from other components
+    useEffect(() => {
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'voice_enabled') {
+                setEnabled(e.newValue === 'true');
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);
@@ -16,7 +30,16 @@ export const TalkbackOverlay: React.FC = () => {
 
     const toggleTalkback = () => {
         const newState = !enabled;
+        const newValueString = newState ? 'true' : 'false';
+        
         setEnabled(newState);
+        localStorage.setItem('voice_enabled', newValueString);
+
+        // Manually dispatch storage event for same-tab listeners (KioskUI, etc.)
+        window.dispatchEvent(new StorageEvent('storage', { 
+            key: 'voice_enabled', 
+            newValue: newValueString 
+        }));
 
         // Announce the state change
         speakText({
@@ -66,8 +89,17 @@ export const TalkbackOverlay: React.FC = () => {
             textToSpeak = textToSpeak.replace(/[\n\r\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
 
             if (textToSpeak) {
-                // Cancel ongoing speech immediately and talk fast
+                // Cancel ongoing speech immediately and
                 window.speechSynthesis?.cancel();
+
+                // Check if voice is globally enabled.
+                // If it is not explicitly set to 'true', do not speak.
+                const isVoiceEnabledGlobally = localStorage.getItem('voice_enabled') === 'true';
+                if (!isVoiceEnabledGlobally) {
+                    console.log('[TTS] Speech blocked: voice_enabled is false/null.');
+                    return;
+                }
+
                 speakText({
                     text: textToSpeak,
                     language: getLanguageName(),

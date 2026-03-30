@@ -148,6 +148,14 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
 
       if (!text || text.trim() === '') return;
 
+      // Check if voice is globally enabled.
+      // If it is not explicitly set to 'true', do not speak.
+      const isVoiceEnabledGlobally = localStorage.getItem('voice_enabled') === 'true';
+      if (!isVoiceEnabledGlobally) {
+          console.log('[TTS] Speech blocked: voice_enabled is false/null.');
+          return;
+      }
+
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
