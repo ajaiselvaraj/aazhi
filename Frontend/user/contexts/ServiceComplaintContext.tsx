@@ -211,9 +211,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             newFromApi.forEach(n => {
                                 if (mergedMap.has(n.id)) {
                                     const existing = mergedMap.get(n.id);
-                                    if (existing.currentStage !== n.currentStage) {
+                                    if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
                                         existing.currentStage = n.currentStage;
                                         existing.status = n.status;
+                                        existing.stage = n.stage;
                                         existing.stages = n.stages;
                                         updated = true;
                                     }
@@ -283,8 +284,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             newFromApi.forEach(n => {
                                 if (mergedMap.has(n.id)) {
                                     const existing = mergedMap.get(n.id);
-                                    if (existing.currentStage !== n.currentStage) {
+                                    if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
                                         existing.currentStage = n.currentStage;
+                                        existing.status = n.status;
+                                        existing.stage = n.stage;
                                         existing.stages = n.stages;
                                         updated = true;
                                     }
