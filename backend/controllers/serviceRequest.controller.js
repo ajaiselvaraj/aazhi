@@ -249,10 +249,16 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         const { stage, status, notes, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
-        const current = await pool.query("SELECT * FROM service_requests WHERE id = $1", [id]);
+        const idCheckQuery = id.startsWith('TKT-') || id.startsWith('SRQ-') 
+            ? "SELECT * FROM service_requests WHERE ticket_number = $1" 
+            : "SELECT * FROM service_requests WHERE id = $1";
+
+        const current = await pool.query(idCheckQuery, [id]);
         if (current.rows.length === 0) {
             return fail(res, "Service request not found.", 404);
         }
+        
+        const actualId = current.rows[0].id;
 
         // Logical overrides
         let finalStatus = status || current.rows[0].status;
@@ -264,7 +270,7 @@ export const updateServiceRequestStatus = async (req, res, next) => {
 
         // Update request
         const updateFields = ["stage = $1", "status = $2", "updated_at = NOW()"];
-        const updateParams = [finalStage, finalStatus, id];
+        const updateParams = [finalStage, finalStatus, actualId];
 
         if (rejection_reason) {
             updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
@@ -280,16 +286,16 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
              WHERE service_request_id = $1 AND status = 'current'`,
-            [id]
+            [actualId]
         );
 
         await pool.query(
             `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE service_request_id = $3 AND stage = $4`,
-            [notes || rejection_reason || null, updatedBy, id, finalStage]
+            [notes || rejection_reason || null, updatedBy, actualId, finalStage]
         );
 
-        logger.info("Service request updated", { requestId: id, newStatus: status, updatedBy });
+        logger.info("Service request updated", { requestId: actualId, newStatus: status, updatedBy });
 
         return success(res, "Service request status updated", result.rows[0]);
     } catch (err) {
