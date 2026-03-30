@@ -45,8 +45,11 @@ const ApplicationTracker: React.FC = () => {
     };
 
     const getStageColor = (item: ActivityItem) => {
-        if (item.status === 'resolved') return 'text-green-600 bg-green-50 border-green-200';
-        if (item.status === 'rejected') return 'text-red-600 bg-red-50 border-red-200';
+        const isResolved = item.status === 'resolved' || item.stage === 'resolved' || item.currentStage === 'Resolved';
+        const isRejected = item.status === 'rejected' || item.stage === 'rejected' || item.currentStage === 'Rejected';
+        
+        if (isResolved) return 'text-green-600 bg-green-50 border-green-200';
+        if (isRejected) return 'text-red-600 bg-red-50 border-red-200';
         return 'text-blue-600 bg-blue-50 border-blue-200';
     };
 
@@ -211,8 +214,8 @@ const ApplicationTracker: React.FC = () => {
                                             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 bg-current`}></span>
                                         </div>
                                         <span className="text-sm font-black uppercase tracking-wide">
-                                            {item.status === 'rejected' ? t('rejected') : translateStage(
-                                                item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.status || 'pending')
+                                            {(item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected')) ? t('rejected') : translateStage(
+                                                item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.stage || item.currentStage || item.status || 'pending')
                                             )}
                                         </span>
                                     </div>
@@ -235,14 +238,17 @@ const ApplicationTracker: React.FC = () => {
                                         const stages = item.type === 'Request' ? reqStages : compStages;
                                         
                                         // Match current stage against proper snake_case backend IDs
-                                        let currentVal = item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.status || 'pending');
+                                        let currentVal = item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.stage || item.currentStage || item.status || 'pending');
                                         currentVal = currentVal.toLowerCase();
 
                                         let currentIndex = stages.indexOf(currentVal);
                                         if (currentIndex === -1) currentIndex = 0; // fallback
-                                        if (item.status === 'resolved') currentIndex = item.type === 'Request' ? 4 : 3;
-                                        if (item.status === 'closed') currentIndex = 4;
-                                        const isRejected = item.status === 'rejected';
+                                        const isResolved = item.status === 'resolved' || item.stage === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
+                                        const isClosed = item.status === 'closed' || item.stage === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
+                                        const isRejected = item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
+
+                                        if (isResolved) currentIndex = item.type === 'Request' ? 4 : 3;
+                                        if (isClosed) currentIndex = 4;
 
                                         const progressPercent = (currentIndex / (stages.length - 1)) * 100;
 
