@@ -19,43 +19,7 @@ import { validate, createServiceRequestSchema, updateServiceRequestStatusSchema 
 
 const router = express.Router();
 
-// A. Temporary Debug Fix: Bypass Auth to Test Insert
-// Uncomment the route below to test insertions without an Authorization header
-// Warning: Replace with mock user ID from your citizens table to avoid FK constraint errors!
-router.post("/debug", async (req, res, next) => {
-    console.log("⚠️ [DEBUG] Triggering Auth Bypass for /debug route");
-    try {
-        const dbRes = await import("../config/db.js").then(m => m.pool.query("SELECT id FROM citizens LIMIT 1"));
-        let citizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
-        if (dbRes.rows.length > 0) {
-            citizenId = dbRes.rows[0].id;
-        } else {
-            console.log("⚠️ [DEBUG] No citizens found, using fallback UUID for create");
-        }
-        req.user = { id: citizenId, role: "citizen", name: "Mock Citizen" };
-        next();
-    } catch (e) {
-        console.error("❌ [DEBUG ERROR] Service request bypass failed:", e);
-        next(e);
-    }
-}, validate(createServiceRequestSchema), createServiceRequest);
 
-// B. Temporary Debug Fix: Bypass Auth to Fetch All Requests for Admin Dashboard sync
-router.get("/admin/debug", getAllServiceRequestsAdmin);
-
-// C. Temporary Debug Fix: Bypass Auth to Update Status for Frontend mockup admin
-router.put("/debug/:id/status", async (req, res, next) => {
-    try {
-        const dbRes = await import("../config/db.js").then(m => m.pool.query("SELECT id FROM citizens WHERE role='admin' LIMIT 1"));
-        let staffId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
-        if (dbRes.rows.length > 0) staffId = dbRes.rows[0].id;
-        req.user = { id: staffId, role: "admin", name: "Mock Admin" };
-        next();
-    } catch (e) { 
-        console.error("❌ [DEBUG ERROR] Request status bypass failed:", e);
-        next(e); 
-    }
-}, updateServiceRequestStatus);
 
 router.post("/", authMiddleware, validate(createServiceRequestSchema), createServiceRequest);
 router.get("/", authMiddleware, getMyServiceRequests);
