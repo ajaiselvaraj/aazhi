@@ -212,7 +212,7 @@ const ApplicationTracker: React.FC = () => {
                                         </div>
                                         <span className="text-sm font-black uppercase tracking-wide">
                                             {item.status === 'rejected' ? t('rejected') : translateStage(
-                                                item.type === 'Request' ? (item.currentStage || item.current_stage || 'submitted') : (item.status || 'pending')
+                                                item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.status || 'pending')
                                             )}
                                         </span>
                                     </div>
@@ -234,8 +234,8 @@ const ApplicationTracker: React.FC = () => {
 
                                         const stages = item.type === 'Request' ? reqStages : compStages;
                                         
-                                        // Match current stage
-                                        let currentVal = item.type === 'Request' ? (item.currentStage || item.current_stage || 'submitted') : (item.status || 'pending');
+                                        // Match current stage against proper snake_case backend IDs
+                                        let currentVal = item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.status || 'pending');
                                         currentVal = currentVal.toLowerCase();
 
                                         let currentIndex = stages.indexOf(currentVal);

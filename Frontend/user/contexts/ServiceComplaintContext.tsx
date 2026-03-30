@@ -175,6 +175,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                     // Normalize stage for TitleCase matching in Admin Dashboard
                                     let rawStage = r.stage || r.current_stage || r.status || 'submitted';
                                     const stageMap: Record<string, string> = {
+                                        'created': 'Submitted',
                                         'submitted': 'Submitted',
                                         'officer_assigned': 'Officer Assigned',
                                         'manager_review': 'Manager Review',
@@ -241,11 +242,16 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                     // Normalize stage
                                     let rawStage = r.stage || r.current_stage || r.status || 'submitted';
                                     const stageMap: Record<string, string> = {
-                                        'submitted': 'Submitted',
-                                        'officer_assigned': 'Officer Assigned',
-                                        'manager_review': 'Manager Review',
-                                        'gm_approval': 'GM Approval',
-                                        'resolved': 'Resolved'
+                                        'created': 'Pending',
+                                        'submitted': 'Pending',
+                                        'pending': 'Pending',
+                                        'assigned': 'Assigned',
+                                        'in_progress': 'In Progress',
+                                        'officer_assigned': 'Assigned',
+                                        'manager_review': 'In Progress',
+                                        'gm_approval': 'In Progress',
+                                        'resolved': 'Resolved',
+                                        'closed': 'Closed'
                                     };
                                     const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
 
