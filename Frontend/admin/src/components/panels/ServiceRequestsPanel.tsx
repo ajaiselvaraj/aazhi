@@ -333,13 +333,13 @@ export default function ServiceRequestsPanel() {
                                 <select 
                                   value={r.current_stage || 'submitted'}
                                   onChange={(e) => handleUpdateStage(r.id, e.target.value)}
-                                  disabled={loading || r.status !== 'pending'}
+                                  disabled={loading || ['resolved', 'rejected'].includes(r.status)}
                                   style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', background: 'var(--bg-light)', fontWeight: 600 }}
                                 >
                                   {HIERARCHY_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
-                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || r.status !== 'pending'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
-                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || r.status !== 'pending'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
+                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
+                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
                               </div>
                             </div>
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)' }}>
