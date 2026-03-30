@@ -186,41 +186,44 @@ const ApplicationTracker: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    itemsToDisplay.map((item) => (
-                        <div key={item.id} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition group animate-in slide-in-from-bottom-6 duration-500">
-                            <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start gap-6">
-                                <div className="flex gap-5">
-                                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 shadow-inner
-                                        ${item.type === 'Complaint' ? 'bg-red-50 border-red-100 text-red-500' : 'bg-blue-50 border-blue-100 text-blue-500'}`}>
-                                        {item.type === 'Complaint' ? <AlertTriangle size={28} /> : <FileText size={28} />}
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${item.type === 'Complaint' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                                                {item.type === 'Complaint' ? t('complaint') : t('request')}
-                                            </span>
-                                            <span className="text-xs font-bold text-slate-400 font-mono">{item.id}</span>
-                                        </div>
-                                        <h3 className="text-2xl font-black text-slate-900">{translateDynamic(item.serviceType)}</h3>
-                                        <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date(item.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
-                                    </div>
-                                </div>
+                    itemsToDisplay.map((item) => {
+                        const latestUpdate = item.stages && item.stages.length > 0 ? item.stages[item.stages.length - 1] : null;
+                        const derivedStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending').toLowerCase();
+                        const badgeIsRejected = derivedStage === 'rejected' || item.status === 'rejected';
 
-                                <div className="text-right w-full md:w-auto bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{item.status === 'rejected' ? t('rejectionStatus') || 'Rejection Status' : t('currentStatusLevel')}</p>
-                                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStageColor(item)}`}>
-                                        <div className="relative flex h-2.5 w-2.5">
-                                            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-current`}></span>
-                                            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 bg-current`}></span>
+                        return (
+                            <div key={item.id} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition group animate-in slide-in-from-bottom-6 duration-500">
+                                <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start gap-6">
+                                    <div className="flex gap-5">
+                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border-2 shadow-inner
+                                            ${item.type === 'Complaint' ? 'bg-red-50 border-red-100 text-red-500' : 'bg-blue-50 border-blue-100 text-blue-500'}`}>
+                                            {item.type === 'Complaint' ? <AlertTriangle size={28} /> : <FileText size={28} />}
                                         </div>
-                                        <span className="text-sm font-black uppercase tracking-wide">
-                                            {(item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected')) ? t('rejected') : translateStage(
-                                                item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.stage || item.currentStage || item.status || 'pending')
-                                            )}
-                                        </span>
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${item.type === 'Complaint' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                    {item.type === 'Complaint' ? t('complaint') : t('request')}
+                                                </span>
+                                                <span className="text-xs font-bold text-slate-400 font-mono">{item.id}</span>
+                                            </div>
+                                            <h3 className="text-2xl font-black text-slate-900">{translateDynamic(item.serviceType)}</h3>
+                                            <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date(item.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="text-right w-full md:w-auto bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{badgeIsRejected ? t('rejectionStatus') || 'Rejection Status' : t('currentStatusLevel')}</p>
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStageColor(item)}`}>
+                                            <div className="relative flex h-2.5 w-2.5">
+                                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-current`}></span>
+                                                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 bg-current`}></span>
+                                            </div>
+                                            <span className="text-sm font-black uppercase tracking-wide">
+                                                {badgeIsRejected ? t('rejected') : translateStage(derivedStage)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
                                 {/* Progress Stepper for Context */}
                             <div className="p-8 bg-slate-50">
@@ -237,15 +240,14 @@ const ApplicationTracker: React.FC = () => {
 
                                         const stages = item.type === 'Request' ? reqStages : compStages;
                                         
-                                        // Match current stage against proper snake_case backend IDs
-                                        let currentVal = item.type === 'Request' ? (item.stage || item.current_stage || 'submitted') : (item.stage || item.currentStage || item.status || 'pending');
-                                        currentVal = currentVal.toLowerCase();
+                                        // currentVal comes from derivedStage established securely before render loop
+                                        let currentVal = derivedStage;
 
                                         let currentIndex = stages.indexOf(currentVal);
                                         if (currentIndex === -1) currentIndex = 0; // fallback
-                                        const isResolved = item.status === 'resolved' || item.stage === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
-                                        const isClosed = item.status === 'closed' || item.stage === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
-                                        const isRejected = item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
+                                        const isResolved = currentVal === 'resolved' || item.status === 'resolved' || item.stage === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
+                                        const isClosed = currentVal === 'closed' || item.status === 'closed' || item.stage === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
+                                        const isRejected = currentVal === 'rejected' || item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
 
                                         if (isResolved) currentIndex = item.type === 'Request' ? 4 : 3;
                                         if (isClosed) currentIndex = 4;
@@ -321,7 +323,8 @@ const ApplicationTracker: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
         </div>
