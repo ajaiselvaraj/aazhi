@@ -65,10 +65,20 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [assistantStep, setAssistantStep] = useState<string | null>(null);
 
-  // Accessibility State
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
     return localStorage.getItem('voice_enabled') === 'true';
   });
+
+  // Sync with global voice state (Talkback control)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'voice_enabled') {
+        setIsVoiceEnabled(e.newValue === 'true');
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const [isLargeText, setIsLargeText] = useState(false);
 

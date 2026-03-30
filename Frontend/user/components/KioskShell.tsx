@@ -194,11 +194,10 @@ const KioskShell: React.FC<KioskShellProps> = ({
         if (lang) localStorage.setItem('selectedLanguage', lang);
         if (voice) localStorage.setItem('voice_enabled', voice);
 
-        // 4. Call parent logout
+        // 4. Update parent view state to Landing
         onLogout();
 
-        // 5. Hard redirect to backend Auth0 logout route to clear IdP session cookies
-        window.location.href = '/logout';
+        // 5. Removed hard redirect to /logout as it causes 404 in state-based SPA.
     };
 
     // Security: Auto-logout when idle timer hits 0
