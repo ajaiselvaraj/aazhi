@@ -12,15 +12,35 @@ export default function DashboardOverview() {
   const { user } = useAuth()
   const dept = user?.department ?? 'All Departments'
 
+  const [isFetching, setIsFetching] = useState(false)
+
   useEffect(() => {
-    loadDashboard()
-    const interval = setInterval(loadDashboard, 15000)
-    return () => clearInterval(interval)
+    const controller = new AbortController()
+
+    const fetchWrapper = async () => {
+      if (isFetching) return;
+      await loadDashboard(controller.signal)
+    }
+
+    fetchWrapper()
+    
+    // Safe polling every 15 seconds
+    const interval = setInterval(async () => {
+       if (!isFetching) { 
+         await loadDashboard(controller.signal); 
+       }
+    }, 15000)
+
+    return () => {
+      clearInterval(interval)
+      controller.abort() // Cancel any pending request on unmount/re-render
+    }
   }, [])
 
-  async function loadDashboard() {
+  async function loadDashboard(signal?: AbortSignal) {
+    setIsFetching(true)
     try {
-      const data = await adminApi.getDashboard()
+      const data = await adminApi.getDashboard() // pass signal here if API client supports it
       const totalComplaints = parseInt(data.complaints?.total) || 0;
       const resolvedComplaints = parseInt(data.complaints?.resolved) || 0;
       const totalSR = parseInt(data.service_requests?.total) || 0;
@@ -37,10 +57,15 @@ export default function DashboardOverview() {
         avgResolutionHrs: 24.5,
         pending: totalComplaints - resolvedComplaints
       })
-    } catch (e) {
-      console.error('Failed to load dashboard overview', e)
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
+      } else {
+         console.error('Failed to load dashboard overview', e)
+      }
     } finally {
       setLoading(false)
+      setIsFetching(false)
     }
   }
 

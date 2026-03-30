@@ -415,21 +415,17 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
         logActivity("Request Stage Advanced", `Service request ${id} stage advanced to ${stage}.`);
         
-        let apiStage = stage.toLowerCase();
-        let apiStatus = stage === 'Resolved' || apiStage === 'resolved' ? 'resolved' : 'active';
+        let apiStage = stage; // Send the human-readable stage, backend handles it
+        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'resolved' : 'active';
         
-        // Match the backend valid stages
-        if (apiStage === 'officer assigned') apiStage = 'officer_assigned';
-        if (apiStage === 'manager review') apiStage = 'manager_review';
-        if (apiStage === 'gm approval') apiStage = 'gm_approval';
-        if (apiStage === 'rejected') apiStatus = 'rejected';
+        if (apiStage.toLowerCase() === 'rejected') apiStatus = 'rejected';
 
-        // Keep stage valid for enum
-        const validStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
-        const payload: any = { status: apiStatus };
-        if (validStages.includes(apiStage)) {
-            payload.stage = apiStage;
-        } else if (apiStage === 'rejected') {
+        const payload: any = { 
+            status: apiStatus,
+            stage: apiStage
+        };
+        
+        if (apiStage.toLowerCase() === 'rejected') {
             payload.rejection_reason = "Rejected in admin dashboard";
         }
 
@@ -458,25 +454,20 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
         logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
         
-        let apiStage = stage.toLowerCase();
-        let apiStatus = stage === 'Resolved' || apiStage === 'resolved' ? 'resolved' : 'active';
+        let apiStage = stage; // Human readable stage
+        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'closed') ? 'resolved' : 'active';
         
-        // Match the backend valid stages
-        if (apiStage === 'officer assigned') apiStage = 'officer_assigned';
-        if (apiStage === 'manager review') apiStage = 'manager_review';
-        if (apiStage === 'gm approval') apiStage = 'gm_approval';
-        if (apiStage === 'rejected') apiStatus = 'rejected';
+        if (apiStage.toLowerCase() === 'rejected') apiStatus = 'rejected';
 
-        // Keep stage valid for enum (if rejected there are no 'rejected' stages in DB enum)
-        const validStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
-        const payload: any = { status: apiStatus };
-        if (validStages.includes(apiStage)) {
-            payload.stage = apiStage;
-        } else if (apiStage === 'rejected') {
+        const payload: any = { 
+            status: apiStatus,
+            stage: apiStage 
+        };
+        
+        if (apiStage.toLowerCase() === 'rejected') {
             payload.rejection_reason = "Rejected in admin dashboard";
-            // keep the stage same or resolved depending on logic, backend ignores invalid enum if absent
         }
-
+    
         GrievanceService.updateComplaintStatusAdmin(id, payload).catch(e => console.error("Failed to update stage on server", e));
     };
 

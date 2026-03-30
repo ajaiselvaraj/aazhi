@@ -16,16 +16,36 @@ export default function PriorityQueuePanel() {
   const [issues, setIssues] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
 
-  React.useEffect(() => {
-    loadIssues()
-    const interval = setInterval(loadIssues, 15000)
-    return () => clearInterval(interval)
-  }, [])
+  const [isFetching, setIsFetching] = React.useState(false)
 
-  async function loadIssues() {
+  React.useEffect(() => {
+    const controller = new AbortController()
+    
+    const fetchWrapper = async () => {
+      if (isFetching) return;
+      await loadIssues(controller.signal)
+    }
+
+    fetchWrapper()
+
+    // Safe Polling every 15 seconds
+    const interval = setInterval(async () => {
+       if (!isFetching) { 
+         await loadIssues(controller.signal); 
+       }
+    }, 15000)
+
+    return () => {
+      clearInterval(interval)
+      controller.abort() // Cancel any pending request on unmount/re-render
+    }
+  }, []) // Empty dependency array ensures this matches once per mount
+
+  async function loadIssues(signal?: AbortSignal) {
+    setIsFetching(true)
     try {
       // Assuming 'critical' is the priority string in backend
-      const res = await adminApi.getAllComplaints({ priority: 'critical', limit: 20 })
+      const res = await adminApi.getAllComplaints({ priority: 'critical', limit: 20 }) // pass signal here if API client supports it
       const mapped = res.data.map((c: any) => ({
         id: c.ticket_number || c.id,
         title: c.subject || c.category || 'Critical Issue',
@@ -38,10 +58,15 @@ export default function PriorityQueuePanel() {
         raw: c
       }))
       setIssues(mapped)
-    } catch (e) {
-      console.error(e)
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
+      } else {
+         console.error('❌ [Admin] Failed to fetch critical issues:', err)
+      }
     } finally {
       setLoading(false)
+      setIsFetching(false)
     }
   }
 
@@ -126,7 +151,7 @@ export default function PriorityQueuePanel() {
                   className="btn btn-ghost" 
                   style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto', color: 'var(--success)' }}
                   onClick={async () => {
-                    await adminApi.updateComplaintStatus(issue.raw.id, 'resolved');
+                    await adminApi.updateComplaintStatus(issue.raw.id, { status: 'resolved' });
                     loadIssues();
                   }}
                 >

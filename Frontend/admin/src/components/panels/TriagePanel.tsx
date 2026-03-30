@@ -104,16 +104,34 @@ export default function TriagePanel() {
   const [total, setTotal] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadComplaints()
-    const interval = setInterval(() => {
-      loadComplaints(true); // silent refresh (pass true to avoid spinner jump if we want, currently will just re-fire)
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [page, statusFilter])
+  const [isFetching, setIsFetching] = useState(false) // New lock for safe polling
 
-  async function loadComplaints(silent = false) {
+  useEffect(() => {
+    const controller = new AbortController() // AbortController to manage duplicate inflight requests
+    
+    const fetchWrapper = async () => {
+      if (isFetching) return;
+      await loadComplaints(false, controller.signal)
+    }
+
+    fetchWrapper()
+
+    // Safe Polling every 10 seconds
+    const interval = setInterval(async () => {
+       if (!isFetching) { 
+         await loadComplaints(true, controller.signal); 
+       }
+    }, 10000)
+
+    return () => {
+      clearInterval(interval)
+      controller.abort() // Cancel any pending request on unmount/re-render
+    }
+  }, [page, statusFilter]) // Keep dependencies tight
+
+  async function loadComplaints(silent = false, signal?: AbortSignal) {
     if (!silent) setLoading(true)
+    setIsFetching(true)
     try {
       const params: any = { page, limit: 100 }
       // If "All" is selected, we don't send a specific status filter to get all active-like items
@@ -128,10 +146,15 @@ export default function TriagePanel() {
       
       setComplaints(res.data || [])
       setTotal(res.pagination?.total || 0)
-    } catch (err) {
-      console.error('❌ [Admin] Failed to fetch complaints:', err)
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
+      } else {
+         console.error('❌ [Admin] Failed to fetch complaints:', err)
+      }
     } finally {
       setLoading(false)
+      setIsFetching(false)
     }
   }
 

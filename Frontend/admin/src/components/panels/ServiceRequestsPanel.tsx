@@ -84,12 +84,34 @@ export default function ServiceRequestsPanel() {
   const [total, setTotal] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadRequests()
-  }, [page, statusFilter])
+  const [isFetching, setIsFetching] = useState(false)
 
-  async function loadRequests() {
-    setLoading(true)
+  useEffect(() => {
+    const controller = new AbortController()
+    
+    const fetchWrapper = async () => {
+      if (isFetching) return;
+      await loadRequests(false, controller.signal)
+    }
+
+    fetchWrapper()
+
+    // Safe Polling every 10 seconds
+    const interval = setInterval(async () => {
+       if (!isFetching) { 
+         await loadRequests(true, controller.signal); 
+       }
+    }, 10000)
+
+    return () => {
+      clearInterval(interval)
+      controller.abort() // Cancel any pending request on unmount/re-render
+    }
+  }, [page, statusFilter]) // Keep dependencies tight
+
+  async function loadRequests(silent = false, signal?: AbortSignal) {
+    if (!silent) setLoading(true)
+    setIsFetching(true)
     try {
       const params: any = { page, limit: 15 }
       if (statusFilter !== 'All') {
@@ -103,10 +125,15 @@ export default function ServiceRequestsPanel() {
       
       setRequests(res.data || [])
       setTotal(res.pagination?.total || 0)
-    } catch (err) {
-      console.error('❌ [Admin] Failed to fetch service requests:', err)
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
+      } else {
+         console.error('❌ [Admin] Failed to fetch service requests:', err)
+      }
     } finally {
       setLoading(false)
+      setIsFetching(false)
     }
   }
 
