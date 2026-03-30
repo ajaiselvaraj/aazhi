@@ -152,8 +152,8 @@ export default function ServiceRequestsPanel() {
   async function handleUpdateStage(id: string, newStage: string) {
     try {
       setLoading(true)
-      await adminApi.updateServiceRequestStatus(id, { stage: newStage })
-      await loadRequests()
+      await adminApi.updateServiceRequestStatus(id, { current_stage: newStage })
+      await loadRequests(false)
     } catch (err) {
       console.error(err)
     } finally {
@@ -179,8 +179,8 @@ export default function ServiceRequestsPanel() {
     if (!confirm("Are you sure you want to resolve this request?")) return;
     try {
       setLoading(true)
-      await adminApi.updateServiceRequestStatus(id, { stage: 'resolved', status: 'resolved' })
-      await loadRequests()
+      await adminApi.updateServiceRequestStatus(id, { current_stage: 'resolved', status: 'resolved' })
+      await loadRequests(false)
     } catch (err) {
       console.error(err)
     } finally {
@@ -331,19 +331,19 @@ export default function ServiceRequestsPanel() {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
                                 <label style={{ fontSize: '.85rem', fontWeight: 700 }}>Stage:</label>
                                 <select 
-                                  value={r.stage || 'submitted'}
+                                  value={r.current_stage || 'submitted'}
                                   onChange={(e) => handleUpdateStage(r.id, e.target.value)}
-                                  disabled={loading || r.status !== 'active'}
+                                  disabled={loading || r.status !== 'pending'}
                                   style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', background: 'var(--bg-light)', fontWeight: 600 }}
                                 >
                                   {HIERARCHY_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
-                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || r.status !== 'active'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
-                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || r.status !== 'active'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
+                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || r.status !== 'pending'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
+                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || r.status !== 'pending'} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
                               </div>
                             </div>
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)' }}>
-                              <ProcessingHierarchy stage={r.stage || 'submitted'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
+                              <ProcessingHierarchy stage={r.current_stage || 'submitted'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
                               {r.rejection_reason && (
                                 <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
                                   <strong>Rejection Reason:</strong> {r.rejection_reason}

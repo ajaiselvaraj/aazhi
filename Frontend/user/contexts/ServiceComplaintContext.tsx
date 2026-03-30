@@ -416,13 +416,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         logActivity("Request Stage Advanced", `Service request ${id} stage advanced to ${stage}.`);
         
         let apiStage = stage; // Send the human-readable stage, backend handles it
-        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'resolved' : 'active';
+        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'resolved' : 'pending';
         
         if (apiStage.toLowerCase() === 'rejected') apiStatus = 'rejected';
 
         const payload: any = { 
             status: apiStatus,
-            stage: apiStage
+            current_stage: apiStage
         };
         
         if (apiStage.toLowerCase() === 'rejected') {
@@ -455,13 +455,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         logActivity("Complaint Stage Advanced", `Complaint ${id} workflow moved to ${stage}.`);
         
         let apiStage = stage; // Human readable stage
-        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'closed') ? 'resolved' : 'active';
+        let apiStatus = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'closed') ? 'resolved' : 'pending';
         
         if (apiStage.toLowerCase() === 'rejected') apiStatus = 'rejected';
 
         const payload: any = { 
             status: apiStatus,
-            stage: apiStage 
+            current_stage: apiStage 
         };
         
         if (apiStage.toLowerCase() === 'rejected') {

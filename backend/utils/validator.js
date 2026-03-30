@@ -73,10 +73,9 @@ export const createComplaintSchema = Joi.object({
 
 export const updateComplaintStatusSchema = Joi.object({
     status: Joi.string().valid(
-        "active", "submitted", "acknowledged", "assigned", "in_progress",
-        "resolved", "closed", "reopened", "rejected"
+        "pending", "assigned", "in_progress", "resolved", "rejected", "closed"
     ).allow("", null),
-    stage: Joi.string().max(100).allow("", null),
+    current_stage: Joi.string().max(100).allow("", null),
     notes: Joi.string().max(1000).allow("", null),
     assigned_to: Joi.string().uuid().allow(null),
     resolution_note: Joi.string().max(2000).allow("", null),
@@ -95,10 +94,9 @@ export const createServiceRequestSchema = Joi.object({
 
 export const updateServiceRequestStatusSchema = Joi.object({
     status: Joi.string().valid(
-        "active", "submitted", "under_review", "verification",
-        "approval_pending", "completed", "resolved", "rejected"
+        "pending", "assigned", "in_progress", "resolved", "rejected", "closed"
     ).allow("", null),
-    stage: Joi.string().max(100).allow("", null),
+    current_stage: Joi.string().max(100).allow("", null),
     notes: Joi.string().max(1000).allow("", null),
     rejection_reason: Joi.string().max(1000).allow("", null),
 });
