@@ -460,8 +460,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         if (apiStage.toLowerCase() === 'rejected') apiStatus = 'rejected';
 
         const payload: any = { 
-            status: apiStatus,
-            current_stage: apiStage 
+            status: apiStatus
         };
         
         if (apiStage.toLowerCase() === 'rejected') {

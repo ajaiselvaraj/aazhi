@@ -18,8 +18,8 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, current_stage, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'created', 'pending')
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'pending')
              RETURNING *`,
             [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
@@ -141,7 +141,7 @@ export const getMyComplaints = async (req, res, next) => {
 export const updateComplaintStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { current_stage, status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
+        const { status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
         // Get current complaint bypass UUID cast error by checking ticket_number or id
@@ -158,21 +158,15 @@ export const updateComplaintStatus = async (req, res, next) => {
 
         // Logical overrides
         let finalStatus = status || current.rows[0].status;
-        let finalStage = current_stage || current.rows[0].current_stage;
 
-        // Normalize stage/status values for DB consistency
-        const normalizedStage = finalStage ? finalStage.toLowerCase() : "";
-        const normalizedStatus = finalStatus ? finalStatus.toLowerCase() : "";
-
-        if (normalizedStage === "resolved" || normalizedStage === "completed") {
-            finalStatus = "resolved";
-        }
+        // Normalize status values for DB consistency
+        finalStatus = finalStatus ? finalStatus.toLowerCase() : "pending";
         
-        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
+        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: status=${finalStatus}`);
 
         // Update complaint
-        const updateFields = ["current_stage = $2", "status = $3", "updated_at = NOW()"];
-        const updateParams = [actualId, finalStage, finalStatus];
+        const updateFields = ["status = $2", "updated_at = NOW()"];
+        const updateParams = [actualId, finalStatus];
 
         if (assigned_to) {
             updateFields.push(`assigned_to = $${updateParams.length + 1}`);
@@ -186,10 +180,10 @@ export const updateComplaintStatus = async (req, res, next) => {
             updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
             updateParams.push(rejection_reason);
         }
-        if (finalStatus === "resolved" || finalStage === "resolved" || finalStage === "Resolved") {
+        if (finalStatus === "resolved") {
             updateFields.push("resolved_at = NOW()");
         }
-        if (finalStatus === "closed" || finalStatus === "Closed") {
+        if (finalStatus === "closed") {
             updateFields.push("closed_at = NOW()");
         }
 
@@ -207,24 +201,23 @@ export const updateComplaintStatus = async (req, res, next) => {
         );
 
         // Mark new stage as current
-        // Try to find the exact stage or fallback to creating one if missing
+        // For complaints without a custom stage, we track status as the "stage" name
         const stageCheck = await pool.query(
             "SELECT id FROM complaint_stages WHERE complaint_id = $1 AND stage = $2",
-            [actualId, finalStage]
+            [actualId, finalStatus]
         );
 
         if (stageCheck.rows.length > 0) {
             await pool.query(
                 `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
                  WHERE complaint_id = $3 AND stage = $4`,
-                [notes || rejection_reason || resolution_note || null, updatedBy, actualId, finalStage]
+                [notes || rejection_reason || resolution_note || null, updatedBy, actualId, finalStatus]
             );
         } else {
-            // If the frontend sent a stage we don't have in the static list, insert it
             await pool.query(
                 `INSERT INTO complaint_stages (complaint_id, stage, status, notes, updated_by)
                  VALUES ($1, $2, 'current', $3, $4)`,
-                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+                [actualId, finalStatus, notes || rejection_reason || null, updatedBy]
             );
         }
 

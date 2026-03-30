@@ -30,11 +30,11 @@ function PriorityBadge({ p }: { p: string }) {
 
 /* ── Processing Hierarchy Component ──────────────────────────── */
 const HIERARCHY_STAGES = [
-  { id: 'submitted', label: 'Submitted' },
-  { id: 'officer_assigned', label: 'Officer Assigned' },
-  { id: 'manager_review', label: 'Manager Review' },
-  { id: 'gm_approval', label: 'GM Approval' },
-  { id: 'resolved', label: 'Resolved' }
+  { id: 'pending', label: 'Pending' },
+  { id: 'assigned', label: 'Assigned' },
+  { id: 'in_progress', label: 'In Progress' },
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'closed', label: 'Closed' }
 ];
 
 function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { stage: string, status: string, createdAt: string, rejectionReason?: string }) {
@@ -172,10 +172,10 @@ export default function TriagePanel() {
      c.category?.toLowerCase().includes(search.toLowerCase()));
   })
 
-  async function handleUpdateStage(id: string, newStage: string) {
+  async function handleUpdateStage(id: string, newStatus: string) {
     try {
       setLoading(true)
-      await adminApi.updateComplaintStatus(id, { current_stage: newStage })
+      await adminApi.updateComplaintStatus(id, { status: newStatus })
       await loadComplaints(true)
     } catch (err) {
       console.error(err)
@@ -202,7 +202,7 @@ export default function TriagePanel() {
     if (!confirm("Are you sure you want to resolve this complaint?")) return;
     try {
       setLoading(true)
-      await adminApi.updateComplaintStatus(id, { current_stage: 'resolved', status: 'resolved' })
+      await adminApi.updateComplaintStatus(id, { status: 'resolved' })
       await loadComplaints(true)
     } catch (err) {
       console.error(err)
@@ -391,11 +391,11 @@ export default function TriagePanel() {
                                 <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Real-time progression path mirroring the Citizen portal view.</p>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                <label style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Workflow Stage:</label>
+                                <label style={{ fontSize: '.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Status Update:</label>
                                 <select 
-                                  value={c.current_stage || 'submitted'}
+                                  value={c.status || 'pending'}
                                   onChange={(e) => handleUpdateStage(c.id, e.target.value)}
-                                  disabled={loading || c.status !== 'pending'}
+                                  disabled={loading}
                                   style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', outline: 'none', background: 'var(--bg-light)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600 }}
                                 >
                                   {HIERARCHY_STAGES.map(s => (
@@ -407,7 +407,7 @@ export default function TriagePanel() {
                                   onClick={() => handleResolve(c.id)}
                                   className="btn btn-success" 
                                   style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
-                                  disabled={loading || c.status !== 'pending'}
+                                  disabled={loading}
                                 >
                                   ✅ Resolve
                                 </button>
@@ -415,7 +415,7 @@ export default function TriagePanel() {
                                   onClick={() => handleReject(c.id)}
                                   className="btn btn-danger" 
                                   style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
-                                  disabled={loading || c.status !== 'pending'}
+                                  disabled={loading}
                                 >
                                   ❌ Reject
                                 </button>
@@ -423,7 +423,7 @@ export default function TriagePanel() {
                             </div>
                             
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-                              <ProcessingHierarchy stage={c.current_stage || 'submitted'} status={c.status} createdAt={c.created_at} rejectionReason={c.rejection_reason} />
+                              <ProcessingHierarchy stage={c.status || 'pending'} status={c.status} createdAt={c.created_at} rejectionReason={c.rejection_reason} />
                               {c.rejection_reason && (
                                 <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
                                   <strong>Rejection Reason:</strong> {c.rejection_reason}
