@@ -298,3 +298,115 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── DEBUG: Get All Complaints (Bypass Auth) ─────────────
+export const getAllComplaintsAdminDebug = async (req, res, next) => {
+    try {
+        const result = await pool.query(`
+            SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile
+            FROM complaints c
+            JOIN citizens ci ON c.citizen_id = ci.id
+            ORDER BY c.created_at DESC
+        `);
+        return success(res, "All complaints retrieved", result.rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Create Complaint (Bypass Auth) ────────────────
+export const createComplaintDebug = async (req, res, next) => {
+    try {
+        let citizenId = req.body.citizen_id;
+        if (!citizenId) {
+            const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
+            if (cit.rows.length > 0) citizenId = cit.rows[0].id;
+            else citizenId = 1;
+        }
+
+        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+        const ticketNumber = generateTicketNumber("CMP");
+
+        const result = await pool.query(
+            `INSERT INTO complaints 
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             RETURNING *`,
+            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+        );
+
+        const stages = [
+            { stage: "submitted", status: "current" },
+            { stage: "acknowledged", status: "pending" },
+            { stage: "assigned", status: "pending" },
+            { stage: "in_progress", status: "pending" },
+            { stage: "resolved", status: "pending" },
+            { stage: "closed", status: "pending" },
+        ];
+
+        for (const s of stages) {
+            await pool.query(
+                `INSERT INTO complaint_stages (complaint_id, stage, status) VALUES ($1, $2, $3)`,
+                [result.rows[0].id, s.stage, s.status]
+            );
+        }
+        return success(res, "Complaint registered (DEBUG)", {
+            ...result.rows[0],
+            stages: stages.map((s) => ({ stage: s.stage, status: s.status }))
+        }, 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Update Status (Bypass Auth) ──────────────────
+export const updateComplaintStatusDebug = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, notes, assigned_to, resolution_note } = req.body;
+        const updatedBy = 1; // dummy admin ID
+
+        const updateFields = ["status = $2", "updated_at = NOW()"];
+        const updateParams = [id, status];
+
+        if (assigned_to) {
+            updateFields.push(`assigned_to = $${updateParams.length + 1}`);
+            updateParams.push(assigned_to);
+        }
+        if (resolution_note) {
+            updateFields.push(`resolution_note = $${updateParams.length + 1}`);
+            updateParams.push(resolution_note);
+        }
+        if (status === "resolved") {
+            updateFields.push("resolved_at = NOW()");
+        }
+        if (status === "closed") {
+            updateFields.push("closed_at = NOW()");
+        }
+
+        const result = await pool.query(
+            `UPDATE complaints SET ${updateFields.join(", ")} WHERE id = $1 RETURNING *`,
+            updateParams
+        );
+
+        if (result.rows.length === 0) {
+            return fail(res, "Complaint not found", 404);
+        }
+
+        await pool.query(
+            `UPDATE complaint_stages SET status = 'completed', updated_at = NOW()
+             WHERE complaint_id = $1 AND status = 'current'`,
+            [id]
+        );
+
+        await pool.query(
+            `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
+             WHERE complaint_id = $3 AND stage = $4`,
+            [notes || null, updatedBy, id, status]
+        );
+
+        return success(res, "Complaint updated (DEBUG)", result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};

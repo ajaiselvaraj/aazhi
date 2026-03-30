@@ -200,3 +200,94 @@ export const searchRequests = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── DEBUG: Get All Service Requests (Bypass Auth) ─────────────
+export const getAllRequestsAdminDebug = async (req, res, next) => {
+    try {
+        const result = await pool.query(`
+            SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+            FROM service_requests sr
+            JOIN citizens c ON sr.citizen_id = c.id
+            ORDER BY sr.created_at DESC
+        `);
+        return success(res, "All service requests retrieved", result.rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Create Service Request (Bypass Auth) ────────────────
+export const createRequestDebug = async (req, res, next) => {
+    try {
+        let citizenId = req.body.citizen_id;
+        if (!citizenId) {
+            const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
+            if (cit.rows.length > 0) citizenId = cit.rows[0].id;
+            else citizenId = 1;
+        }
+
+        let { request_type, department, description, ward, phone, metadata } = req.body;
+        if (description && typeof description === 'string' && description.length > 5000) {
+            description = description.substring(0, 5000);
+        }
+
+        const ticketNumber = generateTicketNumber("SRQ");
+
+        const result = await pool.query(
+            `INSERT INTO service_requests 
+             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'submitted')
+             RETURNING *`,
+            [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
+        );
+
+        const stages = ["submitted", "under_review", "verification", "approval_pending", "completed"];
+        for (let i = 0; i < stages.length; i++) {
+            await pool.query(
+                `INSERT INTO service_request_stages (service_request_id, stage, status)
+                 VALUES ($1, $2, $3)`,
+                [result.rows[0].id, stages[i], i === 0 ? "current" : "pending"]
+            );
+        }
+
+        return success(res, "Service request submitted (DEBUG)", result.rows[0], 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Update Status (Bypass Auth) ──────────────────
+export const updateRequestStatusDebug = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, notes } = req.body;
+        const updatedBy = 1;
+
+        const current = await pool.query("SELECT * FROM service_requests WHERE id = $1", [id]);
+        if (current.rows.length === 0) {
+            return fail(res, "Service request not found.", 404);
+        }
+
+        const result = await pool.query(
+            `UPDATE service_requests SET status = $1, current_stage = $1, updated_at = NOW()
+             WHERE id = $2 RETURNING *`,
+            [status, id]
+        );
+
+        await pool.query(
+            `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
+             WHERE service_request_id = $1 AND status = 'current'`,
+            [id]
+        );
+
+        await pool.query(
+            `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
+             WHERE service_request_id = $3 AND stage = $4`,
+            [notes || null, updatedBy, id, status]
+        );
+
+        return success(res, "Service request status updated (DEBUG)", result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};
