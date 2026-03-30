@@ -116,10 +116,14 @@ export default function TriagePanel() {
     if (!silent) setLoading(true)
     try {
       const params: any = { page, limit: 100 }
-      if (statusFilter !== 'All') params.status = statusFilter
+      // If "All" is selected, we don't send a specific status filter to get all active-like items
+      if (statusFilter !== 'All') {
+        params.status = statusFilter
+      }
       
-      console.log('📡 [Admin] Fetching all complaints...', params)
-      const res = await adminApi.getAllComplaints({ ...params, status: 'active' })
+      console.log('📡 [Admin] Fetching complaints...', params)
+      // Remove the hard-coded { ..., status: 'active' } which was overriding everything
+      const res = await adminApi.getAllComplaints(params)
       console.log('✅ [Admin] Received complaints:', res.data?.length)
       
       setComplaints(res.data || [])
@@ -132,13 +136,18 @@ export default function TriagePanel() {
   }
 
   // Frontend filtering for search and department isolation
-  const filtered = complaints.filter(c => 
-    c.status === 'active' &&
+  const filtered = complaints.filter(c => {
+    // Show all if 'All' is selected, or exact match if a filter is set
+    const matchesStatus = statusFilter === 'All' 
+       ? (c.status !== 'resolved' && c.status !== 'rejected') 
+       : c.status === statusFilter;
+
+    return matchesStatus &&
     (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
      c.description?.toLowerCase().includes(search.toLowerCase()) ||
-     c.category?.toLowerCase().includes(search.toLowerCase()))
-  )
+     c.category?.toLowerCase().includes(search.toLowerCase()));
+  })
 
   async function handleUpdateStage(id: string, newStage: string) {
     try {
@@ -180,7 +189,7 @@ export default function TriagePanel() {
   }
 
   const criticalCount = complaints.filter(c => c.priority === 'critical').length
-  const pendingCount = complaints.filter(c => ['submitted', 'acknowledged', 'in_progress'].includes(c.status)).length
+  const pendingCount = complaints.filter(c => c.status !== 'resolved' && c.status !== 'rejected').length
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -234,8 +243,11 @@ export default function TriagePanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="All">All Active Statuses</option>
-            <option value="active">Active</option>
+            <option value="All">All Active Issues</option>
+            <option value="active">Active (New)</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="rejected">Rejected</option>
           </select>
 
           <button 

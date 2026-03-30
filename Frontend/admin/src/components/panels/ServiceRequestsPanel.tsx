@@ -92,10 +92,13 @@ export default function ServiceRequestsPanel() {
     setLoading(true)
     try {
       const params: any = { page, limit: 15 }
-      if (statusFilter !== 'All') params.status = statusFilter
+      if (statusFilter !== 'All') {
+        params.status = statusFilter
+      }
       
       console.log('📡 [Admin] Fetching service requests...', params)
-      const res = await adminApi.getAllServiceRequests({ ...params, status: 'active' })
+      // Removed the hard-coded override that was forcing status: 'active'
+      const res = await adminApi.getAllServiceRequests(params)
       console.log('✅ [Admin] Received requests:', res.data?.length)
       
       setRequests(res.data || [])
@@ -108,12 +111,16 @@ export default function ServiceRequestsPanel() {
   }
 
   // Frontend filtering for search
-  const filtered = requests.filter(r => 
-    r.status === 'active' &&
+  const filtered = requests.filter(r => {
+    const matchesStatus = statusFilter === 'All'
+       ? (r.status !== 'resolved' && r.status !== 'rejected')
+       : r.status === statusFilter;
+
+    return matchesStatus &&
     (r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
     r.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
     r.request_type.toLowerCase().includes(search.toLowerCase()))
-  )
+  })
 
   async function handleUpdateStage(id: string, newStage: string) {
     try {
@@ -183,7 +190,11 @@ export default function ServiceRequestsPanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="active">Active</option>
+            <option value="All">All Active Requests</option>
+            <option value="active">Active (New)</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="rejected">Rejected</option>
           </select>
 
           <button 
