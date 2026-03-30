@@ -18,20 +18,18 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, stage, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted', 'active')
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, current_stage, status)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'created', 'pending')
              RETURNING *`,
             [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         // Create complaint lifecycle stages
         const stages = [
-            { stage: "submitted", status: "current" },
-            { stage: "acknowledged", status: "pending" },
+            { stage: "created", status: "current" },
             { stage: "assigned", status: "pending" },
-            { stage: "in_progress", status: "pending" },
-            { stage: "resolved", status: "pending" },
-            { stage: "closed", status: "pending" },
+            { stage: "working", status: "pending" },
+            { stage: "completed", status: "pending" },
         ];
 
         for (const s of stages) {
@@ -143,7 +141,7 @@ export const getMyComplaints = async (req, res, next) => {
 export const updateComplaintStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { stage, status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
+        const { current_stage, status, notes, assigned_to, resolution_note, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
         // Get current complaint bypass UUID cast error by checking ticket_number or id
@@ -160,20 +158,20 @@ export const updateComplaintStatus = async (req, res, next) => {
 
         // Logical overrides
         let finalStatus = status || current.rows[0].status;
-        let finalStage = stage || current.rows[0].stage;
+        let finalStage = current_stage || current.rows[0].current_stage;
 
         // Normalize stage/status values for DB consistency
-        const normalizedStage = finalStage.toLowerCase();
-        const normalizedStatus = finalStatus.toLowerCase();
+        const normalizedStage = finalStage ? finalStage.toLowerCase() : "";
+        const normalizedStatus = finalStatus ? finalStatus.toLowerCase() : "";
 
         if (normalizedStage === "resolved" || normalizedStage === "completed") {
             finalStatus = "resolved";
         }
         
-        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: stage=${finalStage}, status=${finalStatus}`);
+        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
 
         // Update complaint
-        const updateFields = ["stage = $2", "status = $3", "updated_at = NOW()"];
+        const updateFields = ["current_stage = $2", "status = $3", "updated_at = NOW()"];
         const updateParams = [actualId, finalStage, finalStatus];
 
         if (assigned_to) {

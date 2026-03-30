@@ -101,7 +101,7 @@ export const adminApi = {
     return json;
   },
 
-  updateComplaintStatus: async (id: string, updates: { stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
+  updateComplaintStatus: async (id: string, updates: { current_stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
     const json = await request(`/complaints/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -128,7 +128,7 @@ export const adminApi = {
     return json;
   },
 
-  updateServiceRequestStatus: async (id: string, updates: { stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
+  updateServiceRequestStatus: async (id: string, updates: { current_stage?: string, status?: string, rejection_reason?: string, notes?: string }) => {
     const json = await request(`/service-requests/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify(updates),

@@ -52,8 +52,8 @@ export const createServiceRequest = async (req, res, next) => {
                 ward: ward || null,
                 phone: phone || null,
                 metadata: metadata || {},
-                stage: 'submitted', 
-                status: 'active'
+                current_stage: 'created', 
+                status: 'pending'
             };
 
             console.log("🚀 [SUPABASE] Attempting insert into 'service_requests':", insertPayload.ticket_number);
@@ -75,7 +75,7 @@ export const createServiceRequest = async (req, res, next) => {
             
             requestRecord = insertedData[0];
 
-            const stages = ["Submitted", "Officer Assigned", "Manager Review", "GM Approval", "Resolved"];
+            const stages = ["created", "assigned", "working", "completed"];
             const stagesToInsert = stages.map((stage, i) => ({
                 service_request_id: requestRecord.id,
                 stage: stage,
@@ -88,15 +88,15 @@ export const createServiceRequest = async (req, res, next) => {
             // ─── POSTGRES DIRECT DRIVER MODE (FALLBACK) ───
             const result = await pool.query(
                 `INSERT INTO service_requests 
-                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, stage, status)
-                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'active')
+                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status)
+                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'created', 'pending')
                  RETURNING *`,
                 [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
             );
             
             requestRecord = result.rows[0];
 
-            const stages = ["Submitted", "Officer Assigned", "Manager Review", "GM Approval", "Resolved"];
+            const stages = ["created", "assigned", "working", "completed"];
             for (let i = 0; i < stages.length; i++) {
                 await pool.query(
                     `INSERT INTO service_request_stages (service_request_id, stage, status) VALUES ($1, $2, $3)`,
@@ -246,7 +246,7 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
 export const updateServiceRequestStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { stage, status, notes, rejection_reason } = req.body;
+        const { current_stage, status, notes, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
         const idCheckQuery = id.startsWith('TKT-') || id.startsWith('SRQ-') 
@@ -261,17 +261,17 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         const actualId = current.rows[0].id;
 
         // Logical overrides
-        let finalStatus = (status || current.rows[0].status).toLowerCase();
-        let finalStage = stage || current.rows[0].stage;
+        let finalStatus = status ? status.toLowerCase() : (current.rows[0].status || "").toLowerCase();
+        let finalStage = current_stage || current.rows[0].current_stage;
 
-        if (finalStage.toLowerCase() === "resolved" || finalStage === "Completed") {
+        if (finalStage && (finalStage.toLowerCase() === "resolved" || finalStage.toLowerCase() === "completed")) {
             finalStatus = "resolved";
         }
         
-        console.log(`🔄 [DEBUG] Updating Service Request ${actualId}: stage=${finalStage}, status=${finalStatus}`);
+        console.log(`🔄 [DEBUG] Updating Service Request ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
 
         // Update request
-        const updateFields = ["stage = $1", "status = $2", "updated_at = NOW()"];
+        const updateFields = ["current_stage = $1", "status = $2", "updated_at = NOW()"];
         const updateParams = [finalStage, finalStatus, actualId];
 
         if (rejection_reason) {
