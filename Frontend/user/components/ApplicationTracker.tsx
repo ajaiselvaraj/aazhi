@@ -53,10 +53,18 @@ const ApplicationTracker: React.FC = () => {
     const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     const translateStage = (stage: string): string => {
+        if (!stage) return '';
+        
+        // Normalize snake_case strings typically from DB to Title Case mapping format
+        const normalizedInput = stage.includes('_') 
+            ? stage.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            : stage;
+
         const stageMap: Record<string, string> = {
             'Submitted': t('submitted'),
             'Officer Assigned': t('officerAssigned'),
             'Manager Review': t('managerReview'),
+            'Gm Approval': t('gmApproval'), // handles normalized form
             'GM Approval': t('gmApproval'),
             'Resolved': t('resolved'),
             'Completed': t('completed'),
@@ -67,7 +75,8 @@ const ApplicationTracker: React.FC = () => {
             'Under Review': t('underReview'),
             'Current': t('currentActivity') || 'Current',
         };
-        return stageMap[stage] || stage;
+        
+        return stageMap[normalizedInput] || stageMap[stage] || normalizedInput;
     };
 
     const translateDynamic = (text: string): string => {
@@ -202,13 +211,15 @@ const ApplicationTracker: React.FC = () => {
                                             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 bg-current`}></span>
                                         </div>
                                         <span className="text-sm font-black uppercase tracking-wide">
-                                            {item.status === 'rejected' ? t('rejected') : translateStage(item.currentStage || 'Submitted')}
+                                            {item.status === 'rejected' ? t('rejected') : translateStage(
+                                                item.type === 'Request' ? (item.currentStage || item.current_stage || 'submitted') : (item.status || 'pending')
+                                            )}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Progress Stepper for Context */}
+                                {/* Progress Stepper for Context */}
                             <div className="p-8 bg-slate-50">
                                 <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
                                     <User size={14} /> {t('processingHierarchy')}
@@ -217,39 +228,58 @@ const ApplicationTracker: React.FC = () => {
                                     {/* Line */}
                                     <div className="absolute top-[14px] left-0 w-full h-[3px] bg-slate-200 rounded-full -z-0"></div>
 
-                                    {/* Active Line */}
-                                    <div className={`absolute top-[14px] left-0 h-[3px] rounded-full -z-0 transition-all duration-1000
-                                        ${item.status === 'rejected' ? 'bg-red-500' : 'bg-slate-800'}
-                                        ${item.status === 'resolved' ? 'w-[100%]' :
-                                        item.currentStage === 'Submitted' ? 'w-[0%]' :
-                                            item.currentStage === 'Officer Assigned' ? 'w-[25%]' :
-                                                item.currentStage === 'Manager Review' ? 'w-[50%]' :
-                                                    item.currentStage === 'GM Approval' ? 'w-[75%]' :
-                                                        'w-[100%]'}`}></div>
+                                    {(() => {
+                                        const reqStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
+                                        const compStages = ['pending', 'assigned', 'in_progress', 'resolved', 'closed'];
 
-                                    {/* Nodes */}
-                                    {['Submitted', 'Officer Assigned', 'Manager Review', 'GM Approval', 'Resolved'].map((step, idx) => {
-                                        const stages = ['Submitted', 'Officer Assigned', 'Manager Review', 'GM Approval', 'Resolved'];
-                                        const currentIndex = item.status === 'resolved' ? 4 : stages.indexOf(item.currentStage);
+                                        const stages = item.type === 'Request' ? reqStages : compStages;
+                                        
+                                        // Match current stage
+                                        let currentVal = item.type === 'Request' ? (item.currentStage || item.current_stage || 'submitted') : (item.status || 'pending');
+                                        currentVal = currentVal.toLowerCase();
+
+                                        let currentIndex = stages.indexOf(currentVal);
+                                        if (currentIndex === -1) currentIndex = 0; // fallback
+                                        if (item.status === 'resolved') currentIndex = item.type === 'Request' ? 4 : 3;
+                                        if (item.status === 'closed') currentIndex = 4;
                                         const isRejected = item.status === 'rejected';
 
-                                        const isActive = idx <= (currentIndex === -1 ? 0 : currentIndex);
-                                        const isCurrent = idx === currentIndex;
+                                        const progressPercent = (currentIndex / (stages.length - 1)) * 100;
 
                                         return (
-                                            <div key={step} className="relative z-10 flex flex-col items-center gap-2 w-24">
-                                                <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all duration-300
-                                                    ${isActive ? (isRejected && isCurrent ? 'bg-red-500 border-red-500 text-white' : 'bg-slate-800 border-slate-800 text-white') : 'bg-white border-slate-300 text-slate-300'}
-                                                    ${isCurrent ? (isRejected ? 'ring-4 ring-red-100 scale-110' : 'ring-4 ring-slate-200 scale-110') : ''}
-                                                `}>
-                                                    {isActive && (isRejected && isCurrent ? <AlertTriangle size={14} strokeWidth={4} /> : <CheckCircle size={14} strokeWidth={4} />)}
-                                                </div>
-                                                <p className={`text-[9px] font-black uppercase text-center leading-tight transition-colors
-                                                    ${isActive ? (isRejected && isCurrent ? 'text-red-500' : 'text-slate-800') : 'text-slate-400'}
-                                                `}>{translateStage(step)}</p>
-                                            </div>
-                                        )
-                                    })}
+                                            <>
+                                                {/* Active Line */}
+                                                <div className={`absolute top-[14px] left-0 h-[3px] rounded-full -z-0 transition-all duration-1000 ${isRejected ? 'bg-red-500' : 'bg-slate-800'}`} style={{ width: `${progressPercent}%` }}></div>
+
+                                                {/* Nodes */}
+                                                {stages.map((step, idx) => {
+                                                    const isActive = idx <= currentIndex;
+                                                    const isCurrent = idx === currentIndex;
+                                                    
+                                                    // Map keys to display strings for fallback if translation is missing
+                                                    const displayMap: Record<string, string> = {
+                                                        'submitted': 'Submitted', 'officer_assigned': 'Officer Assigned', 'manager_review': 'Manager Review', 'gm_approval': 'GM Approval', 'resolved': 'Resolved',
+                                                        'pending': 'Pending', 'assigned': 'Assigned', 'in_progress': 'In Progress', 'closed': 'Closed'
+                                                    };
+                                                    const displayStr = displayMap[step] || step;
+
+                                                    return (
+                                                        <div key={step} className="relative z-10 flex flex-col items-center gap-2 w-24">
+                                                            <div className={`w-8 h-8 rounded-full border-4 flex items-center justify-center transition-all duration-300
+                                                                ${isActive ? (isRejected && isCurrent ? 'bg-red-500 border-red-500 text-white' : 'bg-slate-800 border-slate-800 text-white') : 'bg-white border-slate-300 text-slate-300'}
+                                                                ${isCurrent ? (isRejected ? 'ring-4 ring-red-100 scale-110' : 'ring-4 ring-slate-200 scale-110') : ''}
+                                                            `}>
+                                                                {isActive && (isRejected && isCurrent ? <AlertTriangle size={14} strokeWidth={4} /> : <CheckCircle size={14} strokeWidth={4} />)}
+                                                            </div>
+                                                            <p className={`text-[9px] font-black uppercase text-center leading-tight transition-colors
+                                                                ${isActive ? (isRejected && isCurrent ? 'text-red-500' : 'text-slate-800') : 'text-slate-400'}
+                                                            `}>{translateStage(displayStr)}</p>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </>
+                                        );
+                                    })()}
                                 </div>
                                 {item.status === 'rejected' && item.rejection_reason && (
                                     <div className="mt-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex gap-3 items-start animate-in zoom-in-95">
