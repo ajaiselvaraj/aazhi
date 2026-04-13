@@ -4,6 +4,10 @@ import QuickPay from './QuickPay';
 import BillCalculator from './BillCalculator';
 import ConsumerLogin from './ConsumerLogin';
 import MyTransactions from './MyTransactions';
+import ElectricityNewConnectionForm from './ElectricityNewConnectionForm';
+import ElectricityMeterServiceForm from './ElectricityMeterServiceForm';
+import ElectricityComplaints from './ElectricityComplaints';
+import ElectricityProfile from './ElectricityProfile';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -15,10 +19,10 @@ interface Props {
 
 // Wrapper component to manage state between sub-modules
 const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
-    const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
+    const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE'>('HOME');
     const { t } = useTranslation();
 
-    const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => {
+    const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE') => {
         setView(target);
     };
 
@@ -33,6 +37,11 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
             {view === 'LOGIN' && <ConsumerLogin onBack={handleInternalBack} language={language} />}
             {view === 'CALCULATOR' && <BillCalculator onBack={handleInternalBack} language={language} />}
             {view === 'TRANSACTIONS' && <MyTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />}
+            
+            {view === 'NEW_CONNECTION' && <ElectricityNewConnectionForm onBack={handleInternalBack} language={language} />}
+            {view === 'METER_SERVICE' && <ElectricityMeterServiceForm onBack={handleInternalBack} language={language} />}
+            {view === 'COMPLAINTS' && <ElectricityComplaints onBack={handleInternalBack} language={language} />}
+            {view === 'PROFILE' && <ElectricityProfile onBack={handleInternalBack} language={language} />}
 
             {/* Placeholder for Tariff */}
             {view === 'TARIFF' && (

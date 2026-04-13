@@ -350,16 +350,50 @@ const App: React.FC = () => {
 
     try {
       if (loginMethod === 'MOBILE') {
+        // Static OTP bypass for development/offline testing
+        if (otp === '123') {
+           localStorage.setItem('aazhi_token', 'mock_token_' + Date.now());
+           localStorage.setItem('aazhi_user', JSON.stringify({
+             id: 'mock_123',
+             name: 'Offline Citizen',
+             mobile: identifier,
+             role: 'citizen'
+           }));
+           setView(ViewState.SELECTION);
+           return;
+        }
+
         // Authenticate with backend
         await authService.verifyOtp(identifier, otp);
         
         setView(ViewState.SELECTION);
       } else {
-        // Aadhaar Login Simulation now correctly requests a JWT from the backend synchronously.
-        await authService.mockAadhaar(identifier);
-        
-        speakText({ text: "Aadhaar authentication successful", language: "English" });
-        setView(ViewState.SELECTION);
+        // Aadhaar Login Simulation
+        // Static OTP bypass for development/offline testing
+        if (otp === '123') {
+           localStorage.setItem('aazhi_token', 'mock_token_aadhaar_' + Date.now());
+           localStorage.setItem('aazhi_user', JSON.stringify({
+             id: 'mock_aadhaar',
+             name: 'Aadhaar Citizen',
+             mobile: '9876543210',
+             role: 'citizen',
+             aadhaar_masked: 'XXXX-XXXX-' + identifier.slice(-4)
+           }));
+           speakText({ text: "Aadhaar offline authentication successful", language: "English" });
+           setView(ViewState.SELECTION);
+           return;
+        }
+
+        // Try backend first if not 123
+        try {
+          await authService.mockAadhaar(identifier);
+          speakText({ text: "Aadhaar authentication successful", language: "English" });
+          setView(ViewState.SELECTION);
+        } catch (e: any) {
+          // If backend fails but they entered 123, we already handled it above.
+          // If they entered something else and backend is down, show error.
+          throw e;
+        }
       }
     } catch (e: any) {
       console.error("Login submission error", e);
@@ -718,7 +752,7 @@ const App: React.FC = () => {
                       <button
                         id="aadhaar-confirm-btn"
                         onClick={handleLoginSubmit}
-                        disabled={isProcessing || otp.length !== 6}
+                        disabled={isProcessing || (otp.length !== 6 && otp !== '123')}
                         className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
                       >
                         {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('confirmLogin')} <ShieldCheck size={20} /></>}
@@ -777,7 +811,7 @@ const App: React.FC = () => {
                       <button
                         id="mobile-verify-btn"
                         onClick={handleLoginSubmit}
-                        disabled={isProcessing || otp.length !== 6}
+                        disabled={isProcessing || (otp.length !== 6 && otp !== '123')}
                         className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
                       >
                         {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('verifyLogin')} <ShieldCheck size={20} /></>}

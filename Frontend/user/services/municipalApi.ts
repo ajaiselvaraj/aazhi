@@ -38,6 +38,15 @@ export const MunicipalAPI = {
 
     async downloadCertificate(id: string) {
         return await apiClient.get(`/municipal/certificates/${id}/download`);
+    },
+    // ---- 4. Profile Management ----
+    async updateProfile(profileData: any): Promise<any> {
+        return await apiClient.put('/municipal/profile', profileData);
+    },
+
+    // ---- 5. Water Services ----
+    async submitWaterConnectionRequest(data: any): Promise<any> {
+        return await apiClient.post('/municipal/water/connections', data);
     }
 };
 

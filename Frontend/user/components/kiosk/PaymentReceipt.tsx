@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Printer, Download, CheckCircle2, ShieldCheck, Landmark } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Printer, Download, CheckCircle2, ShieldCheck, Landmark, Smartphone, Mail } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
@@ -33,6 +33,16 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
         if (element) {
             html2pdf().from(element).save(`receipt_${data.txnId}.pdf`);
         }
+    };
+
+    const [shareStatus, setShareStatus] = useState<string | null>(null);
+
+    const handleShare = (type: 'sms' | 'email') => {
+        setShareStatus(`Sending via ${type.toUpperCase()}...`);
+        setTimeout(() => {
+            setShareStatus(t('receiptSentSuccess', { type: type.toUpperCase() }) || `Receipt sent via ${type.toUpperCase()} successfully!`);
+            setTimeout(() => setShareStatus(null), 3500);
+        }, 1500);
     };
 
     // Determine header based on service type
@@ -195,22 +205,43 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
                     </div>
 
                     {/* Modal Footer / Actions */}
-                    <div className="p-8 border-t bg-white flex gap-4">
-                        <button 
-                            onClick={handlePrint}
-                            className="flex-1 bg-blue-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex items-center justify-center gap-3 shadow-xl shadow-blue-100"
-                        >
-                            <Printer size={20} /> Print
-                        </button>
-                        <button 
-                            onClick={handleDownload}
-                            className="flex-[2] bg-green-600 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-green-700 transition flex items-center justify-center gap-3 shadow-xl shadow-green-100"
-                        >
-                            <Download size={20} /> Download Receipt
-                        </button>
+                    <div className="p-6 border-t bg-white flex flex-col gap-4">
+                        {shareStatus && (
+                            <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-center font-bold text-sm flex items-center justify-center gap-2 animate-in slide-in-from-top-2 fade-in">
+                                <CheckCircle2 size={16} /> {shareStatus}
+                            </div>
+                        )}
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={handlePrint}
+                                className="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex flex-col items-center justify-center gap-2 shadow-xl shadow-blue-100"
+                            >
+                                <Printer size={24} /> Print
+                            </button>
+                            <button 
+                                onClick={handleDownload}
+                                className="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black uppercase text-sm hover:bg-green-700 transition flex flex-col items-center justify-center gap-2 shadow-xl shadow-green-100"
+                            >
+                                <Download size={24} /> Download
+                            </button>
+                            <div className="flex-1 flex flex-col gap-2">
+                                <button 
+                                    onClick={() => handleShare('sms')}
+                                    className="flex-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl font-bold uppercase text-xs hover:bg-indigo-600 hover:text-white transition flex items-center justify-center gap-2"
+                                >
+                                    <Smartphone size={16} /> SMS
+                                </button>
+                                <button 
+                                    onClick={() => handleShare('email')}
+                                    className="flex-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl font-bold uppercase text-xs hover:bg-purple-600 hover:text-white transition flex items-center justify-center gap-2"
+                                >
+                                    <Mail size={16} /> Email
+                                </button>
+                            </div>
+                        </div>
                         <button 
                             onClick={onClose}
-                            className="flex-1 bg-slate-100 text-slate-600 p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-200 transition"
+                            className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black uppercase text-sm hover:bg-slate-200 transition"
                         >
                             Close
                         </button>

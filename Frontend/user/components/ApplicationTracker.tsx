@@ -57,6 +57,23 @@ const ApplicationTracker: React.FC = () => {
         return 'text-blue-600 bg-blue-50 border-blue-200';
     };
 
+    const getSLA = (item: ActivityItem, derivedStage: string) => {
+        if (derivedStage === 'resolved' || derivedStage === 'closed' || derivedStage === 'rejected') return null;
+        
+        let totalDays = 3; 
+        if (item.type === 'Request') totalDays = 15;
+        if (item.category?.toLowerCase().includes('electricity')) totalDays = 7;
+        
+        const createdDate = new Date((item as any).createdAt || item.timestamp || 0);
+        const msSinceCreation = Date.now() - createdDate.getTime();
+        const daysSinceCreation = Math.floor(msSinceCreation / (1000 * 60 * 60 * 24));
+        
+        const daysLeft = totalDays - daysSinceCreation;
+        if (daysLeft < 0) return { expired: true, text: `Overdue by ${Math.abs(daysLeft)} Days` };
+        if (daysLeft === 0) return { expired: false, warning: true, text: `Due Today` };
+        return { expired: false, text: `${daysLeft} Days Left` };
+    };
+
     const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     const translateStage = (stage: string): string => {
@@ -215,9 +232,9 @@ const ApplicationTracker: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="text-right w-full md:w-auto bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{badgeIsRejected ? t('rejectionStatus') || 'Rejection Status' : t('currentStatusLevel')}</p>
-                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${getStageColor(item)}`}>
+                                    <div className="text-right w-full md:w-auto bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-end">
+                                        <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">{badgeIsRejected ? t('rejectionStatus') || 'Rejection Status' : t('currentStatusLevel')}</p>
+                                        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border ${getStageColor(item)} shadow-sm`}>
                                             <div className="relative flex h-2.5 w-2.5">
                                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-current`}></span>
                                                 <span className={`relative inline-flex rounded-full h-2.5 w-2.5 bg-current`}></span>
@@ -226,6 +243,19 @@ const ApplicationTracker: React.FC = () => {
                                                 {badgeIsRejected ? t('rejected') : translateStage(derivedStage)}
                                             </span>
                                         </div>
+                                        
+                                        {(() => {
+                                            const sla = getSLA(item, derivedStage);
+                                            if (!sla) return null;
+                                            return (
+                                                <div className={`mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-widest shadow-sm
+                                                    ${sla.expired ? 'bg-red-50 text-red-600 border-red-200 shadow-red-100' : 
+                                                      sla.warning ? 'bg-amber-50 text-amber-600 border-amber-200 shadow-amber-100' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}
+                                                `}>
+                                                    <Clock size={12} className={sla.expired ? 'animate-pulse' : ''} /> SLA: {sla.text}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
 
