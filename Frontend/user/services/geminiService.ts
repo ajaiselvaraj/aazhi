@@ -49,7 +49,10 @@ class SuvidhaIntelligence {
     if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(electric|power|spark|wire)\b/i)) return { intent: 'COMPLAINT_DIRECT', dept: 'Electricity' };
 
     if (q.match(/\b(pay|bill|payment|dues)\b/i)) return { intent: 'START_BILL' };
+    if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(gas|lpg|cylinder|png)\b/i)) return { intent: 'GAS_COMPLAINT' };
     if (q.match(/\b(complain|complaint|issue|report|broken|fix)\b/i)) return { intent: 'START_COMPLAINT' };
+    if (q.match(/\b(gas|lpg|cylinder|png)\b/i) && q.match(/\b(service|connection|booking|refill|meter|install)\b/i)) return { intent: 'GAS_SERVICES' };
+    if (q.match(/^\s*gas\s*$/i) || q.match(/\bgas\s*(department|services?)\b/i)) return { intent: 'GAS_SERVICES' };
     if (q.match(/\b(status|track|history|check)\b/i)) return { intent: 'CHECK_STATUS' };
     if (q.match(/\b(service|apply|new connection)\b/i)) return { intent: 'NEW_SERVICE' };
     if (q.match(/\b(help|guide|how to|support)\b/i)) return { intent: 'HELP' };
@@ -83,6 +86,24 @@ class SuvidhaIntelligence {
         text: t('ai_serviceLoading') || "Opening the services portal for you...",
         voice: voiceEnabled ? t('ai_openServiceRequest') || "Opening services portal." : undefined,
         actions: [{ type: 'NAVIGATE', payload: 'services' }]
+      };
+    }
+
+    if (nlp.intent === 'GAS_SERVICES') {
+      this.resetSession();
+      return {
+        text: t('ai_gasNavText') || "Opening Gas Department services for you...",
+        voice: voiceEnabled ? t('ai_gasNavText') || "Opening Gas Department services." : undefined,
+        actions: [{ type: 'NAVIGATE', payload: 'gas' }]
+      };
+    }
+
+    if (nlp.intent === 'GAS_COMPLAINT') {
+      this.resetSession();
+      return {
+        text: t('ai_gasComplaintNav') || "Taking you to the Gas complaint form...",
+        voice: voiceEnabled ? t('ai_gasComplaintNav') || "Opening gas complaint form." : undefined,
+        actions: [{ type: 'NAVIGATE', payload: 'gas' }]
       };
     }
 

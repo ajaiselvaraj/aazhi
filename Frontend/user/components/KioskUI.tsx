@@ -20,6 +20,8 @@ import ServiceSuccess from './kiosk/ServiceSuccess';
 import PaymentReceipt from './kiosk/PaymentReceipt';
 import KioskShell from './KioskShell';
 import ElectricityModule from './kiosk/electricity/ElectricityModule';
+import GasModule from './kiosk/gas/GasModule';
+import MunicipalModule from './kiosk/municipal/MunicipalModule';
 import ComplaintsModule from './kiosk/ComplaintsModule';
 import { CivicComplaintForm } from './municipal/CivicComplaintForm';
 import { EmergencySOS } from './municipal/EmergencySOS';
@@ -41,7 +43,7 @@ interface Props {
   isPrivacyShield: boolean;
   timer: number;
   onTogglePrivacy: () => void;
-  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation';
+  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal';
   onVoiceCommand?: (command: string) => void;
 }
 
@@ -55,7 +57,7 @@ interface ChatMessage {
 }
 
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home' }) => {
-  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
 
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
   const { t } = useTranslation();
@@ -145,6 +147,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         break;
       case 'history':
         setActiveTab('status');
+        break;
+      case 'gas':
+        setActiveTab('gas');
         break;
       case 'exit':
         onLogout();
@@ -392,6 +397,16 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   const handleServiceSelect = (svc: string, deptId: string) => {
+    // Redirect Gas department to dedicated Gas Module
+    if (deptId === 'gas') {
+      setActiveTab('gas');
+      return;
+    }
+    // Redirect Municipal department to Municipal Module
+    if (deptId === 'municipal') {
+      setActiveTab('municipal');
+      return;
+    }
     setSelectedService(svc);
     setSelectedDepartment(deptId);
     setSubmissionStep('form');
@@ -634,6 +649,14 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                           <div className="pt-2 mt-2 border-t border-dashed border-slate-200">
                             <button
                               onClick={() => {
+                                if (dept.id === 'gas') {
+                                  setActiveTab('gas');
+                                  return;
+                                }
+                                if (dept.id === 'municipal') {
+                                  setActiveTab('municipal');
+                                  return;
+                                }
                                 setSelectedComplaintDept(dept.id);
                                 setActiveTab('complaints');
                               }}
@@ -687,6 +710,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             )}
           </div>
         )}
+
+        {/* VIEW: GAS MODULE */}
+        {activeTab === 'gas' && <GasModule onBack={() => setActiveTab('services')} language={language} />}
+        
+        {/* VIEW: MUNICIPAL MODULE */}
+        {activeTab === 'municipal' && <MunicipalModule onBack={() => setActiveTab('services')} language={language} />}
 
         {/* VIEW 3: BILLING */}
         {activeTab === 'billing' && (
@@ -1127,6 +1156,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         )}
         {activeTab === 'participation' && (
           <CitizenParticipation onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
+        )}
+
+        {/* VIEW: GAS MODULE */}
+        {activeTab === 'gas' && (
+          <GasModule onBack={() => setActiveTab('services')} language={language} />
         )}
 
       </div>

@@ -23,6 +23,7 @@ export type VoiceCommand =
   | 'assistant'
   | 'paybill'
   | 'history'
+  | 'gas'
   | 'exit'
   | 'submit';
 
@@ -66,6 +67,7 @@ const COMMAND_MAP: Record<VoiceCommand, string[]> = {
   assistant: ['assistant', 'help', 'ai', 'chatbot', 'chat', 'support', 'guide'],
   paybill: ['pay bill', 'pay bills', 'billing', 'payment', 'pay'],
   history: ['history', 'records', 'past requests', 'my history'],
+  gas: ['gas', 'gas services', 'gas department', 'gas connection', 'lpg', 'cylinder', 'gas booking'],
   exit: ['exit', 'logout', 'log out', 'sign out', 'leave', 'quit'],
   submit: ['submit', 'send', 'confirm', 'yes', 'done', 'finish', 'complete'],
 };

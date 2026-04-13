@@ -1,10 +1,10 @@
 import React from 'react';
-import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, AlertTriangle, ArrowRight, Lock, ArrowLeft } from 'lucide-react';
+import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, AlertTriangle, ArrowRight, Lock, ArrowLeft, Bolt, Gauge, AlertCircle, UserCog } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-    onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
+    onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE') => void;
     onExit: () => void;
     language: Language;
 }
@@ -95,7 +95,31 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                 </button>
             </div>
 
+            {/* Consumer Services */}
+            <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('elec_consumerServices') || 'Consumer Services'}</h3>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                {[
+                    { id: 'NEW_CONNECTION', icon: Bolt, label: 'New Connection', desc: 'Apply for connection' },
+                    { id: 'METER_SERVICE', icon: Gauge, label: 'Meter Services', desc: 'Replace or shift meter' },
+                    { id: 'COMPLAINTS', icon: AlertCircle, label: 'Complaints', desc: 'Report an issue' },
+                    { id: 'PROFILE', icon: UserCog, label: 'My Profile', desc: 'Manage credentials' },
+                ].map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => onNavigate(item.id as any)}
+                        className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-300 transition text-left group"
+                    >
+                        <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition">
+                            <item.icon size={20} />
+                        </div>
+                        <h3 className="font-bold text-slate-900">{item.label}</h3>
+                        <p className="text-xs text-slate-400 font-medium truncate">{item.desc}</p>
+                    </button>
+                ))}
+            </div>
+
             {/* Secondary Tools */}
+            <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('elec_otherTools') || 'Other Tools'}</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
                 {[
                     { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator'), desc: t('calcSub') },
@@ -110,7 +134,7 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                         }}
                         className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-300 transition text-left group"
                     >
-                        <div className="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
+                        <div className="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-slate-200 transition">
                             <item.icon size={20} />
                         </div>
                         <h3 className="font-bold text-slate-900">{item.label}</h3>
