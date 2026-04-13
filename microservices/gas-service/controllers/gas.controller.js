@@ -121,3 +121,34 @@ export const getGasAccount = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Get Bill Details for Quick Pay (Unauthenticated) ──────
+export const getQuickPayBill = async (req, res, next) => {
+    try {
+        const { consumerId } = req.params;
+        const result = await pool.query(
+            `SELECT b.id, b.bill_number, b.amount, b.due_date, b.status, b.billing_month, b.billing_year,
+                    ua.account_number, c.name as consumer_name_masked 
+             FROM bills b 
+             JOIN utility_accounts ua ON b.account_id = ua.id
+             JOIN citizens c ON b.citizen_id = c.id
+             WHERE ua.account_number = $1 AND b.service_type = 'gas'
+             ORDER BY b.created_at DESC LIMIT 1`,
+            [consumerId]
+        );
+
+        if (result.rows.length === 0) {
+            return fail(res, "No bills found for this Consumer ID.", 404);
+        }
+        
+        const bill = result.rows[0];
+        if (bill.consumer_name_masked) {
+            const nameParts = bill.consumer_name_masked.split(" ");
+            bill.consumer_name_masked = nameParts.map(n => n.charAt(0) + "*".repeat(n.length > 1 ? n.length - 1 : 0)).join(" ");
+        }
+
+        return success(res, "Quick Pay bill retrieved successfully", bill);
+    } catch (err) {
+        next(err);
+    }
+};

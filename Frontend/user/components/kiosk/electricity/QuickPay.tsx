@@ -5,7 +5,7 @@ import { MOCK_USER_PROFILE } from '../../../constants';
 import OfficialReceipt from './OfficialReceipt';
 import PaymentReceipt from '../PaymentReceipt';
 import { Language } from '../../../types';
-import { BBPSService, BBPSBillResponse } from '../../../services/BBPSService';
+import { ElectricityService, ElectricityBill } from '../../../services/electricityService';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -19,7 +19,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [step, setStep] = useState<'INPUT' | 'DETAILS' | 'PAYMENT' | 'SUCCESS'>('INPUT');
     const [consumerNo, setConsumerNo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [billData, setBillData] = useState<BBPSBillResponse['data'] | null>(null);
+    const [billData, setBillData] = useState<ElectricityBill | null>(null);
     const [paymentMode, setPaymentMode] = useState<'UPI' | 'CARD' | 'NET_BANKING'>('UPI');
     const [paymentRef, setPaymentRef] = useState<{ txnId: string; bbpsRefId: string } | null>(null);
     const [error, setError] = useState<string>('');
@@ -31,15 +31,11 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
         setError('');
 
         try {
-            const response = await BBPSService.fetchBill('TANGEDCO', consumerNo);
-            if (response.success && response.data) {
-                setBillData(response.data);
-                setStep('DETAILS');
-            } else {
-                setError(response.error || 'Failed to fetch bill details.');
-            }
-        } catch (err) {
-            setError('Network error. Please try again.');
+            const fetchedBill = await ElectricityService.getQuickPayBill(consumerNo);
+            setBillData(fetchedBill);
+            setStep('DETAILS');
+        } catch (err: any) {
+            setError(err.response?.data?.message || 'Failed to fetch bill details. Please check consumer number.');
         } finally {
             setIsLoading(false);
         }
@@ -49,19 +45,17 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
         if (!billData) return;
         setIsLoading(true);
         try {
-            const response = await BBPSService.processPayment(billData, paymentMode);
-            if (response.success && response.data) {
+            // Simulate payment processing since it's now internal 
+            setTimeout(() => {
                 setPaymentRef({
-                    txnId: response.data.txnId,
-                    bbpsRefId: response.data.bbpsRefId
+                    txnId: `TXN${Date.now()}`,
+                    bbpsRefId: `AAZHI-${Date.now()}`
                 });
                 setStep('SUCCESS');
-            } else {
-                alert('Payment Failed: ' + response.error);
-            }
+                setIsLoading(false);
+            }, 1500);
         } catch (err) {
             alert('Payment processing error');
-        } finally {
             setIsLoading(false);
         }
     };
@@ -141,7 +135,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 <div className="inline-flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-900/20">
                                     BBPS VERIFIED
                                 </div>
-                                <p className="text-xs font-bold text-slate-400 mt-2">{t('dueDate')}: {billData.dueDate}</p>
+                                <p className="text-xs font-bold text-slate-400 mt-2">{t('dueDate')}: {new Date(billData.due_date).toLocaleDateString()}</p>
                             </div>
                         </div>
 
@@ -149,23 +143,23 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                         <div className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Bill Date</p>
-                                    <p className="font-bold text-slate-900">{billData.billDate}</p>
+                                    <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Billing Month</p>
+                                    <p className="font-bold text-slate-900">{billData.billing_month} {billData.billing_year}</p>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <p className="text-[10px] uppercase font-black text-slate-400 tracking-wider mb-1">Bill Number</p>
-                                    <p className="font-bold text-slate-900">{billData.billNumber}</p>
+                                    <p className="font-bold text-slate-900">{billData.bill_number}</p>
                                 </div>
                             </div>
 
                             <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-xs font-bold text-slate-600">{t('consumerName')}</span>
-                                    <span className="text-sm font-black text-slate-900">{billData.consumerName}</span>
+                                    <span className="text-sm font-black text-slate-900">{billData.metadata?.consumer_name_masked || 'Unknown'}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-xs font-bold text-slate-600">{t('consumerNo')}</span>
-                                    <span className="text-sm font-black text-slate-900">{billData.consumerId}</span>
+                                    <span className="text-sm font-black text-slate-900">{billData.account_number}</span>
                                 </div>
                             </div>
                         </div>
@@ -315,7 +309,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase">{t('consumerNo')}</span>
-                            <span className="text-sm font-black text-slate-900">{billData.consumerId}</span>
+                            <span className="text-sm font-black text-slate-900">{billData.account_number}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase">{t('billAmount')}</span>
@@ -338,7 +332,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 serviceName: t('power') || 'Electricity',
                                 serviceId: 'elec',
                                 consumerId: consumerNo,
-                                consumerName: billData.consumerName,
+                                consumerName: billData.metadata?.consumer_name_masked || 'Unknown',
                                 amount: billData.amount.toString(),
                                 txnId: paymentRef.txnId,
                                 date: new Date().toLocaleString(),
@@ -354,10 +348,10 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
             {step === 'SUCCESS' && billData && paymentRef && (
                 <OfficialReceipt
                     data={{
-                        serviceNo: billData.consumerId,
-                        consumerName: billData.consumerName,
+                        serviceNo: billData.account_number,
+                        consumerName: billData.metadata?.consumer_name_masked || 'Unknown',
                         billAmount: `Rs. ${billData.amount.toFixed(2)}`,
-                        billMonth: billData.billDate,
+                        billMonth: billData.billing_month,
                         receiptNo: `ER-${Date.now().toString().slice(-8)}`,
                         dateTime: new Date().toLocaleString(),
                         debitAmount: `Rs. ${billData.amount.toFixed(2)}`,

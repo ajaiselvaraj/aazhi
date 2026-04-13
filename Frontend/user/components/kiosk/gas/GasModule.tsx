@@ -4,6 +4,8 @@ import GasConnectionForm from './GasConnectionForm';
 import GasComplaints from './GasComplaints';
 import GasProfile from './GasProfile';
 import GasBills from './GasBills';
+import GasQuickPay from './GasQuickPay';
+import GasLogin from './GasLogin';
 import { Language } from '../../../types';
 
 interface Props {
@@ -57,7 +59,20 @@ const GasModule: React.FC<Props> = ({ onBack, language }) => {
           language={language}
         />
       )}
-      {(['QUICK_PAY', 'LOGIN', 'CALCULATOR', 'TARIFF', 'TRANSACTIONS'] as string[]).includes(view) && (
+      {view === 'QUICK_PAY' && (
+        <GasQuickPay 
+          onBack={handleInternalBack}
+          language={language}
+        />
+      )}
+      {view === 'LOGIN' && (
+        <GasLogin 
+          onBack={handleInternalBack}
+          onLoginSuccess={() => handleNavigate('BILLS')}
+          language={language}
+        />
+      )}
+      {(['CALCULATOR', 'TARIFF', 'TRANSACTIONS'] as string[]).includes(view) && (
         <div className="max-w-4xl mx-auto p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center relative top-20">
             <button onClick={handleInternalBack} className="block mb-6 font-bold text-slate-500 hover:text-slate-900">Back</button>
             <h2 className="text-4xl font-black mb-4 capitalize">{view.replace('_', ' ')}</h2>

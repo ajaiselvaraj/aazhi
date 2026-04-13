@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ElectricityLanding from './ElectricityLanding';
 import QuickPay from './QuickPay';
 import BillCalculator from './BillCalculator';
-import ConsumerLogin from './ConsumerLogin';
+import ElectricityLogin from './ElectricityLogin';
 import MyTransactions from './MyTransactions';
 import ElectricityNewConnectionForm from './ElectricityNewConnectionForm';
 import ElectricityMeterServiceForm from './ElectricityMeterServiceForm';
@@ -34,7 +34,7 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
         <div className="h-full">
             {view === 'HOME' && <ElectricityLanding onNavigate={handleNavigate} onExit={onBack} language={language} />}
             {view === 'QUICK_PAY' && <QuickPay onBack={handleInternalBack} language={language} />}
-            {view === 'LOGIN' && <ConsumerLogin onBack={handleInternalBack} language={language} />}
+            {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />}
             {view === 'CALCULATOR' && <BillCalculator onBack={handleInternalBack} language={language} />}
             {view === 'TRANSACTIONS' && <MyTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />}
             

@@ -135,6 +135,13 @@ export const GasService = {
   },
 
   /**
+   * Get unauthenticated quick pay bill using consumer id
+   */
+  getQuickPayBill: async (consumerId: string): Promise<GasBill> => {
+    return await apiClient.get<GasBill>(`/gas/quick-pay/${consumerId}`);
+  },
+
+  /**
    * Book a cylinder (existing endpoint)
    */
   bookCylinder: async (data: CylinderBookingRequest): Promise<GasServiceRequest> => {

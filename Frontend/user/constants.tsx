@@ -417,6 +417,8 @@ const BASE_TRANSLATIONS = {
   ai_serviceRequest: "Service Request",
   ai_registerComplaint: "Register Complaint",
   ai_checkStatus: "Check Status",
+  ai_queries: "Queries",
+  ai_queriesWelcome: "You are now in Queries mode. Please type your question, and I will answer dynamically based on your request. Type 'home' to go back.",
   // Billing Flow
   selectService: "Select Service",
   changeUtility: "Change Utility",
@@ -783,6 +785,8 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     ai_serviceRequest: "சேவை கோரிக்கை",
     ai_registerComplaint: "புகார் பதிவு செய்க",
     ai_checkStatus: "நிலை சரிபார்க்கவும்",
+    ai_queries: "கேள்விகள்",
+    ai_queriesWelcome: "நீங்கள் இப்போது கேள்விகள் முறையில் உள்ளீர்கள். உங்கள் கேள்வியைத் தட்டச்சு செய்யவும், நான் மாறும் வகையில் பதிலளிக்கிறேன். வெளியேற 'home' என தட்டச்சு செய்யவும்.",
     // Billing Flow
     selectService: "சேவையைத் தேர்ந்தெடுக்கவும்",
     changeUtility: "பயன்பாட்டை மாற்றவும்",
