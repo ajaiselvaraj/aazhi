@@ -72,9 +72,9 @@ class SuvidhaIntelligence {
     if (nlp.intent === 'CHECK_STATUS') {
       this.resetSession();
       return {
-        text: t('ai_statusNavText') || "Taking you to your application and complaint history...",
-        voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to history." : undefined,
-        actions: [{ type: 'NAVIGATE', payload: 'status' }]
+        text: t('ai_statusNavText') || "Taking you to the application tracker...",
+        voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to the application tracker." : undefined,
+        actions: [{ type: 'NAVIGATE', payload: 'tracker' }]
       };
     }
 
@@ -157,9 +157,9 @@ class SuvidhaIntelligence {
         }
         if (q === '4' || nlp.intent === 'CHECK_STATUS') {
           return {
-            text: t('ai_statusNavText') || "Taking you to your application and complaint history...",
-            voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to history." : undefined,
-            actions: [{ type: 'NAVIGATE', payload: 'status' }]
+            text: t('ai_statusNavText') || "Taking you to the application tracker...",
+            voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to the application tracker." : undefined,
+            actions: [{ type: 'NAVIGATE', payload: 'tracker' }]
           };
         }
         

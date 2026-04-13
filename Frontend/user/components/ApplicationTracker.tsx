@@ -20,12 +20,16 @@ const ApplicationTracker: React.FC = () => {
     // Normalize data for unified view
     const myActivity: ActivityItem[] = [
         ...serviceRequests
-            .filter(r => r.phone === MOCK_USER_PROFILE.mobile)
+            .filter(r => r.phone === MOCK_USER_PROFILE.mobile || !r.phone || r.citizenId === MOCK_USER_PROFILE.id)
             .map(r => ({ ...r, type: 'Request' as const })),
         ...complaints
-            .filter(c => c.phone === MOCK_USER_PROFILE.mobile)
+            .filter(c => c.phone === MOCK_USER_PROFILE.mobile || !c.phone || c.citizenId === MOCK_USER_PROFILE.id)
             .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    ].sort((a, b) => {
+        const dateA = new Date((a as any).createdAt || a.timestamp || 0).getTime();
+        const dateB = new Date((b as any).createdAt || b.timestamp || 0).getTime();
+        return dateB - dateA;
+    });
 
     const handleSearch = () => {
         if (!searchId.trim()) return;
@@ -207,7 +211,7 @@ const ApplicationTracker: React.FC = () => {
                                                 <span className="text-xs font-bold text-slate-400 font-mono">{item.id}</span>
                                             </div>
                                             <h3 className="text-2xl font-black text-slate-900">{translateDynamic(item.serviceType)}</h3>
-                                            <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date(item.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
+                                            <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date((item as any).createdAt || item.timestamp || 0).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
                                         </div>
                                     </div>
 
