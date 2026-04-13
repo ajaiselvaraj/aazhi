@@ -22,7 +22,18 @@ export const authService = {
         return data;
     },
 
-
+    kioskLogin: async (consumerId: string): Promise<AuthResponse> => {
+        const data = await apiClient.post<any>('/auth/kiosk/login', { consumerId });
+        const { citizen, tokens } = data;
+        const authData: AuthResponse = {
+            user: citizen,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken
+        };
+        localStorage.setItem('aazhi_token', authData.accessToken);
+        localStorage.setItem('aazhi_user', JSON.stringify(authData.user));
+        return authData;
+    },
 
     sendOtp: async (mobile: string): Promise<any> => {
         return await apiClient.post('/auth/send-otp', { mobile });

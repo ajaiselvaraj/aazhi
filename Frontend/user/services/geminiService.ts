@@ -18,7 +18,7 @@ export interface AIMenu {
 }
 
 interface ConversationState {
-  step: 'WELCOME' | 'BILL_TYPE' | 'BILL_CONSUMER_ID' | 'BILL_DETAILS' | 'PAYMENT_METHOD' | 'UPI_QR' | 'PAYMENT_SUCCESS' | 'COMPLAINT_DEPT' | 'COMPLAINT_ID' | 'COMPLAINT_DESC' | 'COMPLAINT_SUCCESS';
+  step: 'WELCOME' | 'BILL_TYPE' | 'BILL_CONSUMER_ID' | 'BILL_DETAILS' | 'PAYMENT_METHOD' | 'UPI_QR' | 'PAYMENT_SUCCESS' | 'COMPLAINT_DEPT' | 'COMPLAINT_ID' | 'COMPLAINT_DESC' | 'COMPLAINT_SUCCESS' | 'QUERIES_MODE';
   data: any;
 }
 
@@ -60,7 +60,7 @@ class SuvidhaIntelligence {
     return { intent: 'UNKNOWN' };
   }
 
-  static getResponse(query: string, voiceEnabled: boolean, t: (key: string) => string): AIResponse {
+  static async getResponse(query: string, voiceEnabled: boolean, t: (key: string) => string): Promise<AIResponse> {
     const q = query.toLowerCase().trim();
 
     // GLOBAL RESET
@@ -181,6 +181,13 @@ class SuvidhaIntelligence {
             text: t('ai_statusNavText') || "Taking you to the application tracker...",
             voice: voiceEnabled ? t('ai_statusNavText') || "Taking you to the application tracker." : undefined,
             actions: [{ type: 'NAVIGATE', payload: 'tracker' }]
+          };
+        }
+        if (q === '5' || q.includes('query') || q.includes('question')) {
+          session.step = 'QUERIES_MODE';
+          return {
+            text: t('ai_queriesWelcome') || "You are now in Queries mode. Please type your question, and I will answer dynamically based on your request. Type 'home' to go back.",
+            voice: voiceEnabled ? t('ai_queriesWelcome') || "You are now in Queries mode. Please type your question." : undefined
           };
         }
         
@@ -330,6 +337,42 @@ class SuvidhaIntelligence {
       case 'COMPLAINT_SUCCESS':
         this.resetSession();
         return this.renderWelcome(voiceEnabled, t);
+
+      case 'QUERIES_MODE':
+        if (q === 'home' || q === 'menu' || q === 'exit' || q === 'back') {
+          this.resetSession();
+          return this.renderWelcome(voiceEnabled, t);
+        }
+        try {
+          const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+          if (!API_KEY) {
+            return {
+              text: `Analyzing your question regarding "${query}"... \n\n(Note: Set VITE_GEMINI_API_KEY to see real AI). This is a simulated response to: '${query}'. If you have more questions, keep asking! Type 'home' to exit.`,
+              voice: voiceEnabled ? "I have analyzed your query." : undefined
+            };
+          }
+          
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `You are SUVIDHA, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}` }] }]
+            })
+          });
+          
+          const data = await response.json();
+          let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+          
+          return {
+            text: `${answerText}\n\nType 'home' to exit Queries mode.`,
+            voice: voiceEnabled ? answerText : undefined
+          };
+        } catch (e) {
+          return {
+            text: "Sorry, the AI service is currently unreachable. Type 'home' to exit.",
+            voice: voiceEnabled ? "Service unreachable." : undefined
+          };
+        }
     }
 
     return this.renderWelcome(voiceEnabled, t);
@@ -337,7 +380,7 @@ class SuvidhaIntelligence {
 
   static renderWelcome(voice: boolean, t: (key: string) => string): AIResponse {
     return {
-      text: `${t('ai_welcome')}\n\n${t('ai_whatToDo')}\n1. ${t('ai_payBill')}\n2. ${t('ai_serviceRequest')}\n3. ${t('ai_registerComplaint')}\n4. ${t('ai_checkStatus')}`,
+      text: `${t('ai_welcome')}\n\n${t('ai_whatToDo')}\n1. ${t('ai_payBill')}\n2. ${t('ai_serviceRequest')}\n3. ${t('ai_registerComplaint')}\n4. ${t('ai_checkStatus')}\n5. ${t('ai_queries') || "Queries"}`,
       voice: voice ? `${t('ai_welcome')}. ${t('ai_whatToDo')}.` : undefined,
       menu: {
         heading: t('ai_mainMenu'),
@@ -345,7 +388,8 @@ class SuvidhaIntelligence {
           { id: '1', label: t('ai_payBill') },
           { id: '2', label: t('ai_serviceRequest') },
           { id: '3', label: t('ai_registerComplaint') },
-          { id: '4', label: t('ai_checkStatus') }
+          { id: '4', label: t('ai_checkStatus') },
+          { id: '5', label: t('ai_queries') || "Queries" }
         ]
       }
     };

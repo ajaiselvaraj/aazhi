@@ -5,6 +5,7 @@
 import { requestOtp, confirmOtp } from "../services/otp.service.js";
 import { generateTokens } from "../services/jwt.service.js";
 import { success, fail, error as serverError } from "../utils/response.js";
+import { pool } from "../config/db.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -71,5 +72,58 @@ export const verifyOtpController = async (req, res, next) => {
             return fail(res, error.message, 400);
         }
         return serverError(res, "Failed to verify OTP due to server issue.", 500);
+    }
+};
+
+/**
+ * Handles Kiosk Citizen Login purely via Consumer ID
+ * Route: POST /api/auth/kiosk/login
+ */
+export const kioskLoginController = async (req, res, next) => {
+    try {
+        const { consumerId } = req.body;
+
+        if (!consumerId) {
+            return fail(res, "Consumer ID is required for Kiosk login.", 400);
+        }
+
+        // 1. Map consumerId to a citizen via utility_accounts
+        const accountQuery = `
+            SELECT c.*
+            FROM utility_accounts ua
+            JOIN citizens c ON ua.citizen_id = c.id
+            WHERE ua.account_number = $1
+            LIMIT 1
+        `;
+        const accountResult = await pool.query(accountQuery, [consumerId]);
+
+        if (accountResult.rows.length === 0) {
+            // Note: In an actual production scenario, you might have a pin check as well
+            return fail(res, "Invalid Consumer ID. No citizen linked.", 404);
+        }
+
+        const citizen = accountResult.rows[0];
+
+        // 2. Generate auth tokens strictly for this citizen
+        const { accessToken, refreshToken } = generateTokens(citizen);
+
+        logger.info(`[Auth Controller] Kiosk Consumer Login success for Citizen ID: ${citizen.id}`);
+
+        return success(res, "Kiosk login successful", {
+            citizen: {
+                id: citizen.id,
+                mobile: citizen.mobile,
+                name: citizen.name || null,
+                createdAt: citizen.created_at
+            },
+            tokens: {
+                accessToken,
+                refreshToken
+            }
+        }, 200);
+
+    } catch (error) {
+        logger.error(`[Auth Controller] Kiosk Login Error: ${error.message}`);
+        return serverError(res, "Failed to authenticate via Kiosk.", 500);
     }
 };

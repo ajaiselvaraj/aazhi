@@ -275,6 +275,8 @@
   "ai_serviceRequest": "Service Request",
   "ai_registerComplaint": "Register Complaint",
   "ai_checkStatus": "Check Status",
+  "ai_queries": "Queries",
+  "ai_queriesWelcome": "You are now in Queries mode. Please type your question, and I will answer dynamically based on your request. Type 'home' to go back.",
   "selectService": "Select Service",
   "changeUtility": "Change Utility",
   "billSuffix": "Bill",

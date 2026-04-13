@@ -8,6 +8,29 @@ import { apiClient } from './api/apiClient';
 
 // ── Types ────────────────────────────────────────────────────────────
 
+export interface ElectricityBill {
+  id: string;
+  account_id: string;
+  citizen_id: string;
+  service_type: 'electricity';
+  bill_number: string;
+  amount: number;
+  tax_amount: number;
+  total_amount: number;
+  units_consumed: number | null;
+  reading_current: number | null;
+  reading_previous: number | null;
+  billing_month: string;
+  billing_year: string;
+  billing_cycle: string;
+  due_date: string;
+  status: 'pending' | 'paid' | 'overdue' | 'partially_paid' | 'waived';
+  paid_at: string | null;
+  account_number: string;
+  created_at: string;
+  metadata?: Record<string, any>;
+}
+
 export interface ElectricityConnectionRequest {
   connection_type: 'New Connection' | 'Load Extension' | 'Load Reduction' | 'Temporary Connection' | 'Name Transfer' | 'Category Change';
   phase_type: 'Single Phase' | 'Three Phase';
@@ -129,5 +152,12 @@ export const ElectricityService = {
    */
   getProfile: async (): Promise<any> => {
     return await apiClient.get('/auth/profile');
+  },
+
+  /**
+   * Get unauthenticated quick pay bill using consumer id
+   */
+  getQuickPayBill: async (consumerId: string): Promise<ElectricityBill> => {
+    return await apiClient.get<ElectricityBill>(`/electricity/quick-pay/${consumerId}`);
   }
 };

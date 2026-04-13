@@ -7,7 +7,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { bookCylinder, viewBills, paymentStatus, getGasAccount } from "../controllers/gas.controller.js";
+import { bookCylinder, viewBills, paymentStatus, getGasAccount, getQuickPayBill } from "../controllers/gas.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { checkServiceEnabled } from "../middleware/serviceCheck.middleware.js";
 
@@ -17,6 +17,7 @@ router.use(checkServiceEnabled("gas"));
 
 router.post("/book", authMiddleware, bookCylinder);
 router.get("/bills", authMiddleware, viewBills);
+router.get("/quick-pay/:consumerId", getQuickPayBill);
 router.get("/status", authMiddleware, paymentStatus);
 router.get("/account", authMiddleware, getGasAccount);
 

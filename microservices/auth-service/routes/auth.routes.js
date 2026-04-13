@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, kioskLoginController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
@@ -21,5 +21,12 @@ router.post("/send-otp", authLimiter, sendOtpController);
  * @access  Public
  */
 router.post("/verify-otp", authLimiter, verifyOtpController);
+
+/**
+ * @desc    Kiosk Citizen Login via Consumer ID
+ * @route   POST /api/auth/kiosk/login
+ * @access  Public
+ */
+router.post("/kiosk/login", authLimiter, kioskLoginController);
 
 export default router;
