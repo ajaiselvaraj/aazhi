@@ -69,6 +69,12 @@ const mockDateDataGenerator = (range: string) => {
         { name: 'Positive', value: Math.round(400 * multiplier) },
         { name: 'Neutral', value: Math.round(300 * multiplier) },
         { name: 'Negative', value: Math.round(150 * multiplier) },
+      ],
+      accessTelemetry: [
+        { name: 'Electricity', quickPay: Math.round(350 * multiplier), secureLogin: Math.round(120 * multiplier) },
+        { name: 'Water', quickPay: Math.round(200 * multiplier), secureLogin: Math.round(200 * multiplier) },
+        { name: 'Municipal', quickPay: Math.round(80 * multiplier), secureLogin: Math.round(310 * multiplier) },
+        { name: 'Gas', quickPay: Math.round(180 * multiplier), secureLogin: Math.round(95 * multiplier) },
       ]
    };
 };
@@ -526,6 +532,28 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                         <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} />
                         <Legend verticalAlign="bottom" height={36} />
                       </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+
+              {/* Access Telemetry Chart */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="col-span-1 lg:col-span-3 bg-white p-8 rounded-3xl shadow-sm border">
+                  <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
+                    <UserCheck className="text-blue-500" /> Kiosk Access Telemetry (Quick Pay vs Secure Login)
+                  </h3>
+                  <div className="h-[350px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={activeMetrics.accessTelemetry}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
+                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} cursor={{fill: '#f8fafc'}} />
+                        <Legend verticalAlign="top" height={36} wrapperStyle={{ paddingBottom: '20px' }} />
+                        <Bar dataKey="quickPay" name="Quick Pay (Anonymous)" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="secureLogin" name="Secure Citizen Login" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>

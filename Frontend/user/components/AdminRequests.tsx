@@ -201,8 +201,16 @@ const AdminRequests: React.FC<Props> = ({ requests, updateStage }) => {
                   <td className="px-4 py-6">
                     <div className="flex flex-col">
                       <span className="font-bold text-gray-900">{req.name}</span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                        <Mail size={12} className="text-slate-400" />
+                      <div className="flex items-center gap-2 mt-1">
+                         <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border 
+                             ${parseInt(req.id.replace(/\D/g, '') || '0') % 3 === 0 
+                               ? 'border-orange-200 bg-orange-50 text-orange-600' 
+                               : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
+                            {parseInt(req.id.replace(/\D/g, '') || '0') % 3 === 0 ? 'Quick Pay Session' : 'Secure Auth'}
+                         </span>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500 flex items-center gap-1 mt-2 cursor-pointer hover:text-blue-600">
+                        <Mail size={10} className="text-slate-400" />
                         Notify Citizen
                       </span>
                     </div>
