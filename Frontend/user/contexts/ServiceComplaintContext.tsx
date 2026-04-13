@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { TrackingStage, Kiosk } from '../types';
 import { GrievanceService } from '../services/civicService';
+import { MOCK_USER_PROFILE } from '../constants';
 
 // --- TYPE DEFINITIONS ---
 export interface ServiceRequest {
@@ -12,6 +13,7 @@ export interface ServiceRequest {
     serviceType: string;
     address: string;
     description: string;
+    citizenId?: string;
     status: "active" | "resolved" | "rejected";
     currentStage: string;
     stage: string;
@@ -28,6 +30,7 @@ export interface Complaint {
     complaintType: string;
     location: string;
     description: string;
+    citizenId?: string;
     priority: "Critical" | "High" | "Medium" | "Low";
     status: "active" | "resolved" | "rejected";
     area: string;
@@ -333,7 +336,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     
     const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): string => {
         const token = `TKT-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
-        const newReq: ServiceRequest = { ...data, id: token, token, status: "active", currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const newReq: ServiceRequest = { ...data, citizenId: data.citizenId || MOCK_USER_PROFILE.id, phone: data.phone || MOCK_USER_PROFILE.mobile, id: token, token, status: "active", currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setServiceRequests(prev => { const updated = [newReq, ...prev]; persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; });
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
 
@@ -398,7 +401,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         finalId = finalId || `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
 
-        const newComplaint: Complaint = { ...data, id: finalId, priority, status: "active", areaAlert, currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const newComplaint: Complaint = { ...data, citizenId: data.citizenId || MOCK_USER_PROFILE.id, phone: data.phone || MOCK_USER_PROFILE.mobile, id: finalId, priority, status: "active", areaAlert, currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
         setComplaints(prev => { const updated = [newComplaint, ...prev]; persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; });
         return finalId;
     };

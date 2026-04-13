@@ -77,8 +77,8 @@ const MiniTracker: React.FC<{ currentStage: string; isRejected: boolean }> = ({ 
 };
 
 const HistoryCard: React.FC<{ item: HistoryItem }> = ({ item }) => {
-  const isRejected = item.workflowStatus === 'rejected';
-  const isResolved = item.workflowStatus === 'resolved';
+  const isRejected = item.status === 'rejected';
+  const isResolved = item.status === 'resolved';
   const isComplaint = item.itemType === 'complaint';
   const title = isComplaint ? (item as Complaint).complaintType : (item as ServiceRequest).serviceType;
   const description = item.description;
@@ -108,7 +108,7 @@ const HistoryCard: React.FC<{ item: HistoryItem }> = ({ item }) => {
               <h3 className="text-base font-black text-slate-800 leading-tight">{title}</h3>
             </div>
           </div>
-          <StatusBadge status={item.workflowStatus || 'active'} />
+          <StatusBadge status={item.status || 'active'} />
         </div>
 
         <p className="text-slate-500 text-sm font-medium mb-3 line-clamp-2">{description}</p>
@@ -149,13 +149,15 @@ const HistoryCard: React.FC<{ item: HistoryItem }> = ({ item }) => {
 };
 
 const HistoryPage: React.FC = () => {
-  const { getHistoryItems } = useServiceComplaint();
+  const { complaints, serviceRequests } = useServiceComplaint();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<HistoryTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'complaint' | 'service'>('all');
 
-  const { complaints: historyComplaints, serviceRequests: historyRequests } = getHistoryItems();
+  // Filter to only resolved or rejected items for the history view
+  const historyComplaints = complaints.filter(c => c.status === 'resolved' || c.status === 'rejected');
+  const historyRequests = serviceRequests.filter(r => r.status === 'resolved' || r.status === 'rejected');
 
   const allItems: HistoryItem[] = [
     ...historyComplaints.map(c => ({ ...c, itemType: 'complaint' as const })),
@@ -163,7 +165,7 @@ const HistoryPage: React.FC = () => {
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const filteredItems = allItems.filter(item => {
-    const matchesTab = activeTab === 'all' || item.workflowStatus === activeTab;
+    const matchesTab = activeTab === 'all' || item.status === activeTab;
     const matchesType = typeFilter === 'all' || item.itemType === typeFilter;
     const title = item.itemType === 'complaint' ? (item as Complaint).complaintType : (item as ServiceRequest).serviceType;
     const matchesSearch = !searchTerm || 
@@ -173,8 +175,8 @@ const HistoryPage: React.FC = () => {
     return matchesTab && matchesType && matchesSearch;
   });
 
-  const resolvedCount = allItems.filter(i => i.workflowStatus === 'resolved').length;
-  const rejectedCount = allItems.filter(i => i.workflowStatus === 'rejected').length;
+  const resolvedCount = allItems.filter(i => i.status === 'resolved').length;
+  const rejectedCount = allItems.filter(i => i.status === 'rejected').length;
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto font-sans h-full flex flex-col overflow-y-auto">
