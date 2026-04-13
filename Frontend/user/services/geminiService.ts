@@ -352,7 +352,7 @@ class SuvidhaIntelligence {
             };
           }
           
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -361,16 +361,22 @@ class SuvidhaIntelligence {
           });
           
           const data = await response.json();
-          let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+          if (data.error) {
+            return {
+              text: `AI Error: ${data.error.message || "Unknown error"}. Please check your API key.`,
+              voice: voiceEnabled ? "AI error occurred." : undefined
+            };
+          }
+          let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response from the AI.";
           
           return {
             text: `${answerText}\n\nType 'home' to exit Queries mode.`,
             voice: voiceEnabled ? answerText : undefined
           };
-        } catch (e) {
+        } catch (e: any) {
           return {
-            text: "Sorry, the AI service is currently unreachable. Type 'home' to exit.",
-            voice: voiceEnabled ? "Service unreachable." : undefined
+            text: `Network Error: ${e.message || "Failed to reach AI service"}. Type 'home' to exit.`,
+            voice: voiceEnabled ? "Network error." : undefined
           };
         }
     }
