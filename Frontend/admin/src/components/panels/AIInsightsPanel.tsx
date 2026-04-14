@@ -11,6 +11,7 @@ import {
 import { checkHealth, type HealthResult } from '../../api/aiApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 /* ── Metric Card ──────────────────────────────────────────────── */
 
@@ -36,6 +37,7 @@ function MetricCard({ label, value, sub, icon, color }: {
 /* ── Live Health Banner ───────────────────────────────────────── */
 
 function HealthBanner({ health }: { health: HealthResult | null }) {
+  const { t } = useLanguage()
   const online = health?.status === 'healthy'
   return (
     <div className="card" style={{
@@ -52,15 +54,15 @@ function HealthBanner({ health }: { health: HealthResult | null }) {
           animation: online ? 'pulse 2s infinite' : 'none',
         }} />
         <span style={{ fontSize: '.82rem', fontWeight: 700, color: online ? '#2ECC71' : '#FF4D4F' }}>
-          AI Service — {online ? 'Online' : 'Offline'}
+          {t('ai_insights.service') || 'AI Service'} — {online ? (t('ai_insights.online') || 'Online') : (t('ai_insights.offline') || 'Offline')}
         </span>
       </div>
       <div style={{ display: 'flex', gap: '1.5rem', fontSize: '.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
         {health && <>
-          <span>Model: {health.model_loaded ? '✓ Loaded' : '✗ Not loaded'}</span>
-          <span>Service: {health.service}</span>
+          <span>{t('ai_insights.model') || 'Model'}: {health.model_loaded ? ('✓ ' + (t('ai_insights.loaded') || 'Loaded')) : ('✗ ' + (t('ai_insights.not_loaded') || 'Not loaded'))}</span>
+          <span>{t('ai_insights.service_lbl') || 'Service'}: {health.service}</span>
         </>}
-        {!health && <span>Checking…</span>}
+        {!health && <span>{t('ai_insights.checking') || 'Checking…'}</span>}
       </div>
     </div>
   )
@@ -86,6 +88,7 @@ function ChartCard({ title, children, span = 1 }: { title: string; children: Rea
 
 export default function AIInsightsPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const myKey = user ? deptKey(user.department) : ''
   // Filter dept-distribution pie to show only the logged-in dept's slice
   const deptDistData = myKey
@@ -116,17 +119,16 @@ export default function AIInsightsPanel() {
 
       {/* ── Model Health Metrics ──────────────────────────────── */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <MetricCard label="Model Accuracy" value={`${aiModelHealth.accuracy}%`} sub="Last 7 days" icon={<Zap size={16} />} color="#2ECC71" />
-        <MetricCard label="Avg Latency" value={`${aiModelHealth.avgLatency}ms`} sub="Per classification" icon={<Clock size={16} />} color="#2F6BFF" />
-        <MetricCard label="Uptime" value={`${aiModelHealth.uptime}%`} sub="30-day rolling" icon={<Activity size={16} />} color="#FFA940" />
-        <MetricCard label="Total Classified" value={aiModelHealth.totalClassified.toLocaleString()} sub={`Last retrained ${aiModelHealth.lastRetrained}`} icon={<Brain size={16} />} color="#9b59b6" />
+        <MetricCard label={t('ai_insights.accuracy') || 'Model Accuracy'} value={`${aiModelHealth.accuracy}%`} sub={t('ai_insights.last_7') || 'Last 7 days'} icon={<Zap size={16} />} color="#2ECC71" />
+        <MetricCard label={t('ai_insights.latency') || 'Avg Latency'} value={`${aiModelHealth.avgLatency}ms`} sub={t('ai_insights.per_class') || 'Per classification'} icon={<Clock size={16} />} color="#2F6BFF" />
+        <MetricCard label={t('ai_insights.uptime') || 'Uptime'} value={`${aiModelHealth.uptime}%`} sub={t('ai_insights.rolling_30') || '30-day rolling'} icon={<Activity size={16} />} color="#FFA940" />
+        <MetricCard label={t('ai_insights.total_class') || 'Total Classified'} value={aiModelHealth.totalClassified.toLocaleString()} sub={`${t('ai_insights.last_trained') || 'Last retrained'} ${aiModelHealth.lastRetrained}`} icon={<Brain size={16} />} color="#9b59b6" />
       </div>
 
       {/* ── Chart Grid ────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.25rem', marginBottom: '1.5rem' }}>
 
-        {/* Complaint Trend */}
-        <ChartCard title="Complaint Volume — 7 Day Trend" span={2}>
+        <ChartCard title={t('ai_insights.chart_trend') || 'Complaint Volume — 7 Day Trend'} span={2}>
           <ResponsiveContainer width="100%" height={240}>
             <AreaChart data={aiComplaintTrend} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <defs>
@@ -153,8 +155,7 @@ export default function AIInsightsPanel() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Department Distribution */}
-        <ChartCard title="Department Distribution">
+        <ChartCard title={t('ai_insights.chart_dept') || 'Department Distribution'}>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
@@ -170,8 +171,7 @@ export default function AIInsightsPanel() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Priority Breakdown */}
-        <ChartCard title="Priority Breakdown">
+        <ChartCard title={t('ai_insights.chart_priority') || 'Priority Breakdown'}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={aiPriorityBreakdown} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -185,8 +185,7 @@ export default function AIInsightsPanel() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Sentiment Distribution */}
-        <ChartCard title="Citizen Sentiment Distribution">
+        <ChartCard title={t('ai_insights.chart_sentiment') || 'Citizen Sentiment Distribution'}>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie
@@ -202,8 +201,7 @@ export default function AIInsightsPanel() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Top Keywords */}
-        <ChartCard title="AI Top Extracted Keywords">
+        <ChartCard title={t('ai_insights.chart_keywords') || 'AI Top Extracted Keywords'}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem', padding: '.5rem 0' }}>
             {aiModelHealth.topKeywords.map((kw, i) => (
               <span key={kw} className="keyword-tag" style={{

@@ -2,6 +2,8 @@ import React from 'react'
 import { ShieldAlert, AlertTriangle, CheckCircle, Ban } from 'lucide-react'
 import { fraudUsers, FraudUser } from '../../data/mockData'
 
+import { useLanguage } from '../../context/LanguageContext'
+
 function RiskBar({ score }: { score: number }) {
   const color = score >= 80 ? 'var(--alert)' : score >= 60 ? 'var(--warning)' : 'var(--success)'
   return (
@@ -15,13 +17,15 @@ function RiskBar({ score }: { score: number }) {
 }
 
 function StatusIcon({ s }: { s: FraudUser['status'] }) {
-  if (s === 'Flagged') return <span className="badge badge-danger"><AlertTriangle size={10} /> Suspicious Activity</span>
-  if (s === 'Banned')  return <span className="badge badge-dark"><Ban size={10} /> Banned</span>
-  if (s === 'Under Review') return <span className="badge badge-warning">Under Review</span>
-  return <span className="badge badge-success"><CheckCircle size={10} /> Cleared</span>
+  const { t } = useLanguage()
+  if (s === 'Flagged') return <span className="badge badge-danger"><AlertTriangle size={10} /> {t('fraud_mon.state_suspicious') || 'Suspicious Activity'}</span>
+  if (s === 'Banned')  return <span className="badge badge-dark"><Ban size={10} /> {t('fraud_mon.state_banned') || 'Banned'}</span>
+  if (s === 'Under Review') return <span className="badge badge-warning">{t('fraud_mon.state_under_review') || 'Under Review'}</span>
+  return <span className="badge badge-success"><CheckCircle size={10} /> {t('fraud_mon.state_cleared') || 'Cleared'}</span>
 }
 
 export default function FraudPanel() {
+  const { t } = useLanguage()
   const flagged = fraudUsers.filter(u => u.status === 'Flagged' || u.status === 'Banned').length
 
   return (
@@ -30,13 +34,13 @@ export default function FraudPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--alert)' }} />
-          User Behavior Monitoring
+          {t('fraud_mon.title') || 'User Behavior Monitoring'}
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span className="badge badge-danger">
-            <ShieldAlert size={10} /> {flagged} High Risk Users
+            <ShieldAlert size={10} /> {flagged} {t('fraud_mon.high_risk_users') || 'High Risk Users'}
           </span>
-          <span className="live-dot">Live</span>
+          <span className="live-dot">{t('common.live') || 'Live'}</span>
         </div>
       </div>
 
@@ -45,12 +49,12 @@ export default function FraudPanel() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>User ID</th>
-              <th>Complaints Submitted</th>
-              <th>Activity Pattern</th>
-              <th>Risk Score</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t('fraud_mon.table_user_id') || 'User ID'}</th>
+              <th>{t('fraud_mon.table_complaints') || 'Complaints Submitted'}</th>
+              <th>{t('fraud_mon.table_pattern') || 'Activity Pattern'}</th>
+              <th>{t('fraud_mon.table_risk') || 'Risk Score'}</th>
+              <th>{t('fraud_mon.table_status') || 'Status'}</th>
+              <th>{t('fraud_mon.table_action') || 'Action'}</th>
             </tr>
           </thead>
           <tbody>
@@ -65,7 +69,7 @@ export default function FraudPanel() {
                   <span style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-primary)' }}>
                     {u.submitted}
                   </span>
-                  <span style={{ fontSize: '.72rem', color: 'var(--text-muted)', marginLeft: '.35rem' }}>complaints</span>
+                  <span style={{ fontSize: '.72rem', color: 'var(--text-muted)', marginLeft: '.35rem' }}>{t('fraud_mon.complaints') || 'complaints'}</span>
                 </td>
                 <td style={{ fontSize: '.82rem', color: 'var(--text-secondary)', maxWidth: 200 }}>
                   {u.pattern}
@@ -75,11 +79,11 @@ export default function FraudPanel() {
                 <td>
                   <div style={{ display: 'flex', gap: '.5rem' }}>
                     <button className="btn btn-ghost" style={{ padding: '.3rem .65rem', fontSize: '.72rem', height: 'auto' }}>
-                      Review
+                      {t('fraud_mon.btn_review') || 'Review'}
                     </button>
                     {(u.status === 'Flagged') && (
                       <button className="btn btn-danger" style={{ padding: '.3rem .65rem', fontSize: '.72rem', height: 'auto' }}>
-                        Ban
+                        {t('fraud_mon.btn_ban') || 'Ban'}
                       </button>
                     )}
                   </div>
@@ -90,8 +94,8 @@ export default function FraudPanel() {
         </table>
       </div>
       <div style={{ padding: '.75rem 1.5rem', borderTop: '1px solid var(--border)', fontSize: '.75rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-        <span>AI Fraud Detection Engine v2.1 — Pattern Analysis Active</span>
-        <span style={{ color: 'var(--success)' }}>✓ Auto-ban rules enabled</span>
+        <span>{t('fraud_mon.ai_engine') || 'AI Fraud Detection Engine v2.1 — Pattern Analysis Active'}</span>
+        <span style={{ color: 'var(--success)' }}>{t('fraud_mon.auto_ban') || '✓ Auto-ban rules enabled'}</span>
       </div>
     </div>
   )

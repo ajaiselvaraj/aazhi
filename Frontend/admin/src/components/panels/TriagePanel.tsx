@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Search, RefreshCw, Eye, MoreVertical, Calendar, Clock, BarChart2, AlertTriangle, CheckCircle2, Circle } from 'lucide-react'
+import { Search, RefreshCw, Eye, MoreVertical, Calendar, Clock, BarChart2, AlertTriangle, CheckCircle2, Circle, Globe } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
+import { useLanguage } from '../../context/LanguageContext'
 import { deptKey } from '../../utils/deptFilter'
 
 /* ── Status Badge ────────────────────────────────────────────── */
@@ -94,6 +95,7 @@ function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { st
 
 export default function TriagePanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const myDept = user ? deptKey(user.department) : ''
 
   const [complaints, setComplaints] = useState<any[]>([])
@@ -220,9 +222,9 @@ export default function TriagePanel() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div className="page-header" style={{ marginBottom: 0 }}>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-            All Complaints
+            {t('nav.complaints') || 'All Complaints'}
           </h1>
-          <p style={{ color: 'var(--text-muted)' }}>Manage and triage citizen complaints across all departments.</p>
+          <p style={{ color: 'var(--text-muted)' }}>{t('triage.desc') || 'Manage and triage citizen complaints across all departments.'}</p>
         </div>
         
         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -232,7 +234,7 @@ export default function TriagePanel() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{criticalCount}</div>
-              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Critical Priority</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('triage.critical_iss') || 'Critical Priority'}</div>
             </div>
           </div>
           <div className="card" style={{ padding: '.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '.75rem', minWidth: 140 }}>
@@ -241,7 +243,7 @@ export default function TriagePanel() {
             </div>
             <div>
               <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{pendingCount}</div>
-              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Active Issues</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('triage.active_complaints') || 'Active Issues'}</div>
             </div>
           </div>
         </div>
@@ -253,7 +255,7 @@ export default function TriagePanel() {
           <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder="Search by ID, name, or description..."
+            placeholder={t('common.search') || "Search by ID, name, or description..."}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '.75rem 1rem .75rem 2.5rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' }}
@@ -290,14 +292,14 @@ export default function TriagePanel() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Ticket ID</th>
-                <th>Citizen Details</th>
-                <th>Category / Details</th>
-                <th>Department</th>
-                <th>Priority</th>
-                <th>Submitted On</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>{t('triage.ticket_id') || 'Ticket ID'}</th>
+                <th>{t('triage.citizen') || 'Citizen Details'}</th>
+                <th>{t('triage.category') || 'Category / Details'}</th>
+                <th>{t('triage.department') || 'Department'}</th>
+                <th>{t('triage.priority') || 'Priority'}</th>
+                <th>{t('triage.submitted_on') || 'Submitted On'}</th>
+                <th>{t('triage.status') || 'Status'}</th>
+                <th style={{ textAlign: 'right' }}>{t('triage.actions') || 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -340,8 +342,24 @@ export default function TriagePanel() {
                         <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--text-primary)' }}>
                           {c.category || 'General Issue'}
                         </div>
-                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', display: '-webkit-box' }}>
+                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                           {c.description}
+                        </div>
+                        <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {c.language && (
+                            <span style={{ fontSize: '0.65rem', background: '#F3F4F6', color: '#4B5563', padding: '0.15rem 0.4rem', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600 }}>
+                              <Globe size={10} />
+                              Lang: {c.language === 'hi' ? 'Hindi' : c.language === 'as' ? 'Assamese' : 'English'}
+                            </span>
+                          )}
+                          <a 
+                            href={`https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(c.description || '')}&op=translate`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            style={{ fontSize: '0.65rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                          >
+                            Translate
+                          </a>
                         </div>
                       </td>
                       <td>

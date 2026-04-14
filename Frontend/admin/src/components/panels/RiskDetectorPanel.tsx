@@ -3,6 +3,7 @@ import { CheckCircle, AlertTriangle, Clock } from 'lucide-react'
 import { riskEvents, RiskEvent } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const SEVERITY_CONFIG = {
   'Critical': { color: 'var(--alert)',   bg: '#fff1f0', icon: '🔴', lineColor: '#FF4D4F' },
@@ -13,6 +14,7 @@ const SEVERITY_CONFIG = {
 
 export default function RiskDetectorPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const events = user ? filterByDept(riskEvents, user.department) : riskEvents
   const active = events.filter(e => !e.resolved).length
 
@@ -22,12 +24,12 @@ export default function RiskDetectorPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--warning)' }} />
-          Infrastructure Risk Monitoring
+          {t('risk.title') || 'Infrastructure Risk Monitoring'}
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
-          <span className="badge badge-danger">{active} Active Risks</span>
+          <span className="badge badge-danger">{active} {t('risk.active_risks') || 'Active Risks'}</span>
           <span className="badge badge-success">
-            <CheckCircle size={10} /> {events.length - active} Resolved
+            <CheckCircle size={10} /> {events.length - active} {t('risk.resolved') || 'Resolved'}
           </span>
         </div>
       </div>
@@ -97,7 +99,7 @@ export default function RiskDetectorPanel() {
                         📍 {evt.ward}
                       </span>
                       <span className={`badge ${evt.resolved ? 'badge-success' : 'badge-danger'}`}>
-                        {evt.resolved ? '✓ Resolved' : '● Active'}
+                        {evt.resolved ? ('✓ ' + (t('risk.resolved_lbl') || 'Resolved')) : ('● ' + (t('risk.active_lbl') || 'Active'))}
                       </span>
                     </div>
                   </div>

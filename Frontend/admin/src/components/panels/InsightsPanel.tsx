@@ -3,6 +3,7 @@ import { BarChart2, TrendingUp, TrendingDown } from 'lucide-react'
 import { aiInsights, AIInsight } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const CATEGORY_COLORS = {
   'Trend':    '#2F6BFF',
@@ -19,6 +20,7 @@ const CATEGORY_BG = {
 
 export default function InsightsPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const insights = user ? filterByDept(aiInsights, user.department) : aiInsights
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -26,11 +28,11 @@ export default function InsightsPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--primary)' }} />
-          AI Insights Engine
+          {t('insights.title') || 'AI Insights Engine'}
         </div>
         <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
-          <span className="badge badge-info"><BarChart2 size={10} /> {insights.length} Active Insights</span>
-          <span className="live-dot">Live</span>
+          <span className="badge badge-info"><BarChart2 size={10} /> {insights.length} {t('insights.active') || 'Active Insights'}</span>
+          <span className="live-dot">{t('common.live') || 'Live'}</span>
         </div>
       </div>
 
@@ -67,10 +69,10 @@ export default function InsightsPanel() {
               {/* Footer */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '.72rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                  Dept: {ins.dept}
+                  {t('insights.dept') || 'Dept'}: {ins.dept}
                 </span>
                 <span style={{ fontSize: '.68rem', fontWeight: 600, color: catColor }}>
-                  AI Insight #{ins.id}
+                  {t('insights.insight_lbl') || 'AI Insight'} #{ins.id}
                 </span>
               </div>
             </div>

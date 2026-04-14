@@ -177,6 +177,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
     const handleSecureLogout = async () => {
         // 1. Preserve non-PII settings
         const lang = localStorage.getItem('selectedLanguage');
+        const appLang = localStorage.getItem('app_lang');
         const voice = localStorage.getItem('voice_enabled');
 
         // 2. Aggressively clear all storage
@@ -192,6 +193,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
         // 3. Restore non-PII settings
         if (lang) localStorage.setItem('selectedLanguage', lang);
+        if (appLang) localStorage.setItem('app_lang', appLang);
         if (voice) localStorage.setItem('voice_enabled', voice);
 
         // 4. Update parent view state to Landing

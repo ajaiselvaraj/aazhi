@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
-import { ShieldCheck, LogIn, Eye, EyeOff, Lock } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { ShieldCheck, LogIn, Eye, EyeOff, Lock, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { DEPARTMENTS } from '../data/mockData'
 import { adminApi } from '../services/adminApi'
+import { useLanguage } from '../context/LanguageContext'
 import cdacLogo from '../assets/cdac_logo.png'
 
 
@@ -108,17 +109,30 @@ function MapPattern() {
 /* ── Main Login Page ─────────────────────────────────────────── */
 export default function LoginPage() {
   const { login } = useAuth()
+  const { language, setLanguage, t } = useLanguage()
   const [adminId,    setAdminId]    = useState('')
   const [password,   setPassword]   = useState('')
   const [showPass,   setShowPass]   = useState(false)
   const [department, setDepartment] = useState('')
   const [error,      setError]      = useState('')
   const [loading,    setLoading]    = useState(false)
+  const [showLangMenu, setShowLangMenu] = useState(false)
+  const langMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!adminId.trim() || !password.trim() || !department) {
-      setError('Please fill in all fields before continuing.')
+      setError(t('login.error_fields'))
       return
     }
     setError('')
@@ -128,7 +142,7 @@ export default function LoginPage() {
       localStorage.setItem('adminToken', data.tokens.accessToken)
       login({ adminId, department, name: data.admin.name })
     } catch (err: any) {
-      setError(err.message || 'Login failed! Check credentials.')
+      setError(t('login.error_fail'))
     } finally {
       setLoading(false)
     }
@@ -175,7 +189,7 @@ export default function LoginPage() {
             lineHeight: 1.2,
             marginBottom: '.625rem',
           }}>
-            Smart City<br />Admin Portal
+            {t('nav.admin_portal') || 'Smart City Admin Portal'}
           </h1>
 
           {/* Divider */}
@@ -192,7 +206,7 @@ export default function LoginPage() {
             letterSpacing: '.01em',
             marginBottom: '1.5rem',
           }}>
-            AI-Powered Urban Infrastructure Monitoring System
+            {t('login.ai_pow')}
           </p>
 
           {/* Description */}
@@ -203,8 +217,7 @@ export default function LoginPage() {
             maxWidth: 380,
             margin: '0 auto',
           }}>
-            "Secure administrative interface for monitoring civic infrastructure,
-            managing service requests, and overseeing smart governance operations."
+            {t('login.desc')}
           </p>
         </div>
 
@@ -223,9 +236,9 @@ export default function LoginPage() {
           position: 'relative', zIndex: 1, marginTop: '1.5rem',
         }}>
           {[
-            { num: '1,284', label: 'Active Requests' },
-            { num: '94.2%', label: 'AI Accuracy' },
-            { num: '4',     label: 'Departments' },
+            { num: '1,284', label: t('login.act_req') },
+            { num: '94.2%', label: t('login.ai_acc') },
+            { num: '4',     label: t('login.depts') },
           ].map((s, i) => (
             <div key={i} style={{
               background: 'rgba(255,255,255,0.12)',
@@ -246,7 +259,7 @@ export default function LoginPage() {
           fontSize: '.68rem', color: 'rgba(255,255,255,0.3)',
           letterSpacing: '.04em', textTransform: 'uppercase',
         }}>
-          Government Digital Services · India
+          {t('login.gov')}
         </p>
       </div>
 
@@ -262,13 +275,80 @@ export default function LoginPage() {
         overflowY: 'auto',
         position: 'relative',
       }}>
+        {/* Language Switcher in Top Right */}
+        <div style={{ position: 'absolute', top: '1.5rem', right: '5.5rem', zIndex: 20 }} ref={langMenuRef}>
+          <button
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.35rem 0.5rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid #E5E7EB',
+              background: '#F9FAFB',
+              color: '#374151',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.85rem'
+            }}
+            type="button"
+          >
+            A / अ <ChevronDown size={14} />
+          </button>
+          
+          {showLangMenu && (
+            <div style={{
+              position: 'absolute',
+              top: '110%',
+              right: 0,
+              background: '#fff',
+              border: '1px solid #E5E7EB',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: '120px',
+              zIndex: 50,
+              overflow: 'hidden'
+            }}>
+              {[
+                { code: 'en', label: 'English' },
+                { code: 'hi', label: 'हिंदी' },
+                { code: 'as', label: 'অসমীয়া' }
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguage(lang.code as any);
+                    setShowLangMenu(false);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    textAlign: 'left',
+                    background: language === lang.code ? '#F3F4F6' : 'transparent',
+                    color: language === lang.code ? '#2F6BFF' : '#374151',
+                    border: 'none',
+                    fontWeight: language === lang.code ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    borderBottom: '1px solid #F3F4F6',
+                    width: '100%'
+                  }}
+                  type="button"
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* CDAC Logo in Top Right */}
         <img 
           src={cdacLogo} 
           alt="CDAC Logo" 
           style={{ 
             position: 'absolute', 
-            top: '1.5rem', 
+            top: '1.2rem', 
             right: '1.5rem', 
             height: '45px', 
             width: 'auto',
@@ -301,10 +381,10 @@ export default function LoginPage() {
               color: 'var(--text-primary)',
               marginBottom: '.35rem',
             }}>
-              Admin Secure Access
+              {t('login.secure_access')}
             </h2>
             <p style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>
-              Sign in to your government admin account
+              {t('login.sign_in_desc')}
             </p>
           </div>
 
@@ -312,7 +392,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin}>
             {/* Admin ID */}
             <div className="form-group">
-              <label className="form-label" htmlFor="admin-id">Admin ID Number</label>
+              <label className="form-label" htmlFor="admin-id">{t('login.admin_id')}</label>
               <input
                 id="admin-id"
                 type="text"
@@ -326,7 +406,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div className="form-group">
-              <label className="form-label" htmlFor="admin-password">Password</label>
+              <label className="form-label" htmlFor="admin-password">{t('login.password')}</label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="admin-password"
@@ -355,7 +435,7 @@ export default function LoginPage() {
 
             {/* Department */}
             <div className="form-group">
-              <label className="form-label" htmlFor="department">Department Selection</label>
+              <label className="form-label" htmlFor="department">{t('login.dept_sel')}</label>
               <select
                 id="department"
                 className="form-select"
@@ -363,10 +443,11 @@ export default function LoginPage() {
                 onChange={e => setDepartment(e.target.value)}
                 style={{ borderRadius: 10 }}
               >
-                <option value="" disabled>Select your department</option>
-                {DEPARTMENTS.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
+                <option value="" disabled>{t('login.dept_opt')}</option>
+                <option value="Electricity Department">{t('login.dept_electricity') || 'Electricity Department'}</option>
+                <option value="Water Supply Department">{t('login.dept_water') || 'Water Supply Department'}</option>
+                <option value="Gas Distribution">{t('login.dept_gas') || 'Gas Distribution'}</option>
+                <option value="Municipal Services">{t('login.dept_municipal') || 'Municipal Services'}</option>
               </select>
             </div>
 
@@ -398,7 +479,7 @@ export default function LoginPage() {
               }}
             >
               <LogIn size={18} />
-              {loading ? 'Authenticating…' : 'Login to Dashboard'}
+              {loading ? t('login.auth') : t('login.btn')}
             </button>
           </form>
 
@@ -414,8 +495,8 @@ export default function LoginPage() {
           }}>
             <Lock size={13} color="var(--text-muted)" />
             <p style={{ fontSize: '.72rem', color: 'var(--text-muted)', margin: 0 }}>
-              <strong style={{ color: 'var(--text-secondary)' }}>Authorized personnel only.</strong>
-              {' '}All access is logged and monitored.
+              <strong style={{ color: 'var(--text-secondary)' }}>{t('login.auth_peeps')}</strong>
+              {' '}{t('login.monitor')}
             </p>
           </div>
 
@@ -435,7 +516,7 @@ export default function LoginPage() {
           fontSize: '.68rem', color: 'var(--text-muted)',
           textAlign: 'center',
         }}>
-          Smart City Admin Portal · Powered by Aazhi AI Platform
+          {t('nav.admin_portal')} · Powered by Aazhi AI Platform
         </div>
       </div>
     </div>

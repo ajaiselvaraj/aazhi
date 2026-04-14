@@ -280,6 +280,8 @@ const App: React.FC = () => {
   // Logic for Login Navigation
   const handleLanguageSelect = (lang: Language) => {
     i18n.changeLanguage(lang);
+    localStorage.setItem('selectedLanguage', lang);
+    localStorage.setItem('app_lang', lang);
 
     // Find the language info to speak out loud
     const selectedLangConfig = LANGUAGES_CONFIG.find(l => l.code === lang);
