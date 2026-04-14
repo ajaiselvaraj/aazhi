@@ -4,12 +4,15 @@ import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
 
+import { useLanguage } from '../../context/LanguageContext'
+
 /* ── Status Badge ────────────────────────────────────────────── */
 function RequestStatusBadge({ s }: { s: string }) {
+  const { t } = useLanguage()
   const map: any = {
-    'active': { label: 'Active', class: 'badge-info' },
-    'resolved': { label: 'Resolved', class: 'badge-success' },
-    'rejected': { label: 'Rejected', class: 'badge-danger' },
+    'active': { label: t('service_req.hierarchy_status_active') || 'Active', class: 'badge-info' },
+    'resolved': { label: t('service_req.hierarchy_status_resolved') || 'Resolved', class: 'badge-success' },
+    'rejected': { label: t('service_req.hierarchy_status_rejected') || 'Rejected', class: 'badge-danger' },
   }
   const status = map[s] || { label: s, class: 'badge-info' }
   return <span className={`badge ${status.class}`}>{status.label}</span>
@@ -24,10 +27,19 @@ const HIERARCHY_STAGES = [
 ];
 
 function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { stage: string, status: string, createdAt: string, rejectionReason?: string }) {
+  const { t } = useLanguage()
   const isRejected = status === 'rejected';
   let currentIndex = HIERARCHY_STAGES.findIndex(s => s.id === stage);
   if (currentIndex === -1) currentIndex = 0;
   if (status === 'resolved') currentIndex = 4;
+  
+  const LOCALIZED_STAGES = [
+    { id: 'submitted', label: t('service_req.hierarchy_stage_submitted') || 'Submitted' },
+    { id: 'officer_assigned', label: t('service_req.hierarchy_stage_officer') || 'Officer Assigned' },
+    { id: 'manager_review', label: t('service_req.hierarchy_stage_manager') || 'Manager Review' },
+    { id: 'gm_approval', label: t('service_req.hierarchy_stage_gm') || 'GM Approval' },
+    { id: 'resolved', label: t('service_req.hierarchy_stage_resolved') || 'Resolved' }
+  ];
 
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingBottom: '1rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
@@ -39,7 +51,7 @@ function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { st
         transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' 
       }}></div>
 
-      {HIERARCHY_STAGES.map((s, idx) => {
+      {LOCALIZED_STAGES.map((s, idx) => {
         const isCompleted = idx < currentIndex;
         const isCurrent = idx === currentIndex;
         const stageColor = isRejected && isCurrent ? 'var(--danger)' : 'var(--primary)';
@@ -74,6 +86,7 @@ import { CheckCircle2, Circle, AlertTriangle } from 'lucide-react'
 
 export default function ServiceRequestsPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const myDept = user ? deptKey(user.department) : ''
 
   const [requests, setRequests] = useState<any[]>([])
@@ -193,9 +206,9 @@ export default function ServiceRequestsPanel() {
       {/* ── Page Header ─────────────────────────────────────────── */}
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-          Service Requests
+          {t('nav.service_req') || 'Service Requests'}
         </h1>
-        <p style={{ color: 'var(--text-muted)' }}>Manage and track all utility service applications and technical requests.</p>
+        <p style={{ color: 'var(--text-muted)' }}>{t('service_req.desc') || 'Manage and track all utility service applications and technical requests.'}</p>
       </div>
 
       {/* ── Filter Bar ──────────────────────────────────────────── */}
@@ -204,7 +217,7 @@ export default function ServiceRequestsPanel() {
           <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder="Search by ticket, name, or request type..."
+            placeholder={t('service_req.search_placeholder') || "Search by ticket, name, or request type..."}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '.75rem 1rem .75rem 2.5rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' }}
@@ -217,11 +230,11 @@ export default function ServiceRequestsPanel() {
             onChange={e => setStatusFilter(e.target.value)}
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
-            <option value="All">All Active Requests</option>
-            <option value="active">Active (New)</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-            <option value="rejected">Rejected</option>
+            <option value="All">{t('service_req.status_filter_all') || 'All Active Requests'}</option>
+            <option value="active">{t('service_req.status_filter_active') || 'Active (New)'}</option>
+            <option value="in_progress">{t('service_req.status_filter_in_progress') || 'In Progress'}</option>
+            <option value="resolved">{t('service_req.status_filter_resolved') || 'Resolved'}</option>
+            <option value="rejected">{t('service_req.status_filter_rejected') || 'Rejected'}</option>
           </select>
 
           <button 
@@ -241,13 +254,13 @@ export default function ServiceRequestsPanel() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Ticket ID</th>
-                <th>Citizen Details</th>
-                <th>Service Type</th>
-                <th>Department</th>
-                <th>Submitted On</th>
-                <th>Status</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>{t('service_req.table_ticket') || 'Ticket ID'}</th>
+                <th>{t('service_req.table_citizen') || 'Citizen Details'}</th>
+                <th>{t('service_req.table_service') || 'Service Type'}</th>
+                <th>{t('service_req.table_dept') || 'Department'}</th>
+                <th>{t('service_req.table_submitted') || 'Submitted On'}</th>
+                <th>{t('service_req.table_status') || 'Status'}</th>
+                <th style={{ textAlign: 'right' }}>{t('service_req.table_actions') || 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -255,15 +268,15 @@ export default function ServiceRequestsPanel() {
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '4rem' }}>
                     <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.5 }} />
-                    <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Fetching latest requests...</p>
+                    <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>{t('service_req.fetching') || 'Fetching latest requests...'}</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', padding: '4rem' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📭</div>
-                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No requests found</p>
-                    <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Try adjusting your search or filters.</p>
+                    <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t('service_req.no_requests') || 'No requests found'}</p>
+                    <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('service_req.no_requests_sub') || 'Try adjusting your search or filters.'}</p>
                   </td>
                 </tr>
               ) : (
@@ -281,8 +294,8 @@ export default function ServiceRequestsPanel() {
                             {r.citizen_name?.charAt(0) || 'C'}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || 'Anonymous'}</div>
-                            <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{r.citizen_mobile || 'No Phone'}</div>
+                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || t('service_req.anonymous') || 'Anonymous'}</div>
+                            <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{r.citizen_mobile || t('service_req.no_phone') || 'No Phone'}</div>
                           </div>
                         </div>
                       </td>
@@ -325,11 +338,11 @@ export default function ServiceRequestsPanel() {
                           <div style={{ padding: '2rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                               <div>
-                                <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>Workflow Progression</h4>
-                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Stage-based lifecycle for service inquiries.</p>
+                                <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>{t('service_req.workflow_title') || 'Workflow Progression'}</h4>
+                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('service_req.workflow_desc') || 'Stage-based lifecycle for service inquiries.'}</p>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
-                                <label style={{ fontSize: '.85rem', fontWeight: 700 }}>Stage:</label>
+                                <label style={{ fontSize: '.85rem', fontWeight: 700 }}>{t('service_req.stage') || 'Stage:'}</label>
                                 <select 
                                   value={r.current_stage || 'submitted'}
                                   onChange={(e) => handleUpdateStage(r.id, e.target.value)}
@@ -338,15 +351,15 @@ export default function ServiceRequestsPanel() {
                                 >
                                   {HIERARCHY_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
-                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>✅ Resolve</button>
-                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>❌ Reject</button>
+                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_resolve') || '✅ Resolve'}</button>
+                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_reject') || '❌ Reject'}</button>
                               </div>
                             </div>
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)' }}>
                               <ProcessingHierarchy stage={r.current_stage || 'submitted'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
                               {r.rejection_reason && (
                                 <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
-                                  <strong>Rejection Reason:</strong> {r.rejection_reason}
+                                  <strong>{t('service_req.rejection_reason') || 'Rejection Reason:'}</strong> {r.rejection_reason}
                                 </div>
                               )}
                             </div>
@@ -364,7 +377,7 @@ export default function ServiceRequestsPanel() {
         {/* ── Pagination ─────────────────────────────────────────── */}
         <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{filtered.length}</strong> of <strong>{total}</strong> service requests
+            {t('service_req.showing') || 'Showing'} <strong>{filtered.length}</strong> {t('service_req.of') || 'of'} <strong>{total}</strong> {t('service_req.service_requests') || 'service requests'}
           </div>
           <div style={{ display: 'flex', gap: '.5rem' }}>
             <button 
@@ -373,7 +386,7 @@ export default function ServiceRequestsPanel() {
               className="btn btn-outline" 
               style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}
             >
-              Previous
+              {t('service_req.prev') || 'Previous'}
             </button>
             <button 
               disabled={requests.length < 15}
@@ -381,7 +394,7 @@ export default function ServiceRequestsPanel() {
               className="btn btn-outline" 
               style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}
             >
-              Next
+              {t('service_req.next') || 'Next'}
             </button>
           </div>
         </div>

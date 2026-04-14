@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Search, RefreshCw, Calendar, Clock, Inbox, Archive } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
+import { useLanguage } from '../../context/LanguageContext'
 
 /* ── Badge Components ────────────────────────────────────────── */
 function StatusBadge({ s, type }: { s: string, type: 'complaint' | 'service' }) {
@@ -41,6 +42,7 @@ function PriorityBadge({ p }: { p: string }) {
 }
 
 export default function HistoryPanel() {
+  const { t } = useLanguage()
   const [complaints, setComplaints] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -89,9 +91,9 @@ export default function HistoryPanel() {
       {/* ── Page Header ─────────────────────────────────────────── */}
       <div className="page-header" style={{ marginBottom: '1.5rem' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Archive size={28} /> History
+          <Archive size={28} /> {t('history.title') || 'History'}
         </h1>
-        <p style={{ color: 'var(--text-muted)' }}>View all resolved complaints and completed service requests.</p>
+        <p style={{ color: 'var(--text-muted)' }}>{t('history.desc') || 'View all resolved complaints and completed service requests.'}</p>
       </div>
 
       {/* ── Tabs ────────────────────────────────────────────────── */}
@@ -101,14 +103,14 @@ export default function HistoryPanel() {
           className={`btn ${activeTab === 'resolved' ? 'btn-primary' : 'btn-ghost'}`}
           style={{ borderRadius: 12, padding: '0.6rem 1.5rem' }}
         >
-          Resolved Archive
+          {t('history.resolved_tab') || 'Resolved Archive'}
         </button>
         <button 
           onClick={() => setActiveTab('rejected')}
           className={`btn ${activeTab === 'rejected' ? 'btn-danger' : 'btn-ghost'}`}
           style={{ borderRadius: 12, padding: '0.6rem 1.5rem' }}
         >
-          Rejection History
+          {t('history.rejected_tab') || 'Rejection History'}
         </button>
       </div>
 
@@ -118,7 +120,7 @@ export default function HistoryPanel() {
           <Search size={16} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input 
             type="text" 
-            placeholder={`Search history...`}
+            placeholder={t('history.search_ph') || 'Search history...'}
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ width: '100%', padding: '.75rem 1rem .75rem 2.5rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none' }}
@@ -139,13 +141,13 @@ export default function HistoryPanel() {
       {loading && items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem' }}>
           <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.5, margin: '0 auto' }} />
-          <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>Fetching history...</p>
+          <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>{t('history.fetching') || 'Fetching history...'}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}><Inbox size={48} color="var(--border)" /></div>
-          <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No history available</p>
-          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>There are no items matching your criteria.</p>
+          <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t('history.no_history') || 'No history available'}</p>
+          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('history.no_match') || 'There are no items matching your criteria.'}</p>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -169,7 +171,7 @@ export default function HistoryPanel() {
 
               {activeTab === 'rejected' && item.rejection_reason && (
                 <div style={{ background: 'var(--bg-danger)', padding: '0.75rem', borderRadius: 8, fontSize: '.85rem', color: 'var(--danger)' }}>
-                  <strong>Reason:</strong> {item.rejection_reason}
+                  <strong>{t('history.reason') || 'Reason'}:</strong> {item.rejection_reason}
                 </div>
               )}
 
@@ -195,7 +197,7 @@ export default function HistoryPanel() {
       {!loading && filtered.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem' }}>
           <div style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{filtered.length}</strong> items
+            {t('history.showing') || 'Showing'} <strong>{filtered.length}</strong> {t('history.items') || 'items'}
           </div>
         </div>
       )}

@@ -3,11 +3,13 @@ import { Copy, GitMerge, Users } from 'lucide-react'
 import { duplicateClusters, DuplicateCluster } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 function StatusChip({ s }: { s: DuplicateCluster['status'] }) {
-  if (s === 'Merged Into Master Ticket') return <span className="badge badge-success">✓ Merged</span>
-  if (s === 'Under Review') return <span className="badge badge-warning">Under Review</span>
-  return <span className="badge badge-info">Open</span>
+  const { t } = useLanguage()
+  if (s === 'Merged Into Master Ticket') return <span className="badge badge-success">{t('dup_det.state_merged') || '✓ Merged'}</span>
+  if (s === 'Under Review') return <span className="badge badge-warning">{t('dup_det.state_under_review') || 'Under Review'}</span>
+  return <span className="badge badge-info">{t('dup_det.state_open') || 'Open'}</span>
 }
 
 const DEPT_COLORS: Record<string, string> = {
@@ -19,6 +21,7 @@ const DEPT_COLORS: Record<string, string> = {
 
 export default function DuplicatePanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const clusters = user ? filterByDept(duplicateClusters, user.department) : duplicateClusters
 
   const total = clusters.reduce((a, c) => a + c.reportCount, 0)
@@ -30,14 +33,14 @@ export default function DuplicatePanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" />
-          Duplicate Issue Detection
+          {t('dup_det.title') || 'Duplicate Issue Detection'}
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span style={{ fontSize: '.78rem', color: 'var(--text-muted)' }}>
-            {merged}/{clusters.length} merged
+            {merged}/{clusters.length} {t('dup_det.merged') || 'merged'}
           </span>
           <span className="badge badge-info">
-            <Copy size={10} /> {total} Total Reports
+            <Copy size={10} /> {total} {t('dup_det.total_reports') || 'Total Reports'}
           </span>
         </div>
       </div>
@@ -63,7 +66,7 @@ export default function DuplicatePanel() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '.75rem' }}>
                 <div>
                   <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.2rem' }}>
-                    Issue Cluster · {cluster.id}
+                    {t('dup_det.issue_cluster') || 'Issue Cluster'} · {cluster.id}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-primary)' }}>
                     {cluster.title} — {cluster.ward}
@@ -76,7 +79,7 @@ export default function DuplicatePanel() {
               <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.82rem', color: 'var(--text-secondary)' }}>
                   <Users size={13} color={deptColor} />
-                  <span><strong style={{ color: deptColor }}>{cluster.reportCount}</strong> Citizens Reported</span>
+                  <span><strong style={{ color: deptColor }}>{cluster.reportCount}</strong> {t('dup_det.citizens_reported') || 'Citizens Reported'}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.82rem', color: 'var(--text-secondary)' }}>
                   <GitMerge size={13} color="var(--text-muted)" />
@@ -90,7 +93,7 @@ export default function DuplicatePanel() {
                   {cluster.dept} · {cluster.timeAgo}
                 </span>
                 <button className="btn btn-ghost" style={{ padding: '.3rem .75rem', fontSize: '.72rem', height: 'auto' }}>
-                  View Master
+                  {t('dup_det.view_master') || 'View Master'}
                 </button>
               </div>
             </div>

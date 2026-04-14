@@ -3,6 +3,7 @@ import { UserCheck, Clock } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const PRIORITY_STYLES = {
   'P0 — Emergency': { border: '#FF4D4F', badge: 'badge-danger' },
@@ -12,6 +13,7 @@ const PRIORITY_STYLES = {
 
 export default function PriorityQueuePanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const myDept = user ? deptKey(user.department) : ''
   const [issues, setIssues] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -48,9 +50,9 @@ export default function PriorityQueuePanel() {
       const res = await adminApi.getAllComplaints({ priority: 'critical', limit: 20 }) // pass signal here if API client supports it
       const mapped = res.data.map((c: any) => ({
         id: c.ticket_number || c.id,
-        title: c.subject || c.category || 'Critical Issue',
+        title: c.subject || c.category || t('critical_q.critical_issue') || 'Critical Issue',
         dept: c.department,
-        ward: c.ward || 'Unknown Ward',
+        ward: c.ward || t('critical_q.unknown_ward') || 'Unknown Ward',
         priority: 'P1 — Critical',
         icon: '🚨',
         officer: c.assigned_to_name || null,
@@ -83,20 +85,20 @@ export default function PriorityQueuePanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--alert)' }} />
-          Critical Issue Queue
+          {t('critical_q.title') || 'Critical Issue Queue'}
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span className="badge badge-danger pulse-alert">
-            🚨 {emergency} Emergency
+            🚨 {emergency} {t('critical_q.emergency') || 'Emergency'}
           </span>
-          <span className="live-dot">Live</span>
+          <span className="live-dot">{t('common.live') || 'Live'}</span>
         </div>
       </div>
 
       {/* Cards Stack */}
       <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', opacity: loading ? 0.6 : 1 }}>
         {deptIssues.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No critical issues found.</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>{t('critical_q.no_issues') || 'No critical issues found.'}</div>
         ) : deptIssues.map(issue => {
           const style = PRIORITY_STYLES[issue.priority as keyof typeof PRIORITY_STYLES] || PRIORITY_STYLES['P1 — Critical']
           return (
@@ -123,7 +125,7 @@ export default function PriorityQueuePanel() {
                   </div>
                 </div>
                 <span className={`badge ${style.badge}`} style={{ flexShrink: 0, padding: '.35rem .6rem', fontSize: '.8rem' }}>
-                  Critical
+                  {t('critical_q.critical') || 'Critical'}
                 </span>
               </div>
 
@@ -131,21 +133,21 @@ export default function PriorityQueuePanel() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '.4rem', marginTop: '.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem', color: 'var(--text-secondary)' }}>
                   <UserCheck size={14} />
-                  <span>Assigned: <strong>{issue.officer || 'Unassigned'}</strong></span>
+                  <span>{t('critical_q.assigned') || 'Assigned:'} <strong>{issue.officer || t('critical_q.unassigned') || 'Unassigned'}</strong></span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.85rem', color: 'var(--text-secondary)' }}>
                   <Clock size={14} />
-                  <span>Reported {issue.reportedAt}</span>
+                  <span>{t('critical_q.reported') || 'Reported'} {issue.reportedAt}</span>
                 </div>
               </div>
 
               {/* Action */}
               <div style={{ marginTop: '1.25rem', display: 'flex', gap: '.75rem' }}>
                 <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}>
-                  View Details
+                  {t('critical_q.view_details') || 'View Details'}
                 </button>
                 <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}>
-                  Assign Officer
+                  {t('critical_q.assign_officer') || 'Assign Officer'}
                 </button>
                 <button 
                   className="btn btn-ghost" 
@@ -155,7 +157,7 @@ export default function PriorityQueuePanel() {
                     loadIssues();
                   }}
                 >
-                  Mark Resolved
+                  {t('critical_q.mark_resolved') || 'Mark Resolved'}
                 </button>
               </div>
             </div>
