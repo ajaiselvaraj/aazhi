@@ -5,12 +5,15 @@ import {
 } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
+import { useLanguage } from '../../context/LanguageContext'
+import { deptName } from '../../utils/translations'
 
 export default function DashboardOverview() {
   const [stats, setStats] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
-  const dept = user?.department ?? 'All Departments'
+  const { t } = useLanguage()
+  const dept = deptName(user?.department, t)
 
   const [isFetching, setIsFetching] = useState(false)
 
@@ -70,21 +73,21 @@ export default function DashboardOverview() {
   }
 
   const statCards = [
-    { label: 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: 'Live syncing', up: true },
-    { label: 'Service Requests',     value: stats?.totalSR.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: 'Utility apps', up: true },
-    { label: 'Resolved (Issues)',    value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: 'Live syncing', up: true },
-    { label: 'Critical Issues',      value: stats?.critical.toLocaleString() || '0',         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: 'Requires attention', up: false },
-    { label: 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: 'Time saved', up: true },
-    { label: 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: 'Security check', up: false },
-    { label: 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs?.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Steady', up: true },
-    { label: 'Pending (Issues)',     value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: 'In progress', up: false },
+    { label: t('dashboard.total_complaints') || 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: t('dashboard.lbl_live_sync') || 'Live syncing', up: true },
+    { label: t('dashboard.service_req') || 'Service Requests',     value: stats?.totalSR.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: t('dashboard.lbl_utility') || 'Utility apps', up: true },
+    { label: t('dashboard.resolved_iss') || 'Resolved (Issues)',    value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: t('dashboard.lbl_live_sync') || 'Live syncing', up: true },
+    { label: t('dashboard.critical_iss') || 'Critical Issues',      value: stats?.critical.toLocaleString() || '0',         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: t('dashboard.lbl_attn') || 'Requires attention', up: false },
+    { label: t('dashboard.dup_caught') || 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_time_svd') || 'Time saved', up: true },
+    { label: t('dashboard.fraud_flag') || 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: t('dashboard.lbl_sec_chk') || 'Security check', up: false },
+    { label: t('dashboard.avg_res') || 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs?.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: t('dashboard.lbl_steady') || 'Steady', up: true },
+    { label: t('dashboard.pend_iss') || 'Pending (Issues)',     value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_in_prog') || 'In progress', up: false },
   ]
   return (
     <div className="section-gap">
       {/* Page Header */}
       <div className="page-header">
-        <h1>{dept} — Dashboard Overview</h1>
-        <p>Real-time summary of {dept.toLowerCase()} complaints, AI processing, and infrastructure health.</p>
+        <h1>{dept} — {t('nav.overview')}</h1>
+        <p>{t('dashboard.real_time_sum') || `Real-time summary of department complaints, AI processing, and infrastructure health.`}</p>
       </div>
 
       {/* Stats Grid */}
@@ -122,18 +125,18 @@ export default function DashboardOverview() {
           </div>
           <div>
             <div style={{ fontFamily: 'Poppins,sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>
-              AI Engine Status — All Systems Operational
+              {t('dashboard.ai_eng_stat') || 'AI Engine Status — All Systems Operational'}
             </div>
             <div style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.45)', marginTop: '.2rem' }}>
-              Complaint triage · Duplicate detection · Fraud analysis · Predictive alerts
+              {t('dashboard.ai_eng_sub') || 'Complaint triage · Duplicate detection · Fraud analysis · Predictive alerts'}
             </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '1.5rem' }}>
           {[
-            { label: 'Triage Accuracy', val: '94.2%', color: '#2ECC71' },
-            { label: 'Fraud Detection', val: '97.8%', color: '#2ECC71' },
-            { label: 'Duplicate Filter', val: '91.5%', color: '#FFA940' },
+            { label: t('dashboard.triage_acc') || 'Triage Accuracy', val: '94.2%', color: '#2ECC71' },
+            { label: t('dashboard.fraud_det') || 'Fraud Detection', val: '97.8%', color: '#2ECC71' },
+            { label: t('dashboard.dup_fil') || 'Duplicate Filter', val: '91.5%', color: '#FFA940' },
           ].map((m, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
               <div style={{ fontWeight: 800, fontSize: '1.1rem', color: m.color, fontFamily: 'Poppins,sans-serif' }}>{m.val}</div>
@@ -141,7 +144,7 @@ export default function DashboardOverview() {
             </div>
           ))}
         </div>
-        <span className="live-dot">Live</span>
+        <span className="live-dot">{t('common.live')}</span>
       </div>
     </div>
   )

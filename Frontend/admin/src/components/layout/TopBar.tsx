@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { Bell, Wifi } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Bell, Wifi, Globe, ChevronDown } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
+import { useLanguage } from '../../context/LanguageContext'
+import { deptName } from '../../utils/translations'
 import cdacLogo from '../../assets/cdac_logo.png'
 
 
@@ -15,7 +17,20 @@ interface TopBarProps {
 
 export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
   const { user } = useAuth()
+  const { language, setLanguage, t } = useLanguage()
   const [time, setTime] = useState(new Date())
+  const [showLangMenu, setShowLangMenu] = useState(false)
+  const langMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLangMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -40,7 +55,7 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
           color: '#1F2937',
           lineHeight: 1.2,
         }}>
-          Smart City Admin Portal
+          {t('nav.admin_portal')}
         </div>
         <div style={{
           fontSize: '.74rem',
@@ -56,7 +71,7 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
             background: '#2F6BFF',
             display: 'inline-block', flexShrink: 0,
           }} />
-          {user?.department || 'All Departments'}
+          {deptName(user?.department, t)}
         </div>
       </div>
 
@@ -64,7 +79,7 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
       <div style={{ width: 1, height: 32, background: 'var(--border)', marginLeft: '.5rem' }} />
 
       {/* Live indicator */}
-      <span className="live-dot">Live</span>
+      <span className="live-dot">{t('common.live')}</span>
 
       {/* Right side */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
@@ -89,13 +104,78 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
           fontSize: '.78rem', fontWeight: 600, color: 'var(--success)',
         }}>
           <Wifi size={14} className="text-icon" />
-          Online
+          {t('common.online')}
+        </div>
+
+        {/* Language Switcher */}
+        <div style={{ position: 'relative' }} ref={langMenuRef}>
+          <button
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '0.5rem',
+              padding: '0.35rem 0.5rem',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid #E5E7EB',
+              background: '#F9FAFB',
+              color: '#374151',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.85rem'
+            }}
+          >
+            A / अ <ChevronDown size={14} />
+          </button>
+          
+          {showLangMenu && (
+            <div style={{
+              position: 'absolute',
+              top: '110%',
+              right: 0,
+              background: '#fff',
+              border: '1px solid #E5E7EB',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              minWidth: '120px',
+              zIndex: 50,
+              overflow: 'hidden'
+            }}>
+              {[
+                { code: 'en', label: 'English' },
+                { code: 'hi', label: 'हिंदी' },
+                { code: 'as', label: 'অসমীয়া' }
+              ].map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguage(lang.code as any);
+                    setShowLangMenu(false);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    textAlign: 'left',
+                    background: language === lang.code ? '#F3F4F6' : 'transparent',
+                    color: language === lang.code ? '#2F6BFF' : '#374151',
+                    border: 'none',
+                    fontWeight: language === lang.code ? 700 : 500,
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    borderBottom: '1px solid #F3F4F6',
+                    width: '100%'
+                  }}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Notification bell */}
         <button
           onClick={onNotifications}
-          title="Notifications"
+          title={t('nav.notifications') || 'Notifications'}
           style={{
             width: 36, height: 36,
             borderRadius: 'var(--radius-md)',
@@ -122,7 +202,7 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
 
         {/* Admin avatar */}
         <div
-          title={`${user?.name || 'Admin'} — Profile`}
+          title={`${user?.name || 'Admin'} — ${t('nav.profile') || 'Profile'}`}
           style={{
             width: 36, height: 36, borderRadius: '50%',
             background: 'linear-gradient(135deg, var(--primary), #1a55e8)',

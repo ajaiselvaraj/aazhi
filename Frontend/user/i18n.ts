@@ -51,7 +51,7 @@ const resources = {
     [Language.SINDHI]: { translation: sd },
 };
 
-const lang = localStorage.getItem("selectedLanguage") || Language.ENGLISH;
+const lang = localStorage.getItem("app_lang") || Language.ENGLISH;
 
 i18n
     .use(initReactI18next)

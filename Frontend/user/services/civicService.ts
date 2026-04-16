@@ -47,8 +47,10 @@ export const GrievanceService = {
 
     createRequest: async (request: any): Promise<ServiceRequest> => {
         // Use the debug bypass endpoint to create the request without auth
-        console.log("📝 [DEBUG] Submitting service request data:", request);
-        return await apiClient.post<ServiceRequest>('/service-requests/debug', request);
+        const lang = localStorage.getItem('app_lang') || 'en';
+        const payload = { ...request, language: lang };
+        console.log("📝 [DEBUG] Submitting service request data:", payload);
+        return await apiClient.post<ServiceRequest>('/service-requests/debug', payload);
     },
 
     getAllComplaintsAdmin: async (): Promise<any[]> => {
@@ -58,8 +60,10 @@ export const GrievanceService = {
     },
 
     createComplaint: async (complaint: any): Promise<any> => {
-        console.log("📝 [DEBUG] Submitting complaint data:", complaint);
-        return await apiClient.post<any>('/complaints/debug', complaint);
+        const lang = localStorage.getItem('app_lang') || 'en';
+        const payload = { ...complaint, language: lang };
+        console.log("📝 [DEBUG] Submitting complaint data:", payload);
+        return await apiClient.post<any>('/complaints/debug', payload);
     },
 
     updateComplaintStatusAdmin: async (id: string, payload: any): Promise<any> => {

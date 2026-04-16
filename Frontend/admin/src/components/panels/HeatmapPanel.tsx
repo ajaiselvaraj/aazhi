@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { liveMapIssues } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const getPriorityIcon = (priority: string) => {
   if (priority === 'Critical') {
@@ -22,6 +23,7 @@ const getPriorityIcon = (priority: string) => {
 
 export default function HeatmapPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const issues = user ? filterByDept(liveMapIssues, user.department) : liveMapIssues
 
   return (
@@ -74,10 +76,10 @@ export default function HeatmapPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--primary)' }} />
-          Live Issue Map
+          {t('live_map.title') || 'Live Issue Map'}
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span className="live-dot">Live Priority View</span>
+          <span className="live-dot">{t('live_map.live_view') || 'Live Priority View'}</span>
         </div>
       </div>
 
@@ -108,20 +110,20 @@ export default function HeatmapPanel() {
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: '#111827', fontWeight: 600 }}>{issue.title}</h4>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <div style={{ fontSize: '0.85rem', color: '#4B5563' }}>
-                      <strong>Department:</strong> {issue.dept}
+                      <strong>{t('live_map.department') || 'Department:'}</strong> {issue.dept}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#4B5563' }}>
-                      <strong>Ward:</strong> {issue.ward}
+                      <strong>{t('live_map.ward') || 'Ward:'}</strong> {issue.ward}
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#4B5563' }}>
-                      <strong>Priority:</strong> <span style={{ color: issue.priority === 'Critical' ? '#FF4D4F' : issue.priority === 'High' ? '#FFA940' : issue.priority === 'Medium' ? '#F59E0B' : '#2ECC71', fontWeight: 700 }}>{issue.priority}</span>
+                      <strong>{t('live_map.priority') || 'Priority:'}</strong> <span style={{ color: issue.priority === 'Critical' ? '#FF4D4F' : issue.priority === 'High' ? '#FFA940' : issue.priority === 'Medium' ? '#F59E0B' : '#2ECC71', fontWeight: 700 }}>{issue.priority}</span>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#4B5563' }}>
-                      <strong>Reported:</strong> {issue.reportedAt}
+                      <strong>{t('live_map.reported') || 'Reported:'}</strong> {issue.reportedAt}
                     </div>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#4B5563', marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed #D1D5DB' }}>
-                    <strong>Ticket:</strong> <span style={{fontFamily: 'monospace', fontWeight: 500, background: '#F3F4F6', padding: '2px 4px', borderRadius: '4px'}}>{issue.ticket}</span>
+                    <strong>{t('live_map.ticket') || 'Ticket:'}</strong> <span style={{fontFamily: 'monospace', fontWeight: 500, background: '#F3F4F6', padding: '2px 4px', borderRadius: '4px'}}>{issue.ticket}</span>
                   </div>
                 </div>
               </Popup>
@@ -137,23 +139,23 @@ export default function HeatmapPanel() {
           border: '1px solid var(--border)',
           fontFamily: 'Inter, sans-serif'
         }}>
-          <div style={{ fontWeight: 700, marginBottom: '10px', fontSize: '0.9rem', color: '#111827' }}>Priority Legend</div>
+          <div style={{ fontWeight: 700, marginBottom: '10px', fontSize: '0.9rem', color: '#111827' }}>{t('live_map.priority_legend') || 'Priority Legend'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: 14, height: 14, background: '#FF4D4F', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Critical Issue
+              {t('live_map.critical') || 'Critical Issue'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: 14, height: 14, background: '#FFA940', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              High Priority
+              {t('live_map.high') || 'High Priority'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: 14, height: 14, background: '#FFD43B', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Medium Priority
+              {t('live_map.medium') || 'Medium Priority'}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: 14, height: 14, background: '#2ECC71', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Low Priority
+              {t('live_map.low') || 'Low Priority'}
             </div>
           </div>
         </div>
