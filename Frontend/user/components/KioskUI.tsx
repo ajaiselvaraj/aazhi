@@ -23,6 +23,7 @@ import ElectricityModule from './kiosk/electricity/ElectricityModule';
 import GasModule from './kiosk/gas/GasModule';
 import MunicipalModule from './kiosk/municipal/MunicipalModule';
 import ComplaintsModule from './kiosk/ComplaintsModule';
+import SecureAuth from './kiosk/SecureAuth';
 import { CivicComplaintForm } from './municipal/CivicComplaintForm';
 import { EmergencySOS } from './municipal/EmergencySOS';
 import { CertificateDownload } from './municipal/CertificateDownload';
@@ -97,7 +98,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedRatio, setSelectedRatio] = useState('1:1');
 
   // Billing & Service flow
-  const [billingStep, setBillingStep] = useState<'select' | 'form' | 'details' | 'success'>('select');
+  const [billingStep, setBillingStep] = useState<'select' | 'auth' | 'form' | 'details' | 'success'>('select');
   const [selectedBillService, setSelectedBillService] = useState<any | null>(null);
   const [consumerNumber, setConsumerNumber] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
@@ -106,7 +107,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   // New Service Flow State
-  const [submissionStep, setSubmissionStep] = useState<'select' | 'form' | 'success'>('select');
+  const [submissionStep, setSubmissionStep] = useState<'select' | 'auth' | 'form' | 'success'>('select');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string>('');
@@ -409,7 +410,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     }
     setSelectedService(svc);
     setSelectedDepartment(deptId);
-    setSubmissionStep('form');
+    setSubmissionStep('auth');
   };
 
   const handleServiceSubmit = (data: any) => {
@@ -687,6 +688,15 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
               </div>
             )}
 
+            {/* Authentication Step */}
+            {submissionStep === 'auth' && selectedService && selectedDepartment && (
+              <SecureAuth 
+                onSuccess={() => setSubmissionStep('form')} 
+                onBack={() => setSubmissionStep('select')}
+                language={language} 
+              />
+            )}
+
             {/* Service Form */}
             {submissionStep === 'form' && selectedService && selectedDepartment && (
               <ServiceForm
@@ -736,7 +746,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       key={item.id}
                       onClick={() => {
                         setSelectedBillService(item as any);
-                        setBillingStep('form');
+                        setBillingStep('auth');
                       }}
                       className="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-blue-400 transition-all flex flex-col items-center group relative overflow-hidden"
                     >
@@ -749,6 +759,14 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   ))}
                 </div>
               </div>
+            )}
+
+            {billingStep === 'auth' && (
+              <SecureAuth 
+                onSuccess={() => setBillingStep('form')} 
+                onBack={() => setBillingStep('select')}
+                language={language} 
+              />
             )}
 
             {billingStep === 'form' && selectedBillService && (

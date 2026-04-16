@@ -260,7 +260,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
           </div>
         )}
 
-        {step === 'documents' && (
+        {(step === 'documents' || step === 'submitting') && (
           <div className="p-10 space-y-8 animate-in slide-in-from-right-4">
             <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl">
               <h4 className="font-bold text-amber-900 mb-2">Required Documents for {formData.connectionType}</h4>
