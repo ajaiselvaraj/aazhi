@@ -448,6 +448,7 @@ export default function LoginPage() {
                 <option value="Water Supply Department">{t('login.dept_water') || 'Water Supply Department'}</option>
                 <option value="Gas Distribution">{t('login.dept_gas') || 'Gas Distribution'}</option>
                 <option value="Municipal Services">{t('login.dept_municipal') || 'Municipal Services'}</option>
+                <option value="ALL">{t('login.dept_all') || 'All Departments (Super Admin)'}</option>
               </select>
             </div>
 

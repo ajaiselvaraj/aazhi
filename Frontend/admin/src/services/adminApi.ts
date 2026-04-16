@@ -75,8 +75,10 @@ export const adminApi = {
   },
 
   // ── Dashboard ──
-  getDashboard: async () => {
-    const json = await request('/admin/dashboard');
+  getDashboard: async (department?: string) => {
+    let url = '/admin/dashboard';
+    if (department && department !== 'ALL') url += `?department=${encodeURIComponent(department)}`;
+    const json = await request(url);
     return json.data;
   },
 
