@@ -4,7 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-    onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE') => void;
+    onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => void;
     onExit: () => void;
     language: Language;
 }
@@ -122,15 +122,15 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
             <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('elec_otherTools') || 'Other Tools'}</h3>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
                 {[
-                    { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator'), desc: t('calcSub') },
-                    { id: 'TARIFF', icon: FileText, label: t('tariffDetails'), desc: t('viewRates') || 'View rates & slabs' },
+                    { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator') || 'Bill Calculator', desc: t('calcSub') || 'Estimate bill' },
+                    { id: 'TARIFF', icon: FileText, label: t('tariffDetails') || 'Tariff Details', desc: t('viewRates') || 'View rates & slabs' },
                     { id: 'TRANSACTIONS', icon: CreditCard, label: "My Transactions", desc: "View Payment History" },
-                    { id: 'APP', icon: Smartphone, label: t('appDownload'), desc: t('mobileServices') || 'Mobile services' },
+                    { id: 'TRACK_REQUEST', icon: Smartphone, label: "Track Request", desc: "Status & Timelines" },
                 ].map((item) => (
                     <button
                         key={item.id}
                         onClick={() => {
-                            if (item.id === 'CALCULATOR' || item.id === 'TARIFF' || item.id === 'TRANSACTIONS') onNavigate(item.id as any);
+                            if (item.id === 'CALCULATOR' || item.id === 'TARIFF' || item.id === 'TRANSACTIONS' || item.id === 'TRACK_REQUEST') onNavigate(item.id as any);
                         }}
                         className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-300 transition text-left group"
                     >
