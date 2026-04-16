@@ -22,6 +22,19 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
   const [showLangMenu, setShowLangMenu] = useState(false)
   const langMenuRef = useRef<HTMLDivElement>(null)
 
+  const getDeptColor = (dept: string | undefined) => {
+    if (!dept) return '#2F6BFF'
+    const lower = dept.toLowerCase()
+    if (lower === 'all') return '#8b5cf6' // Purple for Super Admin
+    if (lower.includes('water')) return '#3b82f6' // Blue
+    if (lower.includes('gas')) return '#f97316' // Orange
+    if (lower.includes('electricity') || lower.includes('power')) return '#eab308' // Yellow
+    if (lower.includes('municipal')) return '#10b981' // Green
+    return '#2F6BFF'
+  }
+  
+  const deptColor = getDeptColor(user?.department)
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
@@ -55,11 +68,11 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
           color: '#1F2937',
           lineHeight: 1.2,
         }}>
-          {t('nav.admin_portal')}
+          {user?.department === 'ALL' ? 'Super Admin Dashboard' : user?.department ? `${deptName(user.department, t)} Dashboard` : t('nav.admin_portal') || 'Admin Portal'}
         </div>
         <div style={{
           fontSize: '.74rem',
-          color: '#2F6BFF',
+          color: deptColor,
           fontWeight: 600,
           marginTop: '.1rem',
           display: 'flex',
@@ -67,11 +80,20 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
           gap: '.35rem',
         }}>
           <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: '#2F6BFF',
+            width: 8, height: 8, borderRadius: '2px',
+            background: deptColor,
             display: 'inline-block', flexShrink: 0,
           }} />
-          {deptName(user?.department, t)}
+          <span style={{ 
+            background: `color-mix(in srgb, ${deptColor} 15%, transparent)`, 
+            padding: '2px 6px', 
+            borderRadius: '4px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            fontSize: '10px'
+          }}>
+            Logged in as: {user?.department === 'ALL' ? 'SUPER ADMIN (ALL DEPARTMENTS)' : user?.department ? deptName(user.department, t).toUpperCase() + ' ADMIN' : 'SUPER ADMIN'}
+          </span>
         </div>
       </div>
 
@@ -200,16 +222,15 @@ export default function TopBar({ pageTitle, onNotifications }: TopBarProps) {
           }} />
         </button>
 
-        {/* Admin avatar */}
         <div
           title={`${user?.name || 'Admin'} — ${t('nav.profile') || 'Profile'}`}
           style={{
             width: 36, height: 36, borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary), #1a55e8)',
+            background: `linear-gradient(135deg, ${deptColor}, color-mix(in srgb, ${deptColor} 80%, black))`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: '#fff', fontWeight: 700, fontSize: '.85rem',
             cursor: 'pointer', flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(47,107,255,.3)',
+            boxShadow: `0 2px 8px color-mix(in srgb, ${deptColor} 30%, transparent)`,
           }}
         >
           {getInitials(user?.name || 'Admin')}

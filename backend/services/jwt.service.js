@@ -9,7 +9,8 @@ export const generateTokens = (user) => {
     const payload = {
         id: user.id,
         mobile: user.mobile,
-        role: user.role || "citizen"
+        role: user.role || "citizen",
+        department: user.department || null
     };
 
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {

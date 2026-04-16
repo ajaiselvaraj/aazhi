@@ -24,6 +24,7 @@ export default function authMiddleware(req, res, next) {
             id: decoded.id,
             role: decoded.role,
             name: decoded.name,
+            department: decoded.department,
         };
         
         console.log(`✅ [AUTH DEBUG] Token valid. User decoded -> ID: ${req.user.id} | Role: ${req.user.role}`);
@@ -51,6 +52,7 @@ export function optionalAuth(req, res, next) {
                 id: decoded.id,
                 role: decoded.role,
                 name: decoded.name,
+                department: decoded.department,
             };
         }
     } catch {

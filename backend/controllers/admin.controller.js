@@ -11,12 +11,39 @@ import logger from "../utils/logger.js";
 // ─── Dashboard Overview Stats ────────────────────────────
 export const getDashboardStats = async (req, res, next) => {
     try {
-        const [citizens, bills, complaints, serviceRequests, transactions] = await Promise.all([
+        let deptCondition = "";
+        let params = [];
+        
+        let userDept = req.user?.department;
+        // Super Admin / ALL access can view all if they don't specify a filter, or we can just filter by req.user.department.
+        if (userDept && userDept !== "ALL") {
+            deptCondition = " AND department = $1";
+            params.push(userDept);
+        } else if (req.query.department) {
+             deptCondition = " AND department = $1";
+             params.push(req.query.department);
+        }
+
+        const [citizens, bills, complaints, serviceRequests, transactions, complaintsByDept] = await Promise.all([
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM complaints"),
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM service_requests"),
+            pool.query(`SELECT 
+                COUNT(*) as total, 
+                COUNT(*) FILTER (WHERE status = 'active' OR status = 'pending') as active, 
+                COUNT(*) FILTER (WHERE status = 'resolved') as resolved, 
+                COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
+                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count,
+                COUNT(*) FILTER (WHERE status = 'pending' AND created_at < NOW() - INTERVAL '48 hours') as sla_breach
+               FROM complaints WHERE 1=1${deptCondition}`, params),
+            pool.query(`SELECT 
+                COUNT(*) as total, 
+                COUNT(*) FILTER (WHERE status = 'active' OR status = 'pending') as active, 
+                COUNT(*) FILTER (WHERE status = 'resolved') as resolved, 
+                COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
+                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count
+               FROM service_requests WHERE 1=1${deptCondition}`, params),
             pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions"),
+            pool.query("SELECT department, COUNT(*) as count FROM complaints GROUP BY department"),
         ]);
 
         return success(res, "Dashboard statistics", {
@@ -25,6 +52,15 @@ export const getDashboardStats = async (req, res, next) => {
             complaints: complaints.rows[0],
             service_requests: serviceRequests.rows[0],
             transactions: transactions.rows[0],
+            // Add top-level fields for the new requirement
+            totalComplaints: parseInt(complaints.rows[0].total),
+            pendingComplaints: parseInt(complaints.rows[0].active),
+            resolvedComplaints: parseInt(complaints.rows[0].resolved),
+            todayComplaints: parseInt(complaints.rows[0].today_count),
+            slaBreaches: parseInt(complaints.rows[0].sla_breach),
+            totalServices: parseInt(serviceRequests.rows[0].total),
+            todayServices: parseInt(serviceRequests.rows[0].today_count),
+            deptDistribution: complaintsByDept.rows
         });
     } catch (err) {
         next(err);
@@ -191,7 +227,18 @@ export const getPaymentStats = async (req, res, next) => {
 // ─── All Complaints (Admin View) ─────────────────────────
 export const getAllComplaints = async (req, res, next) => {
     try {
-        const { status, department, priority, page = 1, limit = 50 } = req.query;
+        const { status, priority, page = 1, limit = 50 } = req.query;
+        let department = req.query.department;
+
+        // Apply strict department filtering from token
+        if (!req.user?.department) {
+            return fail(res, "Access Denied: Missing department context.", 403);
+        }
+
+        if (req.user?.department !== 'ALL' && req.user?.role !== 'super_admin') {
+            department = req.user.department;
+        }
+
         const offset = (page - 1) * limit;
 
         const useSupabase = supabase !== null;
@@ -315,7 +362,18 @@ export const updateServiceConfig = async (req, res, next) => {
 // ─── All Service Requests (Admin View) ───────────────────
 export const getAllServiceRequests = async (req, res, next) => {
     try {
-        const { status, department, page = 1, limit = 25 } = req.query;
+        const { status, page = 1, limit = 25 } = req.query;
+        let department = req.query.department;
+
+        // Apply strict department filtering from token
+        if (!req.user?.department) {
+            return fail(res, "Access Denied: Missing department context.", 403);
+        }
+        
+        if (req.user?.department !== 'ALL' && req.user?.role !== 'super_admin') {
+            department = req.user.department;
+        }
+
         const offset = (page - 1) * limit;
 
         const useSupabase = supabase !== null;

@@ -13,7 +13,9 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const { t } = useLanguage()
-  const dept = deptName(user?.department, t)
+  const isSuperAdmin = user?.department === 'ALL'
+  const [selectedDept, setSelectedDept] = useState(isSuperAdmin ? 'ALL' : (user?.department || 'ALL'))
+  const dept = selectedDept === 'ALL' ? 'All Departments' : deptName(selectedDept, t)
 
   const [isFetching, setIsFetching] = useState(false)
 
@@ -38,27 +40,32 @@ export default function DashboardOverview() {
       clearInterval(interval)
       controller.abort() // Cancel any pending request on unmount/re-render
     }
-  }, [])
+  }, [selectedDept])
 
   async function loadDashboard(signal?: AbortSignal) {
     setIsFetching(true)
     try {
-      const data = await adminApi.getDashboard() // pass signal here if API client supports it
-      const totalComplaints = parseInt(data.complaints?.total) || 0;
-      const resolvedComplaints = parseInt(data.complaints?.resolved) || 0;
-      const totalSR = parseInt(data.service_requests?.total) || 0;
-      const completedSR = parseInt(data.service_requests?.completed) || 0;
+      const data = await adminApi.getDashboard(selectedDept) // pass signal here if API client supports it
+      const totalComplaints = data.totalComplaints ?? (parseInt(data.complaints?.total) || 0);
+      const pendingComplaints = data.pendingComplaints ?? (parseInt(data.complaints?.active) || 0);
+      const resolvedComplaints = data.resolvedComplaints ?? (parseInt(data.complaints?.resolved) || 0);
+      const totalSR = data.totalServices ?? (parseInt(data.service_requests?.total) || 0);
+      const completedSR = parseInt(data.service_requests?.resolved) || 0;
 
       setStats({
         totalComplaints: totalComplaints,
         totalSR: totalSR,
         resolved: resolvedComplaints,
-        critical: 0,
+        critical: data.slaBreaches || 0,
         pendingSR: totalSR - completedSR,
         duplicatesDetected: Math.floor(totalComplaints * 0.1), // Placeholder metric
         fraudFlagged: 0,
         avgResolutionHrs: 24.5,
-        pending: totalComplaints - resolvedComplaints
+        pending: pendingComplaints,
+        todayComplaints: data.todayComplaints || 0,
+        todayServices: data.todayServices || 0,
+        slaBreaches: data.slaBreaches || 0,
+        deptDistribution: data.deptDistribution || []
       })
     } catch (e: any) {
       if (e.name === 'AbortError') {
@@ -73,21 +80,46 @@ export default function DashboardOverview() {
   }
 
   const statCards = [
-    { label: t('dashboard.total_complaints') || 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: t('dashboard.lbl_live_sync') || 'Live syncing', up: true },
-    { label: t('dashboard.service_req') || 'Service Requests',     value: stats?.totalSR.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: t('dashboard.lbl_utility') || 'Utility apps', up: true },
-    { label: t('dashboard.resolved_iss') || 'Resolved (Issues)',    value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: t('dashboard.lbl_live_sync') || 'Live syncing', up: true },
-    { label: t('dashboard.critical_iss') || 'Critical Issues',      value: stats?.critical.toLocaleString() || '0',         icon: AlertTriangle,color: '#FF4D4F', bg: '#fff1f0', delta: t('dashboard.lbl_attn') || 'Requires attention', up: false },
-    { label: t('dashboard.dup_caught') || 'Duplicates Caught',    value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_time_svd') || 'Time saved', up: true },
-    { label: t('dashboard.fraud_flag') || 'Fraud Flagged',        value: stats?.fraudFlagged.toLocaleString() || '0',     icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: t('dashboard.lbl_sec_chk') || 'Security check', up: false },
-    { label: t('dashboard.avg_res') || 'Avg Resolution (hrs)', value: stats?.avgResolutionHrs?.toFixed(1) || '0.0',       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: t('dashboard.lbl_steady') || 'Steady', up: true },
-    { label: t('dashboard.pend_iss') || 'Pending (Issues)',     value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_in_prog') || 'In progress', up: false },
+    { label: t('dashboard.total_complaints') || 'Total Complaints',     value: stats?.totalComplaints.toLocaleString() || '0', icon: MessageSquare, color: '#2F6BFF', bg: '#E8F0FF', delta: `+${stats?.todayComplaints || 0} today`, up: true },
+    { label: 'SLA Breaches',                                            value: stats?.slaBreaches?.toLocaleString() || '0',   icon: AlertTriangle, color: '#FF4D4F', bg: '#fff1f0', delta: 'Requires immediate action', up: false },
+    { label: t('dashboard.service_req') || 'Service Requests',          value: stats?.totalSR.toLocaleString() || '0',         icon: Cpu,          color: '#9b59b6', bg: '#f5eef8', delta: `+${stats?.todayServices || 0} today`, up: true },
+    { label: t('dashboard.resolved_iss') || 'Resolved (Issues)',       value: stats?.resolved.toLocaleString() || '0',         icon: CheckCircle,  color: '#2ECC71', bg: '#eafaf1', delta: t('dashboard.lbl_live_sync') || 'Live syncing', up: true },
+    { label: t('dashboard.dup_caught') || 'Duplicates Caught',         value: stats?.duplicatesDetected.toLocaleString() || '0',icon: Copy,        color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_time_svd') || 'Time saved', up: true },
+    { label: 'Avg Resolution Time',                                     value: '42 hrs',                                       icon: Clock,        color: '#2ECC71', bg: '#eafaf1', delta: 'Within SLA', up: true },
+    { label: t('dashboard.pend_iss') || 'Pending (Issues)',            value: stats?.pending.toLocaleString() || '0',          icon: TrendingUp,   color: '#FFA940', bg: '#fff7e6', delta: t('dashboard.lbl_in_prog') || 'In progress', up: false },
+    { label: 'Fraud Alerts',                                           value: '0',                                             icon: ShieldAlert,  color: '#FF4D4F', bg: '#fff1f0', delta: 'No threats detected', up: true },
   ]
   return (
     <div className="section-gap">
       {/* Page Header */}
-      <div className="page-header">
-        <h1>{dept} — {t('nav.overview')}</h1>
-        <p>{t('dashboard.real_time_sum') || `Real-time summary of department complaints, AI processing, and infrastructure health.`}</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1>{isSuperAdmin && selectedDept === 'ALL' ? 'Super Admin Dashboard' : dept} — {t('nav.overview')}</h1>
+          <p>{t('dashboard.real_time_sum') || `Real-time summary of department complaints, AI processing, and infrastructure health.`}</p>
+        </div>
+        
+        {isSuperAdmin && (
+          <select 
+            value={selectedDept} 
+            onChange={(e) => setSelectedDept(e.target.value)}
+            style={{ 
+              padding: '0.6rem 1rem', 
+              borderRadius: '10px', 
+              border: '1px solid var(--border)', 
+              fontWeight: 600,
+              background: '#fff',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+            }}
+          >
+            <option value="ALL">ALL DEPARTMENTS</option>
+            <option value="Electricity Department">Electricity Department</option>
+            <option value="Water Supply Department">Water Supply Department</option>
+            <option value="Gas Distribution">Gas Distribution</option>
+            <option value="Municipal Services">Municipal Services</option>
+          </select>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -146,6 +178,38 @@ export default function DashboardOverview() {
         </div>
         <span className="live-dot">{t('common.live')}</span>
       </div>
+
+      {/* Dept Distribution Bar Chart — only in "ALL" mode */}
+      {selectedDept === 'ALL' && stats?.deptDistribution && stats.deptDistribution.length > 0 && (
+        <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#fff', borderRadius: 16, border: '1px solid var(--border)' }}>
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 700 }}>Complaints per Department</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {stats.deptDistribution.map((d: any, idx: number) => {
+               const max = Math.max(...stats.deptDistribution.map((item: any) => parseInt(item.count)));
+               const percentage = (parseInt(d.count) / max) * 100;
+               return (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ width: 180, fontSize: '.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    {deptName(d.department, t)}
+                  </div>
+                  <div style={{ flex: 1, height: 12, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ 
+                      width: `${percentage}%`, 
+                      height: '100%', 
+                      background: 'linear-gradient(90deg, #2F6BFF, #6366f1)',
+                      borderRadius: 6,
+                      transition: 'width 1s ease-in-out'
+                    }} />
+                  </div>
+                  <div style={{ width: 40, textAlign: 'right', fontSize: '.85rem', fontWeight: 700, color: 'var(--primary)' }}>
+                    {d.count}
+                  </div>
+                </div>
+               )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -154,8 +154,8 @@ export const adminLogin = async (req, res, next) => {
         }
 
         const admin = result.rows[0];
+        admin.department = department;
 
-        // Tokens usually generated based on citizen. But generateTokens function likely just grabs id, role, name.
         const { accessToken, refreshToken } = generateTokens(admin);
 
         logger.info(`[Auth Controller] Admin login success for ${adminId} in ${department}`);
