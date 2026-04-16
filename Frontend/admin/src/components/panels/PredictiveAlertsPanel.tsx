@@ -3,6 +3,7 @@ import { BellRing, Clock } from 'lucide-react'
 import { predictiveAlerts, PredictiveAlert } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const SEVERITY_STYLES = {
   'Critical': { bg: '#fff1f0', border: '#FF4D4F', text: '#c0392b', badge: 'badge-danger', iconText: '🚨 Critical Infrastructure Risk' },
@@ -12,6 +13,7 @@ const SEVERITY_STYLES = {
 
 export default function PredictiveAlertsPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const alerts = user ? filterByDept(predictiveAlerts, user.department) : predictiveAlerts
   const critical = alerts.filter(a => a.severity === 'Critical').length
 
@@ -21,13 +23,13 @@ export default function PredictiveAlertsPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" style={{ background: 'var(--alert)' }} />
-          System Alerts
+          {t('pred_alerts.title') || 'System Alerts'}
         </div>
         <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
           <span className="badge badge-danger pulse-alert">
-            <BellRing size={10} /> {critical} Critical
+            <BellRing size={10} /> {critical} {t('pred_alerts.critical') || 'Critical'}
           </span>
-          <span className="live-dot">Live</span>
+          <span className="live-dot">{t('common.live') || 'Live'}</span>
         </div>
       </div>
 
@@ -59,11 +61,11 @@ export default function PredictiveAlertsPanel() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '.5rem', flexWrap: 'wrap', gap: '.5rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
                     <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{sty.iconText}</span>
-                    <span className={`badge ${sty.badge}`}>Active</span>
+                    <span className={`badge ${sty.badge}`}>{t('pred_alerts.active') || 'Active'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.8rem', color: 'var(--text-muted)', flexShrink: 0 }}>
                     <Clock size={12} />
-                    Detected {alert.time}
+                    {t('pred_alerts.detected') || 'Detected'} {alert.time}
                   </div>
                 </div>
                 
@@ -76,7 +78,7 @@ export default function PredictiveAlertsPanel() {
                 </p>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                  <span>🤖 AI Risk Detection System</span>
+                  <span>🤖 {t('pred_alerts.ai_sys') || 'AI Risk Detection System'}</span>
                   <span>•</span>
                   <span>📍 {alert.ward}</span>
                 </div>
@@ -84,13 +86,13 @@ export default function PredictiveAlertsPanel() {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center' }}>
                   <button className="btn btn-primary" style={{ padding: '.45rem .85rem', fontSize: '.8rem', height: 'auto' }}>
-                    View Incident
+                    {t('pred_alerts.view_incident') || 'View Incident'}
                   </button>
                   <button className="btn btn-outline" style={{ padding: '.45rem .85rem', fontSize: '.8rem', height: 'auto' }}>
-                    Assign Team
+                    {t('pred_alerts.assign_team') || 'Assign Team'}
                   </button>
                   <button className="btn btn-ghost" style={{ padding: '.45rem .75rem', fontSize: '.8rem', height: 'auto', color: 'var(--text-muted)' }}>
-                    Dismiss Alert
+                    {t('pred_alerts.dismiss') || 'Dismiss Alert'}
                   </button>
                 </div>
               </div>

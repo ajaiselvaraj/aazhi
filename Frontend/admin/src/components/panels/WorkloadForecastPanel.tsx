@@ -7,6 +7,7 @@ import {
 import { workloadForecast, tomorrowForecast } from '../../data/mockData'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
+import { useLanguage } from '../../context/LanguageContext'
 
 const SERIES = [
   { key: 'electricity', label: 'Electricity', color: '#FFA940' },
@@ -35,6 +36,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function WorkloadForecastPanel() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const myDeptKey = user ? deptKey(user.department) : ''
 
   // Filter to only the series that match the logged-in dept
@@ -52,10 +54,10 @@ export default function WorkloadForecastPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" />
-          Department Workload Prediction
+          {t('workload.title') || 'Department Workload Prediction'}
         </div>
         <div style={{ display: 'flex', gap: '.5rem' }}>
-          <span className="badge badge-info"><TrendingUp size={10} /> 7-Day Forecast</span>
+          <span className="badge badge-info"><TrendingUp size={10} /> {t('workload.forecast_badge') || '7-Day Forecast'}</span>
         </div>
       </div>
 
@@ -74,13 +76,13 @@ export default function WorkloadForecastPanel() {
               textAlign: 'center',
             }}>
               <div style={{ fontSize: '.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.3rem' }}>
-                Tomorrow · {s.label}
+                {t('workload.tomorrow') || 'Tomorrow'} · {s.label}
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, fontFamily: 'Poppins,sans-serif' }}>
                 {val}
               </div>
               <div style={{ fontSize: '.72rem', marginTop: '.2rem', color: isHigh ? 'var(--alert)' : 'var(--success)', fontWeight: 600 }}>
-                {isHigh ? '↑ High Load' : '✓ Normal'}
+                {isHigh ? (t('workload.high_load') || '↑ High Load') : (t('workload.normal') || '✓ Normal')}
               </div>
             </div>
           )
