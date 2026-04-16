@@ -8,6 +8,7 @@ import ElectricityNewConnectionForm from './ElectricityNewConnectionForm';
 import ElectricityMeterServiceForm from './ElectricityMeterServiceForm';
 import ElectricityComplaints from './ElectricityComplaints';
 import ElectricityProfile from './ElectricityProfile';
+import ElectricityTracker from './ElectricityTracker';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -19,10 +20,10 @@ interface Props {
 
 // Wrapper component to manage state between sub-modules
 const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
-    const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE'>('HOME');
+    const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST'>('HOME');
     const { t } = useTranslation();
 
-    const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE') => {
+    const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => {
         setView(target);
     };
 
@@ -42,6 +43,7 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
             {view === 'METER_SERVICE' && <ElectricityMeterServiceForm onBack={handleInternalBack} language={language} />}
             {view === 'COMPLAINTS' && <ElectricityComplaints onBack={handleInternalBack} language={language} />}
             {view === 'PROFILE' && <ElectricityProfile onBack={handleInternalBack} language={language} />}
+            {view === 'TRACK_REQUEST' && <ElectricityTracker onBack={handleInternalBack} language={language} />}
 
             {/* Placeholder for Tariff */}
             {view === 'TARIFF' && (

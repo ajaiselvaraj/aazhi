@@ -151,3 +151,57 @@ export const requestNewConnection = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Get Bill by Consumer Number (Quick Pay) ─────────────
+export const getQuickPayBill = async (req, res, next) => {
+    try {
+        const { id: consumerNumber } = req.params;
+
+        // Implementation Note: In a real BBPS system, this would call the utility provider's API.
+        // Here we query our bills table linked via utility_accounts.
+        const result = await pool.query(
+            `SELECT b.*, ua.account_number, c.name as citizen_name
+             FROM bills b 
+             JOIN utility_accounts ua ON b.account_id = ua.id
+             JOIN citizens c ON b.citizen_id = c.id
+             WHERE ua.account_number = $1 AND b.service_type = 'electricity'
+             AND b.status = 'pending'
+             ORDER BY b.due_date ASC LIMIT 1`,
+            [consumerNumber]
+        );
+
+        if (result.rows.length === 0) {
+            // For Demo Purposes: If the characteristic "04-123-456" is used, return a mock bill if not found in DB
+            if (consumerNumber === '04-123-456' || consumerNumber === '123456789') {
+                return success(res, "Demo bill retrieved", {
+                    id: "demo-bill-id",
+                    account_number: consumerNumber,
+                    amount: 1450.50,
+                    billing_month: "April",
+                    billing_year: "2026",
+                    bill_number: "ELE-DEMO-99",
+                    due_date: "2026-05-15",
+                    status: "pending",
+                    metadata: {
+                        consumer_name_masked: "RAM*** KUMA*"
+                    }
+                });
+            }
+            return fail(res, "No pending bill found for this consumer number.", 404);
+        }
+
+        const bill = result.rows[0];
+        // Mask the name for security in public fetch
+        if (bill.citizen_name) {
+            const names = bill.citizen_name.split(' ');
+            bill.metadata = {
+                ...bill.metadata,
+                consumer_name_masked: names.map(n => n[0] + '*'.repeat(Math.max(0, n.length - 1))).join(' ')
+            };
+        }
+
+        return success(res, "Bill details retrieved", bill);
+    } catch (err) {
+        next(err);
+    }
+};
