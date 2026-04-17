@@ -1,10 +1,10 @@
 import React from 'react';
-import { Flame, ShieldCheck, CreditCard, AlertTriangle, ArrowRight, ArrowLeft, FileText, User, UserCog, Calculator, Smartphone, Lock } from 'lucide-react';
+import { Flame, ShieldCheck, CreditCard, AlertTriangle, ArrowRight, ArrowLeft, FileText, User, UserCog, Calculator, Smartphone, Lock, SearchCode } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
-  onNavigate: (view: 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
+  onNavigate: (view: 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
   onExit: () => void;
   language: Language;
 }
@@ -126,14 +126,14 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('gas_otherTools') || 'Other Tools'}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
+          { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace status' },
           { id: 'CALCULATOR', icon: Calculator, label: 'Bill Calculator', desc: 'Estimate usage' },
           { id: 'TARIFF', icon: FileText, label: 'Tariff Details', desc: 'View gas charge slabs' },
           { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
-          { id: 'APP', icon: Smartphone, label: 'Provider App', desc: 'Download mobile app' },
         ].map((item) => (
           <button
             key={item.id}
-            onClick={() => { if(item.id !== 'APP') onNavigate(item.id as any); }}
+            onClick={() => onNavigate(item.id as any)}
             className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-orange-300 transition text-left group"
           >
              <div className="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-slate-200 transition">
