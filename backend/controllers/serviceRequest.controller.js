@@ -8,24 +8,104 @@ import { supabase } from "../config/supabaseClient.js";
 import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
+import axios from "axios";
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5005';
 
 // ─── Create Service Request (Auto Supabase / Postgres Version) ──
 export const createServiceRequest = async (req, res, next) => {
     try {
         console.log("📥 [DEBUG] Incoming Service Request Body:", req.body);
-        
+        const citizenId = req.user.id;
+        let { request_type, department, description, ward, phone, metadata } = req.body;
+
+        if (!description || description.trim().length < 10) {
+            return fail(res, "Description is too short. Please provide more details.", 400);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // AAZHI AI INTEGRATION - Validate, Classify, and Enrich Request
+        // ═══════════════════════════════════════════════════════════════
+
+        // 1. Check for Duplicates to prevent spam/repeated submissions
+        try {
+            const { rows: existing_complaints_raw } = await pool.query(
+                `SELECT id, ticket_number, description FROM service_requests WHERE citizen_id = $1 ORDER BY created_at DESC LIMIT 5`,
+                [citizenId]
+            );
+
+            if (existing_complaints_raw.length > 0) {
+                const existing_complaints = existing_complaints_raw.map(c => ({
+                    id: c.id,
+                    ticket_number: c.ticket_number,
+                    subject: c.description,
+                    description: ''
+                }));
+
+                const duplicateCheckRes = await axios.post(`${AI_SERVICE_URL}/api/ai/check-duplicate`, {
+                    text: description,
+                    existing_complaints: existing_complaints
+                });
+
+                if (duplicateCheckRes.data?.data?.is_duplicate) {
+                    logger.warn("Duplicate service request detected", { citizenId, matched_ticket: duplicateCheckRes.data.data.matched_ticket });
+                    return fail(res, `Request may be a duplicate of ticket ${duplicateCheckRes.data.data.matched_ticket}.`, 409);
+                }
+            }
+        } catch (aiErr) {
+            logger.error("AI service (duplicate check) call failed. Proceeding without check.", { error: aiErr.message });
+        }
+
+        // 2. Validate for Spam
+        try {
+            const validationResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/validate-complaint`, { text: description });
+            if (validationResponse.data?.data?.is_spam) {
+                logger.warn("Spam detected for service request", { citizenId, description });
+                return fail(res, "Request rejected as potential spam.", 400);
+            }
+        } catch (aiErr) {
+            logger.error("AI service (validation) call failed. Proceeding without spam check.", { error: aiErr.message });
+        }
+
+        // 3. Classify Department & Analyze Sentiment
+        let aiData = {};
+        let classifiedDepartment = department; // Fallback to user-provided department
+        try {
+            const [classifyRes, sentimentRes] = await Promise.all([
+                axios.post(`${AI_SERVICE_URL}/api/ai/classify-complaint`, { text: description }),
+                axios.post(`${AI_SERVICE_URL}/api/ai/analyze-sentiment`, { text: description })
+            ]);
+
+            if (classifyRes.data?.success && classifyRes.data.data?.department) {
+                classifiedDepartment = classifyRes.data.data.department;
+                aiData.classification = classifyRes.data.data;
+                logger.info(`AI classified department as: ${classifiedDepartment}`);
+            }
+            if (sentimentRes.data?.success) {
+                aiData.sentiment = sentimentRes.data.data;
+                logger.info(`AI analyzed sentiment as: ${sentimentRes.data.data.sentiment}`);
+            }
+        } catch (aiErr) {
+            logger.error("AI service (classification/sentiment) call failed. Proceeding without AI enrichment.", { error: aiErr.message });
+        }
+
+        // 4. Combine metadata
+        const finalMetadata = {
+            ...(metadata || {}),
+            ai_analysis: aiData
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+
         const useSupabaseRest = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!useSupabaseRest) {
             console.warn("⚠️ [WARN] SUPABASE_SERVICE_ROLE_KEY missing. Falling back to direct database pooling (which still goes to Supabase DB)!");
         }
 
-        const citizenId = req.user.id;
-        let { request_type, department, description, ward, phone, metadata } = req.body;
-
         if (description && typeof description === 'string' && description.length > 5000) {
-            description = description.substring(0, 5000); 
+            description = description.substring(0, 5000);
         }
-        if (metadata && JSON.stringify(metadata).length > 20000) {
+        if (finalMetadata && JSON.stringify(finalMetadata).length > 20000) {
             return fail(res, "Metadata payload exceeds strict limits.", 400);
         }
 
@@ -47,12 +127,12 @@ export const createServiceRequest = async (req, res, next) => {
                 citizen_id: citizenId,
                 citizen_name: citizenName,
                 request_type: request_type,
-                department: department,
+                department: classifiedDepartment,
                 description: description,
                 ward: ward || null,
                 phone: phone || null,
-                metadata: metadata || {},
-                current_stage: 'created', 
+                metadata: finalMetadata,
+                current_stage: 'created',
                 status: 'pending'
             };
 
@@ -72,7 +152,7 @@ export const createServiceRequest = async (req, res, next) => {
                 console.error("❌ [SUPABASE ERROR] Insert succeeded but no data returned. Check RLS policies.");
                 return fail(res, "Request created but failed to retrieve confirmation.", 500);
             }
-            
+
             requestRecord = insertedData[0];
 
             const stages = ["created", "assigned", "working", "completed"];
@@ -91,9 +171,9 @@ export const createServiceRequest = async (req, res, next) => {
                  (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status)
                  VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'created', 'pending')
                  RETURNING *`,
-                [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
+                [ticketNumber, citizenId, request_type, classifiedDepartment, description, ward || null, phone || null, JSON.stringify(finalMetadata)]
             );
-            
+
             requestRecord = result.rows[0];
 
             const stages = ["created", "assigned", "working", "completed"];
@@ -106,7 +186,7 @@ export const createServiceRequest = async (req, res, next) => {
         }
 
         console.log("✅ [DEBUG] Successfully inserted service request:", requestRecord.ticket_number);
-        logger.info("Service request created", { citizenId, ticketNumber, request_type, department });
+        logger.info("Service request created", { citizenId, ticketNumber, request_type, department: classifiedDepartment });
 
         return success(res, "Service request submitted", requestRecord, 201);
     } catch (err) {
@@ -249,15 +329,15 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         const { current_stage, status, notes, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
-        const idCheckQuery = id.startsWith('TKT-') || id.startsWith('SRQ-') 
-            ? "SELECT * FROM service_requests WHERE ticket_number = $1" 
+        const idCheckQuery = id.startsWith('TKT-') || id.startsWith('SRQ-')
+            ? "SELECT * FROM service_requests WHERE ticket_number = $1"
             : "SELECT * FROM service_requests WHERE id = $1";
 
         const current = await pool.query(idCheckQuery, [id]);
         if (current.rows.length === 0) {
             return fail(res, "Service request not found.", 404);
         }
-        
+
         const actualId = current.rows[0].id;
 
         // Logical overrides
@@ -267,7 +347,7 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         if (finalStage && (finalStage.toLowerCase() === "resolved" || finalStage.toLowerCase() === "completed")) {
             finalStatus = "resolved";
         }
-        
+
         console.log(`🔄 [DEBUG] Updating Service Request ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
 
         // Update request
@@ -412,18 +492,18 @@ export const updateRequestStatusDebug = async (req, res, next) => {
         const updatedBy = 1;
 
         const current = await pool.query(
-            id.startsWith('TKT-') || id.startsWith('SRQ-') 
-            ? "SELECT * FROM service_requests WHERE ticket_number = $1" 
-            : "SELECT * FROM service_requests WHERE id = $1", 
+            id.startsWith('TKT-') || id.startsWith('SRQ-')
+                ? "SELECT * FROM service_requests WHERE ticket_number = $1"
+                : "SELECT * FROM service_requests WHERE id = $1",
             [id]
         );
-        
+
         if (current.rows.length === 0) {
             return fail(res, "Service request not found.", 404);
         }
-        
+
         const actualId = current.rows[0].id;
-        
+
         let finalStatus = status ? status.toLowerCase() : (current.rows[0].status || "").toLowerCase();
         let finalStage = current_stage || current.rows[0].current_stage;
 

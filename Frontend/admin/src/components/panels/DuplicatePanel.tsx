@@ -1,9 +1,9 @@
-import React from 'react'
-import { Copy, GitMerge, Users } from 'lucide-react'
-import { duplicateClusters, DuplicateCluster } from '../../data/mockData'
+import React, { useState, useEffect } from 'react'
+import { Copy, GitMerge, Users, RefreshCw } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { DuplicateCluster } from '../../data/mockData' // Keep type for structure
 import { useAuth } from '../../context/AuthContext'
 import { filterByDept } from '../../utils/deptFilter'
-import { useLanguage } from '../../context/LanguageContext'
 
 function StatusChip({ s }: { s: DuplicateCluster['status'] }) {
   const { t } = useLanguage()
@@ -13,15 +13,14 @@ function StatusChip({ s }: { s: DuplicateCluster['status'] }) {
 }
 
 const DEPT_COLORS: Record<string, string> = {
-  'Electricity':      '#FFA940',
-  'Water Supply':     '#2F6BFF',
-  'Municipal':        '#2ECC71',
+  'Electricity': '#FFA940',
+  'Water Supply': '#2F6BFF',
+  'Municipal': '#2ECC71',
   'Gas Distribution': '#FF4D4F',
 }
 
 export default function DuplicatePanel() {
   const { user } = useAuth()
-  const { t } = useLanguage()
   const clusters = user ? filterByDept(duplicateClusters, user.department) : duplicateClusters
 
   const total = clusters.reduce((a, c) => a + c.reportCount, 0)
@@ -66,7 +65,7 @@ export default function DuplicatePanel() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '.75rem' }}>
                 <div>
                   <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.2rem' }}>
-                    {t('dup_det.issue_cluster') || 'Issue Cluster'} · {cluster.id}
+                    Issue Cluster · {cluster.id}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '.95rem', color: 'var(--text-primary)' }}>
                     {cluster.title} — {cluster.ward}
@@ -79,7 +78,7 @@ export default function DuplicatePanel() {
               <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '.75rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.82rem', color: 'var(--text-secondary)' }}>
                   <Users size={13} color={deptColor} />
-                  <span><strong style={{ color: deptColor }}>{cluster.reportCount}</strong> {t('dup_det.citizens_reported') || 'Citizens Reported'}</span>
+                  <span><strong style={{ color: deptColor }}>{cluster.reportCount}</strong> Citizens Reported</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.82rem', color: 'var(--text-secondary)' }}>
                   <GitMerge size={13} color="var(--text-muted)" />
@@ -93,7 +92,7 @@ export default function DuplicatePanel() {
                   {cluster.dept} · {cluster.timeAgo}
                 </span>
                 <button className="btn btn-ghost" style={{ padding: '.3rem .75rem', fontSize: '.72rem', height: 'auto' }}>
-                  {t('dup_det.view_master') || 'View Master'}
+                  View Master
                 </button>
               </div>
             </div>
