@@ -10,7 +10,7 @@ import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5005';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
 // ─── Create Service Request (Auto Supabase / Postgres Version) ──
 export const createServiceRequest = async (req, res, next) => {
@@ -24,72 +24,64 @@ export const createServiceRequest = async (req, res, next) => {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // AAZHI AI INTEGRATION - Validate, Classify, and Enrich Request
+        // AAZHI AI INTEGRATION - Full Analysis Pipeline
         // ═══════════════════════════════════════════════════════════════
+        let aiData = {};
+        let classifiedDepartment = department; // Fallback to user-provided department
 
-        // 1. Check for Duplicates to prevent spam/repeated submissions
         try {
+            // 1. Fetch recent complaints for duplicate check
             const { rows: existing_complaints_raw } = await pool.query(
-                `SELECT id, ticket_number, description FROM service_requests WHERE citizen_id = $1 ORDER BY created_at DESC LIMIT 5`,
+                // The AI service expects 'subject' and 'description' fields.
+                `SELECT id, ticket_number, description as subject, '' as description FROM service_requests WHERE citizen_id = $1 ORDER BY created_at DESC LIMIT 5`,
                 [citizenId]
             );
 
-            if (existing_complaints_raw.length > 0) {
-                const existing_complaints = existing_complaints_raw.map(c => ({
-                    id: c.id,
-                    ticket_number: c.ticket_number,
-                    subject: c.description,
-                    description: ''
-                }));
+            // 2. Call the single /analyze endpoint for a full pipeline run
+            const analysisResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/analyze`, {
+                text: description,
+                existing_complaints: existing_complaints_raw
+            });
 
-                const duplicateCheckRes = await axios.post(`${AI_SERVICE_URL}/api/ai/check-duplicate`, {
-                    text: description,
-                    existing_complaints: existing_complaints
-                });
+            const analysis = analysisResponse.data?.data;
 
-                if (duplicateCheckRes.data?.data?.is_duplicate) {
-                    logger.warn("Duplicate service request detected", { citizenId, matched_ticket: duplicateCheckRes.data.data.matched_ticket });
-                    return fail(res, `Request may be a duplicate of ticket ${duplicateCheckRes.data.data.matched_ticket}.`, 409);
-                }
+            if (!analysis) {
+                throw new Error("AI analysis returned no data.");
             }
-        } catch (aiErr) {
-            logger.error("AI service (duplicate check) call failed. Proceeding without check.", { error: aiErr.message });
-        }
 
-        // 2. Validate for Spam
-        try {
-            const validationResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/validate-complaint`, { text: description });
-            if (validationResponse.data?.data?.is_spam) {
-                logger.warn("Spam detected for service request", { citizenId, description });
-                return fail(res, "Request rejected as potential spam.", 400);
+            // 3. Process Validation result (SPAM CHECK)
+            if (analysis.validation?.is_spam) {
+                logger.warn("Spam detected for service request", { citizenId, description, reason: analysis.validation.reason });
+                return fail(res, `Request rejected: ${analysis.validation.reason}`, 400);
             }
-        } catch (aiErr) {
-            logger.error("AI service (validation) call failed. Proceeding without spam check.", { error: aiErr.message });
-        }
+            aiData.validation = analysis.validation;
 
-        // 3. Classify Department & Analyze Sentiment
-        let aiData = {};
-        let classifiedDepartment = department; // Fallback to user-provided department
-        try {
-            const [classifyRes, sentimentRes] = await Promise.all([
-                axios.post(`${AI_SERVICE_URL}/api/ai/classify-complaint`, { text: description }),
-                axios.post(`${AI_SERVICE_URL}/api/ai/analyze-sentiment`, { text: description })
-            ]);
+            // 4. Process Duplicate result
+            if (analysis.duplicate?.is_duplicate) {
+                logger.warn("Duplicate service request detected", { citizenId, matched_ticket: analysis.duplicate.matched_ticket });
+                return fail(res, `Request may be a duplicate of ticket ${analysis.duplicate.matched_ticket}. Similarity: ${Math.round(analysis.duplicate.similarity * 100)}%`, 409);
+            }
+            aiData.duplicate = analysis.duplicate;
 
-            if (classifyRes.data?.success && classifyRes.data.data?.department) {
-                classifiedDepartment = classifyRes.data.data.department;
-                aiData.classification = classifyRes.data.data;
+            // 5. Process Department routing result
+            if (analysis.department?.department) {
+                classifiedDepartment = analysis.department.department;
                 logger.info(`AI classified department as: ${classifiedDepartment}`);
             }
-            if (sentimentRes.data?.success) {
-                aiData.sentiment = sentimentRes.data.data;
-                logger.info(`AI analyzed sentiment as: ${sentimentRes.data.data.sentiment}`);
+            aiData.department = analysis.department;
+
+            // 6. Process Sentiment result
+            if (analysis.sentiment) {
+                aiData.sentiment = analysis.sentiment;
+                logger.info(`AI analyzed sentiment as: ${analysis.sentiment.sentiment} (Urgency: ${analysis.sentiment.urgency})`);
             }
+
+
         } catch (aiErr) {
-            logger.error("AI service (classification/sentiment) call failed. Proceeding without AI enrichment.", { error: aiErr.message });
+            logger.error("AI service full analysis call failed. Proceeding with user-provided data.", { error: aiErr.response ? aiErr.response.data : aiErr.message });
         }
 
-        // 4. Combine metadata
+        // 7. Combine metadata
         const finalMetadata = {
             ...(metadata || {}),
             ai_analysis: aiData

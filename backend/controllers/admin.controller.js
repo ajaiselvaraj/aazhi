@@ -6,44 +6,18 @@
 import { pool } from "../config/db.js";
 import { supabase } from "../config/supabaseClient.js";
 import { success, fail, paginated } from "../utils/response.js";
+import stringSimilarity from "string-similarity";
 import logger from "../utils/logger.js";
 
 // ─── Dashboard Overview Stats ────────────────────────────
 export const getDashboardStats = async (req, res, next) => {
     try {
-        let deptCondition = "";
-        let params = [];
-        
-        let userDept = req.user?.department;
-        // Super Admin / ALL access can view all if they don't specify a filter, or we can just filter by req.user.department.
-        if (userDept && userDept !== "ALL") {
-            deptCondition = " AND department = $1";
-            params.push(userDept);
-        } else if (req.query.department) {
-             deptCondition = " AND department = $1";
-             params.push(req.query.department);
-        }
-
-        const [citizens, bills, complaints, serviceRequests, transactions, complaintsByDept] = await Promise.all([
+        const [citizens, bills, complaints, serviceRequests, transactions] = await Promise.all([
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
-            pool.query(`SELECT 
-                COUNT(*) as total, 
-                COUNT(*) FILTER (WHERE status = 'active' OR status = 'pending') as active, 
-                COUNT(*) FILTER (WHERE status = 'resolved') as resolved, 
-                COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
-                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count,
-                COUNT(*) FILTER (WHERE status = 'pending' AND created_at < NOW() - INTERVAL '48 hours') as sla_breach
-               FROM complaints WHERE 1=1${deptCondition}`, params),
-            pool.query(`SELECT 
-                COUNT(*) as total, 
-                COUNT(*) FILTER (WHERE status = 'active' OR status = 'pending') as active, 
-                COUNT(*) FILTER (WHERE status = 'resolved') as resolved, 
-                COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
-                COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today_count
-               FROM service_requests WHERE 1=1${deptCondition}`, params),
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM complaints"),
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM service_requests"),
             pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions"),
-            pool.query("SELECT department, COUNT(*) as count FROM complaints GROUP BY department"),
         ]);
 
         return success(res, "Dashboard statistics", {
@@ -52,15 +26,6 @@ export const getDashboardStats = async (req, res, next) => {
             complaints: complaints.rows[0],
             service_requests: serviceRequests.rows[0],
             transactions: transactions.rows[0],
-            // Add top-level fields for the new requirement
-            totalComplaints: parseInt(complaints.rows[0].total),
-            pendingComplaints: parseInt(complaints.rows[0].active),
-            resolvedComplaints: parseInt(complaints.rows[0].resolved),
-            todayComplaints: parseInt(complaints.rows[0].today_count),
-            slaBreaches: parseInt(complaints.rows[0].sla_breach),
-            totalServices: parseInt(serviceRequests.rows[0].total),
-            todayServices: parseInt(serviceRequests.rows[0].today_count),
-            deptDistribution: complaintsByDept.rows
         });
     } catch (err) {
         next(err);
@@ -227,18 +192,7 @@ export const getPaymentStats = async (req, res, next) => {
 // ─── All Complaints (Admin View) ─────────────────────────
 export const getAllComplaints = async (req, res, next) => {
     try {
-        const { status, priority, page = 1, limit = 50 } = req.query;
-        let department = req.query.department;
-
-        // Apply strict department filtering from token
-        if (!req.user?.department) {
-            return fail(res, "Access Denied: Missing department context.", 403);
-        }
-
-        if (req.user?.department !== 'ALL' && req.user?.role !== 'super_admin') {
-            department = req.user.department;
-        }
-
+        const { status, department, priority, page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
 
         const useSupabase = supabase !== null;
@@ -319,6 +273,7 @@ export const getAllComplaints = async (req, res, next) => {
     }
 };
 
+
 // ─── Manage Service Config (Enable/Disable) ──────────────
 export const getServiceConfig = async (req, res, next) => {
     try {
@@ -362,22 +317,11 @@ export const updateServiceConfig = async (req, res, next) => {
 // ─── All Service Requests (Admin View) ───────────────────
 export const getAllServiceRequests = async (req, res, next) => {
     try {
-        const { status, page = 1, limit = 25 } = req.query;
-        let department = req.query.department;
-
-        // Apply strict department filtering from token
-        if (!req.user?.department) {
-            return fail(res, "Access Denied: Missing department context.", 403);
-        }
-        
-        if (req.user?.department !== 'ALL' && req.user?.role !== 'super_admin') {
-            department = req.user.department;
-        }
-
+        const { status, department, page = 1, limit = 25 } = req.query;
         const offset = (page - 1) * limit;
 
         const useSupabase = supabase !== null;
-        
+
         if (useSupabase) {
             console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
             let query = supabase
@@ -473,6 +417,357 @@ export const getAllCitizens = async (req, res, next) => {
             limit: parseInt(limit),
         });
     } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Complaint Analytics (Real Data) ─────────────────────
+export const getComplaintAnalytics = async (req, res, next) => {
+    try {
+        const [deptDist, priorityDist, dailyTrend, sentimentDist, topCategories, totalStats] = await Promise.all([
+            // Department distribution
+            pool.query(`SELECT department, COUNT(*)::int as count FROM complaints GROUP BY department ORDER BY count DESC`),
+            // Priority breakdown
+            pool.query(`SELECT COALESCE(priority, 'medium') as priority, COUNT(*)::int as count FROM complaints GROUP BY priority ORDER BY count DESC`),
+            // Daily trend (last 14 days)
+            pool.query(`
+                SELECT DATE(created_at) as date,
+                       COUNT(*)::int as total,
+                       COUNT(*) FILTER (WHERE status = 'resolved')::int as resolved
+                FROM complaints
+                WHERE created_at >= NOW() - INTERVAL '14 days'
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC
+            `),
+            // Status distribution (used as sentiment proxy since metadata column doesn't exist)
+            pool.query(`
+                SELECT
+                    CASE
+                        WHEN status = 'resolved' THEN 'Positive'
+                        WHEN status = 'rejected' THEN 'Angry'
+                        WHEN status IN ('pending', 'open') THEN 'Neutral'
+                        WHEN status = 'in_progress' THEN 'Frustrated'
+                        ELSE 'Neutral'
+                    END as sentiment,
+                    COUNT(*)::int as count
+                FROM complaints
+                GROUP BY sentiment
+                ORDER BY count DESC
+            `),
+            // Top categories
+            pool.query(`SELECT COALESCE(category, 'Uncategorized') as category, COUNT(*)::int as count FROM complaints GROUP BY category ORDER BY count DESC LIMIT 10`),
+            // Total stats
+            pool.query(`
+                SELECT
+                    COUNT(*)::int as total,
+                    COUNT(*) FILTER (WHERE status = 'resolved')::int as resolved,
+                    COUNT(*) FILTER (WHERE status = 'rejected')::int as rejected,
+                    COUNT(*) FILTER (WHERE status NOT IN ('resolved','rejected','closed'))::int as active,
+                    COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours')::int as today,
+                    COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days')::int as this_week
+                FROM complaints
+            `),
+        ]);
+
+        // Extract top keywords from recent complaint descriptions
+        const recentComplaints = await pool.query(
+            `SELECT description FROM complaints WHERE description IS NOT NULL ORDER BY created_at DESC LIMIT 100`
+        );
+        const wordFreq = {};
+        const stopWords = new Set(['the','a','an','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','must','shall','can','need','dare','to','of','in','for','on','with','at','by','from','as','into','through','during','before','after','above','below','between','out','off','over','under','again','further','then','once','here','there','where','why','how','all','both','each','few','more','most','other','some','such','no','nor','not','only','own','same','so','than','too','very','just','because','but','and','or','if','while','that','this','it','its','my','our','your','their','his','her','i','me','we','they','he','she','which','what','when','about','up','them','these','those','any','who','whom','also','get','got','know','like','time','please','help','complaint','issue','problem','sir','madam','dear','kindly']);
+        for (const row of recentComplaints.rows) {
+            const words = (row.description || '').toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
+            for (const w of words) {
+                if (w.length > 3 && !stopWords.has(w)) {
+                    wordFreq[w] = (wordFreq[w] || 0) + 1;
+                }
+            }
+        }
+        const topKeywords = Object.entries(wordFreq)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 20)
+            .map(([word, count]) => ({ word, count }));
+
+        return success(res, "Complaint analytics", {
+            departmentDistribution: deptDist.rows,
+            priorityBreakdown: priorityDist.rows,
+            dailyTrend: dailyTrend.rows,
+            sentimentDistribution: sentimentDist.rows,
+            topCategories: topCategories.rows,
+            topKeywords,
+            stats: totalStats.rows[0],
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Duplicate Clusters (Real Data) ──────────────────────
+export const getDuplicateClusters = async (req, res, next) => {
+    try {
+        // Get recent complaints to cluster
+        const { rows: complaints } = await pool.query(`
+            SELECT c.id, c.ticket_number, c.subject, c.description, c.department, c.ward, c.status, c.created_at,
+                   ci.name as citizen_name
+            FROM complaints c
+            LEFT JOIN citizens ci ON c.citizen_id = ci.id
+            WHERE c.created_at >= NOW() - INTERVAL '30 days'
+            ORDER BY c.created_at DESC
+            LIMIT 200
+        `);
+
+        if (complaints.length < 2) {
+            return success(res, "Duplicate clusters", []);
+        }
+
+        // Build clusters using string similarity
+        const THRESHOLD = 0.45;
+        const used = new Set();
+        const clusters = [];
+        let clusterId = 1;
+
+        for (let i = 0; i < complaints.length; i++) {
+            if (used.has(i)) continue;
+            const textI = `${complaints[i].subject || ''} ${complaints[i].description || ''}`.toLowerCase();
+            const cluster = {
+                id: `DUP-${String(clusterId).padStart(3, '0')}`,
+                title: complaints[i].subject || complaints[i].description?.substring(0, 50) || 'Untitled',
+                dept: complaints[i].department || 'General',
+                ward: complaints[i].ward || 'N/A',
+                masterTicket: complaints[i].ticket_number,
+                reportCount: 1,
+                status: 'Open',
+                timeAgo: getTimeAgo(complaints[i].created_at),
+                tickets: [complaints[i].ticket_number],
+            };
+
+            for (let j = i + 1; j < complaints.length; j++) {
+                if (used.has(j)) continue;
+                const textJ = `${complaints[j].subject || ''} ${complaints[j].description || ''}`.toLowerCase();
+                const sim = stringSimilarity.compareTwoStrings(textI, textJ);
+                if (sim >= THRESHOLD) {
+                    cluster.reportCount++;
+                    cluster.tickets.push(complaints[j].ticket_number);
+                    used.add(j);
+                }
+            }
+
+            if (cluster.reportCount > 1) {
+                used.add(i);
+                if (complaints[i].status === 'resolved') cluster.status = 'Merged Into Master Ticket';
+                else if (cluster.reportCount >= 3) cluster.status = 'Under Review';
+                clusters.push(cluster);
+                clusterId++;
+            }
+        }
+
+        return success(res, "Duplicate clusters", clusters);
+    } catch (err) {
+        next(err);
+    }
+};
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diff = now - new Date(date);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+}
+
+// ─── Fraud Signals (Real Data) ───────────────────────────
+export const getFraudSignals = async (req, res, next) => {
+    try {
+        // Identify citizens with suspicious patterns
+        const { rows: citizenActivity } = await pool.query(`
+            SELECT
+                ci.id as citizen_id,
+                ci.name,
+                ci.mobile,
+                COUNT(c.id)::int as total_complaints,
+                COUNT(c.id) FILTER (WHERE c.status = 'rejected')::int as rejected_count,
+                COUNT(c.id) FILTER (WHERE c.created_at >= NOW() - INTERVAL '7 days')::int as recent_complaints,
+                0::int as spam_flagged,
+                MIN(c.created_at) as first_complaint,
+                MAX(c.created_at) as last_complaint
+            FROM citizens ci
+            JOIN complaints c ON c.citizen_id = ci.id
+            GROUP BY ci.id, ci.name, ci.mobile
+            HAVING COUNT(c.id) >= 2
+            ORDER BY COUNT(c.id) DESC
+            LIMIT 50
+        `);
+
+        const fraudUsers = citizenActivity.map(u => {
+            // Calculate risk score
+            let riskScore = 0;
+            // High volume = higher risk
+            if (u.total_complaints >= 10) riskScore += 30;
+            else if (u.total_complaints >= 5) riskScore += 15;
+            // High rejection rate = higher risk
+            const rejectRate = u.total_complaints > 0 ? u.rejected_count / u.total_complaints : 0;
+            if (rejectRate > 0.5) riskScore += 30;
+            else if (rejectRate > 0.25) riskScore += 15;
+            // Rapid-fire complaints in last 7 days
+            if (u.recent_complaints >= 5) riskScore += 25;
+            else if (u.recent_complaints >= 3) riskScore += 10;
+            // Spam flags
+            if (u.spam_flagged > 0) riskScore += 15 * Math.min(u.spam_flagged, 3);
+            riskScore = Math.min(riskScore, 100);
+
+            let status = 'Cleared';
+            if (riskScore >= 80) status = 'Banned';
+            else if (riskScore >= 60) status = 'Flagged';
+            else if (riskScore >= 40) status = 'Under Review';
+
+            // Pattern description
+            let pattern = '';
+            if (u.recent_complaints >= 5) pattern = `${u.recent_complaints} complaints in last 7 days`;
+            else if (rejectRate > 0.5) pattern = `${Math.round(rejectRate * 100)}% rejection rate`;
+            else if (u.spam_flagged > 0) pattern = `${u.spam_flagged} spam-flagged submissions`;
+            else pattern = `${u.total_complaints} total complaints`;
+
+            return {
+                odUserId: u.citizen_id,
+                userId: u.name || `CIT-${u.citizen_id.substring(0, 6)}`,
+                submitted: u.total_complaints,
+                pattern,
+                riskScore,
+                status,
+                dept: 'All',
+            };
+        });
+
+        // Sort by risk score descending
+        fraudUsers.sort((a, b) => b.riskScore - a.riskScore);
+
+        return success(res, "Fraud signals", fraudUsers);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ═══════════════════════════════════════════════════════════
+// ML INNOVATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
+
+// ─── Smart Complaint Clusters (ML) ───────────────────────
+export const getMLComplaintClusters = async (req, res, next) => {
+    try {
+        const { rows: complaints } = await pool.query(`
+            SELECT c.id, c.ticket_number, c.subject, c.description, c.department,
+                   c.ward, c.status, c.created_at,
+                   ci.name as citizen_name
+            FROM complaints c
+            LEFT JOIN citizens ci ON c.citizen_id = ci.id
+            WHERE c.created_at >= NOW() - INTERVAL '30 days'
+            ORDER BY c.created_at DESC
+            LIMIT 200
+        `);
+
+        if (complaints.length < 2) {
+            return success(res, "ML complaint clusters", { clusters: [], total_complaints: complaints.length });
+        }
+
+        const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/summarize-clusters`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ complaints, threshold: 0.40 }),
+        });
+        const aiData = await aiRes.json();
+
+        return success(res, "ML complaint clusters", aiData.data || aiData);
+    } catch (err) {
+        console.error("❌ ML Clusters error:", err.message);
+        next(err);
+    }
+};
+
+// ─── ML Forecast ─────────────────────────────────────────
+export const getMLForecast = async (req, res, next) => {
+    try {
+        const { rows: dailyCounts } = await pool.query(`
+            SELECT DATE(created_at) as date,
+                   COUNT(*)::int as total,
+                   COUNT(*) FILTER (WHERE status = 'resolved')::int as resolved
+            FROM complaints
+            WHERE created_at >= NOW() - INTERVAL '30 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+        `);
+
+        if (dailyCounts.length < 3) {
+            return success(res, "ML forecast", { forecast: [], trend: "insufficient_data" });
+        }
+
+        const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/forecast`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ daily_counts: dailyCounts, forecast_days: 7 }),
+        });
+        const aiData = await aiRes.json();
+
+        return success(res, "ML forecast", {
+            ...(aiData.data || aiData),
+            historical: dailyCounts,
+        });
+    } catch (err) {
+        console.error("❌ ML Forecast error:", err.message);
+        next(err);
+    }
+};
+
+// ─── ML Sentiment Pulse ──────────────────────────────────
+export const getMLSentimentPulse = async (req, res, next) => {
+    try {
+        const { rows: complaints } = await pool.query(`
+            SELECT c.id, c.subject, c.description, c.department, c.created_at
+            FROM complaints c
+            WHERE c.description IS NOT NULL
+              AND c.created_at >= NOW() - INTERVAL '30 days'
+            ORDER BY c.created_at DESC
+            LIMIT 150
+        `);
+
+        const formatted = complaints.map(c => ({
+            id: c.id,
+            text: `${c.subject || ''} ${c.description || ''}`.trim(),
+            department: c.department || 'Unknown',
+            created_at: c.created_at,
+        }));
+
+        const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/sentiment-pulse`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ complaints: formatted }),
+        });
+        const aiData = await aiRes.json();
+
+        return success(res, "ML sentiment pulse", aiData.data || aiData);
+    } catch (err) {
+        console.error("❌ ML Sentiment error:", err.message);
+        next(err);
+    }
+};
+
+// ─── ML Diagnostics ──────────────────────────────────────
+export const getMLDiagnostics = async (req, res, next) => {
+    try {
+        const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/diagnostics`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ run_full: true }),
+        });
+        const aiData = await aiRes.json();
+
+        return success(res, "ML diagnostics", aiData.data || aiData);
+    } catch (err) {
+        console.error("❌ ML Diagnostics error:", err.message);
         next(err);
     }
 };

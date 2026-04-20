@@ -1,52 +1,47 @@
-import React from 'react'
-import { TrendingUp } from 'lucide-react'
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Area, AreaChart,
-} from 'recharts'
-import { workloadForecast, tomorrowForecast } from '../../data/mockData'
-import { useAuth } from '../../context/AuthContext'
-import { deptKey } from '../../utils/deptFilter'
+import React, { useState, useEffect } from 'react'
+import { TrendingUp, RefreshCw, Inbox } from 'lucide-react'
+import { adminApi } from '../../services/adminApi'
 import { useLanguage } from '../../context/LanguageContext'
 
-const SERIES = [
-  { key: 'electricity', label: 'Electricity', color: '#FFA940' },
-  { key: 'water',       label: 'Water Supply', color: '#2F6BFF' },
-  { key: 'gas',         label: 'Gas Distribution', color: '#FF4D4F' },
-  { key: 'municipal',   label: 'Municipal', color: '#2ECC71' },
-]
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{
-      background: 'var(--dark)', border: '1px solid rgba(255,255,255,.1)',
-      borderRadius: 10, padding: '.75rem 1rem', minWidth: 180,
-    }}>
-      <div style={{ color: 'rgba(255,255,255,.6)', fontSize: '.75rem', marginBottom: '.5rem' }}>{label}</div>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '.2rem' }}>
-          <span style={{ color: p.color, fontSize: '.8rem', fontWeight: 500 }}>{p.name}</span>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: '.85rem' }}>{p.value}</span>
-        </div>
-      ))}
-    </div>
-  )
+const DEPT_COLORS: Record<string, string> = {
+  'Electricity Department': '#FFA940',
+  'Water Supply Department': '#2F6BFF',
+  'Gas Distribution': '#FF4D4F',
+  'Municipal Services': '#2ECC71',
 }
 
 export default function WorkloadForecastPanel() {
-  const { user } = useAuth()
   const { t } = useLanguage()
-  const myDeptKey = user ? deptKey(user.department) : ''
+  const [analytics, setAnalytics] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  // Filter to only the series that match the logged-in dept
-  const filteredSeries = SERIES.filter(s => {
-    if (!myDeptKey) return true
-    return s.label.toLowerCase().includes(myDeptKey.toLowerCase()) ||
-           myDeptKey.toLowerCase().includes(s.label.toLowerCase())
-  })
-  // fallback: show all if no match (e.g., unknown dept)
-  const activeSeries = filteredSeries.length > 0 ? filteredSeries : SERIES
+  useEffect(() => {
+    loadWorkload()
+  }, [])
+
+  async function loadWorkload() {
+    setLoading(true)
+    try {
+      const data = await adminApi.getComplaintAnalytics()
+      setAnalytics(data)
+    } catch (err) {
+      console.error('Failed to load workload data', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const dailyTrend = analytics?.dailyTrend || []
+  const deptDist = analytics?.departmentDistribution || []
+  const stats = analytics?.stats || {}
+
+  // Build per-department workload data from daily trends + dept distribution
+  const deptWorkload = deptDist.slice(0, 6).map((d: any) => ({
+    department: d.department || 'Unknown',
+    count: d.count,
+    color: DEPT_COLORS[d.department] || '#9b59b6',
+    isHigh: d.count > (stats.total || 1) * 0.25,
+  }))
 
   return (
     <div className="card section-gap" style={{ padding: 0, overflow: 'hidden' }}>
@@ -54,77 +49,141 @@ export default function WorkloadForecastPanel() {
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div className="section-title" style={{ marginBottom: 0 }}>
           <div className="icon-dot" />
-          {t('workload.title') || 'Department Workload Prediction'}
+          {t('workload.title') || 'Department Workload Analysis'}
         </div>
-        <div style={{ display: 'flex', gap: '.5rem' }}>
-          <span className="badge badge-info"><TrendingUp size={10} /> {t('workload.forecast_badge') || '7-Day Forecast'}</span>
+        <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+          <button onClick={loadWorkload} className="btn btn-ghost" style={{ padding: '.3rem' }} title="Refresh">
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </button>
+          <span className="badge badge-info"><TrendingUp size={10} /> {t('workload.forecast_badge') || 'Real Data'}</span>
         </div>
       </div>
 
-      {/* Tomorrow's snapshot */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        borderBottom: '1px solid var(--border)',
-      }}>
-        {activeSeries.map((s, i) => {
-          const val = tomorrowForecast[s.key as keyof typeof tomorrowForecast]
-          const isHigh = val > 60
-          return (
-            <div key={s.key} style={{
-              padding: '.875rem 1.25rem',
-              borderRight: i < 3 ? '1px solid var(--border)' : 'none',
-              textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.3rem' }}>
-                {t('workload.tomorrow') || 'Tomorrow'} · {s.label}
+      {loading ? (
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+          <RefreshCw size={28} className="animate-spin" style={{ opacity: 0.4, margin: '0 auto 1rem' }} />
+          <p>Loading workload data...</p>
+        </div>
+      ) : !analytics || deptDist.length === 0 ? (
+        <div style={{ padding: '3rem', textAlign: 'center' }}>
+          <Inbox size={40} style={{ color: 'var(--border)', margin: '0 auto 1rem' }} />
+          <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No Workload Data</p>
+          <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Workload data will appear once complaints are submitted.</p>
+        </div>
+      ) : (
+        <>
+          {/* Department snapshot */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: `repeat(${Math.min(deptWorkload.length, 4)}, 1fr)`,
+            borderBottom: '1px solid var(--border)',
+          }}>
+            {deptWorkload.slice(0, 4).map((d: any, i: number) => (
+              <div key={d.department} style={{
+                padding: '.875rem 1.25rem',
+                borderRight: i < Math.min(deptWorkload.length, 4) - 1 ? '1px solid var(--border)' : 'none',
+                textAlign: 'center',
+              }}>
+                <div style={{ fontSize: '.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: '.3rem' }}>
+                  {d.department}
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: d.color, fontFamily: 'Poppins,sans-serif' }}>
+                  {d.count}
+                </div>
+                <div style={{ fontSize: '.72rem', marginTop: '.2rem', color: d.isHigh ? 'var(--alert)' : 'var(--success)', fontWeight: 600 }}>
+                  {d.isHigh ? '↑ High Load' : '✓ Normal'}
+                </div>
               </div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, fontFamily: 'Poppins,sans-serif' }}>
-                {val}
+            ))}
+          </div>
+
+          {/* Daily Trend Chart */}
+          <div style={{ padding: '1.5rem' }}>
+            <div style={{ marginBottom: '1rem', fontSize: '.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              14-Day Complaint Volume
+            </div>
+            {dailyTrend.length > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '.35rem', height: 160, padding: '.5rem 0' }}>
+                {dailyTrend.map((d: any, i: number) => {
+                  const max = Math.max(...dailyTrend.map((x: any) => x.total), 1)
+                  const totalH = Math.max((d.total / max) * 140, 4)
+                  const resolvedH = Math.max((d.resolved / max) * 140, 0)
+                  return (
+                    <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '.2rem' }}>
+                      <div style={{ fontSize: '.65rem', fontWeight: 700, color: 'var(--text-primary)' }}>{d.total}</div>
+                      <div style={{ width: '80%', position: 'relative' }}>
+                        <div style={{
+                          width: '100%', height: totalH,
+                          background: 'linear-gradient(180deg, #2F6BFF, #6366f1)',
+                          borderRadius: '4px 4px 2px 2px',
+                          position: 'relative',
+                        }}>
+                          {resolvedH > 0 && (
+                            <div style={{
+                              position: 'absolute', bottom: 0, left: 0, right: 0,
+                              height: resolvedH, background: '#2ECC71', opacity: 0.6,
+                              borderRadius: '0 0 2px 2px',
+                            }} />
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '.55rem', color: 'var(--text-muted)' }}>
+                        {new Date(d.date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-              <div style={{ fontSize: '.72rem', marginTop: '.2rem', color: isHigh ? 'var(--alert)' : 'var(--success)', fontWeight: 600 }}>
-                {isHigh ? (t('workload.high_load') || '↑ High Load') : (t('workload.normal') || '✓ Normal')}
+            ) : (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '.85rem' }}>
+                No daily trend data available
+              </div>
+            )}
+
+            {dailyTrend.length > 0 && (
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '.75rem', fontSize: '.72rem', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#2F6BFF' }} /> Total Complaints
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: '#2ECC71' }} /> Resolved
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Department breakdown bar */}
+          {deptWorkload.length > 0 && (
+            <div style={{ padding: '0 1.5rem 1.5rem' }}>
+              <div style={{ marginBottom: '.75rem', fontSize: '.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Complaint Distribution by Department
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '.6rem' }}>
+                {deptWorkload.map((d: any) => {
+                  const max = Math.max(...deptWorkload.map((x: any) => x.count), 1)
+                  const pct = (d.count / max) * 100
+                  return (
+                    <div key={d.department} style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
+                      <div style={{ width: 150, fontSize: '.78rem', fontWeight: 600, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {d.department}
+                      </div>
+                      <div style={{ flex: 1, height: 12, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden' }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%',
+                          background: `linear-gradient(90deg, ${d.color}, ${d.color}dd)`,
+                          borderRadius: 6, transition: 'width 1s ease-in-out',
+                        }} />
+                      </div>
+                      <div style={{ width: 36, textAlign: 'right', fontSize: '.8rem', fontWeight: 700, color: d.color }}>
+                        {d.count}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-          )
-        })}
-      </div>
-
-      {/* Chart */}
-      <div style={{ padding: '1.5rem', paddingTop: '1.25rem' }}>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={workloadForecast} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
-            <defs>
-              {activeSeries.map(s => (
-                <linearGradient key={s.key} id={`grad-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={s.color} stopOpacity={0.2} />
-                  <stop offset="95%" stopColor={s.color} stopOpacity={0.01} />
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-            <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ fontSize: '.78rem', paddingTop: '1rem' }}
-              formatter={(v) => <span style={{ color: 'var(--text-secondary)' }}>{v}</span>}
-            />
-            {activeSeries.map(s => (
-              <Area
-                key={s.key}
-                type="monotone"
-                dataKey={s.key}
-                name={s.label}
-                stroke={s.color}
-                strokeWidth={2}
-                fill={`url(#grad-${s.key})`}
-                dot={false}
-                activeDot={{ r: 5, strokeWidth: 0 }}
-              />
-            ))}
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

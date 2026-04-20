@@ -7,21 +7,88 @@ import { pool } from "../config/db.js";
 import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
+import axios from "axios";
+
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
 // ─── Register Complaint ──────────────────────────────────
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority } = req.body;
+
+        if (!description || description.trim().length < 10) {
+            return fail(res, "Description is too short. Please provide more details.", 400);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // AAZHI AI INTEGRATION - Full Analysis Pipeline
+        // ═══════════════════════════════════════════════════════════════
+        let aiData = {};
+        let classifiedDepartment = department; // Fallback to user-provided department
+        let classifiedPriority = priority || "medium"; // Fallback to user-provided priority
+
+        try {
+            // 1. Fetch recent complaints for duplicate check
+            const { rows: existing_complaints_raw } = await pool.query(
+                `SELECT id, ticket_number, subject, description FROM complaints WHERE citizen_id = $1 ORDER BY created_at DESC LIMIT 5`,
+                [citizenId]
+            );
+
+            // 2. Call the single /analyze endpoint
+            const analysisResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/analyze`, {
+                text: `${subject || ''} ${description}`,
+                existing_complaints: existing_complaints_raw
+            });
+
+            const analysis = analysisResponse.data?.data;
+
+            if (!analysis) {
+                throw new Error("AI analysis returned no data.");
+            }
+
+            // 3. Process Validation result
+            if (analysis.validation?.is_spam) {
+                logger.warn("Spam detected for complaint", { citizenId, description, reason: analysis.validation.reason });
+                return fail(res, `Request rejected: ${analysis.validation.reason}`, 400);
+            }
+            aiData.validation = analysis.validation;
+
+            // 4. Process Duplicate result
+            if (analysis.duplicate?.is_duplicate) {
+                logger.warn("Duplicate complaint detected", { citizenId, matched_ticket: analysis.duplicate.matched_ticket });
+                return fail(res, `Complaint may be a duplicate of ticket ${analysis.duplicate.matched_ticket}. Similarity: ${Math.round(analysis.duplicate.similarity * 100)}%`, 409);
+            }
+            aiData.duplicate = analysis.duplicate;
+
+            // 5. Process Department routing result
+            if (analysis.department?.department) {
+                classifiedDepartment = analysis.department.department;
+                logger.info(`AI classified department as: ${classifiedDepartment}`);
+            }
+            aiData.department = analysis.department;
+
+            // 6. Process Sentiment result
+            if (analysis.sentiment) {
+                aiData.sentiment = analysis.sentiment;
+                logger.info(`AI analyzed complaint sentiment as: ${analysis.sentiment.sentiment} (Urgency: ${analysis.sentiment.urgency})`);
+            }
+
+        } catch (aiErr) {
+            logger.error("AI service full analysis call failed. Proceeding with user-provided data.", { error: aiErr.response ? aiErr.response.data : aiErr.message });
+        }
+
+        const finalMetadata = { ai_analysis: aiData };
+        // ═══════════════════════════════════════════════════════════════
 
         const ticketNumber = generateTicketNumber("CMP");
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'pending')
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status, metadata)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
              RETURNING *`,
-            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, JSON.stringify(finalMetadata)]
         );
 
         // Create complaint lifecycle stages
@@ -145,15 +212,15 @@ export const updateComplaintStatus = async (req, res, next) => {
         const updatedBy = req.user.id;
 
         // Get current complaint bypass UUID cast error by checking ticket_number or id
-        const idCheckQuery = id.startsWith('CMP-') || id.startsWith('TKT-') 
-             ? "SELECT * FROM complaints WHERE ticket_number = $1" 
-             : "SELECT * FROM complaints WHERE id = $1";
-             
+        const idCheckQuery = id.startsWith('CMP-') || id.startsWith('TKT-')
+            ? "SELECT * FROM complaints WHERE ticket_number = $1"
+            : "SELECT * FROM complaints WHERE id = $1";
+
         const current = await pool.query(idCheckQuery, [id]);
         if (current.rows.length === 0) {
             return fail(res, "Complaint not found.", 404);
         }
-        
+
         const actualId = current.rows[0].id;
 
         // Logical overrides
@@ -161,7 +228,7 @@ export const updateComplaintStatus = async (req, res, next) => {
 
         // Normalize status values for DB consistency
         finalStatus = finalStatus ? finalStatus.toLowerCase() : "pending";
-        
+
         console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: status=${finalStatus}`);
 
         // Update complaint

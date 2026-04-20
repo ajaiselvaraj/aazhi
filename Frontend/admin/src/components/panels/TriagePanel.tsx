@@ -106,57 +106,44 @@ export default function TriagePanel() {
   const [total, setTotal] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  const [isFetching, setIsFetching] = useState(false) // New lock for safe polling
+  const isFetchingRef = React.useRef(false)
 
   useEffect(() => {
-    const controller = new AbortController() // AbortController to manage duplicate inflight requests
-    
-    const fetchWrapper = async () => {
-      if (isFetching) return;
-      await loadComplaints(false, controller.signal)
-    }
-
-    fetchWrapper()
+    loadComplaints()
 
     // Safe Polling every 10 seconds
-    const interval = setInterval(async () => {
-       if (!isFetching) { 
-         await loadComplaints(true, controller.signal); 
+    const interval = setInterval(() => {
+       if (!isFetchingRef.current) { 
+         loadComplaints(true); 
        }
     }, 10000)
 
     return () => {
       clearInterval(interval)
-      controller.abort() // Cancel any pending request on unmount/re-render
     }
-  }, [page, statusFilter]) // Keep dependencies tight
+  }, [page, statusFilter])
 
-  async function loadComplaints(silent = false, signal?: AbortSignal) {
+  async function loadComplaints(silent = false) {
+    if (isFetchingRef.current && !silent) return
     if (!silent) setLoading(true)
-    setIsFetching(true)
+    isFetchingRef.current = true
     try {
       const params: any = { page, limit: 100 }
-      // If "All" is selected, we don't send a specific status filter to get all active-like items
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
       
       console.log('📡 [Admin] Fetching complaints...', params)
-      // Remove the hard-coded { ..., status: 'active' } which was overriding everything
       const res = await adminApi.getAllComplaints(params)
       console.log('✅ [Admin] Received complaints:', res.data?.length)
       
       setComplaints(res.data || [])
       setTotal(res.pagination?.total || 0)
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
-      } else {
-         console.error('❌ [Admin] Failed to fetch complaints:', err)
-      }
+      console.error('❌ [Admin] Failed to fetch complaints:', err)
     } finally {
       setLoading(false)
-      setIsFetching(false)
+      isFetchingRef.current = false
     }
   }
 

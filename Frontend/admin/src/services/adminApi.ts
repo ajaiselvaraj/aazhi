@@ -182,4 +182,43 @@ export const adminApi = {
     });
     return json.data;
   },
-};
+
+  // ── Complaint Analytics ──
+  getComplaintAnalytics: async () => {
+    const json = await request('/admin/analytics/complaints');
+    return json.data;
+  },
+
+  // ── Duplicate Clusters ──
+  getDuplicateClusters: async () => {
+    const json = await request('/admin/duplicate-clusters');
+    return json.data;
+  },
+
+  // ── Fraud Signals ──
+  getFraudSignals: async () => {
+    const json = await request('/admin/fraud-signals');
+    return json.data;
+  },
+
+  // ── ML Innovation ──
+  getMLComplaintClusters: async () => {
+    const json = await request('/admin/ml/complaint-clusters');
+    return json.data;
+  },
+
+  getMLForecast: async () => {
+    const json = await request('/admin/ml/forecast');
+    return json.data;
+  },
+
+  getMLSentimentPulse: async () => {
+    const json = await request('/admin/ml/sentiment-pulse');
+    return json.data;
+  },
+
+  getMLDiagnostics: async () => {
+    const json = await request('/admin/ml/diagnostics');
+    return json.data;
+  },
+};
