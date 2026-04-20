@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle, SearchCode } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import WaterConnectionForm from './WaterConnectionForm';
 import MunicipalProfile from './MunicipalProfile';
 import { CivicComplaintForm } from '../../municipal/CivicComplaintForm';
+import MunicipalTracker from './MunicipalTracker';
 
 interface Props {
   onBack: () => void;
@@ -13,7 +14,7 @@ interface Props {
 
 const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
-  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
+  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
 
   const handleInternalBack = () => {
     setView('HOME');
@@ -26,6 +27,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
   if (view === 'WATER') return <WaterConnectionForm onBack={handleInternalBack} language={language} />;
   if (view === 'PROFILE') return <MunicipalProfile onBack={handleInternalBack} language={language} />;
   if (view === 'COMPLAINTS') return <CivicComplaintForm onBack={handleInternalBack} isPrivacyOn={false} language={language} />;
+  if (view === 'TRACKER') return <MunicipalTracker onBack={handleInternalBack} language={language} />;
   if (view === 'TAXES' || view === 'QUICK_PAY' || view === 'LOGIN' || view === 'CALCULATOR' || view === 'TARIFF' || view === 'TRANSACTIONS') {
       return (
         <div className="max-w-4xl mx-auto p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center">
@@ -144,14 +146,14 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('muni_otherTools') || 'Other Tools'}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
+          { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace application status' },
           { id: 'CALCULATOR', icon: Calculator, label: 'Tax Calculator', desc: 'Estimate property tax' },
           { id: 'TARIFF', icon: FileText, label: 'Water Tariffs', desc: 'View water charge slabs' },
           { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
-          { id: 'APP', icon: Smartphone, label: 'Smart City App', desc: 'Download mobile app' },
         ].map((item) => (
           <button
             key={item.id}
-            onClick={() => { if(item.id !== 'APP') handleNavigate(item.id); }}
+            onClick={() => handleNavigate(item.id)}
             className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-cyan-300 transition text-left group"
           >
              <div className="w-10 h-10 bg-slate-50 text-slate-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-slate-200 transition">
