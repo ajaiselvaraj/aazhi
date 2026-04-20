@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { Language } from '../../../types';
+import { BillingService } from '../../../services/civicService';
 
 interface Props {
     onBack: () => void;
@@ -13,24 +14,25 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
     const [transactions, setTransactions] = useState<any[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!consumerNo) return;
         setIsLoading(true);
+        setError(null);
+        setHasSearched(true);
 
-        // Mock API call
-        setTimeout(() => {
-            // Mock Data Generation
-            const mockData = [
-                { serviceNo: consumerNo, date: '05-Feb-2026', amount: '2450.00', txnId: 'TXN889977', status: 'Success' },
-                { serviceNo: consumerNo, date: '05-Jan-2026', amount: '1200.00', txnId: 'TXN776655', status: 'Success' },
-                { serviceNo: consumerNo, date: '05-Dec-2025', amount: '3100.00', txnId: 'TXN665544', status: 'Success' }
-            ];
-
-            setTransactions(mockData);
-            setHasSearched(true);
+        try {
+            // Using a real service call instead of mock data
+            const pastTransactions = await BillingService.getTransactionHistory('electricity', consumerNo);
+            setTransactions(pastTransactions);
+        } catch (e: any) {
+            console.error("Failed to fetch transactions:", e);
+            setError("Could not retrieve transaction history. Please try again later.");
+            setTransactions([]);
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
@@ -104,12 +106,14 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                                     <td colSpan={5} className="p-8 text-center text-slate-500">Loading records...</td>
                                 </tr>
                             ) : hasSearched && transactions.length > 0 ? (
+                                // Assuming the service returns a similar structure
+                                // txnId -> transactionId, serviceNo -> consumerId
                                 transactions.map((txn, idx) => (
                                     <tr key={idx} className="border-b border-slate-100 bg-white hover:bg-slate-50 transition">
-                                        <td className="p-4 text-sm font-bold text-slate-700 border-r border-slate-100">{txn.serviceNo}</td>
+                                        <td className="p-4 text-sm font-bold text-slate-700 border-r border-slate-100">{txn.consumerId || txn.serviceNo}</td>
                                         <td className="p-4 text-sm text-slate-600 border-r border-slate-100">{txn.date}</td>
                                         <td className="p-4 text-sm font-bold text-slate-900 border-r border-slate-100">₹{txn.amount}</td>
-                                        <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{txn.txnId}</td>
+                                        <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{txn.transactionId || txn.txnId}</td>
                                         <td className="p-4">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                                 {txn.status}
@@ -120,7 +124,11 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                             ) : (
                                 <tr>
                                     <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
-                                        {hasSearched ? "No records found." : "Enter Service No to view transactions."}
+                                        {error ? (
+                                            <div className="text-red-500 flex items-center justify-center gap-2">
+                                                <AlertCircle size={16} /> {error}
+                                            </div>
+                                        ) : hasSearched ? "No records found for this Service No." : "Enter Service No to view transactions."}
                                     </td>
                                 </tr>
                             )}

@@ -1,4 +1,5 @@
 import { MOCK_USER_PROFILE } from "../constants";
+import { GrievanceService } from "./civicService";
 
 export interface AIResponse {
   text: string;
@@ -18,7 +19,7 @@ export interface AIMenu {
 }
 
 interface ConversationState {
-  step: 'WELCOME' | 'BILL_TYPE' | 'BILL_CONSUMER_ID' | 'BILL_DETAILS' | 'PAYMENT_METHOD' | 'UPI_QR' | 'PAYMENT_SUCCESS' | 'COMPLAINT_DEPT' | 'COMPLAINT_ID' | 'COMPLAINT_DESC' | 'COMPLAINT_SUCCESS' | 'QUERIES_MODE';
+  step: 'WELCOME' | 'BILL_TYPE' | 'BILL_CONSUMER_ID' | 'BILL_DETAILS' | 'PAYMENT_METHOD' | 'UPI_QR' | 'PAYMENT_SUCCESS' | 'COMPLAINT_DEPT' | 'COMPLAINT_LOCATION' | 'COMPLAINT_DESC' | 'COMPLAINT_SUCCESS' | 'QUERIES_MODE';
   data: any;
 }
 
@@ -44,7 +45,7 @@ class SuvidhaIntelligence {
     if (q.match(/\b(pay|bill|payment|dues)\b/i) && q.match(/\b(electric|power|tneb)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Electricity' };
     if (q.match(/\b(pay|bill|payment)\b/i) && q.match(/\b(water|metro)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Water' };
     if (q.match(/\b(pay|bill|payment)\b/i) && q.match(/\b(gas|png)\b/i)) return { intent: 'PAY_BILL_DIRECT', dept: 'Gas' };
-    
+
     if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(water|leak|pipe)\b/i)) return { intent: 'COMPLAINT_DIRECT', dept: 'Water' };
     if (q.match(/\b(complain|complaint|issue|report)\b/i) && q.match(/\b(electric|power|spark|wire)\b/i)) return { intent: 'COMPLAINT_DIRECT', dept: 'Electricity' };
 
@@ -56,7 +57,7 @@ class SuvidhaIntelligence {
     if (q.match(/\b(status|track|history|check)\b/i)) return { intent: 'CHECK_STATUS' };
     if (q.match(/\b(service|apply|new connection)\b/i)) return { intent: 'NEW_SERVICE' };
     if (q.match(/\b(help|guide|how to|support)\b/i)) return { intent: 'HELP' };
-    
+
     return { intent: 'UNKNOWN' };
   }
 
@@ -71,7 +72,7 @@ class SuvidhaIntelligence {
 
     // ZERO-SHOT NLP ROUTING (Interrupts current state if a strong new intent is found)
     const nlp = this.detectIntent(q);
-    
+
     if (nlp.intent === 'CHECK_STATUS') {
       this.resetSession();
       return {
@@ -119,7 +120,7 @@ class SuvidhaIntelligence {
 
     if (nlp.intent === 'COMPLAINT_DIRECT') {
       session.data.dept = nlp.dept;
-      session.step = 'COMPLAINT_ID';
+      session.step = 'COMPLAINT_LOCATION';
       return {
         text: `I can help you report an issue with ${nlp.dept}.\n\nPlease enter the location or area ID so we can dispatch a team.`,
         voice: voiceEnabled ? "Please tell me the area ID or location." : undefined
@@ -190,17 +191,17 @@ class SuvidhaIntelligence {
             voice: voiceEnabled ? t('ai_queriesWelcome') || "You are now in Queries mode. Please type your question." : undefined
           };
         }
-        
+
         // NLP Helper for unknown commands in Welcome state
         if (nlp.intent !== 'UNKNOWN') {
-           return { text: "I can help with that, please follow the menu options below to get started.", menu: this.renderWelcome(voiceEnabled, t).menu };
+          return { text: "I can help with that, please follow the menu options below to get started.", menu: this.renderWelcome(voiceEnabled, t).menu };
         }
 
         // Default Welcome
         return {
-           text: `I'm not exactly sure what you mean by "${query}". Here is the main menu.`,
-           menu: this.renderWelcome(voiceEnabled, t).menu,
-           voice: voiceEnabled ? "I didn't catch that. Here is the main menu." : undefined
+          text: `I'm not exactly sure what you mean by "${query}". Here is the main menu.`,
+          menu: this.renderWelcome(voiceEnabled, t).menu,
+          voice: voiceEnabled ? "I didn't catch that. Here is the main menu." : undefined
         };
 
       case 'BILL_TYPE':
@@ -217,10 +218,12 @@ class SuvidhaIntelligence {
             voice: voiceEnabled ? enterMsg : undefined
           };
         }
-        return { text: t('ai_invalidSelection') || "Please select a valid option from the menu or type what you need.", voice: voiceEnabled ? t('ai_invalidSelection') : undefined, menu: {
+        return {
+          text: t('ai_invalidSelection') || "Please select a valid option from the menu or type what you need.", voice: voiceEnabled ? t('ai_invalidSelection') : undefined, menu: {
             heading: "Valid Options:",
             options: [{ id: '1', label: t('ai_billElec') }, { id: '2', label: t('ai_billWater') }, { id: '3', label: t('ai_billGas') }, { id: '5', label: t('ai_backOption') }]
-        } };
+          }
+        };
 
       case 'BILL_CONSUMER_ID':
         if (q.length < 3) return { text: t('ai_invalidNumber') || "That consumer ID seems too short. Please try again.", voice: voiceEnabled ? t('ai_invalidNumber') : undefined };
@@ -298,16 +301,16 @@ class SuvidhaIntelligence {
       case 'COMPLAINT_DEPT':
         if (['1', '2', '3', '4'].includes(q)) {
           session.data.dept = q === '1' ? t('ai_deptElec') : t('ai_deptWater');
-          session.step = 'COMPLAINT_ID';
+          session.step = 'COMPLAINT_LOCATION';
           return {
-            text: t('ai_enterComplaintId'),
-            voice: voiceEnabled ? t('ai_enterIdVoice') : undefined
+            text: t('ai_enterComplaintLocation') || "Please provide the location of the issue (e.g., street name, landmark).",
+            voice: voiceEnabled ? t('ai_enterLocationVoice') || "Please tell me the location of the issue." : undefined
           };
         }
         return { text: t('ai_invalidOption'), voice: undefined };
 
-      case 'COMPLAINT_ID':
-        session.data.id = q;
+      case 'COMPLAINT_LOCATION':
+        session.data.location = q;
         session.step = 'COMPLAINT_DESC';
         return {
           text: `${t('ai_selectIssue')}\n1. ${t('ai_issueNoSupply')}\n2. ${t('ai_issueWrongBill')}\n3. ${t('ai_issueInfra')}\n4. ${t('ai_issueOther')}`,
@@ -324,10 +327,27 @@ class SuvidhaIntelligence {
         };
 
       case 'COMPLAINT_DESC':
+        const issueMap: Record<string, string> = {
+          '1': t('ai_issueNoSupply'),
+          '2': t('ai_issueWrongBill'),
+          '3': t('ai_issueInfra'),
+          '4': t('ai_issueOther'),
+        };
+        session.data.complaintType = issueMap[q] || q;
+
+        // --- REAL INTEGRATION ---
+        // Call the actual service to create the complaint
+        const ticketNumber = await GrievanceService.createComplaint({
+          department: session.data.dept,
+          category: session.data.complaintType,
+          description: `Complaint filed via AI Assistant: ${session.data.complaintType} at ${session.data.location}`,
+          location: session.data.location,
+        });
+
         session.step = 'COMPLAINT_SUCCESS';
         return {
-          text: `${t('ai_complaintSuccess')}\n${t('ai_complaintId')}\n\n1. ${t('ai_trackStatus')}\n2. ${t('ai_home')}`,
-          voice: voiceEnabled ? t('ai_complaintSuccessVoice') : undefined,
+          text: `${t('ai_complaintSuccess')}\n${(t('ai_complaintId') || 'Your Complaint ID is {ticketNumber}').replace('{ticketNumber}', ticketNumber)}\n\n1. ${t('ai_trackStatus')}\n2. ${t('ai_home')}`,
+          voice: voiceEnabled ? `${t('ai_complaintSuccessVoice')} Your ID is ${ticketNumber}.` : undefined,
           menu: {
             heading: t('ai_complaintDoneMenu'),
             options: [{ id: '1', label: t('ai_trackStatus') }, { id: '2', label: t('ai_home') }]
@@ -410,7 +430,7 @@ export const getAssistantResponse = async (
   t: (key: string) => string,
   voiceEnabled: boolean = false
 ): Promise<AIResponse> => {
-  return SuvidhaIntelligence.getResponse(query, voiceEnabled, t);
+  return await SuvidhaIntelligence.getResponse(query, voiceEnabled, t);
 };
 
 export const generateCitizenImage = async (prompt: string, aspectRatio: string) => {

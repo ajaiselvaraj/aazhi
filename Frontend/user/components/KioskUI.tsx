@@ -114,8 +114,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [fetchedBill, setFetchedBill] = useState<any>(null);
   const [selectedComplaintDept, setSelectedComplaintDept] = useState<string | undefined>(undefined);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ServiceRequest | null>(null);
-
-  const [userRequests, setUserRequests] = useState<ServiceRequest[]>(MOCK_REQUESTS as unknown as ServiceRequest[]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
 
   // Kiosk Physical Security: Auto-logout after 45s of inactivity
   const { isWarning, countdown, resetTimer } = useInactivityTimer(45000, 15000, () => {
@@ -157,10 +157,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         break;
       case 'submit':
         if (activeTab === 'services' && submissionStep === 'form') {
-           // Simulate submission if needed, or prompt user.
-           setSubmissionStep('success'); // just moving forward for demo
+          // Simulate submission if needed, or prompt user.
+          setSubmissionStep('success'); // just moving forward for demo
         } else if (activeTab === 'billing' && billingStep === 'details') {
-           setBillingStep('success');
+          setBillingStep('success');
         }
         break;
       default:
@@ -173,16 +173,20 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     if (chatHistory.length === 0) {
       handleAiSearch("start"); // Trigger initial welcome flow
     }
-    
+
     // Fetch user requests for the status tab
     const fetchRequests = async () => {
+      setIsLoadingRequests(true);
       try {
         const reqs = await GrievanceService.getUserRequests();
         if (reqs && reqs.length > 0) {
           setUserRequests(reqs);
         }
       } catch (error) {
-        console.error("Failed to fetch requests", error);
+        console.error("Failed to fetch user requests for status tab", error);
+        // Keep userRequests empty to show an appropriate message
+      } finally {
+        setIsLoadingRequests(false);
       }
     };
     fetchRequests();
@@ -255,18 +259,18 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       if (query === '1' || query.toLowerCase().includes('payment completed') || query.toLowerCase() === 'paid') {
         setAssistantStep('paymentSuccess');
         setSelectedPayment(null);
-        
+
         // Generate mock receipt data so the DOM physically renders it for PDF export
         setReceiptDetails({
-            serviceName: 'Utility Payment (Assistant)',
-            consumerId: 'AST-' + Date.now().toString().slice(-4),
-            consumerName: 'Kiosk User',
-            amount: '₹850',
-            txnId: 'TXN' + Date.now(),
-            date: new Date().toLocaleString(),
-            mode: 'UPI'
+          serviceName: 'Utility Payment (Assistant)',
+          consumerId: 'AST-' + Date.now().toString().slice(-4),
+          consumerName: 'Kiosk User',
+          amount: '₹850',
+          txnId: 'TXN' + Date.now(),
+          date: new Date().toLocaleString(),
+          mode: 'UPI'
         });
-        
+
         // let the bot handle the context update
       } else if (query === '2' || query.toLowerCase().includes('cancel')) {
         setSelectedPayment(null);
@@ -277,7 +281,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       // Normal Chat Flow
       const lastBotMsg = [...chatHistory].reverse().find(m => m.sender === 'bot');
       const isAskingForPayment = lastBotMsg && (lastBotMsg.text.toLowerCase().includes('payment') || lastBotMsg.text.toLowerCase().includes('upi'));
-      
+
       // Catch "UPI" text or ID from menu based on context
       if ((query === '1' && isAskingForPayment) || query.toLowerCase().includes('upi')) {
         setSelectedPayment('UPI');
@@ -445,10 +449,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         'water': 'water',
         'gas': 'gas'
       };
-      
+
       const type = selectedBillService ? serviceTypeMap[selectedBillService.id] : 'electricity';
       const unpaidBills = await BillingService.getUnpaidBills(type);
-      
+
       // Find bill by consumer number or fallback to first one for demo
       const bill = unpaidBills.find(b => b.consumerId === consumerNumber) || unpaidBills[0];
 
@@ -461,8 +465,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       setFetchedBill(bill);
       setBillingStep('details');
     } catch (error) {
-       console.error("Failed to fetch bill", error);
-       alert("Error connecting to billing server. Please try again.");
+      console.error("Failed to fetch bill", error);
+      alert("Error connecting to billing server. Please try again.");
     } finally {
       setIsFetchingBill(false);
     }
@@ -474,13 +478,13 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
     try {
       const order = await BillingService.payBill(fetchedBill.id, fetchedBill.amount);
-      
+
       // Here you would normally trigger Razorpay Checkout UI
       // For this integration, we simulate a successful payment verification
       const mockPaymentData = {
         razorpay_order_id: order.order_id,
         razorpay_payment_id: "pay_" + Date.now(),
-        razorpay_signature: "sig_" + Date.now() 
+        razorpay_signature: "sig_" + Date.now()
       };
 
       // In real app, verifyPayment would be called after Razorpay success
@@ -545,7 +549,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             <AlertTriangle size={64} className="text-amber-500 mx-auto mb-6 animate-pulse" />
             <h2 className="text-3xl font-black text-slate-900 mb-4">{t('stillThere')}</h2>
             <p className="text-slate-500 font-medium mb-8">
-              {t('privacyClose')} <br/>
+              {t('privacyClose')} <br />
               <span className="text-red-600 font-black text-4xl leading-relaxed">{countdown}s</span>
             </p>
             <button onClick={resetTimer} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold text-xl hover:bg-blue-700 transition shadow-lg shadow-blue-200">
@@ -975,133 +979,133 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden bg-slate-50">
-              
+
               {/* Chat Area */}
               <div className={`flex flex-col p-6 overflow-hidden ${(selectedPayment === 'UPI' || assistantStep === 'paymentSuccess') ? 'w-2/3 border-r border-slate-200' : 'w-full'}`}>
                 <div className="flex-1 overflow-y-auto space-y-6 pr-4">
-                {chatHistory.map((msg) => (
-                  <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`
+                  {chatHistory.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`
                       max-w-[80%] p-6 rounded-3xl relative
                       ${msg.sender === 'user'
-                        ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-200'
-                        : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-sm'}
+                          ? 'bg-blue-600 text-white rounded-tr-none shadow-lg shadow-blue-200'
+                          : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-sm'}
                     `}>
-                      <p className={`font-bold text-lg leading-relaxed whitespace-pre-line`}>{msg.text}</p>
+                        <p className={`font-bold text-lg leading-relaxed whitespace-pre-line`}>{msg.text}</p>
 
-                      {/* NEW: Render Dynamic Numeric Menu if available */}
-                      {msg.menu && (
-                        <div className="mt-6 space-y-3">
-                          <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-2">{msg.menu.heading}</p>
-                          {msg.menu.options.map(opt => (
-                            <button
-                              key={opt.id}
-                              onClick={() => handleMenuOptionClick(opt.id, opt.label)}
-                              className={`w-full text-left bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 p-4 rounded-xl flex items-center justify-between transition group ${msg.sender === 'user' ? 'bg-blue-700 border-blue-500 text-white' : ''}`}
-                            >
-                              <span className="font-bold">{opt.label}</span>
-                              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-200 text-slate-600 text-sm font-black group-hover:bg-indigo-600 group-hover:text-white transition">{opt.id}</span>
-                            </button>
-                          ))}
+                        {/* NEW: Render Dynamic Numeric Menu if available */}
+                        {msg.menu && (
+                          <div className="mt-6 space-y-3">
+                            <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-2">{msg.menu.heading}</p>
+                            {msg.menu.options.map(opt => (
+                              <button
+                                key={opt.id}
+                                onClick={() => handleMenuOptionClick(opt.id, opt.label)}
+                                className={`w-full text-left bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 p-4 rounded-xl flex items-center justify-between transition group ${msg.sender === 'user' ? 'bg-blue-700 border-blue-500 text-white' : ''}`}
+                              >
+                                <span className="font-bold">{opt.label}</span>
+                                <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-200 text-slate-600 text-sm font-black group-hover:bg-indigo-600 group-hover:text-white transition">{opt.id}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Bot Actions - Replay Voice */}
+                        {msg.sender === 'bot' && msg.voiceText && isVoiceEnabled && (
+                          <button onClick={() => speakText(msg.voiceText!)} className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit hover:bg-indigo-100 transition">
+                            <PlayCircle size={14} /> {t('ai_replay')}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  {isAiLoading && (
+                    <div className="flex justify-start animate-pulse">
+                      <div className="bg-white p-6 rounded-3xl rounded-tl-none border border-slate-200 shadow-sm flex gap-2 items-center">
+                        <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-75"></span>
+                        <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-150"></span>
+                        <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+
+                {/* Input Area */}
+                <div className="mt-4 flex gap-3 bg-white p-3 rounded-[2rem] shadow-xl border border-slate-100">
+                  <button
+                    onClick={handleVoiceInput}
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition border ${isListening ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`}
+                  >
+                    {isListening ? <MicOff size={24} /> : <Mic size={24} />}
+                  </button>
+                  <input
+                    type="text"
+                    placeholder={t('ai_inputPlaceholder')}
+                    className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-slate-800 placeholder:text-slate-300 px-2"
+                    value={aiQuery}
+                    onChange={(e) => setAiQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                  />
+                  <button
+                    onClick={() => handleAiSearch()}
+                    disabled={!aiQuery.trim() || isAiLoading}
+                    className="w-16 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:shadow-none"
+                  >
+                    <Send size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Side Panel */}
+              {(selectedPayment === 'UPI' || assistantStep === 'paymentSuccess') && (
+                <div className="w-1/3 p-6 flex flex-col items-center justify-center animate-in slide-in-from-right-4 bg-white overflow-y-auto">
+                  {assistantStep === 'paymentSuccess' && (
+                    <div className="w-full max-w-sm space-y-4">
+                      <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 text-center">
+                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle size={32} />
                         </div>
-                      )}
+                        <h3 className="text-xl font-black text-slate-800 mb-2">Payment Successful ✅</h3>
+                        <p className="text-sm font-medium text-slate-500 mb-6">What would you like to do next?</p>
 
-                      {/* Bot Actions - Replay Voice */}
-                      {msg.sender === 'bot' && msg.voiceText && isVoiceEnabled && (
-                        <button onClick={() => speakText(msg.voiceText!)} className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit hover:bg-indigo-100 transition">
-                          <PlayCircle size={14} /> {t('ai_replay')}
-                        </button>
-                      )}
+                        <div className="space-y-3 text-left">
+                          <button onClick={() => handleAiSearch('1')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl transition group">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition">1</div>
+                              <span className="font-bold text-slate-700">Download Receipt</span>
+                            </div>
+                            <Download size={20} className="text-slate-400 group-hover:text-indigo-600 transition" />
+                          </button>
+
+                          <button onClick={() => handleAiSearch('2')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl transition group">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-slate-900 group-hover:text-white transition">2</div>
+                              <span className="font-bold text-slate-700">Go to Home</span>
+                            </div>
+                            <Home size={20} className="text-slate-400 group-hover:text-slate-900 transition" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-
-                {isAiLoading && (
-                  <div className="flex justify-start animate-pulse">
-                    <div className="bg-white p-6 rounded-3xl rounded-tl-none border border-slate-200 shadow-sm flex gap-2 items-center">
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-75"></span>
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-150"></span>
-                      <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce delay-200"></span>
+                  )}
+                  {selectedPayment === 'UPI' && assistantStep !== 'paymentSuccess' && (
+                    <div className="w-full max-w-sm">
+                      <div className="upi-qr-container text-center bg-slate-50 p-6 rounded-3xl border border-slate-200">
+                        <div className="bg-white p-4 rounded-2xl inline-block shadow-sm mb-4">
+                          <QRCode
+                            value={`upi://pay?pa=suvidha@upi&pn=Suvidha&am=850&cu=INR`}
+                            size={220}
+                          />
+                        </div>
+                        <p className="font-bold text-slate-600">Scan & Pay using any UPI App</p>
+                      </div>
                     </div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Input Area */}
-              <div className="mt-4 flex gap-3 bg-white p-3 rounded-[2rem] shadow-xl border border-slate-100">
-                <button
-                  onClick={handleVoiceInput}
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center transition border ${isListening ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`}
-                >
-                  {isListening ? <MicOff size={24} /> : <Mic size={24} />}
-                </button>
-                <input
-                  type="text"
-                  placeholder={t('ai_inputPlaceholder')}
-                  className="flex-1 bg-transparent border-none outline-none text-xl font-bold text-slate-800 placeholder:text-slate-300 px-2"
-                  value={aiQuery}
-                  onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
-                />
-                <button
-                  onClick={() => handleAiSearch()}
-                  disabled={!aiQuery.trim() || isAiLoading}
-                  className="w-16 h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:shadow-none"
-                >
-                  <Send size={24} />
-                </button>
-              </div>
+                  )}
+                </div>
+              )}
             </div>
-
-            {/* Right Side Panel */}
-            {(selectedPayment === 'UPI' || assistantStep === 'paymentSuccess') && (
-              <div className="w-1/3 p-6 flex flex-col items-center justify-center animate-in slide-in-from-right-4 bg-white overflow-y-auto">
-                {assistantStep === 'paymentSuccess' && (
-                  <div className="w-full max-w-sm space-y-4">
-                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-200 text-center">
-                      <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle size={32} />
-                      </div>
-                      <h3 className="text-xl font-black text-slate-800 mb-2">Payment Successful ✅</h3>
-                      <p className="text-sm font-medium text-slate-500 mb-6">What would you like to do next?</p>
-
-                      <div className="space-y-3 text-left">
-                        <button onClick={() => handleAiSearch('1')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded-2xl transition group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-indigo-600 group-hover:text-white transition">1</div>
-                            <span className="font-bold text-slate-700">Download Receipt</span>
-                          </div>
-                          <Download size={20} className="text-slate-400 group-hover:text-indigo-600 transition" />
-                        </button>
-
-                        <button onClick={() => handleAiSearch('2')} className="w-full flex items-center justify-between p-4 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl transition group">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-black group-hover:bg-slate-900 group-hover:text-white transition">2</div>
-                            <span className="font-bold text-slate-700">Go to Home</span>
-                          </div>
-                          <Home size={20} className="text-slate-400 group-hover:text-slate-900 transition" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {selectedPayment === 'UPI' && assistantStep !== 'paymentSuccess' && (
-                  <div className="w-full max-w-sm">
-                    <div className="upi-qr-container text-center bg-slate-50 p-6 rounded-3xl border border-slate-200">
-                      <div className="bg-white p-4 rounded-2xl inline-block shadow-sm mb-4">
-                        <QRCode
-                          value={`upi://pay?pa=suvidha@upi&pn=Suvidha&am=850&cu=INR`}
-                          size={220}
-                        />
-                      </div>
-                      <p className="font-bold text-slate-600">Scan & Pay using any UPI App</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-           </div>
           </div>
         )}
 
@@ -1114,35 +1118,46 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {activeTab === 'status' && (
           <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
             <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> {t('history') || 'History'}</h2>
-            <div className="grid gap-4">
-              {userRequests.map((req) => {
-                const serviceLabel = t(req.type) || req.type;
-                const deptLabel = t(req.department) || req.department;
-                const statusKey = req.status === 'Completed' ? 'completed'
-                  : req.status === 'Resolved' ? 'resolved'
-                  : req.status === 'Pending' ? 'pending'
-                  : req.status === 'In Progress' ? 'inProgress'
-                  : req.status; // fallback: key is already lowercase camelCase
-                const statusLabel = t(statusKey) || req.status;
-                const isResolved = req.status === 'resolved' || req.status === 'Resolved' || req.status === 'Completed' || req.status === 'completed';
-                return (
-                  <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
-                    <div className="flex gap-6 items-start">
-                      <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
-                      <div>
-                        <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
-                        <h4 className="font-black text-slate-900 text-xl">{serviceLabel}</h4>
-                        <p className="text-sm text-slate-500 font-medium">{deptLabel} • {req.timestamp}</p>
+            {isLoadingRequests ? (
+              <div className="text-center p-10 text-slate-500 font-medium">
+                <RefreshCw className="animate-spin mx-auto mb-4" />
+                Loading your history...
+              </div>
+            ) : userRequests.length > 0 ? (
+              <div className="grid gap-4">
+                {userRequests.map((req) => {
+                  const serviceLabel = t(req.serviceType) || req.serviceType;
+                  const deptLabel = t(req.category) || req.category;
+                  const statusKey = req.status === 'Completed' ? 'completed'
+                    : req.status === 'Resolved' ? 'resolved'
+                      : req.status === 'Pending' ? 'pending'
+                        : req.status === 'In Progress' ? 'inProgress'
+                          : req.status; // fallback: key is already lowercase camelCase
+                  const statusLabel = t(statusKey) || req.status;
+                  const isResolved = req.status === 'resolved' || req.status === 'Resolved' || req.status === 'Completed' || req.status === 'completed';
+                  return (
+                    <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
+                      <div className="flex gap-6 items-start">
+                        <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
+                        <div>
+                          <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
+                          <h4 className="font-black text-slate-900 text-xl">{serviceLabel}</h4>
+                          <p className="text-sm text-slate-500 font-medium">{deptLabel} • {new Date(req.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${isResolved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{statusLabel}</span>
+                        <button onClick={() => setSelectedHistoryItem(req)} className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition" title="Download Document as PDF"><Download size={20} /></button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${isResolved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{statusLabel}</span>
-                      <button onClick={() => setSelectedHistoryItem(req)} className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition" title="Download Document as PDF"><Download size={20} /></button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center p-10 bg-slate-50 rounded-2xl text-slate-500 font-medium">
+                You have no past service requests or complaints.
+              </div>
+            )}
           </div>
         )}
 
@@ -1187,7 +1202,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       </div>
       {showReceiptPreview && <PaymentReceipt data={receiptDetails} onClose={() => setShowReceiptPreview(false)} />}
-      {assistantStep === 'paymentSuccess' && <PaymentReceipt data={receiptDetails} isBackground={true} onClose={() => {}} />}
+      {assistantStep === 'paymentSuccess' && <PaymentReceipt data={receiptDetails} isBackground={true} onClose={() => { }} />}
       {selectedHistoryItem && <HistoryReceipt data={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />}
     </KioskShell >
   );
