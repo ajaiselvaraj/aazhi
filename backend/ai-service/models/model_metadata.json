@@ -1,0 +1,72 @@
+{
+  "trained_at": "2026-04-19T15:36:47.963996+00:00",
+  "dataset_path": "D:\\Vic\\Aazhi ML\\aazhi\\microservices\\ai-service\\training_data.csv",
+  "total_samples": 188,
+  "spam_classifier": {
+    "model_path": "D:\\Vic\\Aazhi ML\\aazhi\\microservices\\ai-service\\models\\custom_spam_classifier.pkl",
+    "model_hash": "cfa82dffeace67bd12064416ba76194c7a677b637ffe223573a0ebad12b52759",
+    "train_size": 150,
+    "test_size": 38,
+    "cv_mean_f1": 0.9487,
+    "cv_std_f1": 0.0186,
+    "class_distribution": {
+      "ham": 144,
+      "spam": 44
+    }
+  },
+  "department_router": {
+    "model_path": "D:\\Vic\\Aazhi ML\\aazhi\\microservices\\ai-service\\models\\department_router.pkl",
+    "model_hash": "cdecbfa09ac04f548a7f6cd78e79b556afc8a63a4224e365cb7a97676f994b3d",
+    "train_size": 115,
+    "test_size": 29,
+    "num_departments": 18,
+    "departments": [
+      "administrative",
+      "animal_control",
+      "building",
+      "drainage",
+      "education",
+      "electricity",
+      "enforcement",
+      "environment",
+      "fire",
+      "gas",
+      "health",
+      "parks",
+      "revenue",
+      "roads",
+      "sanitation",
+      "traffic",
+      "water",
+      "welfare"
+    ],
+    "class_distribution": {
+      "roads": 19,
+      "water": 17,
+      "electricity": 18,
+      "sanitation": 11,
+      "drainage": 10,
+      "animal_control": 4,
+      "health": 6,
+      "building": 4,
+      "parks": 4,
+      "enforcement": 7,
+      "environment": 9,
+      "traffic": 7,
+      "education": 3,
+      "welfare": 4,
+      "revenue": 5,
+      "administrative": 9,
+      "gas": 4,
+      "fire": 3
+    }
+  },
+  "pipeline_version": "2.0.0",
+  "features": [
+    "TF-IDF with bigrams",
+    "LinearSVC with balanced class weights",
+    "Platt calibration for probability estimates",
+    "Department routing (multi-class)",
+    "Model integrity hashing (SHA-256)"
+  ]
+}

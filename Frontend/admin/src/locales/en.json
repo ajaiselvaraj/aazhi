@@ -26,6 +26,9 @@
     "dup_det": "Duplicate Detection",
     "fraud_mon": "Fraud Monitoring",
     "ai_insights": "AI Insights",
+    "grp_ml": "ML Innovation",
+    "ml_summarizer": "Smart Summarizer",
+    "ml_sentiment": "Sentiment Pulse",
     "grp_ops": "Operations",
     "insights": "Insights & Analytics",
     "forecast": "Workload Forecast",
@@ -261,7 +264,8 @@
     "chart_dept": "Department Distribution",
     "chart_priority": "Priority Breakdown",
     "chart_sentiment": "Citizen Sentiment Distribution",
-    "chart_keywords": "AI Top Extracted Keywords"
+    "chart_keywords": "AI Top Extracted Keywords",
+    "playground": "Live ML Playground"
   },
   "insights": {
     "title": "AI Insights Engine",

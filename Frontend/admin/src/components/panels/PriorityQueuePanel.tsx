@@ -17,6 +17,7 @@ export default function PriorityQueuePanel() {
   const myDept = user ? deptKey(user.department) : ''
   const [issues, setIssues] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({})
 
   const [isFetching, setIsFetching] = React.useState(false)
 
@@ -143,10 +144,24 @@ export default function PriorityQueuePanel() {
 
               {/* Action */}
               <div style={{ marginTop: '1.25rem', display: 'flex', gap: '.75rem' }}>
-                <button className="btn btn-primary" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}>
-                  {t('critical_q.view_details') || 'View Details'}
+                <button 
+                  className="btn btn-primary" 
+                  style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}
+                  onClick={() => setExpanded(prev => ({ ...prev, [issue.id]: !prev[issue.id] }))}
+                >
+                  {expanded[issue.id] ? (t('critical_q.hide_details') || 'Hide Details') : (t('critical_q.view_details') || 'View Details')}
                 </button>
-                <button className="btn btn-outline" style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}>
+                <button 
+                  className="btn btn-outline" 
+                  style={{ flex: 1, justifyContent: 'center', padding: '.5rem', fontSize: '.85rem', height: 'auto' }}
+                  onClick={() => {
+                    const name = window.prompt(t('critical_q.enter_officer') || 'Enter officer name to assign:')
+                    if (name && name.trim()) {
+                      const updated = issues.map(i => i.id === issue.id ? { ...i, officer: name.trim() } : i)
+                      setIssues(updated)
+                    }
+                  }}
+                >
                   {t('critical_q.assign_officer') || 'Assign Officer'}
                 </button>
                 <button 
@@ -160,6 +175,24 @@ export default function PriorityQueuePanel() {
                   {t('critical_q.mark_resolved') || 'Mark Resolved'}
                 </button>
               </div>
+
+              {/* Expanded Details */}
+              {expanded[issue.id] && (
+                <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '.5rem', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                    Complaint Details
+                  </div>
+                  <p style={{ fontSize: '.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+                    {issue.raw.description || 'No description provided.'}
+                  </p>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '.75rem', fontSize: '.78rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                    <span><strong>Ticket:</strong> {issue.raw.ticket_number || issue.id}</span>
+                    <span><strong>Priority:</strong> {issue.raw.priority || 'critical'}</span>
+                    <span><strong>Status:</strong> {issue.raw.status || 'submitted'}</span>
+                    {issue.raw.citizen_name && <span><strong>Citizen:</strong> {issue.raw.citizen_name}</span>}
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

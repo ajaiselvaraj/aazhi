@@ -5,7 +5,6 @@ import DashboardOverview from '../components/panels/DashboardOverview'
 import HeatmapPanel from '../components/panels/HeatmapPanel'
 import TriagePanel from '../components/panels/TriagePanel'
 import DuplicatePanel from '../components/panels/DuplicatePanel'
-import FraudPanel from '../components/panels/FraudPanel'
 import HistoryPanel from '../components/panels/HistoryPanel'
 import InsightsPanel from '../components/panels/InsightsPanel'
 import WorkloadForecastPanel from '../components/panels/WorkloadForecastPanel'
@@ -14,6 +13,8 @@ import RiskDetectorPanel from '../components/panels/RiskDetectorPanel'
 import AIInsightsPanel from '../components/panels/AIInsightsPanel'
 import SettingsPanel from '../components/panels/SettingsPanel'
 import ServiceRequestsPanel from '../components/panels/ServiceRequestsPanel'
+import ComplaintSummarizerPanel from '../components/panels/ComplaintSummarizerPanel'
+import SentimentPulsePanel from '../components/panels/SentimentPulsePanel'
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -23,7 +24,6 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   'service-requests': ServiceRequestsPanel,
   triage:     TriagePanel,
   duplicate:  DuplicatePanel,
-  fraud:      FraudPanel,
   history:    HistoryPanel,
   insights:   InsightsPanel,
   forecast:   WorkloadForecastPanel,
@@ -31,6 +31,8 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   risk:            RiskDetectorPanel,
   'ai-insights':   AIInsightsPanel,
   settings:   SettingsPanel,
+  'ml-summarizer':  ComplaintSummarizerPanel,
+  'ml-sentiment':   SentimentPulsePanel,
 }
 
 export default function DashboardPage() {

@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import {
   LayoutDashboard, Map, MessageSquare, Cpu, Copy,
   AlertTriangle, ListOrdered, BarChart2, TrendingUp,
-  BellRing, ShieldAlert, Settings, LogOut, Zap, Brain, History
+  BellRing, ShieldAlert, Settings, LogOut, Zap, Brain, History,
+  Layers, Heart
 } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 
@@ -23,8 +24,15 @@ const navGroups = [
     items: [
       { id: 'triage',       icon: Cpu,             trans_key: 'nav.ai_route', default_label: 'AI Routing Queue' },
       { id: 'duplicate',    icon: Copy,            trans_key: 'nav.dup_det', default_label: 'Duplicate Detection' },
-      { id: 'fraud',        icon: ShieldAlert,     trans_key: 'nav.fraud_mon', default_label: 'Fraud Monitoring' },
       { id: 'ai-insights',  icon: Brain,           trans_key: 'nav.ai_insights', default_label: 'AI Insights' },
+    ],
+  },
+  {
+    label_key: 'nav.grp_ml',
+    label_default: '🧠 ML Innovation',
+    items: [
+      { id: 'ml-summarizer',   icon: Layers,       trans_key: 'nav.ml_summarizer', default_label: '📋 Smart Summarizer' },
+      { id: 'ml-sentiment',    icon: Heart,         trans_key: 'nav.ml_sentiment',  default_label: '🎯 Sentiment Pulse' },
     ],
   },
   {

@@ -1,0 +1,189 @@
+text,label,department
+"The road in ward 12 is completely broken with potholes everywhere",civic_issue,roads
+"WATER NOT COMING SINCE 3 DAYS FIX THE PIPELINE IMMEDIATELY",civic_issue,water
+"Buy cheap viagra online click here now",spam,
+"Congratulations you have won a lottery prize click to claim",spam,
+"Streetlight broken on 5th cross road very dangerous at night",civic_issue,electricity
+"Garbage not collected for 2 weeks in our colony",civic_issue,sanitation
+"Make money fast work from home earn 50000 per day",spam,
+"Drainage overflow near bus stand causing flooding every monsoon",civic_issue,drainage
+"Claim your free gift card now limited time offer act fast",spam,
+"Dead animal rotting on the street please clean it urgently",civic_issue,sanitation
+"You have been selected for a free vacation click this link",spam,
+"Power cut for 12 hours in my area no electricity at all",civic_issue,electricity
+"Invest in crypto and double your money fast guaranteed returns",spam,
+"Stray dogs attacking children near the park every evening",civic_issue,animal_control
+"Hot singles in your area looking to chat click now",spam,
+"No electricity since morning please send lineman to fix",civic_issue,electricity
+"Sewage water flooding the main road in ward 7 for weeks",civic_issue,drainage
+"Tree fallen on the road blocking all traffic since yesterday",civic_issue,roads
+"Public toilet near bus stand is extremely dirty and broken",civic_issue,sanitation
+"NOBODY IS FIXING THE BROKEN WATER PIPE IT HAS BEEN 5 DAYS",civic_issue,water
+"WHY IS THERE NO WATER IN OUR AREA FOR ONE WEEK FIX IT NOW",civic_issue,water
+"I AM TIRED OF COMPLAINING ABOUT GARBAGE NOBODY CARES",civic_issue,sanitation
+"THIS GOVERNMENT IS USELESS ROAD IS BROKEN FOR 6 MONTHS",civic_issue,roads
+"WHEN WILL YOU FIX THE DRAINAGE ITS BEEN 3 MONTHS OF FLOODING",civic_issue,drainage
+"ARE YOU EVEN WORKING THE STREETLIGHT IS BROKEN SINCE JANUARY",civic_issue,electricity
+"Bridge near school is in dangerous condition children at risk",civic_issue,roads
+"Footpath tiles are broken elderly people are falling and getting hurt",civic_issue,roads
+"Mosquito breeding in stagnant water near temple needs fogging",civic_issue,health
+"Open manhole on main road someone will fall and die",civic_issue,drainage
+"Illegal construction blocking public road in residential area",civic_issue,building
+"Water tank overflow wasting lakhs of liters daily for months",civic_issue,water
+"Railway crossing gate not working properly very dangerous area",civic_issue,roads
+"Bus stop shelter roof collapsed during rain nobody repaired it",civic_issue,roads
+"Borewell needs repair in our colony no water for 200 families",civic_issue,water
+"Canal overflowing due to garbage dumping causing flood in ward 3",civic_issue,drainage
+"NO action taken on my previous 5 complaints about road repair",civic_issue,roads
+"Park in ward 8 is completely neglected overgrown with weeds",civic_issue,parks
+"Children playground equipment is rusted and broken very dangerous",civic_issue,parks
+"Street vendor encroachment blocking entire footpath on MG Road",civic_issue,enforcement
+"Loud noise from factory at night disturbing entire neighborhood",civic_issue,environment
+"Air pollution from burning garbage making children sick daily",civic_issue,environment
+"Traffic signal not working at major junction causing accidents",civic_issue,traffic
+"Speed breakers needed near school zone children crossing dangerously",civic_issue,traffic
+"Public hospital has no medicines and doctors are absent daily",civic_issue,health
+"Government school building roof leaking during rains children suffering",civic_issue,education
+"Pension not received for 3 months old age citizens suffering",civic_issue,welfare
+"Ration shop not distributing rice and wheat properly corrupt dealer",civic_issue,welfare
+"Property tax assessment is wrong I am being overcharged unfairly",civic_issue,revenue
+"Birth certificate application pending for 6 months no response at all",civic_issue,administrative
+"Community hall in ward 4 is in dilapidated condition needs renovation",civic_issue,building
+"Stray cattle on highway causing accidents every week very dangerous",civic_issue,animal_control
+"Mercury levels rising in industrial area groundwater contaminated badly",civic_issue,environment
+"Pipeline leaking clean drinking water wasting for 10 days nobody came",civic_issue,water
+"Electric pole tilting dangerously near houses could fall anytime",civic_issue,electricity
+"Transformer burst in our area 500 houses without power for 2 days",civic_issue,electricity
+"Low voltage in our area all appliances getting damaged regularly",civic_issue,electricity
+"Electricity bill is wrong showing double the actual consumption amount",civic_issue,electricity
+"Smart meter installed but showing wrong readings every single month",civic_issue,electricity
+"Gas pipeline leak smell of gas near residential area very dangerous",civic_issue,gas
+"LPG connection application pending for 8 months despite all documents",civic_issue,gas
+"Gas cylinder delivery delayed by 2 months no proper explanation given",civic_issue,gas
+"PNG connection work left incomplete pipes exposed on the road dangerously",civic_issue,gas
+"Fire hydrant not working near market area extremely risky situation",civic_issue,fire
+"Narrow lanes in old city no fire truck access at all very dangerous",civic_issue,fire
+"Click here to win iPhone 15 free no purchase necessary hurry limited stock",spam,
+"You have been selected for $1000 gift card click link to claim now",spam,
+"Dear customer your account has been compromised click here to verify now",spam,
+"Earn $500 daily from home no experience needed start right now today",spam,
+"URGENT your bank account will be closed verify your details immediately now",spam,
+"Subscribe to our premium channel for exclusive content free trial available",spam,
+"Buy one get one free on all products limited period offer shop now",spam,
+"Casino online play and win big money daily jackpot guaranteed winning",spam,
+"Weight loss pills that actually work lose 10kg in one week guaranteed",spam,
+"Your parcel is waiting click tracking link to schedule delivery confirmation",spam,
+"Hot deal 90% off on branded watches buy now before stock runs out",spam,
+"Get rich quick with our proven investment strategy double your money monthly",spam,
+"Free Netflix premium account generator click download now works always perfectly",spam,
+"Your computer has virus call tech support now at toll free number immediately",spam,
+"Congratulations you are our 1 millionth visitor claim your prize cash now",spam,
+"Work from home earn 1 lakh per month just copy paste work simple easy",spam,
+"Loan approved instantly no documents required apply now get money today fast",spam,
+"asdfghjkl qwertyuiop zxcvbnm random text nothing meaningful at all here",spam,
+"aaaaaaaaaaaa bbbbbbbbbb cccccccccc random repeated characters test only nothing real",spam,
+"BUY BUY BUY SELL SELL SELL STOCK TIPS FREE JOIN WHATSAPP GROUP NOW TODAY",spam,
+"SEO services guaranteed first page Google ranking cheap price best quality service",spam,
+"Bulk SMS service cheapest rate send unlimited messages marketing solution best provider",spam,
+"MLM opportunity join now earn passive income multi level marketing best company ever",spam,
+"Dear sir madam please find attached the invoice for your recent purchase payment",spam,
+"Real estate plots available near highway 50% discount book now advance payment only",spam,
+"Hair transplant cheapest cost best results guaranteed call now for free consultation today",spam,
+"The pothole on anna salai near signal is very deep my bike got damaged badly",civic_issue,roads
+"Water is yellow and smelling bad since last week not safe to drink at all",civic_issue,water
+"Garbage truck is not coming to our street since 10 days area smelling bad",civic_issue,sanitation
+"The new road they built last month already has cracks poor quality construction work",civic_issue,roads
+"Water comes only for 30 minutes in morning not enough for whole family daily needs",civic_issue,water
+"Please install dustbin at the corner of 3rd street people throwing garbage on road",civic_issue,sanitation
+"Underground drainage pipe is blocked sewage coming on the road polluting everything around",civic_issue,drainage
+"The overhead water tank in our area is leaking badly wasting clean water daily",civic_issue,water
+"Please trim the overgrown trees on both sides of the road blocking visibility",civic_issue,parks
+"Unauthorized construction of building violating setback rules affecting neighboring houses badly",civic_issue,building
+"Heavy vehicle parking on residential street causing damage to road and disturbance nightly",civic_issue,traffic
+"Please install CCTV camera at ward 5 junction for safety many incidents happening",civic_issue,enforcement
+"Cremation ground needs maintenance compound wall broken stray animals entering regularly disturbing",civic_issue,sanitation
+"Corporation school needs more teachers only 2 teachers for 200 students not enough quality",civic_issue,education
+"Anganwadi center in our area has no proper building children sitting in open heat sun",civic_issue,education
+"Marriage hall construction noise pollution residents unable to sleep at night daily for months",civic_issue,environment
+"Chemical factory waste being dumped in river poisoning water supply for entire village area",civic_issue,environment
+"Wifi and broadband cables hanging low on the road dangerous for two wheeler riders daily",civic_issue,electricity
+"Street dog menace in ward 12 packs of 20 dogs attacking morning walkers regularly daily",civic_issue,animal_control
+"Cattle roaming freely on national highway near toll plaza causing accidents regularly very risky",civic_issue,animal_control
+"Ward councillor not responding to any complaints office always closed no grievance redressal",civic_issue,administrative
+"Pension office asking for bribe to process legitimate old age pension application corrupt behavior",civic_issue,welfare
+"Ration card name spelling wrong despite submitting correction form 3 times already no action",civic_issue,welfare
+"Community certificate not issued for 4 months college admission deadline approaching very urgent need",civic_issue,administrative
+"Land encroachment by powerful person on government poramboke land near lake destroying water body",civic_issue,revenue
+"Illegal sand mining in river bed destroying bridge foundation very dangerous situation developing",civic_issue,environment
+"Temple festival road closure no alternative route informed in advance causing huge traffic jam",civic_issue,traffic
+"Market area footpath occupied by shops pedestrians forced to walk on road dangerously daily",civic_issue,enforcement
+"Primary health center has no doctor nurse runs the show medicines not available most days",civic_issue,health
+"Mosquito fogging not done in ward 6 dengue cases increasing rapidly many children affected",civic_issue,health
+"Rainwater harvesting structures in government buildings not maintained defeating the whole purpose waste money",civic_issue,water
+"Solar street lights installed 2 years ago none of them working now waste of public money",civic_issue,electricity
+"EV charging station installed by corporation not operational since inauguration day one month ago waste",civic_issue,electricity
+"Smart city project road work left incomplete for 8 months creating water logging during rain",civic_issue,roads
+"Metro construction debris dumped on residential street not cleared for weeks causing health issues",civic_issue,sanitation
+"Flyover construction causing house cracks vibration damage to 50 houses in surrounding streets area",civic_issue,roads
+"Namma saalai programme road resurfaced but manholes not raised creating bumps and accidents regularly",civic_issue,roads
+"kudiNeer varala 5 naalaaga yaarum varalai fix pannunga please urgent",civic_issue,water
+"saalai la palli kuzhiiii romba aabathuu bike la pona vizhunthutom yesterday evening",civic_issue,roads
+"current illai indru kaalaiyil irundhu transformer paakaiyil check pannunga urgent",civic_issue,electricity
+"sampam edukala 10 naal aachuu romba naatram vaala mudiyala area la",civic_issue,sanitation
+"paani nahi aa raha hai 4 din se koi dhyan nahi de raha fix karo please",civic_issue,water
+"sadak mein bahut bada gaddha hai raat ko bike accident hua kal raat urgent",civic_issue,roads
+"bijli nahi hai subah se transformer kharab hai theek karo jaldi urgent",civic_issue,electricity
+"kachra gaadi nahi aati 1 hafte se bahut gandagi ho gayi hai area mein",civic_issue,sanitation
+"naala band hai paani sadak pe aa raha hai bahut mushkil ho rahi hai daily",civic_issue,drainage
+"test test test test test test test test testing only nothing real here 123",spam,
+"!!! ??? ... *** ### @@@ $$$ %%% ^^^ &&& special chars only nothing else",spam,
+"v i a g r a c i a l i s p h a r m a c y cheap pills online order now delivery",spam,
+"GGGGGGGGGGG FFFFFFFF HHHHHHH JJJJJJJ KKKKKKK random letters meaningless junk text only",spam,
+"😀😀😀🎉🎉🎉💰💰💰 Click here win money free 🎁🎁🎁 limited time!!!!!!",spam,
+"Sir road repair work done shoddy quality within one month potholes appeared again waste",civic_issue,roads
+"Water supply timing changed without any notice residents had to go without water for 2 days",civic_issue,water
+"Newly installed LED streetlights too dim not providing adequate lighting on the road at night",civic_issue,electricity
+"Corporation demolished unauthorized structure but debris not cleared blocking half the road since weeks",civic_issue,sanitation
+"STP plant near residential area not functioning properly bad smell spreading across 1km radius daily",civic_issue,environment
+"Pedestrian crossing markings faded at school zone children crossing without any safety measures present",civic_issue,traffic
+"Fire crackers factory operating in residential zone without proper license dangerous for all of us",civic_issue,fire
+"Heritage building in old town needs urgent restoration before monsoon walls cracking and leaning badly",civic_issue,building
+"IT corridor roads good but feeder roads in surrounding villages completely neglected broken unusable condition",civic_issue,roads
+"Water ATM machine installed by corporation out of order since 3 months nobody came to repair still",civic_issue,water
+"Solar powered RO water plant in village not working no maintenance done since installation 1 year",civic_issue,water
+"Bio mining of legacy waste dump started but dust and smell making nearby residents very sick affected",civic_issue,environment
+"CCTV cameras installed in market area but most not working vandalized no maintenance or monitoring done",civic_issue,enforcement
+"You won free cruise trip claim now http://scam-cruise.com limited spots book today immediately",spam,
+"Increase your followers 10000 Instagram followers for just 500 rupees guaranteed organic growth marketing",spam,
+"Part time job data entry earn 30000 monthly work 2 hours daily no investment needed simple",spam,
+"Hello dear I am prince from Nigeria I need help transferring 10 million dollars wire money",spam,
+"Your mobile number selected for 25 lakh prize money from Jio KBC send bank details claim",spam,
+"Download mod APK free premium unlocked all features cracked version latest no root needed working",spam,
+"Electricity meter tampered neighbor stealing power please investigate urgently supply affected for us daily",civic_issue,electricity
+"High tension wire sagging dangerously near school building immediate action required before accident happens",civic_issue,electricity
+"Water logging in underpass every rain commuters stuck for hours no pumping arrangement made by anyone",civic_issue,drainage
+"Illegal hookah bar operating near college campus youth getting affected please take action enforcement needed",civic_issue,enforcement
+"Ambulance service number not reachable during emergency patient had to be taken in auto very bad",civic_issue,health
+"Government hospital operation theatre AC not working surgeries being postponed patients suffering unnecessarily badly",civic_issue,health
+"Railway level crossing gate operator absent during peak hours accidents waiting to happen very dangerous",civic_issue,traffic
+"Abandoned vehicles parked on road for months occupying public space nobody removing them take action",civic_issue,enforcement
+"Playground converted to parking lot by local goons children have no place to play anymore sad",civic_issue,parks
+"Lake encroached for real estate construction water body shrinking affecting entire ecosystem and water table",civic_issue,environment
+"Our area has no proper bus service elderly people suffering to reach hospital for treatment daily",civic_issue,traffic
+"Tax paid online but receipt not generated showing pending status for 2 months contact office no help",civic_issue,revenue
+"Patta transfer application pending since 1 year despite submitting all documents and paying fees revenue dept",civic_issue,revenue
+"Free survey of land boundary being obstructed by neighboring landlord survey department not helping at all",civic_issue,revenue
+"Aadhar card address update rejected 3 times no proper reason given by the centre very frustrating",civic_issue,administrative
+"Voter ID address change application stuck for 6 months election approaching very worried no response at all",civic_issue,administrative
+"Death certificate not issued for 2 months despite hospital providing all documents to corporation office delay",civic_issue,administrative
+"Marriage registration pending for 3 months office keeps asking for new documents every single visit waste time",civic_issue,administrative
+"I HAVE BEEN CALLING YOUR HELPLINE FOR 3 DAYS NOBODY PICKS UP USELESS SERVICE PATHETIC",civic_issue,administrative
+"YOUR OFFICERS ARE TAKING BRIBE FOR EVERY SMALL WORK THIS IS CORRUPTION TAKE ACTION NOW",civic_issue,enforcement
+"WE WILL PROTEST ON THE ROAD IF WATER SUPPLY IS NOT RESTORED WITHIN 24 HOURS FINAL WARNING",civic_issue,water
+"WHEN WILL THIS CORRUPT DEPARTMENT ACTUALLY DO SOMETHING MY 10 COMPLAINTS ARE ALL IGNORED SHAME ON YOU",civic_issue,administrative
+"I WILL COMPLAIN TO THE CHIEF MINISTER IF THIS ROAD IS NOT FIXED THIS WEEK FINAL WARNING ENOUGH",civic_issue,roads
+"Six months without proper drainage we pay taxes for what exactly tell me answer this explain",civic_issue,drainage
+"My elderly mother fell in the pothole and broke her hip who is responsible for this negligence",civic_issue,roads
+"Exposed electrical wires near childrens play area THIS IS CRIMINAL NEGLIGENCE someone will die because of this",civic_issue,electricity
+"Every monsoon same flooding same promises same excuses same suffering when will you actually solve this permanently",civic_issue,drainage
+"We are humans not animals we deserve clean water and working roads is that too much to ask from you",civic_issue,water

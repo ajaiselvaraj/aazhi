@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ShieldCheck, LogIn, Eye, EyeOff, Lock, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { DEPARTMENTS } from '../data/mockData'
+
 import { adminApi } from '../services/adminApi'
 import { useLanguage } from '../context/LanguageContext'
 import cdacLogo from '../assets/cdac_logo.png'
