@@ -6,6 +6,7 @@ import GasProfile from './GasProfile';
 import GasBills from './GasBills';
 import GasQuickPay from './GasQuickPay';
 import GasLogin from './GasLogin';
+import GasTracker from './GasTracker';
 import { Language } from '../../../types';
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   language: Language;
 }
 
-type GasView = 'HOME' | 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS';
+type GasView = 'HOME' | 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS';
 
 const GasModule: React.FC<Props> = ({ onBack, language }) => {
   const [view, setView] = useState<GasView>('HOME');
@@ -69,6 +70,12 @@ const GasModule: React.FC<Props> = ({ onBack, language }) => {
         <GasLogin 
           onBack={handleInternalBack}
           onLoginSuccess={() => handleNavigate('BILLS')}
+          language={language}
+        />
+      )}
+      {view === 'TRACKER' && (
+        <GasTracker
+          onBack={handleInternalBack}
           language={language}
         />
       )}

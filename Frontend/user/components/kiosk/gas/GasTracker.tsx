@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, RefreshCw, SearchCode, CheckCircle, Clock, FileText, Printer, ShieldCheck, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, SearchCode, CheckCircle, Clock, FileText, Printer, ShieldCheck, AlertCircle, Flame } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -16,7 +16,7 @@ type TimelineStep = {
   status: 'completed' | 'current' | 'pending';
 };
 
-const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
+const GasTracker: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,19 +38,20 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
     setIsLoading(true);
 
     setTimeout(() => {
-      // Logic for demo purposes: return mock data
+      // Logic for demo purposes: return mock data based on Gas request types
+      const isComplaint = query.includes('CMP');
       setTrackingData({
         id: query.toUpperCase(),
-        type: query.includes('MTR') ? 'Meter Replacement Request' : query.includes('CMP') ? 'Complaint Registration' : 'New Connection Request',
-        consumer: 'Ramesh Kumar',
-        submissionDate: '14-Apr-2026',
-        tat: '7 Working Days',
+        type: isComplaint ? 'Gas Leak / Complaint' : 'New Gas Connection',
+        consumer: 'Arjun Das',
+        submissionDate: '17-Apr-2026',
+        tat: isComplaint ? '24 Hours' : '7 Working Days',
         status: 'In Progress',
         timeline: [
-          { id: 1, title: 'Application Submitted', desc: 'Received online successfully.', date: '14-Apr-2026 10:30 AM', status: 'completed' },
-          { id: 2, title: 'Document Verification', desc: 'Aadhaar and Ownership Proof verified.', date: '15-Apr-2026 02:15 PM', status: 'completed' },
-          { id: 3, title: 'Field Inspection', desc: 'Assigned to AE for site visit.', date: '16-Apr-2026 09:00 AM', status: 'current' },
-          { id: 4, title: 'Final Approval', desc: 'Pending Executive Engineer approval.', date: 'Pending', status: 'pending' },
+          { id: 1, title: 'Request Submitted', desc: 'Received successfully.', date: '17-Apr-2026 09:30 AM', status: 'completed' },
+          { id: 2, title: 'Document / Detail Verification', desc: 'Basic details verified.', date: '18-Apr-2026 10:15 AM', status: 'completed' },
+          { id: 3, title: 'Field Inspection', desc: 'Assigned to Gas Engineer for site survey.', date: '19-Apr-2026 09:00 AM', status: 'current' },
+          { id: 4, title: 'Clearance & Safety Check', desc: 'Pending safety approval.', date: 'Pending', status: 'pending' },
           { id: 5, title: 'Service Fulfilled', desc: 'Completion of request.', date: 'Pending', status: 'pending' }
         ]
       });
@@ -74,32 +75,32 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
         {/* Left Side: Search Area */}
         <div className="w-full lg:w-1/3 space-y-6 print:hidden">
           <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
-            <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mb-6 border border-blue-100">
+            <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mb-6 border border-orange-100">
               <SearchCode size={36} />
             </div>
-            <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2">Track Request</h2>
+            <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2">{t('gas_trackReq') || 'Track Request'}</h2>
             <p className="text-slate-500 font-medium text-sm mb-8">
-              Check real-time status of your service requests or complaints.
+              {t('gas_trackDesc') || 'Check real-time status of your gas service requests or complaints.'}
             </p>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
-                  Application / Ticket ID
+                  {t('ticketNumber') || 'Application / Ticket ID'}
                 </label>
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="e.g. EB-12345"
-                  className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-lg outline-none focus:border-blue-500 focus:bg-white transition"
+                  placeholder="e.g. GAS-12345"
+                  className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-lg outline-none focus:border-orange-500 focus:bg-white transition"
                 />
               </div>
 
               <button
                 onClick={handleSearch}
                 disabled={isLoading || !query}
-                className="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-orange-600 text-white p-4 rounded-xl font-black text-lg hover:bg-orange-700 shadow-lg shadow-orange-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isLoading ? <RefreshCw className="animate-spin" size={20} /> : <Search size={20} />}
                 {t('searchBtn') || 'Track Status'}
@@ -108,11 +109,11 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
           </div>
 
           {!trackingData && hasSearched && !isLoading && (
-            <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex items-start gap-3">
-              <AlertCircle size={20} className="text-orange-600 shrink-0 mt-0.5" />
+            <div className="bg-red-50 border border-red-200 p-4 rounded-2xl flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-orange-800 text-sm">No Record Found</h4>
-                <p className="text-xs text-orange-700 mt-1 font-medium">We couldn't find any request matching this ID. Please verify the ID and try again.</p>
+                <h4 className="font-bold text-red-800 text-sm">{t('noRecordFound') || 'No Record Found'}</h4>
+                <p className="text-xs text-red-700 mt-1 font-medium">{t('verifyId') || "We couldn't find any request matching this ID. Please verify the ID and try again."}</p>
               </div>
             </div>
           )}
@@ -126,15 +127,15 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
                 {/* Header info */}
                 <div className="p-8 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                        <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-2">
-                           <FileText size={14} /> {trackingData.type}
+                        <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider mb-2">
+                           <Flame size={14} /> {trackingData.type}
                         </div>
                         <h3 className="text-2xl font-black text-slate-800 tracking-tight">{trackingData.id}</h3>
-                        <p className="text-slate-500 font-medium text-sm mt-1">Consumer: <span className="font-bold text-slate-700">{trackingData.consumer}</span></p>
+                        <p className="text-slate-500 font-medium text-sm mt-1">{t('consumer') || 'Consumer'}: <span className="font-bold text-slate-700">{trackingData.consumer}</span></p>
                     </div>
 
                     <div className="text-left md:text-right">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Current Status</p>
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{t('currentStatus') || 'Current Status'}</p>
                         <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-xl text-sm font-bold border border-yellow-200">
                            <Clock size={16} /> {trackingData.status}
                         </div>
@@ -146,26 +147,26 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
                         <ShieldCheck size={18} className="text-green-600"/> SLA/TAT: <span className="text-slate-900">{trackingData.tat}</span>
                     </p>
                     <button onClick={handlePrint} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold text-sm transition print:hidden">
-                        <Printer size={18} /> Print Status
+                        <Printer size={18} /> {t('printStatus') || 'Print Status'}
                     </button>
                 </div>
 
                 {/* Timeline */}
                 <div className="p-8 pt-4">
                     <div className="relative border-l-2 border-slate-100 ml-4 space-y-8">
-                       {trackingData.timeline.map((item, index) => (
+                       {trackingData.timeline.map((item) => (
                            <div key={item.id} className="relative pl-8">
                                {/* Bullet */}
                                <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 ${
                                    item.status === 'completed' ? 'bg-green-500 border-green-500' :
-                                   item.status === 'current' ? 'bg-white border-blue-500 ring-4 ring-blue-50' :
+                                   item.status === 'current' ? 'bg-white border-orange-500 ring-4 ring-orange-50' :
                                    'bg-white border-slate-200'
                                }`}>
                                </div>
 
                                <h4 className={`text-lg font-bold ${
                                    item.status === 'completed' ? 'text-slate-800' :
-                                   item.status === 'current' ? 'text-blue-700' :
+                                   item.status === 'current' ? 'text-orange-700' :
                                    'text-slate-400'
                                }`}>{item.title}</h4>
                                
@@ -185,9 +186,9 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
                 <div className="w-24 h-24 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-6">
                    <SearchCode size={40} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-400 mb-2">Awaiting Inquiry</h3>
+                <h3 className="text-2xl font-black text-slate-400 mb-2">{t('awaitingInquiry') || 'Awaiting Inquiry'}</h3>
                 <p className="text-slate-400 font-medium max-w-sm">
-                    Enter your application or complaint ID in the search box to trace its real-time progress.
+                    {t('enterIdToTrack') || 'Enter your application or complaint ID in the search box to trace its real-time progress.'}
                 </p>
             </div>
           )}
@@ -198,4 +199,4 @@ const ElectricityTracker: React.FC<Props> = ({ onBack, language }) => {
   );
 };
 
-export default ElectricityTracker;
+export default GasTracker;
