@@ -10,7 +10,7 @@ import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://aazhi-ai-service.onrender.com';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://ai-service-aazhi.onrender.com';
 
 // ─── Create Service Request (Auto Supabase / Postgres Version) ──
 export const createServiceRequest = async (req, res, next) => {

@@ -7,7 +7,7 @@ import {
 import { adminApi } from '../../services/adminApi'
 import { useLanguage } from '../../context/LanguageContext'
 
-const AI_SERVICE_URL = 'https://aazhi-ai-service.onrender.com'
+const AI_SERVICE_URL = 'https://ai-service-aazhi.onrender.com'
 
 /* ── Tiny inline bar chart ──────────────────────────────── */
 function MiniBar({ data, colorMap }: { data: { label: string; value: number }[]; colorMap?: Record<string, string> }) {

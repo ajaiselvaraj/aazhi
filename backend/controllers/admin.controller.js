@@ -654,7 +654,7 @@ export const getFraudSignals = async (req, res, next) => {
 // ML INNOVATION ENDPOINTS
 // ═══════════════════════════════════════════════════════════
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://aazhi-ai-service.onrender.com';
+const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://ai-service-aazhi.onrender.com';
 
 // ─── Smart Complaint Clusters (ML) ───────────────────────
 export const getMLComplaintClusters = async (req, res, next) => {
