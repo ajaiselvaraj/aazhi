@@ -224,12 +224,14 @@ export const updateComplaintStatus = async (req, res, next) => {
         const actualId = current.rows[0].id;
 
         // Logical overrides
-        let finalStatus = status || current.rows[0].status;
+        // 1. Enhanced Normalization logic for DB consistency
+        let rawStatus = status || current.rows[0].status || "pending";
+        let finalStatus = rawStatus.toLowerCase()
+                                   .trim()
+                                   .replace(/[\s-]+/g, '_')
+                                   .replace(/inprogress/g, 'in_progress');
 
-        // Normalize status values for DB consistency
-        finalStatus = finalStatus ? finalStatus.toLowerCase() : "pending";
-
-        console.log(`🔄 [DEBUG] Updating Complaint ${actualId}: status=${finalStatus}`);
+        console.log(`🔄 [Backend Debug] Complaint ${actualId}: Raw="${status}" -> Final="${finalStatus}"`);
 
         // Update complaint
         const updateFields = ["status = $2", "updated_at = NOW()"];
