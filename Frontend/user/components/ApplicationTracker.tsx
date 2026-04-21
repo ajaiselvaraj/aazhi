@@ -26,8 +26,8 @@ const ApplicationTracker: React.FC = () => {
             .filter(c => c.phone === MOCK_USER_PROFILE.mobile || !c.phone || c.citizenId === MOCK_USER_PROFILE.id)
             .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
     ].sort((a, b) => {
-        const dateA = new Date((a as any).createdAt || a.timestamp || 0).getTime();
-        const dateB = new Date((b as any).createdAt || b.timestamp || 0).getTime();
+        const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
+        const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
         return dateB - dateA;
     });
 
@@ -64,7 +64,7 @@ const ApplicationTracker: React.FC = () => {
         if (item.type === 'Request') totalDays = 15;
         if (item.category?.toLowerCase().includes('electricity')) totalDays = 7;
         
-        const createdDate = new Date((item as any).createdAt || item.timestamp || 0);
+        const createdDate = new Date((item as any).createdAt || (item as any).timestamp || 0);
         const msSinceCreation = Date.now() - createdDate.getTime();
         const daysSinceCreation = Math.floor(msSinceCreation / (1000 * 60 * 60 * 24));
         
@@ -228,7 +228,7 @@ const ApplicationTracker: React.FC = () => {
                                                 <span className="text-xs font-bold text-slate-400 font-mono">{item.id}</span>
                                             </div>
                                             <h3 className="text-2xl font-black text-slate-900">{translateDynamic(item.serviceType)}</h3>
-                                            <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date((item as any).createdAt || item.timestamp || 0).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
+                                            <p className="text-slate-500 font-bold text-sm mt-1">{translateDynamic(item.category)} • <Clock size={12} className="inline mb-0.5" /> {new Date((item as any).createdAt || (item as any).timestamp || 0).toLocaleDateString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN')}</p>
                                         </div>
                                     </div>
 
@@ -279,9 +279,9 @@ const ApplicationTracker: React.FC = () => {
 
                                         let currentIndex = stages.indexOf(currentVal);
                                         if (currentIndex === -1) currentIndex = 0; // fallback
-                                        const isResolved = currentVal === 'resolved' || item.status === 'resolved' || item.stage === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
-                                        const isClosed = currentVal === 'closed' || item.status === 'closed' || item.stage === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
-                                        const isRejected = currentVal === 'rejected' || item.status === 'rejected' || item.stage === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
+                                        const isResolved = currentVal === 'resolved' || (item.status as string) === 'resolved' || (item.stage as string) === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
+                                        const isClosed = currentVal === 'closed' || (item.status as string) === 'closed' || (item.stage as string) === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
+                                        const isRejected = currentVal === 'rejected' || (item.status as string) === 'rejected' || (item.stage as string) === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
 
                                         if (isResolved) currentIndex = item.type === 'Request' ? 4 : 3;
                                         if (isClosed) currentIndex = 4;
