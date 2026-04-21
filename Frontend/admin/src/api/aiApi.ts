@@ -3,7 +3,7 @@
  * Shared fetch helpers for the FastAPI backend on port 5005
  */
 
-const AI_BASE = 'http://localhost:5005'
+const AI_BASE = import.meta.env.VITE_AI_API_URL || 'https://ai-service-aazhi.onrender.com'
 
 /* ── Types ───────────────────────────────────────────────────── */
 
