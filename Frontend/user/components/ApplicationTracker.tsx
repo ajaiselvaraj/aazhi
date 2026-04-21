@@ -209,7 +209,9 @@ const ApplicationTracker: React.FC = () => {
                 ) : (
                     itemsToDisplay.map((item) => {
                         const latestUpdate = item.stages && item.stages.length > 0 ? item.stages[item.stages.length - 1] : null;
-                        const derivedStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending').toLowerCase();
+                        // Root cause fix: Normalize 'In Progress' -> 'in_progress' for array index matching
+                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending').toLowerCase();
+                        const derivedStage = rawStage.replace(/\s+/g, '_');
                         const badgeIsRejected = derivedStage === 'rejected' || item.status === 'rejected';
 
                         return (

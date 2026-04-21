@@ -93,10 +93,10 @@ export const registerComplaint = async (req, res, next) => {
 
         // Create complaint lifecycle stages
         const stages = [
-            { stage: "created", status: "current" },
+            { stage: "pending", status: "current" },
             { stage: "assigned", status: "pending" },
-            { stage: "working", status: "pending" },
-            { stage: "completed", status: "pending" },
+            { stage: "in_progress", status: "pending" },
+            { stage: "resolved", status: "pending" },
         ];
 
         for (const s of stages) {
