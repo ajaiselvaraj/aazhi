@@ -209,10 +209,22 @@ const ApplicationTracker: React.FC = () => {
                 ) : (
                     itemsToDisplay.map((item) => {
                         const latestUpdate = item.stages && item.stages.length > 0 ? item.stages[item.stages.length - 1] : null;
-                        // Root cause fix: Normalize 'In Progress' -> 'in_progress' for array index matching
-                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending').toLowerCase();
-                        const derivedStage = rawStage.replace(/\s+/g, '_');
+                        
+                        // 1. Implementation of Normalization Function
+                        const normalizeStatus = (s: string): string => {
+                            if (!s) return 'pending';
+                            return s.toLowerCase()
+                                    .trim()
+                                    .replace(/[\s-]+/g, '_')  // Replace spaces/dashes with underscores
+                                    .replace(/inprogress/g, 'in_progress'); // Handle 'inprogress' case
+                        };
+
+                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending');
+                        const derivedStage = normalizeStatus(rawStage);
+                        
                         const badgeIsRejected = derivedStage === 'rejected' || item.status === 'rejected';
+                        
+                        console.log(`🔍 [Tracker Debug] Ticket: ${item.id} | Raw: "${rawStage}" | Normalized: "${derivedStage}"`);
 
                         return (
                             <div key={item.id} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition group animate-in slide-in-from-bottom-6 duration-500">
@@ -274,16 +286,27 @@ const ApplicationTracker: React.FC = () => {
                                         const reqStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
                                         const compStages = ['pending', 'assigned', 'in_progress', 'resolved', 'closed'];
 
+                                        // 2. Implementation of Robust Status Mapping (Safe replacement for indexOf)
+                                        const STAGE_INDEX_MAP: Record<string, number> = {
+                                            'pending': 0, 'submitted': 0, 'active': 0, 'created': 0,
+                                            'assigned': 1, 'officer_assigned': 1,
+                                            'in_progress': 2, 'working': 2, 'manager_review': 2,
+                                            'resolved': 3, 'completed': 3, 'gm_approval': 3,
+                                            'closed': 4
+                                        };
+
                                         const stages = item.type === 'Request' ? reqStages : compStages;
                                         
-                                        // currentVal comes from derivedStage established securely before render loop
-                                        let currentVal = derivedStage;
+                                        // 3. Secure Index Calculation with Fallback
+                                        let currentIndex = STAGE_INDEX_MAP[derivedStage];
+                                        if (currentIndex === undefined) {
+                                            console.warn(`⚠️ [Tracker] Unknown status "${derivedStage}", defaulting to index 0`);
+                                            currentIndex = 0; 
+                                        }
 
-                                        let currentIndex = stages.indexOf(currentVal);
-                                        if (currentIndex === -1) currentIndex = 0; // fallback
-                                        const isResolved = currentVal === 'resolved' || (item.status as string) === 'resolved' || (item.stage as string) === 'resolved' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'resolved');
-                                        const isClosed = currentVal === 'closed' || (item.status as string) === 'closed' || (item.stage as string) === 'closed' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'closed');
-                                        const isRejected = currentVal === 'rejected' || (item.status as string) === 'rejected' || (item.stage as string) === 'rejected' || (typeof item.currentStage === 'string' && item.currentStage.toLowerCase() === 'rejected');
+                                        const isResolved = derivedStage === 'resolved' || (item.status as string) === 'resolved';
+                                        const isClosed = derivedStage === 'closed' || (item.status as string) === 'closed';
+                                        const isRejected = derivedStage === 'rejected' || (item.status as string) === 'rejected';
 
                                         if (isResolved) currentIndex = item.type === 'Request' ? 4 : 3;
                                         if (isClosed) currentIndex = 4;
