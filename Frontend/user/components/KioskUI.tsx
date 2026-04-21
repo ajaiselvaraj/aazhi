@@ -57,7 +57,7 @@ interface ChatMessage {
   menu?: AIMenu; // New: Structure Menu Data
 }
 
-const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home' }) => {
+const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', onVoiceCommand }) => {
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
 
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
@@ -540,7 +540,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       timer={timer}
       isPrivacyShield={isPrivacyShield}
       onTogglePrivacy={onTogglePrivacy}
-      onVoiceCommand={handleVoiceCommand as any}
+      onVoiceCommand={onVoiceCommand || handleVoiceCommand}
     >
       {/* KIOSK WALK-AWAY WARNING MODAL */}
       {isWarning && (
@@ -1126,8 +1126,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             ) : userRequests.length > 0 ? (
               <div className="grid gap-4">
                 {userRequests.map((req) => {
-                  const serviceLabel = t(req.serviceType) || req.serviceType;
-                  const deptLabel = t(req.category) || req.category;
+                  const serviceLabel = t(req.type) || req.type;
+                  const deptLabel = t(req.department) || req.department;
                   const statusKey = req.status === 'Completed' ? 'completed'
                     : req.status === 'Resolved' ? 'resolved'
                       : req.status === 'Pending' ? 'pending'
@@ -1142,7 +1142,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                         <div>
                           <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
                           <h4 className="font-black text-slate-900 text-xl">{serviceLabel}</h4>
-                          <p className="text-sm text-slate-500 font-medium">{deptLabel} • {new Date(req.createdAt).toLocaleDateString()}</p>
+                          <p className="text-sm text-slate-500 font-medium">{deptLabel} • {new Date(req.timestamp).toLocaleDateString()}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
@@ -1193,11 +1193,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         )}
         {activeTab === 'participation' && (
           <CitizenParticipation onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
-        )}
-
-        {/* VIEW: GAS MODULE */}
-        {activeTab === 'gas' && (
-          <GasModule onBack={() => setActiveTab('services')} language={language} />
         )}
 
       </div>
