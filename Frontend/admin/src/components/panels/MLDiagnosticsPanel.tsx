@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 
-const AI_SERVICE_URL = 'http://127.0.0.1:5005'
+const AI_SERVICE_URL = 'https://aazhi-ai-service.onrender.com'
 
 interface TestResult {
   test_id: number
