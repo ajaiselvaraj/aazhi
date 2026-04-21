@@ -539,10 +539,15 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=[
+        "https://adminaazhi.ajaiselvaraj.me",
+        "https://aazhi.ajaiselvaraj.me",
+        "http://localhost:3000",
+        "http://localhost:5173"
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
