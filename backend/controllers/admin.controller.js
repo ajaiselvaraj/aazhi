@@ -671,17 +671,30 @@ export const getMLComplaintClusters = async (req, res, next) => {
         `);
 
         if (complaints.length < 2) {
-            return success(res, "ML complaint clusters", { clusters: [], total_complaints: complaints.length });
+            return success(res, "ML complaint clusters", { 
+                clusters: [], 
+                total_complaints: complaints.length,
+                clustered_complaints: 0,
+                unique_clusters: 0,
+                processing_time_ms: 0,
+                ml_method: "TF-IDF + Cosine Similarity (Insufficient Data)",
+                threshold: 0.40
+            });
         }
 
         const targetUrl = `${AI_SERVICE_URL}/api/ai/summarize-clusters`;
         console.log(`📡 [AI Request] Forwarding ${complaints.length} complaints to AI Service: ${targetUrl}`);
 
+        const abortController = new AbortController();
+        const timeoutId = setTimeout(() => abortController.abort(), 8000);
+
         const aiRes = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ complaints, threshold: 0.40 }),
+            signal: abortController.signal
         });
+        clearTimeout(timeoutId);
 
         if (!aiRes.ok) {
             console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
