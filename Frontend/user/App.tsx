@@ -199,6 +199,7 @@ const App: React.FC = () => {
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker'>('home');
+  const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const timerRef = useRef<number | null>(null);
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
   const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE'>('AADHAAR');
@@ -487,7 +488,17 @@ const App: React.FC = () => {
         handleBackToLanding();
         break;
       default:
-        console.warn('Unhandled app-level command:', command);
+        // Automatically inject unmatched conversational speech into the AI Assistant Module
+        if (command.startsWith('ai_query:')) {
+          const rawQuery = command.replace('ai_query:', '').trim();
+          if (rawQuery) {
+            setDashboardInitialAiQuery(rawQuery);
+            setDashboardInitialTab('ai');
+            setView(ViewState.DASHBOARD);
+          }
+        } else {
+          console.warn('Unhandled app-level command:', command);
+        }
     }
   }, [setView, handleBackToLanding]);
 
@@ -899,6 +910,7 @@ const App: React.FC = () => {
               timer={timer}
               onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
               initialTab={dashboardInitialTab as any}
+              initialAiQuery={dashboardInitialAiQuery}
               onVoiceCommand={handleVoiceCommand}
             />
           )}

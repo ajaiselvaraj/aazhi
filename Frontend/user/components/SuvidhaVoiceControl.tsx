@@ -72,7 +72,7 @@ export interface SuvidhaVoiceControlProps {
    * Callback fired when a voice command is recognized.
    * Use this to navigate pages or trigger actions.
    */
-  onCommand: (command: VoiceCommand) => void;
+  onCommand: (command: string) => void;
 
   /**
    * Language for Text-to-Speech output.
@@ -176,9 +176,16 @@ const SuvidhaVoiceControl = forwardRef<SuvidhaVoiceControlRef, SuvidhaVoiceContr
 
     // ── Hooks ─────────────────────────────────────────────────────
     const handleCommand = useCallback(
-      (command: VoiceCommand) => {
-        const label = COMMAND_LABELS[command];
-        setCommandFeedback(label);
+      (command: string) => {
+        if (command.startsWith('ai_query:')) {
+          setCommandFeedback('AI Request Received');
+          setTimeout(() => setCommandFeedback(null), 3000);
+          onCommand(command);
+          return;
+        }
+
+        const label = COMMAND_LABELS[command as VoiceCommand];
+        setCommandFeedback(label || 'Command Recognized');
         setTimeout(() => setCommandFeedback(null), 3000);
         onCommand(command);
       },
