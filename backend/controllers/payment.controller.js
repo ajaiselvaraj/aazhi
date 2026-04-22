@@ -139,6 +139,66 @@ export const verifyPayment = async (req, res, next) => {
     }
 };
 
+// ─── Create Guest Payment Order ──────────────────────────
+export const createGuestOrder = async (req, res, next) => {
+    try {
+        const { amount } = req.body; // Amount in INR
+
+        if (!amount || amount <= 0) {
+            return fail(res, "Invalid amount", 400);
+        }
+
+        const receiptNumber = generateReceiptNumber();
+        const order = await razorpay.orders.create({
+            amount: Math.round(amount * 100), // paise
+            currency: "INR",
+            receipt: receiptNumber,
+        });
+
+        logger.info("Guest payment order created", { orderId: order.id, amount });
+
+        return success(res, "Guest payment order created", {
+            order_id: order.id,
+            amount: order.amount,
+            currency: order.currency,
+            receipt: receiptNumber,
+            key_id: process.env.RAZORPAY_KEY,
+        }, 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Verify Guest Payment ────────────────────────────────
+export const verifyGuestPayment = async (req, res, next) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        const expectedSignature = crypto
+            .createHmac("sha256", process.env.RAZORPAY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest("hex");
+
+        if (expectedSignature !== razorpay_signature) {
+            logger.warn("Guest payment signature mismatch", { razorpay_order_id });
+            return fail(res, "Payment verification failed. Invalid signature.", 400);
+        }
+
+        logger.info("Guest payment verified", {
+            orderId: razorpay_order_id,
+            paymentId: razorpay_payment_id,
+        });
+
+        return success(res, "Payment verified successfully", {
+            payment_status: "captured",
+            razorpay_payment_id
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+
 // ─── Razorpay Webhook ────────────────────────────────────
 export const webhook = async (req, res, next) => {
     try {

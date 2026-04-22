@@ -7,6 +7,7 @@ import PaymentReceipt from '../PaymentReceipt';
 import { Language } from '../../../types';
 import { ElectricityService, ElectricityBill } from '../../../services/electricityService';
 import { useTranslation } from 'react-i18next';
+import RazorpayCheckout from '../../RazorpayCheckout';
 
 interface Props {
     onBack: () => void;
@@ -20,7 +21,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [consumerNo, setConsumerNo] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [billData, setBillData] = useState<ElectricityBill | null>(null);
-    const [paymentMode, setPaymentMode] = useState<'UPI' | 'CARD' | 'NET_BANKING'>('UPI');
+    const [paymentMode, setPaymentMode] = useState<string>('RAZORPAY');
     const [paymentRef, setPaymentRef] = useState<{ txnId: string; bbpsRefId: string } | null>(null);
     const [error, setError] = useState<string>('');
     const [showReceiptPreview, setShowReceiptPreview] = useState(false);
@@ -40,24 +41,17 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
             setIsLoading(false);
         }
     };
+    const handlePaymentSuccess = (paymentId: string) => {
+        setPaymentRef({
+            txnId: paymentId,
+            bbpsRefId: paymentId // For Razorpay, we'll store the Razorpay payment ID as reference
+        });
+        setStep('SUCCESS');
+    };
 
-    const handlePay = async () => {
-        if (!billData) return;
-        setIsLoading(true);
-        try {
-            // Simulate payment processing since it's now internal 
-            setTimeout(() => {
-                setPaymentRef({
-                    txnId: `TXN${Date.now()}`,
-                    bbpsRefId: `AAZHI-${Date.now()}`
-                });
-                setStep('SUCCESS');
-                setIsLoading(false);
-            }, 1500);
-        } catch (err) {
-            alert('Payment processing error');
-            setIsLoading(false);
-        }
+    const handlePaymentFailure = (error: any) => {
+        setError(typeof error === 'string' ? error : 'Payment failed');
+        setStep('DETAILS'); // Return to details
     };
 
     return (
@@ -176,118 +170,24 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
             {/* STEP 3: PAYMENT SELECTION */}
             {step === 'PAYMENT' && billData && (
                 <div className="space-y-6 animate-in slide-in-from-right-8">
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
-                        <h3 className="text-xl font-black text-slate-900 mb-6">{t('paymentMode') || "Select Payment Mode"}</h3>
-
-                        {/* Payment Mode Selector */}
-                        <div className="grid grid-cols-3 gap-4 mb-8">
-                            {[
-                                { id: 'UPI', label: t('upiLabel'), icon: Zap },
-                                { id: 'CARD', label: t('cardLabel'), icon: CreditCard },
-                                { id: 'NET_BANKING', label: t('netBankingLabel'), icon: ShieldCheck }
-                            ].map((mode) => (
-                                <button
-                                    key={mode.id}
-                                    onClick={() => setPaymentMode(mode.id as any)}
-                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === mode.id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-slate-100 bg-white hover:border-slate-200 text-slate-500'
-                                        }`}
-                                >
-                                    <mode.icon size={24} className={paymentMode === mode.id ? "fill-current" : ""} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{mode.label}</span>
-                                </button>
-                            ))}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 text-center">
+                        <h3 className="text-xl font-black text-slate-900 mb-6">{t('paymentMode') || "Secure Payment Gateway"}</h3>
+                        
+                        <div className="bg-slate-50 p-8 rounded-3xl mb-8 border border-slate-100">
+                            <p className="text-xs uppercase font-black text-slate-400 tracking-widest mb-2">Total Amount Due</p>
+                            <p className="text-5xl font-black text-slate-900 mb-6">₹{billData.amount.toFixed(2)}</p>
+                            <p className="text-sm font-bold text-slate-500 mb-8">Secure payments powered by Razorpay</p>
+                            
+                            <RazorpayCheckout 
+                                amount={billData.amount} 
+                                name="Electricity Bill" 
+                                description={`Payment for consumer: ${billData.account_number}`}
+                                onSuccess={handlePaymentSuccess}
+                                onFailure={handlePaymentFailure}
+                                onCancel={() => setStep('DETAILS')}
+                            />
                         </div>
 
-                        {/* Dynamic Payment Content */}
-                        <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 mb-6 min-h-[250px] relative">
-                            {/* UPI MODE */}
-                            {paymentMode === 'UPI' && (
-                                <div className="text-center animate-in fade-in zoom-in-95">
-                                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">{t('scanPaymentQR')}</h4>
-                                    <div className="bg-white p-4 rounded-xl inline-block shadow-sm border border-slate-200 mb-4">
-                                        <div className="bg-white relative mx-auto flex items-center justify-center overflow-hidden p-2">
-                                            <QRCode 
-                                                value={`upi://pay?pa=suvidha@upi&pn=SuvidhaService&am=${billData.amount}&cu=INR`} 
-                                                size={220} 
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="text-xs font-bold text-slate-400">{t('scanViaUPI')}</p>
-                                    <div className="flex justify-center gap-3 mt-2 opacity-60">
-                                        <span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded border">{t('appGPay')}</span>
-                                        <span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded border">{t('appPhonePe')}</span>
-                                        <span className="text-[10px] font-black uppercase bg-white px-2 py-1 rounded border">{t('appPaytm')}</span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* CARD MODE */}
-                            {paymentMode === 'CARD' && (
-                                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t('cardNumber')}</label>
-                                        <div className="relative">
-                                            <input type="text" placeholder="0000 0000 0000 0000" className="w-full p-4 bg-white rounded-xl border border-slate-200 font-mono font-bold text-slate-700 outline-none focus:border-blue-500 transition" />
-                                            <CreditCard className="absolute right-4 top-4 text-slate-300" size={20} />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t('expiry')}</label>
-                                            <input type="text" placeholder="MM / YY" className="w-full p-4 bg-white rounded-xl border border-slate-200 font-mono font-bold text-slate-700 outline-none focus:border-blue-500 transition" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t('cvv')}</label>
-                                            <div className="relative">
-                                                <input type="password" placeholder="123" maxLength={3} className="w-full p-4 bg-white rounded-xl border border-slate-200 font-mono font-bold text-slate-700 outline-none focus:border-blue-500 transition" />
-                                                <ShieldCheck className="absolute right-4 top-4 text-slate-300" size={20} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">{t('cardHolder')}</label>
-                                        <input type="text" placeholder="JOHN DOE" className="w-full p-4 bg-white rounded-xl border border-slate-200 font-bold text-slate-700 outline-none focus:border-blue-500 transition uppercase" />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* NET BANKING MODE */}
-                            {paymentMode === 'NET_BANKING' && (
-                                <div className="animate-in fade-in slide-in-from-bottom-2">
-                                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-4">{t('selectBank')}</h4>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {[t('bankSBI'), t('bankHDFC'), t('bankICICI'), t('bankAxis')].map(bank => (
-                                            <button key={bank} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm font-black text-slate-600 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition uppercase text-xs tracking-wider text-left flex items-center justify-between group">
-                                                {bank}
-                                                <div className="w-2 h-2 rounded-full bg-slate-200 group-hover:bg-blue-500"></div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div className="mt-4">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 block mb-2">{t('otherBanks')}</label>
-                                        <select className="w-full p-4 bg-white rounded-xl border border-slate-200 font-bold text-slate-700 outline-none focus:border-blue-500 transition">
-                                            <option>{t('selectBankPlaceholder')}</option>
-                                            <option>{t('bankBOB')}</option>
-                                            <option>{t('bankPNB')}</option>
-                                            <option>{t('bankKotak')}</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="pt-2 flex justify-between items-center">
-                            <div>
-                                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">{t('billAmount')}</p>
-                                <p className="text-3xl font-black text-slate-900">₹{billData.amount.toFixed(2)}</p>
-                            </div>
-                            <button
-                                onClick={handlePay}
-                                className="bg-green-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-wider hover:bg-green-700 transition shadow-lg shadow-green-200 flex items-center gap-2"
-                            >
-                                {isLoading ? <RefreshCw className="animate-spin" /> : t('proceedToPay')}
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
