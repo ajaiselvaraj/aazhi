@@ -25,7 +25,7 @@ import logging
 import joblib
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from dotenv import load_dotenv
@@ -606,7 +606,7 @@ class ComplaintValidationRequest(BaseModel):
 
 class ComplaintData(BaseModel):
     model_config = {"extra": "allow"}
-    id: int
+    id: Union[str, int]
     ticket_number: Optional[str] = None
     subject: Optional[str] = None
     description: Optional[str] = None
@@ -630,7 +630,7 @@ class ForecastRequest(BaseModel):
     forecast_days: int = 7
 
 class SentimentComplaint(BaseModel):
-    id: int
+    id: Union[str, int]
     text: str
     department: str
     created_at: str
