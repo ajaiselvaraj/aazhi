@@ -3,13 +3,15 @@
  */
 
 const VITE_API_URL = import.meta.env.VITE_API_URL as string;
-const API_BASE = VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-// 🔍 Debug (remove later if needed)
+const API_BASE = VITE_API_URL || (isLocal ? 'http://localhost:5000/api' : 'https://aazhi-9gj2.onrender.com/api');
+
+// 🔍 Debug
 if (!VITE_API_URL) {
-  console.warn("⚠️ [adminApi] VITE_API_URL is missing! Falling back to Render URL.");
+  console.log(`🌐 [adminApi] No VITE_API_URL set. Using ${isLocal ? 'local' : 'remote'} default:`, API_BASE);
 } else {
-  console.log("🌐 [adminApi] Connecting to:", API_BASE);
+  console.log("🌐 [adminApi] Connecting to specified URL:", API_BASE);
 }
 
 async function request(endpoint: string, options: RequestInit = {}) {
