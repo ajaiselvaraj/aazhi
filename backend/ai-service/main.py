@@ -605,15 +605,16 @@ class ComplaintValidationRequest(BaseModel):
 
 
 class ComplaintData(BaseModel):
+    model_config = {"extra": "allow"}
     id: int
-    ticket_number: str | None = None
-    subject: str | None = None
-    description: str | None = None
-    department: str | None = None
-    ward: str | None = None
-    status: str | None = None
-    created_at: str | None = None
-    citizen_name: str | None = None
+    ticket_number: Optional[str] = None
+    subject: Optional[str] = None
+    description: Optional[str] = None
+    department: Optional[str] = None
+    ward: Optional[str] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    citizen_name: Optional[str] = None
 
 class SummarizeClustersRequest(BaseModel):
     complaints: list[ComplaintData]
