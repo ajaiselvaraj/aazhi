@@ -674,19 +674,30 @@ export const getMLComplaintClusters = async (req, res, next) => {
             return success(res, "ML complaint clusters", { clusters: [], total_complaints: complaints.length });
         }
 
-        const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/summarize-clusters`, {
+        const targetUrl = `${AI_SERVICE_URL}/api/ai/summarize-clusters`;
+        console.log(`📡 [AI Request] Forwarding ${complaints.length} complaints to AI Service: ${targetUrl}`);
+
+        const aiRes = await fetch(targetUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ complaints, threshold: 0.40 }),
         });
-        const aiData = await aiRes.json();
 
+        if (!aiRes.ok) {
+            console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
+            const errorText = await aiRes.text();
+            console.error(`📄 ResponseBody: ${errorText.substring(0, 200)}`);
+            throw new Error(`AI Service failed (${aiRes.status})`);
+        }
+
+        const aiData = await aiRes.json();
         return success(res, "ML complaint clusters", aiData.data || aiData);
     } catch (err) {
-        console.error("❌ ML Clusters error:", err.message);
-        next(err);
+        console.error("❌ [ML Clusters Controller Error]:", err.message);
+        return fail(res, `AI Summarizer is currently unavailable: ${err.message}`, 503);
     }
 };
+
 
 // ─── ML Forecast ─────────────────────────────────────────
 export const getMLForecast = async (req, res, next) => {

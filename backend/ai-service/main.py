@@ -28,6 +28,14 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 import numpy as np
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+import openai
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -44,7 +52,7 @@ METADATA_PATH = os.path.join(MODEL_DIR, "model_metadata.json")
 
 SPAM_THRESHOLD = float(os.getenv("SPAM_THRESHOLD", "0.75"))
 DUPLICATE_THRESHOLD = float(os.getenv("DUPLICATE_THRESHOLD", "0.35"))
-PORT = int(os.getenv("PORT", "5005"))
+PORT = int(os.getenv("AI_PORT", "5005"))
 
 # Rate limiting
 RATE_LIMIT_WINDOW = int(os.getenv("RATE_LIMIT_WINDOW", "60"))   # seconds
@@ -1077,9 +1085,23 @@ async def summarize_clusters(request: SummarizeClustersRequest):
                 
         if len(cluster_members) > 1:
             used.add(i)
-            words = txt_i.split()
-            summary = " ".join(words[:15]) + "..." if len(words) > 15 else txt_i
             
+            summary = ""
+            if openai.api_key:
+                combined_text = "\n".join([f"- {m.subject or ''}: {m.description or ''}" for m in cluster_members[:10]])
+                try:
+                    response = openai.ChatCompletion.create(
+                        model="gpt-3.5-turbo",
+                        messages=[{"role": "user", "content": f"You are a municipal planner. Summarize the following citizen complaints into a concise, actionable executive summary (max 20 words).\n\nComplaints:\n{combined_text}\n\nSummary:"}],
+                        max_tokens=50
+                    )
+                    summary = response.choices[0].message.content.strip()
+                except Exception as e:
+                    logger.error(f"OpenAI error: {e}")
+            
+            if not summary:
+                words = txt_i.split()
+                summary = " ".join(words[:15]) + "..." if len(words) > 15 else txt_i
             depts = list(set([c.department for c in cluster_members if c.department]))
             wards = list(set([c.ward for c in cluster_members if c.ward]))
             
