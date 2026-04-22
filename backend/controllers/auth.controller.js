@@ -3,10 +3,28 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { requestOtp, confirmOtp } from "../services/otp.service.js";
-import { generateTokens } from "../services/jwt.service.js";
+import { generateTokens, verifyRefreshToken } from "../services/jwt.service.js";
+import { blacklistToken } from "../middleware/tokenBlacklist.js";
 import { success, fail, error as serverError } from "../utils/response.js";
 import logger from "../utils/logger.js";
 import { pool } from "../config/db.js";
+
+const setTokenCookies = (res, accessToken, refreshToken) => {
+    const isProd = process.env.NODE_ENV === "production";
+    const cookieOptions = {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? "strict" : "lax"
+    };
+
+    if (accessToken) {
+        res.cookie("accessToken", accessToken, { ...cookieOptions, maxAge: 60 * 60 * 1000 });
+    }
+    if (refreshToken) {
+        res.cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 });
+    }
+};
+
 
 /**
  * Handles generating and sending OTP to a given mobile number
@@ -53,6 +71,8 @@ export const verifyOtpController = async (req, res, next) => {
         const { accessToken, refreshToken } = generateTokens(citizen);
 
         logger.info(`[Auth Controller] Successful login mapping to Citizen ID: ${citizen.id}`);
+
+        setTokenCookies(res, accessToken, refreshToken);
 
         return success(res, "Logged in successfully", {
             citizen: {
@@ -110,6 +130,8 @@ export const mockAadhaarLogin = async (req, res, next) => {
 
         logger.info(`[Auth Controller] Mock Aadhaar login success for citizen ${citizen.id}`);
 
+        setTokenCookies(res, accessToken, refreshToken);
+
         return success(res, "Aadhaar verified (Demo Mode)", {
             citizen: {
                 id: citizen.id,
@@ -160,6 +182,8 @@ export const adminLogin = async (req, res, next) => {
 
         logger.info(`[Auth Controller] Admin login success for ${adminId} in ${department}`);
 
+        setTokenCookies(res, accessToken, refreshToken);
+
         return success(res, "Admin verification successful.", {
             admin: {
                 id: admin.id,
@@ -176,5 +200,73 @@ export const adminLogin = async (req, res, next) => {
     } catch (error) {
         logger.error(`[Auth Controller] Admin Login Error: ${error.message}`);
         return serverError(res, "Failed to process admin login.", 500);
+    }
+};
+
+/**
+ * REFRESH TOKEN
+ * Route: POST /api/auth/refresh
+ */
+export const refreshTokenController = async (req, res, next) => {
+    try {
+        let { refreshToken } = req.body;
+        
+        // Fallback to reading from Cookie if body doesn't have it (HTTP-Only flow)
+        if (!refreshToken && req.headers.cookie) {
+            const match = req.headers.cookie.match(new RegExp('(^| )refreshToken=([^;]+)'));
+            if (match) refreshToken = match[2];
+        }
+
+        if (!refreshToken) {
+            return fail(res, "Refresh token is required.", 400);
+        }
+
+        const decoded = verifyRefreshToken(refreshToken);
+        
+        // Ensure user still exists
+        const result = await pool.query("SELECT * FROM citizens WHERE id = $1", [decoded.id]);
+        if (result.rows.length === 0) {
+            return fail(res, "User not found.", 404);
+        }
+
+        const user = result.rows[0];
+        // Retain department if it exists in decoded token for admin
+        if (decoded.department) {
+            user.department = decoded.department;
+        }
+
+        const tokens = generateTokens(user);
+
+        setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
+
+        return success(res, "Token refreshed successfully", {
+            tokens
+        }, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Refresh Token Error: ${error.message}`);
+        return fail(res, "Invalid or expired refresh token.", 401);
+    }
+};
+
+/**
+ * LOGOUT
+ * Route: POST /api/auth/logout
+ */
+export const logoutController = async (req, res, next) => {
+    try {
+        const token = req.token;
+        
+        if (token) {
+            // Blacklist the token so it can't be used again
+            await blacklistToken(token, 3600); // 1 hour corresponding to JWT_EXPIRY
+        }
+
+        res.clearCookie("accessToken");
+        res.clearCookie("refreshToken");
+
+        return success(res, "Logged out successfully", null, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Logout Error: ${error.message}`);
+        return serverError(res, "Failed to log out.", 500);
     }
 };

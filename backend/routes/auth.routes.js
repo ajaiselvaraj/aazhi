@@ -3,8 +3,9 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
+import authMiddleware from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
@@ -35,5 +36,19 @@ router.post("/mock-aadhaar", mockAadhaarLogin);
  * @access  Public
  */
 router.post("/admin-login", adminLogin);
+
+/**
+ * @desc    Refresh access token using refresh token
+ * @route   POST /api/auth/refresh
+ * @access  Public
+ */
+router.post("/refresh", refreshTokenController);
+
+/**
+ * @desc    Log out the user and blacklist token
+ * @route   POST /api/auth/logout
+ * @access  Protected
+ */
+router.post("/logout", authMiddleware, logoutController);
 
 export default router;

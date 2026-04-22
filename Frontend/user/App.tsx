@@ -1,7 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import KioskUI from './components/KioskUI';
-import Documentation from './components/Documentation';
-import Admin from './components/Admin';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { Globe, ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language } from './types';
@@ -9,9 +6,14 @@ import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import './i18n';
-import SuvidhaVoiceControl from './components/SuvidhaVoiceControl';
 import { speakText, loadVoices } from './utils/speak';
-import TalkbackOverlay from './components/TalkbackOverlay';
+
+// ─── LAZY LOADED COMPONENTS (Code Splitting) ───
+const KioskUI = lazy(() => import('./components/KioskUI'));
+const Documentation = lazy(() => import('./components/Documentation'));
+const Admin = lazy(() => import('./components/Admin'));
+const SuvidhaVoiceControl = lazy(() => import('./components/SuvidhaVoiceControl'));
+const TalkbackOverlay = lazy(() => import('./components/TalkbackOverlay'));
 import { authService } from './services/authService';
 import { GrievanceService } from './services/civicService';
 import cdacLogo from './assets/cdac_logo.png';
@@ -28,6 +30,15 @@ enum ViewState {
 }
 
 const LOGOUT_TIME = 120; // 2 minutes
+
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-[#F8F9FB]">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
+      <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Loading Modules...</p>
+    </div>
+  </div>
+);
 
 // --- Language to Region/State mapping for manual location ---
 const LOCATION_TO_LANGUAGE: Record<string, Language> = {
@@ -111,7 +122,7 @@ const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> =
           <span
             key={i}
             style={{
-              color: '#fbbf24',
+              color: '#ffffff',
               fontWeight: 700,
               fontSize: '12px',
               letterSpacing: '0.03em',
@@ -127,12 +138,12 @@ const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> =
 
       <style>{`
         @keyframes marquee {
-          0%   { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes marquee-rtl {
           0%   { transform: translateX(-50%); }
           100% { transform: translateX(0); }
+        }
+        @keyframes marquee-rtl {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
       `}</style>
     </div >
@@ -209,35 +220,61 @@ const App: React.FC = () => {
 
 
 
-  // Handle location auto-detect
+  // Handle location auto-detect precisely
   const handleAutoDetectLocation = useCallback(() => {
     setIsDetectingLocation(true);
-    const updateLoc = async () => {
+
+    const updateStateWithLocation = (city: string | undefined, region: string | undefined) => {
+      if (region) {
+        setLocationInfo(city ? `${city}, ${region}` : region);
+        if (LOCATION_TO_LANGUAGE[region]) {
+          setAlertLanguage(LOCATION_TO_LANGUAGE[region]);
+        } else {
+          setAlertLanguage(Language.ENGLISH);
+        }
+      } else {
+        setLocationInfo('Chennai, Tamil Nadu');
+        setAlertLanguage(Language.TAMIL);
+      }
+      setIsDetectingLocation(false);
+    };
+
+    const fallbackToIP = async () => {
       try {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
-
-        if (data.region) {
-          setLocationInfo(data.city ? `${data.city}, ${data.region}` : data.region);
-
-          // Strictly determine alert language based on detected region
-          if (LOCATION_TO_LANGUAGE[data.region]) {
-            setAlertLanguage(LOCATION_TO_LANGUAGE[data.region]);
-          } else {
-            setAlertLanguage(Language.ENGLISH);
-          }
-        } else {
-          setLocationInfo('Chennai, Tamil Nadu');
-          setAlertLanguage(Language.TAMIL);
-        }
+        updateStateWithLocation(data.city, data.region);
       } catch (e) {
-        setLocationInfo('Chennai, Tamil Nadu');
-        setAlertLanguage(Language.TAMIL);
-      } finally {
-        setIsDetectingLocation(false);
+        updateStateWithLocation('Chennai', 'Tamil Nadu');
       }
     };
-    updateLoc();
+
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Reverse geocode to get exact City and State
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+            
+            const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county;
+            const region = data.address?.state;
+            
+            updateStateWithLocation(city, region);
+          } catch (error) {
+            fallbackToIP();
+          }
+        },
+        (error) => {
+          console.warn("Geolocation denied or failed. Falling back to IP tracking:", error.message);
+          fallbackToIP();
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    } else {
+      fallbackToIP();
+    }
   }, []);
 
   // Initial detection on mount and accessibility setup
@@ -461,7 +498,7 @@ const App: React.FC = () => {
   const renderLanding = () => (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F8F9FB] text-slate-900 relative overflow-hidden font-sans">
       {/* Background Watermark: Indian Emblem */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-[0.03] pointer-events-none z-0">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-10 pointer-events-none z-0">
         <img
           src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
           alt="Indian Emblem"
@@ -510,7 +547,7 @@ const App: React.FC = () => {
 
       {/* Main Grid: Clean Language Selection Area */}
       <div className="flex-1 w-full overflow-y-auto pb-4 px-4 md:px-8 flex items-center justify-center">
-        <div className="grid gap-4 md:gap-6 w-full max-w-[1600px] auto-rows-fr py-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+        <div className="grid gap-6 md:gap-8 w-full max-w-[1600px] auto-rows-fr py-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
           {LANGUAGES_CONFIG.map((item) => (
             <button
               key={item.code}
@@ -518,8 +555,8 @@ const App: React.FC = () => {
               onClick={() => handleLanguageSelect(item.code)}
               className={`
                 group relative bg-white transition-all duration-200
-                flex flex-col items-center justify-center gap-1.5
-                h-full p-4 w-full rounded-2xl border-2
+                flex flex-col items-center justify-center gap-3
+                h-full p-6 w-full rounded-2xl border-2
                 ${language === item.code
                   ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-105'
                   : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
@@ -527,17 +564,17 @@ const App: React.FC = () => {
               `}
               dir={item.rtl ? 'rtl' : 'ltr'}
             >
-              <span className={`text-xl sm:text-2xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-2xl sm:text-3xl' : ''}`}>
+              <span className={`text-2xl sm:text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-3xl sm:text-4xl' : ''}`}>
                 {item.label}
               </span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
                 {item.name}
               </span>
 
               {/* Selection Checkmark */}
               {language === item.code && (
-                <div className="absolute top-1 right-1 text-blue-600 bg-blue-50 rounded-full p-0.5">
-                  <ShieldCheck size={12} fill="currentColor" stroke="white" />
+                <div className="absolute top-2 right-2 text-blue-600 bg-blue-50 rounded-full p-1">
+                  <ShieldCheck size={16} fill="currentColor" stroke="white" />
                 </div>
               )}
             </button>
@@ -838,7 +875,8 @@ const App: React.FC = () => {
   );
 
   return (
-    <div
+    <Suspense fallback={<LoadingFallback />}>
+      <div
       className={`font-sans antialiased text-gray-900 selection:bg-blue-100 h-screen overflow-hidden ${isPrivacyShieldOn ? 'privacy-active' : ''}`}
       onClick={() => {
         resetTimer();
@@ -893,7 +931,8 @@ const App: React.FC = () => {
           filter: blur(0);
         }
       `}</style>
-    </div >
+      </div>
+    </Suspense>
   );
 };
 

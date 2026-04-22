@@ -6,6 +6,7 @@ import express from "express";
 import "dotenv/config";
 import cors from "cors";
 import morgan from "morgan";
+import compression from "compression";
 
 // Routes
 import electricityRoutes from "./routes/electricity.routes.js";
@@ -26,6 +27,9 @@ import auditLogger from "./middleware/audit.middleware.js";
 import { SecurityEngine } from "./middleware/SecurityEngine.js";
 
 const app = express();
+
+// ─── Enable gzip/brotli Compression ───────────────────
+app.use(compression());
 
 
 // ─── Security Headers ─────────────────────────────────

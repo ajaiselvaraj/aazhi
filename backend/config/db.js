@@ -20,7 +20,7 @@ const poolConfig = {
     idleTimeoutMillis: 30_000,              // release idle connections after 30s
     connectionTimeoutMillis: 10_000,        // fail fast if DB is unreachable
     ssl: {
-        rejectUnauthorized: false           // required for Supabase (self-signed CA)
+        rejectUnauthorized: true            // ENFORCED: strict certificate validation to prevent MITM
     }
 };
 

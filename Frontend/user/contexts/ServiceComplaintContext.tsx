@@ -312,7 +312,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             } catch {
                 // API unavailable — localStorage data is shown as fallback
             }
-        }, 5000);
+        }, 60000);
 
         const handleStorageChange = (e: StorageEvent) => {
             if (!e.key) return;
