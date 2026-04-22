@@ -200,7 +200,6 @@ const App: React.FC = () => {
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker'>('home');
   const timerRef = useRef<number | null>(null);
-
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
   const [loginMethod, setLoginMethod] = useState<'AADHAAR' | 'MOBILE'>('AADHAAR');
   const [authStage, setAuthStage] = useState<'INPUT' | 'OTP'>('INPUT');
