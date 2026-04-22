@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Search, CheckCircle, Zap } from 'lucide-react';
 import { ElectricityService, ElectricityBill } from '../../../services/electricityService';
+import RazorpayCheckout from '../../RazorpayCheckout';
 
 interface Props {
   onBack: () => void;
@@ -34,13 +35,11 @@ const ElectricityQuickPay: React.FC<Props> = ({ onBack, language }) => {
     }
   };
 
-  const handlePayNow = () => {
-    // Simulate real payment delay
-    setLoading(true);
-    setTimeout(() => {
-        setLoading(false);
-        setPaymentSuccess(true);
-    }, 1500);
+  const handlePaySuccess = (paymentId: string) => {
+      setPaymentSuccess(true);
+  };
+  const handlePayFailure = (error: any) => {
+      setError(typeof error === 'string' ? error : 'Payment failed');
   };
 
   if (paymentSuccess) {
@@ -122,13 +121,15 @@ const ElectricityQuickPay: React.FC<Props> = ({ onBack, language }) => {
               </div>
             </div>
 
-            <button 
-              onClick={handlePayNow}
-              disabled={loading}
-              className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] text-white rounded-2xl font-black text-xl shadow-xl shadow-blue-500/30 transition-all flex items-center justify-center gap-3"
-            >
-              {loading ? 'Processing...' : 'Pay Securely Now'}
-            </button>
+            <div className="mt-6">
+                <RazorpayCheckout 
+                    amount={bill.amount} 
+                    name="Electricity Bill" 
+                    description={`Payment for consumer: ${consumerId}`}
+                    onSuccess={handlePaySuccess}
+                    onFailure={handlePayFailure}
+                />
+            </div>
           </div>
         )}
       </div>
