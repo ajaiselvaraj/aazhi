@@ -9,12 +9,10 @@ const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
  */
 export const checkTokenBlacklist = async (req, res, next) => {
     try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        const token = req.token;
+        if (!token) {
             return next();
         }
-
-        const token = authHeader.split(" ")[1];
         const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
         const isBlacklisted = await redis.get(`bl_${hashedToken}`);
 
