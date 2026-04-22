@@ -15,6 +15,7 @@ COPY models/ ./models/
 
 # Copy application code
 COPY main.py .
+COPY core/ ./core/
 
 # Force offline mode — no network calls at runtime
 ENV TRANSFORMERS_OFFLINE=1
