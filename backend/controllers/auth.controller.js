@@ -159,20 +159,36 @@ export const adminLogin = async (req, res, next) => {
         const { adminId, password, department } = req.body;
 
         if (!adminId || !password || !department) {
+            logger.warn(`[Auth Controller] Admin login attempt failed: Missing fields`);
             return fail(res, "Admin ID, password, and department are required.", 400);
         }
 
-        // Just a mock check for demonstration, or we can query real DB if we want to store admins.
-        // Let's check for an admin user in DB.
+        // Check if ANY admin exists
         let result = await pool.query("SELECT * FROM citizens WHERE role = 'admin' LIMIT 1");
         
         if (result.rows.length === 0) {
-            // Insert a dummy admin if none exist
-            result = await pool.query(`
-                INSERT INTO citizens (mobile, name, role) 
-                VALUES ('0000000000', 'Admin Officer', 'admin') 
-                RETURNING *
-            `);
+            logger.info("[Auth Controller] No admin found. Ensuring dummy admin exists...");
+            // Check if our dummy mobile already exists as a citizen
+            const checkMobile = await pool.query("SELECT * FROM citizens WHERE mobile = '0000000000'");
+            
+            if (checkMobile.rows.length > 0) {
+                // Promote existing citizen to admin
+                result = await pool.query(`
+                    UPDATE citizens 
+                    SET role = 'admin', name = 'Admin Officer' 
+                    WHERE mobile = '0000000000' 
+                    RETURNING *
+                `);
+                logger.info(`[Auth Controller] Promoted existing user 0000000000 to admin.`);
+            } else {
+                // Insert new admin
+                result = await pool.query(`
+                    INSERT INTO citizens (mobile, name, role) 
+                    VALUES ('0000000000', 'Admin Officer', 'admin') 
+                    RETURNING *
+                `);
+                logger.info(`[Auth Controller] Created new dummy admin.`);
+            }
         }
 
         const admin = result.rows[0];
