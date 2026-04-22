@@ -33,8 +33,10 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-import openai
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from openai import OpenAI
+
+_openai_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(api_key=_openai_key) if _openai_key and _openai_key != "YOUR_OPENAI_API_KEY_HERE" else None
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -516,15 +518,26 @@ def load_models():
     logger.info("✅ TF-IDF vectorizer initialized for duplicate detection.")
 
 
+from core.model_handler import model_manager
+
 # ─── Lifespan ──────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global startup_time
     startup_time = time.time()
     logger.info("🚀 Starting AAZHI AI Service v2.0")
+
+    # 1. Original load with integrity checks, metadata, and TF-IDF init
     load_models()
 
-    if spam_classifier is None:
+    # 2. Sync into thread-safe Singleton for concurrent kiosk access
+    model_manager.spam_classifier = spam_classifier
+    model_manager.dept_router = dept_router
+    model_manager.tfidf_vectorizer = tfidf_vectorizer
+    model_manager._initialized = True
+    logger.info("🔒 Models synced into Singleton ModelHandler.")
+
+    if model_manager.is_degraded():
         logger.warning("═══════════════════════════════════════════════")
         logger.warning("  ⚠️  RUNNING IN DEGRADED MODE (rule-based only)")
         logger.warning("  Run: python train_model.py  to train the ML models")
@@ -1067,48 +1080,63 @@ async def summarize_clusters(request: SummarizeClustersRequest):
     cluster_id = 1
     
     texts = [f"{c.subject or ''} {c.description or ''}".strip() for c in request.complaints]
+    N = len(texts)
     
-    for i, txt_i in enumerate(texts):
-        if i in used or not txt_i: continue
+    # 2. INFERENCE ACCELERATION: Single-Pass Vectorization
+    similarity_matrix = np.zeros((N, N))
+    if N > 1:
+        try:
+            # fit_transform on the incoming batch — correct pattern for on-demand clustering
+            batch_vectorizer = TfidfVectorizer(
+                sublinear_tf=True, stop_words='english',
+                ngram_range=(1, 2), max_features=5000, strip_accents='unicode',
+            )
+            tfidf_batch = batch_vectorizer.fit_transform(texts)
+            similarity_matrix = cosine_similarity(tfidf_batch)
+        except Exception as e:
+            logger.error(f"[Vectorization Fault] Fallback triggered. Trace: {e}")
+            
+    # 3. Optimized Greedy Extraction 
+    for i in range(N):
+        if i in used or not texts[i]: 
+            continue
+            
         cluster_members = [request.complaints[i]]
         
-        if txt_i and tfidf_vectorizer:
-            try:
-                sims = compute_tfidf_similarity(txt_i, texts[i+1:])
-                for idx, sim in enumerate(sims):
-                    j = i + 1 + idx
-                    if j not in used and sim >= request.threshold:
-                        cluster_members.append(request.complaints[j])
-                        used.add(j)
-            except:
-                pass
+        # Pull pre-computed similarities
+        for j in range(i + 1, N):
+            if j not in used and similarity_matrix[i, j] >= request.threshold:
+                cluster_members.append(request.complaints[j])
+                used.add(j)
                 
         if len(cluster_members) > 1:
             used.add(i)
-            
+            txt_i = texts[i]
             summary = ""
-            if openai.api_key:
+            
+            if openai_client:
                 combined_text = "\n".join([f"- {m.subject or ''}: {m.description or ''}" for m in cluster_members[:10]])
                 try:
-                    response = openai.ChatCompletion.create(
+                    response = openai_client.chat.completions.create(
                         model="gpt-3.5-turbo",
                         messages=[{"role": "user", "content": f"You are a municipal planner. Summarize the following citizen complaints into a concise, actionable executive summary (max 20 words).\n\nComplaints:\n{combined_text}\n\nSummary:"}],
-                        max_tokens=50
+                        max_tokens=50,
+                        timeout=6.0
                     )
                     summary = response.choices[0].message.content.strip()
                 except Exception as e:
-                    logger.error(f"OpenAI error: {e}")
+                    logger.warning(f"[Inference Thread Issue] Fallback active. Trace: {e}")
             
             if not summary:
-                words = txt_i.split()
-                summary = " ".join(words[:15]) + "..." if len(words) > 15 else txt_i
+                words = txt_i.split() if txt_i else ["Complaint", "logged"]
+                summary = " ".join(words[:15]) + ("..." if len(words) > 15 else "")
+                
             depts = list(set([c.department for c in cluster_members if c.department]))
             wards = list(set([c.ward for c in cluster_members if c.ward]))
             
             import re
             keywords = list(set(re.findall(r"\b[a-z]{4,}\b", txt_i.lower())))[:5]
-            if not keywords:
-                keywords = ["complaint"]
+            if not keywords: keywords = ["complaint"]
             
             clusters.append({
                 "cluster_id": f"ML-C{str(cluster_id).zfill(3)}",
@@ -1126,14 +1154,14 @@ async def summarize_clusters(request: SummarizeClustersRequest):
 
     return {
         "success": True,
-        "message": "Clusters generated",
+        "message": "Clusters mapped optimally",
         "data": {
             "clusters": clusters,
-            "total_complaints": len(request.complaints),
+            "total_complaints": N,
             "clustered_complaints": sum(c["count"] for c in clusters),
             "unique_clusters": len(clusters),
             "processing_time_ms": int((time.time() - start) * 1000),
-            "ml_method": "TF-IDF + Cosine Similarity",
+            "ml_method": "Accelerated Vector Batch + Cosine Routing",
             "threshold": request.threshold
         }
     }
