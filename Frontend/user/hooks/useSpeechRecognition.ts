@@ -28,8 +28,8 @@ export type VoiceCommand =
   | 'submit';
 
 export interface UseSpeechRecognitionOptions {
-  /** Callback fired when a known voice command is recognized */
-  onCommand: (command: VoiceCommand) => void;
+  /** Callback fired when a voice command is recognized, or raw transcript is captured */
+  onCommand: (command: string) => void;
   /** BCP-47 language code for recognition, default "en-IN" */
   lang?: string;
   /** Whether to automatically start listening on mount */
@@ -157,6 +157,10 @@ export function useSpeechRecognition({
 
           // Clear the last-command indicator after 3 seconds
           setTimeout(() => setLastCommand(null), 3000);
+        } else {
+          // If no static command match, pass it for Natural Language processing
+          console.log(`[VoiceHook] Unmatched phrase pushed to AI engine: "${rawTranscript}"`);
+          onCommandRef.current(`ai_query:${rawTranscript}`);
         }
       };
 
