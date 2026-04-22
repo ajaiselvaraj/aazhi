@@ -43,6 +43,7 @@ interface Props {
   onLogout: () => void;
   isPrivacyShield: boolean;
   timer: number;
+  onTogglePrivacy?: () => void;
   initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal';
   initialAiQuery?: string;
   onVoiceCommand?: (command: string) => void;
