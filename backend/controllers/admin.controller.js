@@ -697,10 +697,10 @@ export const getMLComplaintClusters = async (req, res, next) => {
         clearTimeout(timeoutId);
 
         if (!aiRes.ok) {
-            console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
             const errorText = await aiRes.text();
-            console.error(`📄 ResponseBody: ${errorText.substring(0, 200)}`);
-            throw new Error(`AI Service failed (${aiRes.status})`);
+            console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
+            console.error(`📄 ResponseBody: ${errorText.substring(0, 500)}`);
+            throw new Error(`AI Service failed (${aiRes.status}): ${errorText.substring(0, 100)}`);
         }
 
         const aiData = await aiRes.json();
