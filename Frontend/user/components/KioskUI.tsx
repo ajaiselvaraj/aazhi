@@ -43,8 +43,8 @@ interface Props {
   onLogout: () => void;
   isPrivacyShield: boolean;
   timer: number;
-  onTogglePrivacy: () => void;
   initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal';
+  initialAiQuery?: string;
   onVoiceCommand?: (command: string) => void;
 }
 
@@ -57,9 +57,10 @@ interface ChatMessage {
   menu?: AIMenu; // New: Structure Menu Data
 }
 
-const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', onVoiceCommand }) => {
+const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', onVoiceCommand }) => {
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
 
+  const isConversationalRef = useRef(false);
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
   const { t } = useTranslation();
   const { addServiceRequest } = useServiceComplaint();
@@ -82,6 +83,18 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Sync with global navigation requests
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  // Inject Natural Language Queries sent directly from Global Voice Handler
+  useEffect(() => {
+    if (initialAiQuery && activeTab === 'ai') {
+      setTimeout(() => handleAiSearch(initialAiQuery), 300);
+    }
+  }, [initialAiQuery, activeTab]);
 
   const [isLargeText, setIsLargeText] = useState(false);
 
@@ -225,17 +238,33 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   // Handle Voice Speak
-  const speakText = (text: string) => {
-    if (!isVoiceEnabled || !window.speechSynthesis) return;
+  const speakText = (text: string, onEnd?: () => void) => {
+    if (!isVoiceEnabled || !window.speechSynthesis) {
+        if (onEnd) onEnd();
+        return;
+    }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = LANG_LOCALE_MAP[language] || 'en-IN';
-    utterance.rate = 0.9; // Accessibility: Speak slowly
-    window.speechSynthesis.speak(utterance);
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = LANG_LOCALE_MAP[language] || 'en-IN';
+      utterance.rate = 0.9; // Accessibility: Speak slowly
+      if (onEnd) {
+        utterance.onend = onEnd;
+        utterance.onerror = onEnd;
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      if (onEnd) onEnd();
+    }
   };
 
   const handleAiSearch = async (queryOverride?: string) => {
+    // If there is no override, it implies a manual keyboard submit, so break the voice loop
+    if (!queryOverride) {
+      isConversationalRef.current = false;
+    }
+
     const query = queryOverride || aiQuery;
     if (!query.trim()) return;
 
@@ -311,9 +340,18 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       setChatHistory(prev => [...prev, botMsg]);
 
-      // Auto-speak if voice is enabled
-      if (isVoiceEnabled && response.voice) {
-        speakText(response.voice);
+      // Auto-speak if voice is enabled, and support conversational hot-mic loop
+      const textToSpeak = response.voice || response.text;
+      if (isVoiceEnabled && textToSpeak) {
+        speakText(textToSpeak, () => {
+           if (isConversationalRef.current && (!response.actions || response.actions.length === 0)) {
+               setTimeout(() => {
+                   if (!isListening) handleVoiceInput();
+               }, 400); // Small breath pause before hot-mic reactivates
+           } else {
+               isConversationalRef.current = false;
+           }
+        });
       }
 
       // Handle Actions
@@ -371,6 +409,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         const transcript = event.results[0][0].transcript;
         setAiQuery(transcript);
         setIsListening(false);
+        isConversationalRef.current = true; // Enters continuous conversation loop
         setTimeout(() => handleAiSearch(transcript), 500); // Auto-submit after voice
       };
 
