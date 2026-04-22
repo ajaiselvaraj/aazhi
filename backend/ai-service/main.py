@@ -25,7 +25,7 @@ import logging
 import joblib
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Optional
+from typing import Optional, Any, List
 
 import numpy as np
 from dotenv import load_dotenv
@@ -606,15 +606,15 @@ class ComplaintValidationRequest(BaseModel):
 
 class ComplaintData(BaseModel):
     model_config = {"extra": "allow"}
-    id: int
-    ticket_number: Optional[str] = None
-    subject: Optional[str] = None
-    description: Optional[str] = None
-    department: Optional[str] = None
-    ward: Optional[str] = None
-    status: Optional[str] = None
-    created_at: Optional[str] = None
-    citizen_name: Optional[str] = None
+    id: Any
+    ticket_number: Any = None
+    subject: Any = None
+    description: Any = None
+    department: Any = None
+    ward: Any = None
+    status: Any = None
+    created_at: Any = None
+    citizen_name: Any = None
 
 class SummarizeClustersRequest(BaseModel):
     complaints: list[ComplaintData]
