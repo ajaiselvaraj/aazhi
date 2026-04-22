@@ -686,7 +686,7 @@ export const getMLComplaintClusters = async (req, res, next) => {
         console.log(`📡 [AI Request] Forwarding ${complaints.length} complaints to AI Service: ${targetUrl}`);
 
         const abortController = new AbortController();
-        const timeoutId = setTimeout(() => abortController.abort(), 8000);
+        const timeoutId = setTimeout(() => abortController.abort(), 60000);
 
         const aiRes = await fetch(targetUrl, {
             method: 'POST',
