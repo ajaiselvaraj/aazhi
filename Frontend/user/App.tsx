@@ -504,10 +504,7 @@ const App: React.FC = () => {
         handleBackToLanding();
         break;
       default:
-<<<<<<< Updated upstream
         // Automatically inject unmatched conversational speech into the AI Assistant Module
-=======
->>>>>>> Stashed changes
         if (command.startsWith('ai_query:')) {
           const rawQuery = command.replace('ai_query:', '').trim();
           if (rawQuery) {
