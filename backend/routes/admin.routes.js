@@ -16,7 +16,7 @@
 
 import express from "express";
 import {
-    getDashboardStats, getInteractionLogs,
+    getDashboardStats, getInteractionLogs, getDashboardUpdates,
     getServiceRequestAnalytics, getPaymentStats,
     getAllComplaints, getServiceConfig, updateServiceConfig,
     getAllServiceRequests, getAllCitizens,
@@ -34,6 +34,7 @@ router.use(authMiddleware);
 router.use(adminOnly);
 
 router.get("/dashboard", getDashboardStats);
+router.get("/check-updates", getDashboardUpdates);
 router.get("/logs", getInteractionLogs);
 router.get("/analytics/service-requests", getServiceRequestAnalytics);
 router.get("/analytics/payments", getPaymentStats);

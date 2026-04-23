@@ -7,6 +7,7 @@ import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { deptName } from '../../utils/translations'
+import { smartFetch } from '../../services/smartFetch'
 
 export default function DashboardOverview() {
   const [stats, setStats] = useState<any>(null)
@@ -42,10 +43,15 @@ export default function DashboardOverview() {
     }
   }, [selectedDept])
 
-  async function loadDashboard(signal?: AbortSignal) {
+  async function loadDashboard(signal?: AbortSignal, force = false) {
     setIsFetching(true)
     try {
-      const data = await adminApi.getDashboard(selectedDept) // pass signal here if API client supports it
+      // Use smartFetch to skip network calls if DB hasn't changed since last fetch
+      const data = await smartFetch.get(`dashboard_${selectedDept || 'ALL'}`, () => 
+        adminApi.getDashboard(selectedDept),
+        { force }
+      );
+
       const totalComplaints = data.totalComplaints ?? (parseInt(data.complaints?.total) || 0);
       const pendingComplaints = data.pendingComplaints ?? (parseInt(data.complaints?.active) || 0);
       const resolvedComplaints = data.resolvedComplaints ?? (parseInt(data.complaints?.resolved) || 0);
@@ -58,7 +64,7 @@ export default function DashboardOverview() {
         resolved: resolvedComplaints,
         critical: data.slaBreaches || 0,
         pendingSR: totalSR - completedSR,
-        duplicatesDetected: Math.floor(totalComplaints * 0.1), // Placeholder metric
+        duplicatesDetected: Math.floor(totalComplaints * 0.1), 
         fraudFlagged: 0,
         avgResolutionHrs: 24.5,
         pending: pendingComplaints,

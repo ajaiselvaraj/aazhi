@@ -68,6 +68,14 @@ async function request(endpoint: string, options: RequestInit = {}) {
 }
 
 export const adminApi = {
+  // ── Smart Fetch ──
+  checkUpdates: async (lastFetchedAt?: string) => {
+    let url = '/admin/check-updates';
+    if (lastFetchedAt) url += `?lastFetchedAt=${encodeURIComponent(lastFetchedAt)}`;
+    const json = await request(url);
+    return json.data;
+  },
+
   // ── Auth ──
   login: async (credentials: any) => {
     const json = await request('/auth/admin-login', {
