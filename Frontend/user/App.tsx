@@ -484,11 +484,30 @@ const App: React.FC = () => {
         setDashboardInitialTab('status');
         setView(ViewState.DASHBOARD);
         break;
+      case 'service':
+        setDashboardInitialTab('services');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'complaints':
+        setDashboardInitialTab('complaints');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'trackapp':
+        setDashboardInitialTab('tracker');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'gas':
+        setDashboardInitialTab('gas');
+        setView(ViewState.DASHBOARD);
+        break;
       case 'exit':
         handleBackToLanding();
         break;
       default:
+<<<<<<< Updated upstream
         // Automatically inject unmatched conversational speech into the AI Assistant Module
+=======
+>>>>>>> Stashed changes
         if (command.startsWith('ai_query:')) {
           const rawQuery = command.replace('ai_query:', '').trim();
           if (rawQuery) {
