@@ -122,7 +122,7 @@ export const createServiceRequest = async (req, res, next) => {
                 department: classifiedDepartment,
                 description: description,
                 ward: ward || null,
-                phone: phone || null,
+                phone: phone || req.user?.mobileNumber || null,
                 metadata: finalMetadata,
                 current_stage: 'created',
                 status: 'pending'
@@ -161,9 +161,9 @@ export const createServiceRequest = async (req, res, next) => {
             const result = await pool.query(
                 `INSERT INTO service_requests 
                  (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status)
-                 VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'created', 'pending')
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'created', 'pending')
                  RETURNING *`,
-                [ticketNumber, citizenId, request_type, classifiedDepartment, description, ward || null, phone || null, JSON.stringify(finalMetadata)]
+                [ticketNumber, citizenId, req.body.name || req.user.name, request_type, classifiedDepartment, description, ward || null, phone || req.user?.mobileNumber || null, JSON.stringify(finalMetadata)]
             );
 
             requestRecord = result.rows[0];
@@ -193,7 +193,10 @@ export const trackServiceRequest = async (req, res, next) => {
         const { ticketNumber } = req.params;
 
         const sr = await pool.query(
-            `SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+            `SELECT 
+                sr.*, 
+                COALESCE(sr.citizen_name, c.name) as citizen_name, 
+                COALESCE(sr.phone, c.mobile) as citizen_mobile
              FROM service_requests sr
              JOIN citizens c ON sr.citizen_id = c.id
              WHERE sr.ticket_number = $1`,
@@ -277,7 +280,10 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT sr.*, c.name AS citizen_name, c.mobile AS citizen_mobile
+            SELECT 
+                sr.*, 
+                COALESCE(sr.citizen_name, c.name) AS citizen_name, 
+                COALESCE(sr.phone, c.mobile) AS citizen_mobile
             FROM service_requests sr
             LEFT JOIN citizens c ON sr.citizen_id = c.id
         `;

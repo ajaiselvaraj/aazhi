@@ -15,7 +15,7 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        let { category, issue_category, department, subject, description, ward, priority } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
 
         if (!description || description.trim().length < 10) {
             return fail(res, "Description is too short. Please provide more details.", 400);
@@ -78,7 +78,10 @@ export const registerComplaint = async (req, res, next) => {
             logger.error("AI service full analysis call failed. Proceeding with user-provided data.", { error: aiErr.response ? aiErr.response.data : aiErr.message });
         }
 
-        const finalMetadata = { ai_analysis: aiData };
+        const citizenName = name || req.user.name;
+        const citizenMobile = phone || req.user.mobileNumber;
+        
+        const finalMetadata = { ai_analysis: aiData, citizen_mobile: citizenMobile };
         // ═══════════════════════════════════════════════════════════════
 
         const ticketNumber = generateTicketNumber("CMP");
@@ -86,9 +89,9 @@ export const registerComplaint = async (req, res, next) => {
         const result = await pool.query(
             `INSERT INTO complaints 
              (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status, metadata)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
              RETURNING *`,
-            [ticketNumber, citizenId, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, JSON.stringify(finalMetadata)]
+            [ticketNumber, citizenId, citizenName, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, JSON.stringify(finalMetadata)]
         );
 
         // Create complaint lifecycle stages
@@ -126,7 +129,10 @@ export const trackComplaint = async (req, res, next) => {
         const { ticketNumber } = req.params;
 
         const complaint = await pool.query(
-            `SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile
+            `SELECT 
+                c.*, 
+                COALESCE(c.citizen_name, ci.name) as citizen_name, 
+                COALESCE(c.metadata->>'citizen_mobile', ci.mobile) as citizen_mobile
              FROM complaints c
              JOIN citizens ci ON c.citizen_id = ci.id
              WHERE c.ticket_number = $1`,
@@ -331,7 +337,10 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT c.*, ci.name AS citizen_name, ci.mobile AS citizen_mobile
+            SELECT 
+                c.*, 
+                COALESCE(c.citizen_name, ci.name) AS citizen_name, 
+                COALESCE(c.metadata->>'citizen_mobile', ci.mobile) AS citizen_mobile
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
         `;

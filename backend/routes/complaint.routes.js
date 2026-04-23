@@ -31,6 +31,7 @@ router.put("/debug/:id/status", updateComplaintStatusDebug);
 
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);
+router.get("/admin", authMiddleware, staffOnly, getAllComplaintsAdmin);
 router.get("/track/:ticketNumber", optionalAuth, trackComplaint);
 router.put("/:id/status", authMiddleware, staffOnly, validate(updateComplaintStatusSchema), updateComplaintStatus);
 router.post("/:id/messages", authMiddleware, addMessage);
