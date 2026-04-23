@@ -4,6 +4,7 @@ import {
   AlertTriangle, Tag, Inbox, Sparkles, Clock
 } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
+import { smartFetch } from '../../services/smartFetch'
 
 interface ClusterMember {
   id: string | number
@@ -45,11 +46,15 @@ export default function ComplaintSummarizerPanel() {
 
   useEffect(() => { loadClusters() }, [])
 
-  async function loadClusters() {
+  async function loadClusters(force = false) {
     setLoading(true)
     setError(null)
     try {
-      const result = await adminApi.getMLComplaintClusters()
+      // Optimized: Only run ML clustering if there are new complaints since last run
+      const result = await smartFetch.get('ml_clusters', () => 
+        adminApi.getMLComplaintClusters(),
+        { force }
+      );
       setData(result)
     } catch (err: any) {
       setError(err.message || 'Failed to load clusters')
@@ -113,7 +118,7 @@ export default function ComplaintSummarizerPanel() {
             ))}
           </div>
         )}
-        <button onClick={loadClusters} className="btn btn-outline" style={{ borderColor: 'rgba(255,255,255,.15)', color: '#fff' }}>
+        <button onClick={() => loadClusters(true)} className="btn btn-outline" style={{ borderColor: 'rgba(255,255,255,.15)', color: '#fff' }}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
         </button>
       </div>

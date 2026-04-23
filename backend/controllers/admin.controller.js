@@ -20,6 +20,49 @@ const cache = {
 };
 const CACHE_TTL = 30000; // 30 seconds
 
+// ─── Timestamp-Based Update Check ─────────────────────────
+export const getDashboardUpdates = async (req, res, next) => {
+    try {
+        const { lastFetchedAt } = req.query; 
+        
+        // Optimized: Check max updated_at across all primary tables
+        const query = `
+            SELECT GREATEST(
+                COALESCE((SELECT MAX(created_at) FROM complaints), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM complaints), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM service_requests), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM service_requests), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM transactions), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM interaction_logs), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM citizens), '1970-01-01')
+            ) as latest_update
+        `;
+
+        const { rows } = await pool.query(query);
+        const latestUpdate = rows[0].latest_update;
+        
+        if (!lastFetchedAt) {
+            return success(res, "First fetch required", { 
+                hasUpdates: true, 
+                latestUpdatedAt: latestUpdate 
+            });
+        }
+
+        const clientTime = new Date(lastFetchedAt).getTime();
+        const serverTime = new Date(latestUpdate).getTime();
+
+        // 1s buffer for clock drift
+        const hasUpdates = serverTime > (clientTime + 1000);
+
+        return success(res, "Update check result", {
+            hasUpdates,
+            latestUpdatedAt: latestUpdate
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ─── Dashboard Overview Stats ────────────────────────────
 export const getDashboardStats = async (req, res, next) => {
     try {
