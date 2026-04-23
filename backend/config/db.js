@@ -15,15 +15,12 @@ const isProd = process.env.NODE_ENV === "production";
 // We keep max:20 to leave headroom for Render/other services
 const poolConfig = {
     connectionString: process.env.DATABASE_URL,
-    max: isProd ? 30 : 10,                  // Render max is 50-60, leaving room
-    min: isProd ? 5 : 2,                    // Keep more connections warm
-    idleTimeoutMillis: 30_000,              // Release idle connections after 30s
-    connectionTimeoutMillis: 10_000,        // Fail fast
-    keepAlive: true,                        // Prevent Render from sleeping connections
-    allowExitOnIdle: false,                 // Do not let the node process exit if the pool is idle
-    application_name: process.env.NODE_ENV === 'production' ? 'aazhi_admin_prod' : 'aazhi_admin_dev',
+    max: isProd ? 20 : 5,                   // production needs more workers
+    min: isProd ? 2 : 1,                    // keep warm connections alive
+    idleTimeoutMillis: 30_000,              // release idle connections after 30s
+    connectionTimeoutMillis: 10_000,        // fail fast if DB is unreachable
     ssl: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false           // ALLOWED: Supabase/Render often use self-signed certificates in their internal network
     }
 };
 

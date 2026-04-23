@@ -11,45 +11,35 @@ import logger from "../utils/logger.js";
 
 // ─── Simple In-Memory Cache ────────────────────────────────
 const cache = {
-    dashboard: {}, // Map by department
+    dashboard: { data: null, timestamp: 0 },
     analytics: { data: null, timestamp: 0 },
     duplicates: { data: null, timestamp: 0 },
     fraud: { data: null, timestamp: 0 },
     paymentStats: { data: null, timestamp: 0 },
-    serviceRequestAnalytics: { data: null, timestamp: 0 },
-    updates: { data: null, timestamp: 0 } // Cache for update checks
+    serviceRequestAnalytics: { data: null, timestamp: 0 }
 };
 const CACHE_TTL = 30000; // 30 seconds
-const UPDATE_CACHE_TTL = 5000; // 5 seconds for update checks
 
 // ─── Timestamp-Based Update Check ─────────────────────────
 export const getDashboardUpdates = async (req, res, next) => {
     try {
         const { lastFetchedAt } = req.query; 
-        const now = Date.now();
         
-        let latestUpdate;
-        if (cache.updates.data && (now - cache.updates.timestamp < UPDATE_CACHE_TTL)) {
-            // Use short-lived cached update check
-            latestUpdate = cache.updates.data;
-        } else {
-            // Optimized: This will use index-only scans if indexes are created
-            const query = `
-                SELECT GREATEST(
-                    COALESCE((SELECT MAX(created_at) FROM complaints), '1970-01-01'),
-                    COALESCE((SELECT MAX(updated_at) FROM complaints), '1970-01-01'),
-                    COALESCE((SELECT MAX(created_at) FROM service_requests), '1970-01-01'),
-                    COALESCE((SELECT MAX(updated_at) FROM service_requests), '1970-01-01'),
-                    COALESCE((SELECT MAX(created_at) FROM transactions), '1970-01-01'),
-                    COALESCE((SELECT MAX(created_at) FROM interaction_logs), '1970-01-01'),
-                    COALESCE((SELECT MAX(updated_at) FROM citizens), '1970-01-01')
-                ) as latest_update
-            `;
-            const { rows } = await pool.query(query);
-            latestUpdate = rows[0].latest_update;
-            cache.updates.data = latestUpdate;
-            cache.updates.timestamp = now;
-        }
+        // Optimized: Check max updated_at across all primary tables
+        const query = `
+            SELECT GREATEST(
+                COALESCE((SELECT MAX(created_at) FROM complaints), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM complaints), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM service_requests), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM service_requests), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM transactions), '1970-01-01'),
+                COALESCE((SELECT MAX(created_at) FROM interaction_logs), '1970-01-01'),
+                COALESCE((SELECT MAX(updated_at) FROM citizens), '1970-01-01')
+            ) as latest_update
+        `;
+
+        const { rows } = await pool.query(query);
+        const latestUpdate = rows[0].latest_update;
         
         if (!lastFetchedAt) {
             return success(res, "First fetch required", { 
@@ -76,62 +66,29 @@ export const getDashboardUpdates = async (req, res, next) => {
 // ─── Dashboard Overview Stats ────────────────────────────
 export const getDashboardStats = async (req, res, next) => {
     try {
-        const { department } = req.query;
-        const cacheKey = department || 'ALL';
         const now = Date.now();
-        
-        if (cache.dashboard[cacheKey] && (now - cache.dashboard[cacheKey].timestamp < CACHE_TTL)) {
-            return success(res, "Dashboard statistics (cached)", cache.dashboard[cacheKey].data);
+        if (cache.dashboard.data && (now - cache.dashboard.timestamp < CACHE_TTL)) {
+            return success(res, "Dashboard statistics (cached)", cache.dashboard.data);
         }
 
-        // Base queries
-        let citizenQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'";
-        let billQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills";
-        let complaintQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected, COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as today FROM complaints";
-        let srQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected, COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as today FROM service_requests";
-        let transQuery = "SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions";
-        let distQuery = null;
-
-        const params = [];
-        
-        // Optimize for department
-        if (department && department !== 'ALL') {
-            params.push(department);
-            complaintQuery += " WHERE department = $1";
-            srQuery += " WHERE department = $1";
-        } else {
-            distQuery = "SELECT department, COUNT(*)::int as count FROM complaints GROUP BY department ORDER BY count DESC";
-        }
-
-        const promises = [
-            pool.query(citizenQuery),
-            pool.query(billQuery),
-            pool.query(complaintQuery, params),
-            pool.query(srQuery, params),
-            pool.query(transQuery)
-        ];
-        
-        if (distQuery) {
-            promises.push(pool.query(distQuery));
-        }
-
-        const results = await Promise.all(promises);
+        const [citizens, bills, complaints, serviceRequests, transactions] = await Promise.all([
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM complaints"),
+            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM service_requests"),
+            pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions"),
+        ]);
 
         const responseData = {
-            citizens: results[0].rows[0],
-            bills: results[1].rows[0],
-            complaints: results[2].rows[0],
-            service_requests: results[3].rows[0],
-            transactions: results[4].rows[0],
-            todayComplaints: parseInt(results[2].rows[0].today) || 0,
-            todayServices: parseInt(results[3].rows[0].today) || 0,
-            slaBreaches: 0, // Placeholder
-            deptDistribution: distQuery ? results[5].rows : []
+            citizens: citizens.rows[0],
+            bills: bills.rows[0],
+            complaints: complaints.rows[0],
+            service_requests: serviceRequests.rows[0],
+            transactions: transactions.rows[0],
         };
 
-        if (!cache.dashboard[cacheKey]) cache.dashboard[cacheKey] = {};
-        cache.dashboard[cacheKey].data = responseData;
-        cache.dashboard[cacheKey].timestamp = now;
+        cache.dashboard.data = responseData;
+        cache.dashboard.timestamp = now;
 
         return success(res, "Dashboard statistics", responseData);
     } catch (err) {
@@ -648,7 +605,7 @@ export const getDuplicateClusters = async (req, res, next) => {
             return success(res, "Duplicate clusters (cached)", cache.duplicates.data);
         }
 
-        // Offload duplicate clustering to AI Service to avoid blocking Node.js event loop
+        // Get recent complaints to cluster
         const { rows: complaints } = await pool.query(`
             SELECT c.id, c.ticket_number, c.subject, c.description, c.department, c.ward, c.status, c.created_at,
                    ci.name as citizen_name
@@ -663,79 +620,53 @@ export const getDuplicateClusters = async (req, res, next) => {
             return success(res, "Duplicate clusters", []);
         }
 
-        const targetUrl = `${AI_SERVICE_URL}/api/ai/summarize-clusters`;
-        try {
-            const aiRes = await fetch(targetUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ complaints, threshold: 0.45 })
-            });
-            if (aiRes.ok) {
-                const aiData = await aiRes.json();
-                const clusters = aiData.data?.clusters || [];
-                cache.duplicates.data = clusters;
-                cache.duplicates.timestamp = now;
-                return success(res, "Duplicate clusters", clusters);
-            }
-        } catch (e) {
-            console.error("AI service duplicate detection failed, returning empty to avoid dropping requests", e.message);
-            return success(res, "Duplicate clusters", []);
-        }
+        // Build clusters using string similarity
+        const THRESHOLD = 0.45;
+        const used = new Set();
+        const clusters = [];
+        let clusterId = 1;
 
-        return success(res, "Duplicate clusters", []);
-    } catch (err) {
-        next(err);
-    }
-};
-
-export const refreshDashboardStatsBackground = async () => {
-    // Precompute stats for normal dashboard loads for all major departments
-    const departments = ['ALL', 'Electricity Department', 'Water Supply Department', 'Gas Distribution', 'Municipal Services'];
-    const now = Date.now();
-    for (const dept of departments) {
-        try {
-            const params = [];
-            let complaintQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected, COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as today FROM complaints";
-            let srQuery = "SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected, COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as today FROM service_requests";
-            let distQuery = null;
-
-            if (dept !== 'ALL') {
-                params.push(dept);
-                complaintQuery += " WHERE department = $1";
-                srQuery += " WHERE department = $1";
-            } else {
-                distQuery = "SELECT department, COUNT(*)::int as count FROM complaints GROUP BY department ORDER BY count DESC";
-            }
-
-            const promises = [
-                pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
-                pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
-                pool.query(complaintQuery, params),
-                pool.query(srQuery, params),
-                pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions")
-            ];
-
-            if (distQuery) promises.push(pool.query(distQuery));
-
-            const results = await Promise.all(promises);
-            const responseData = {
-                citizens: results[0].rows[0],
-                bills: results[1].rows[0],
-                complaints: results[2].rows[0],
-                service_requests: results[3].rows[0],
-                transactions: results[4].rows[0],
-                todayComplaints: parseInt(results[2].rows[0].today) || 0,
-                todayServices: parseInt(results[3].rows[0].today) || 0,
-                slaBreaches: 0,
-                deptDistribution: distQuery ? results[5].rows : []
+        for (let i = 0; i < complaints.length; i++) {
+            if (used.has(i)) continue;
+            const textI = `${complaints[i].subject || ''} ${complaints[i].description || ''}`.toLowerCase();
+            const cluster = {
+                id: `DUP-${String(clusterId).padStart(3, '0')}`,
+                title: complaints[i].subject || complaints[i].description?.substring(0, 50) || 'Untitled',
+                dept: complaints[i].department || 'General',
+                ward: complaints[i].ward || 'N/A',
+                masterTicket: complaints[i].ticket_number,
+                reportCount: 1,
+                status: 'Open',
+                timeAgo: getTimeAgo(complaints[i].created_at),
+                tickets: [complaints[i].ticket_number],
             };
 
-            if (!cache.dashboard[dept]) cache.dashboard[dept] = {};
-            cache.dashboard[dept].data = responseData;
-            cache.dashboard[dept].timestamp = now;
-        } catch (e) {
-            console.error(`Failed to refresh stats for ${dept}`, e);
+            for (let j = i + 1; j < complaints.length; j++) {
+                if (used.has(j)) continue;
+                const textJ = `${complaints[j].subject || ''} ${complaints[j].description || ''}`.toLowerCase();
+                const sim = stringSimilarity.compareTwoStrings(textI, textJ);
+                if (sim >= THRESHOLD) {
+                    cluster.reportCount++;
+                    cluster.tickets.push(complaints[j].ticket_number);
+                    used.add(j);
+                }
+            }
+
+            if (cluster.reportCount > 1) {
+                used.add(i);
+                if (complaints[i].status === 'resolved') cluster.status = 'Merged Into Master Ticket';
+                else if (cluster.reportCount >= 3) cluster.status = 'Under Review';
+                clusters.push(cluster);
+                clusterId++;
+            }
         }
+
+        cache.duplicates.data = clusters;
+        cache.duplicates.timestamp = now;
+
+        return success(res, "Duplicate clusters", clusters);
+    } catch (err) {
+        next(err);
     }
 };
 

@@ -33,43 +33,12 @@ export default function DashboardOverview() {
     // Safe polling every 15 seconds
     const interval = setInterval(async () => {
        if (!isFetching) { 
-         await loadDashboard(controller.signal, false); 
+         await loadDashboard(controller.signal); 
        }
     }, 15000)
 
-    // Listen for seamless background data updates from SWR caching
-    const handleBackgroundUpdate = (e: Event) => {
-        const customEvent = e as CustomEvent;
-        if (customEvent.detail && customEvent.detail.key === `dashboard_${selectedDept || 'ALL'}`) {
-             const data = customEvent.detail.freshData;
-             const totalComplaints = data.totalComplaints ?? (parseInt(data.complaints?.total) || 0);
-             const pendingComplaints = data.pendingComplaints ?? (parseInt(data.complaints?.active) || 0);
-             const resolvedComplaints = data.resolvedComplaints ?? (parseInt(data.complaints?.resolved) || 0);
-             const totalSR = data.totalServices ?? (parseInt(data.service_requests?.total) || 0);
-             const completedSR = parseInt(data.service_requests?.resolved) || 0;
-
-             setStats({
-                 totalComplaints: totalComplaints,
-                 totalSR: totalSR,
-                 resolved: resolvedComplaints,
-                 critical: data.slaBreaches || 0,
-                 pendingSR: totalSR - completedSR,
-                 duplicatesDetected: Math.floor(totalComplaints * 0.1), 
-                 fraudFlagged: 0,
-                 avgResolutionHrs: 24.5,
-                 pending: pendingComplaints,
-                 todayComplaints: data.todayComplaints || 0,
-                 todayServices: data.todayServices || 0,
-                 slaBreaches: data.slaBreaches || 0,
-                 deptDistribution: data.deptDistribution || []
-             });
-        }
-    };
-    window.addEventListener('aazhi_cache_update', handleBackgroundUpdate);
-
     return () => {
       clearInterval(interval)
-      window.removeEventListener('aazhi_cache_update', handleBackgroundUpdate);
       controller.abort() // Cancel any pending request on unmount/re-render
     }
   }, [selectedDept])
