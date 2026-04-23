@@ -77,13 +77,20 @@ const ElectricityQuickPay: React.FC<Props> = ({ onBack, language }) => {
             </div>
         </div>
 
+        <div className="mb-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-1">{t('elecConsumerPrompt')}</h3>
+            <p className="text-slate-500 text-sm font-medium mb-3">{t('elecConsumerFormat')}</p>
+            <p className="text-blue-600 font-bold text-xs uppercase tracking-wider mb-4 border-l-4 border-blue-600 pl-3">{t('elecConsumerExample')}</p>
+        </div>
+
         <form onSubmit={handleFetchBill} className="flex gap-4 mb-8">
           <input
             type="text"
-            placeholder="Enter Electricity Consumer No."
+            placeholder="050010005678"
             value={consumerId}
-            onChange={(e) => setConsumerId(e.target.value.replace(/\D/g, ''))}
-            className="flex-1 bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl text-lg font-bold outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            maxLength={12}
+            onChange={(e) => setConsumerId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+            className="flex-1 bg-slate-50 border border-slate-200 px-6 py-4 rounded-2xl text-lg font-bold outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all uppercase tracking-widest"
           />
           <button 
             type="submit" 
