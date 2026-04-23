@@ -88,13 +88,18 @@ export const query = async (sql, params = []) => {
     try {
         const result = await pool.query(sql, params);
         const duration = Date.now() - start;
-        if (!isProd && duration > 200) {
-            console.warn(`⚠️  [DB] Slow query (${duration}ms): ${sql.slice(0, 80)}`);
+        
+        // Performance Monitoring: Log all queries taking more than 500ms in production
+        if (duration > 500) {
+            console.warn(`🕒 [DB Slow Query] ${duration}ms | SQL: ${sql.slice(0, 100)}...`);
+        } else if (!isProd && duration > 100) {
+            console.log(`⏱️ [DB Query] ${duration}ms`);
         }
+        
         return result;
     } catch (err) {
-        console.error(`❌ [DB] Query error: ${err.message}`);
-        console.error(`   SQL: ${sql.slice(0, 120)}`);
+        console.error(`❌ [DB Query Error] ${err.message}`);
+        console.error(`   SQL: ${sql.slice(0, 150)}`);
         throw err;
     }
 };
