@@ -9,9 +9,25 @@ import { success, fail, paginated } from "../utils/response.js";
 import stringSimilarity from "string-similarity";
 import logger from "../utils/logger.js";
 
+// ─── Simple In-Memory Cache ────────────────────────────────
+const cache = {
+    dashboard: { data: null, timestamp: 0 },
+    analytics: { data: null, timestamp: 0 },
+    duplicates: { data: null, timestamp: 0 },
+    fraud: { data: null, timestamp: 0 },
+    paymentStats: { data: null, timestamp: 0 },
+    serviceRequestAnalytics: { data: null, timestamp: 0 }
+};
+const CACHE_TTL = 30000; // 30 seconds
+
 // ─── Dashboard Overview Stats ────────────────────────────
 export const getDashboardStats = async (req, res, next) => {
     try {
+        const now = Date.now();
+        if (cache.dashboard.data && (now - cache.dashboard.timestamp < CACHE_TTL)) {
+            return success(res, "Dashboard statistics (cached)", cache.dashboard.data);
+        }
+
         const [citizens, bills, complaints, serviceRequests, transactions] = await Promise.all([
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
             pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
@@ -20,13 +36,18 @@ export const getDashboardStats = async (req, res, next) => {
             pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions"),
         ]);
 
-        return success(res, "Dashboard statistics", {
+        const responseData = {
             citizens: citizens.rows[0],
             bills: bills.rows[0],
             complaints: complaints.rows[0],
             service_requests: serviceRequests.rows[0],
             transactions: transactions.rows[0],
-        });
+        };
+
+        cache.dashboard.data = responseData;
+        cache.dashboard.timestamp = now;
+
+        return success(res, "Dashboard statistics", responseData);
     } catch (err) {
         next(err);
     }
@@ -87,7 +108,13 @@ export const getInteractionLogs = async (req, res, next) => {
 // ─── Service Request Analytics ───────────────────────────
 export const getServiceRequestAnalytics = async (req, res, next) => {
     try {
+        const now = Date.now();
         const { period = "30" } = req.query; // days
+        const cacheKey = `period_${period}`;
+        
+        if (cache.serviceRequestAnalytics.data && cache.serviceRequestAnalytics.data.period === period && (now - cache.serviceRequestAnalytics.timestamp < CACHE_TTL)) {
+            return success(res, "Service request analytics (cached)", cache.serviceRequestAnalytics.data.payload);
+        }
 
         const [byDepartment, byStatus, recentTrend, avgResolution] = await Promise.all([
             pool.query(
@@ -121,13 +148,18 @@ export const getServiceRequestAnalytics = async (req, res, next) => {
             ),
         ]);
 
-        return success(res, "Service request analytics", {
+        const payload = {
             by_department: byDepartment.rows,
             by_status: byStatus.rows,
             daily_trend: recentTrend.rows,
             avg_resolution_hours: avgResolution.rows,
             period_days: parseInt(period),
-        });
+        };
+        
+        cache.serviceRequestAnalytics.data = { period, payload };
+        cache.serviceRequestAnalytics.timestamp = now;
+
+        return success(res, "Service request analytics", payload);
     } catch (err) {
         next(err);
     }
@@ -136,7 +168,12 @@ export const getServiceRequestAnalytics = async (req, res, next) => {
 // ─── Payment Statistics ──────────────────────────────────
 export const getPaymentStats = async (req, res, next) => {
     try {
+        const now = Date.now();
         const { period = "30" } = req.query;
+        
+        if (cache.paymentStats.data && cache.paymentStats.data.period === period && (now - cache.paymentStats.timestamp < CACHE_TTL)) {
+            return success(res, "Payment statistics (cached)", cache.paymentStats.data.payload);
+        }
 
         const [summary, byService, dailyTrend, recentPayments] = await Promise.all([
             pool.query(
@@ -177,13 +214,18 @@ export const getPaymentStats = async (req, res, next) => {
             ),
         ]);
 
-        return success(res, "Payment statistics", {
+        const payload = {
             summary: summary.rows[0],
             by_service: byService.rows,
             daily_trend: dailyTrend.rows,
             recent_payments: recentPayments.rows,
             period_days: parseInt(period),
-        });
+        };
+        
+        cache.paymentStats.data = { period, payload };
+        cache.paymentStats.timestamp = now;
+
+        return success(res, "Payment statistics", payload);
     } catch (err) {
         next(err);
     }
@@ -201,7 +243,7 @@ export const getAllComplaints = async (req, res, next) => {
             console.log("📡 [ADMIN] Fetching complaints via SUPABASE CLIENT");
             let query = supabase
                 .from('complaints')
-                .select('*, citizen:citizens!complaints_citizen_id_fkey(name, mobile)', { count: 'exact' });
+                .select('*, citizen:citizens!complaints_citizen_id_fkey(name, mobile)', { count: 'estimated' });
 
             if (status) query = query.eq('status', status);
             if (department) query = query.ilike('department', `%${department}%`);
@@ -326,7 +368,7 @@ export const getAllServiceRequests = async (req, res, next) => {
             console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
             let query = supabase
                 .from('service_requests')
-                .select('*, citizen:citizens(name, mobile)', { count: 'exact' });
+                .select('*, citizen:citizens(name, mobile)', { count: 'estimated' });
 
             if (status) query = query.eq('status', status);
             if (department) query = query.ilike('department', `%${department}%`);
@@ -424,6 +466,11 @@ export const getAllCitizens = async (req, res, next) => {
 // ─── Complaint Analytics (Real Data) ─────────────────────
 export const getComplaintAnalytics = async (req, res, next) => {
     try {
+        const now = Date.now();
+        if (cache.analytics.data && (now - cache.analytics.timestamp < CACHE_TTL)) {
+            return success(res, "Complaint analytics (cached)", cache.analytics.data);
+        }
+
         const [deptDist, priorityDist, dailyTrend, sentimentDist, topCategories, totalStats] = await Promise.all([
             // Department distribution
             pool.query(`SELECT department, COUNT(*)::int as count FROM complaints GROUP BY department ORDER BY count DESC`),
@@ -488,7 +535,7 @@ export const getComplaintAnalytics = async (req, res, next) => {
             .slice(0, 20)
             .map(([word, count]) => ({ word, count }));
 
-        return success(res, "Complaint analytics", {
+        const responseData = {
             departmentDistribution: deptDist.rows,
             priorityBreakdown: priorityDist.rows,
             dailyTrend: dailyTrend.rows,
@@ -496,7 +543,12 @@ export const getComplaintAnalytics = async (req, res, next) => {
             topCategories: topCategories.rows,
             topKeywords,
             stats: totalStats.rows[0],
-        });
+        };
+
+        cache.analytics.data = responseData;
+        cache.analytics.timestamp = now;
+
+        return success(res, "Complaint analytics", responseData);
     } catch (err) {
         next(err);
     }
@@ -505,6 +557,11 @@ export const getComplaintAnalytics = async (req, res, next) => {
 // ─── Duplicate Clusters (Real Data) ──────────────────────
 export const getDuplicateClusters = async (req, res, next) => {
     try {
+        const now = Date.now();
+        if (cache.duplicates.data && (now - cache.duplicates.timestamp < CACHE_TTL)) {
+            return success(res, "Duplicate clusters (cached)", cache.duplicates.data);
+        }
+
         // Get recent complaints to cluster
         const { rows: complaints } = await pool.query(`
             SELECT c.id, c.ticket_number, c.subject, c.description, c.department, c.ward, c.status, c.created_at,
@@ -561,6 +618,9 @@ export const getDuplicateClusters = async (req, res, next) => {
             }
         }
 
+        cache.duplicates.data = clusters;
+        cache.duplicates.timestamp = now;
+
         return success(res, "Duplicate clusters", clusters);
     } catch (err) {
         next(err);
@@ -581,6 +641,11 @@ function getTimeAgo(date) {
 // ─── Fraud Signals (Real Data) ───────────────────────────
 export const getFraudSignals = async (req, res, next) => {
     try {
+        const now = Date.now();
+        if (cache.fraud.data && (now - cache.fraud.timestamp < CACHE_TTL)) {
+            return success(res, "Fraud signals (cached)", cache.fraud.data);
+        }
+
         // Identify citizens with suspicious patterns
         const { rows: citizenActivity } = await pool.query(`
             SELECT
@@ -644,6 +709,9 @@ export const getFraudSignals = async (req, res, next) => {
         // Sort by risk score descending
         fraudUsers.sort((a, b) => b.riskScore - a.riskScore);
 
+        cache.fraud.data = fraudUsers;
+        cache.fraud.timestamp = now;
+
         return success(res, "Fraud signals", fraudUsers);
     } catch (err) {
         next(err);
@@ -697,10 +765,10 @@ export const getMLComplaintClusters = async (req, res, next) => {
         clearTimeout(timeoutId);
 
         if (!aiRes.ok) {
-            console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
             const errorText = await aiRes.text();
-            console.error(`📄 ResponseBody: ${errorText.substring(0, 200)}`);
-            throw new Error(`AI Service failed (${aiRes.status})`);
+            console.error(`❌ AI Service Error: ${aiRes.status} ${aiRes.statusText} at ${targetUrl}`);
+            console.error(`📄 ResponseBody: ${errorText.substring(0, 500)}`);
+            throw new Error(`AI Service failed (${aiRes.status}): ${errorText.substring(0, 100)}`);
         }
 
         const aiData = await aiRes.json();
