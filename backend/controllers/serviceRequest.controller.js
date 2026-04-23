@@ -546,3 +546,34 @@ export const updateRequestStatusDebug = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Add Message to Service Request ───────────────────────
+export const addMessageToRequest = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { text } = req.body;
+        const senderId = req.user ? req.user.id : null; // Can be null if optionalAuth doesn't enforce user
+
+        const current = await pool.query(
+            id.startsWith('TKT-') || id.startsWith('SRQ-')
+                ? "SELECT * FROM service_requests WHERE ticket_number = $1"
+                : "SELECT * FROM service_requests WHERE id = $1",
+            [id]
+        );
+
+        if (current.rows.length === 0) {
+            return fail(res, "Service request not found.", 404);
+        }
+
+        const actualId = current.rows[0].id;
+
+        const result = await pool.query(
+            `INSERT INTO messages (service_request_id, sender_id, text) VALUES ($1, $2, $3) RETURNING *`,
+            [actualId, senderId, text]
+        );
+
+        return success(res, "Message added successfully", result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};

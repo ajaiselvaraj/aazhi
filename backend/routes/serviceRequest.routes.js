@@ -11,7 +11,8 @@ import express from "express";
 import {
     createServiceRequest, trackServiceRequest,
     getMyServiceRequests, getAllServiceRequestsAdmin, updateServiceRequestStatus, searchRequests,
-    getAllRequestsAdminDebug, createRequestDebug, updateRequestStatusDebug
+    getAllRequestsAdminDebug, createRequestDebug, updateRequestStatusDebug,
+    addMessageToRequest
 } from "../controllers/serviceRequest.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
@@ -31,5 +32,6 @@ router.get("/admin", authMiddleware, staffOnly, getAllServiceRequestsAdmin);
 router.get("/search", optionalAuth, searchRequests);
 router.get("/track/:ticketNumber", optionalAuth, trackServiceRequest);
 router.put("/:id/status", authMiddleware, staffOnly, validate(updateServiceRequestStatusSchema), updateServiceRequestStatus);
+router.post("/:id/messages", optionalAuth, addMessageToRequest);
 
 export default router;
