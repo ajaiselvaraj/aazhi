@@ -7,10 +7,18 @@
 import { callWithRetry, RateLimitError } from '../../utils/apiRetry';
 import { enqueue } from '../../utils/apiThrottle';
 
-const VITE_API_URL = (import.meta as any).env.VITE_API_URL;
-const API_BASE_URL = VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
+const getBaseUrl = () => {
+  let url = ((import.meta as any).env.VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api');
+  // Remove trailing slash if present to ensure clean concatenation
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  return url;
+};
 
-if (!VITE_API_URL) {
+const API_BASE_URL = getBaseUrl();
+
+if (!(import.meta as any).env.VITE_API_URL) {
   console.warn("⚠️ [apiClient] VITE_API_URL is missing! Falling back to Render URL.");
 } else {
   console.log("🌐 [apiClient] Connecting to:", API_BASE_URL);
@@ -53,7 +61,9 @@ async function singleRequest<T>(
     cache: 'no-store'
   };
 
-  const fullUrl = `${API_BASE_URL}${endpoint}`;
+  // Ensure endpoint starts with a slash
+  const safeEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const fullUrl = `${API_BASE_URL}${safeEndpoint}`;
   console.log(`📤 [API request start] ${config.method} ${fullUrl}`);
 
   const response = await fetch(fullUrl, config);

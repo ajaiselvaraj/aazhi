@@ -46,10 +46,32 @@ const allowedOrigins = (process.env.FRONTEND_URL ||
 console.log("🔒 [CORS] Allowed Origins:", allowedOrigins);
 
 app.use(cors({
-    origin: true,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like Postman, mobile apps, curl)
+        if (!origin) return callback(null, true);
+        
+        // In development or if explicitly allowed, permit all
+        if (process.env.NODE_ENV !== 'production' || process.env.FRONTEND_URL === '*') {
+            return callback(null, true);
+        }
+
+        // Allow localhost and local network IPs (for WiFi testing)
+        if (origin.startsWith('http://localhost') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.')) {
+            return callback(null, true);
+        }
+
+        // Check against allowed origins list
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            return callback(null, true);
+        }
+
+        // Fallback for strict production
+        console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization', 'x-waf-secret', 'Accept'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
 }));
 
 
@@ -93,7 +115,15 @@ app.use((req, res, next) => {
 app.use(auditLogger);
 
 
-// ─── Health ────────────────────────────────────────────
+// ─── Health & Root ─────────────────────────────────────────
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "SUVIDHA KIOSK Backend API is running.",
+        healthCheck: "/api/health"
+    });
+});
+
 app.get("/api/health", async (req, res) => {
 
     let dbStatus = "unreachable";
