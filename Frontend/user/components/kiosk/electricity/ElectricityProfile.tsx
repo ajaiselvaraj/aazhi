@@ -10,17 +10,29 @@ interface Props {
 
 const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
-  
-  const [profileData, setProfileData] = useState({
-    name: 'Ramesh Kumar',
-    consumer_number: '069-123-4567',
-    mobile: '9876543210',
-    email: 'ramesh.k@example.com',
-    address: '123, Gandhi Road, Ward 12, Coimbatore',
-    category: 'Domestic (Single Phase)',
-    aadhaar: 'XXXX-XXXX-1234'
-  });
 
+  // Load real user profile from localStorage session
+  const getInitialProfile = () => {
+    try {
+      const stored = localStorage.getItem('aazhi_user');
+      const user = stored ? JSON.parse(stored) : null;
+      return {
+        name: user?.name || 'Not Set',
+        consumer_number: user?.consumer_number || '—',
+        mobile: user?.mobile || '',
+        email: user?.email || '',
+        address: user?.address || '',
+        category: user?.category || 'Domestic',
+        aadhaar: user?.aadhaar_masked || 'XXXX-XXXX-XXXX'
+      };
+    } catch {
+      return {
+        name: 'Not Set', consumer_number: '—', mobile: '', email: '', address: '', category: 'Domestic', aadhaar: 'XXXX-XXXX-XXXX'
+      };
+    }
+  };
+
+  const [profileData, setProfileData] = useState(getInitialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...profileData });
   const [isSaving, setIsSaving] = useState(false);
@@ -36,19 +48,63 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
     setShowOtp(true);
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (otp === '123' || otp.length === 6) {
       setIsSaving(true);
       setShowOtp(false);
-      
-      setTimeout(() => {
-        setProfileData({ ...editData });
-        setIsSaving(false);
-        setIsEditing(false);
-        setOtp('');
-        setSuccessMsg(t('elec_profileUpdated') || 'Profile updated successfully!');
-        setTimeout(() => setSuccessMsg(''), 3000);
-      }, 1000);
+
+      try {
+        // 1. Call backend to persist name/email/address permanently in DB
+        const token = localStorage.getItem('aazhi_token');
+        const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+          ? 'http://localhost:5000/api'
+          : 'https://aazhi-9gj2.onrender.com/api';
+
+        const res = await fetch(`${API_BASE}/auth/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ name: editData.name, email: editData.email, address: editData.address })
+        });
+
+        const json = await res.json();
+
+        if (res.ok && json.data?.citizen) {
+          // 2. Update localStorage with fresh data from backend
+          const stored = localStorage.getItem('aazhi_user');
+          const existing = stored ? JSON.parse(stored) : {};
+          const freshUser = { ...existing, ...json.data.citizen };
+          localStorage.setItem('aazhi_user', JSON.stringify(freshUser));
+          if (json.data.tokens?.accessToken) {
+            localStorage.setItem('aazhi_token', json.data.tokens.accessToken);
+          }
+        } else {
+          // Fallback: persist locally even if API failed
+          const stored = localStorage.getItem('aazhi_user');
+          const user = stored ? JSON.parse(stored) : {};
+          localStorage.setItem('aazhi_user', JSON.stringify({
+            ...user, name: editData.name, mobile: editData.mobile,
+            email: editData.email, address: editData.address
+          }));
+        }
+      } catch (e) {
+        console.error('[Profile] Backend save failed, falling back to localStorage only:', e);
+        const stored = localStorage.getItem('aazhi_user');
+        const user = stored ? JSON.parse(stored) : {};
+        localStorage.setItem('aazhi_user', JSON.stringify({
+          ...user, name: editData.name, mobile: editData.mobile,
+          email: editData.email, address: editData.address
+        }));
+      }
+
+      setProfileData({ ...editData });
+      setIsSaving(false);
+      setIsEditing(false);
+      setOtp('');
+      setSuccessMsg(t('elec_profileUpdated') || 'Profile updated successfully!');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } else {
       alert("Invalid OTP. Use '123' for testing.");
     }

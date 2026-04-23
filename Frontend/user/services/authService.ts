@@ -43,8 +43,10 @@ export const authService = {
         const data = await apiClient.post<any>('/auth/verify-otp', { mobile, otp });
         // The apiClient already returns result.data
         const { citizen, tokens } = data;
+        // Use mobile as fallback name if citizen hasn't set a name yet
+        const userRecord = { ...citizen, name: citizen.name || null };
         const authData: AuthResponse = {
-            user: citizen,
+            user: userRecord,
             accessToken: tokens.accessToken,
             refreshToken: tokens.refreshToken
         };

@@ -303,8 +303,10 @@ export const getAllComplaints = async (req, res, next) => {
 
             const mapped = data.map(c => ({
                 ...c,
-                citizen_name: c.citizen?.name,
-                citizen_mobile: c.citizen?.mobile
+                // Prioritize the name/mobile stored ON the complaint (entered at submission time)
+                // Fall back to the linked citizens table only if the ticket field is empty
+                citizen_name: c.citizen_name || c.citizen?.name || null,
+                citizen_mobile: c.metadata?.citizen_mobile || c.citizen?.mobile || null
             }));
 
             return paginated(res, "All complaints", mapped, {
@@ -316,8 +318,11 @@ export const getAllComplaints = async (req, res, next) => {
             // Fallback to pool query
             console.log("📡 [ADMIN] Fetching complaints via POOL QUERY (Direct DB)");
             let query = `
-                SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile,
-                       staff.name as assigned_to_name
+                SELECT 
+                    c.*,
+                    COALESCE(c.citizen_name, ci.name) as citizen_name,
+                    COALESCE(c.metadata->>'citizen_mobile', ci.mobile) as citizen_mobile,
+                    staff.name as assigned_to_name
                 FROM complaints c
                 JOIN citizens ci ON c.citizen_id = ci.id
                 LEFT JOIN citizens staff ON c.assigned_to = staff.id
@@ -424,8 +429,10 @@ export const getAllServiceRequests = async (req, res, next) => {
 
             const mapped = data.map(sr => ({
                 ...sr,
-                citizen_name: sr.citizen?.name,
-                citizen_mobile: sr.citizen?.mobile
+                // Prioritize name/phone stored ON the service request (entered at submission time)
+                // Fall back to citizens table only if ticket fields are empty
+                citizen_name: sr.citizen_name || sr.citizen?.name || null,
+                citizen_mobile: sr.phone || sr.citizen?.mobile || null
             }));
 
             return paginated(res, "All service requests", mapped, {
@@ -437,7 +444,10 @@ export const getAllServiceRequests = async (req, res, next) => {
             // Fallback to pool query
             console.log("📡 [ADMIN] Fetching service requests via POOL QUERY (Direct DB)");
             let query = `
-                SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+                SELECT 
+                    sr.*,
+                    COALESCE(sr.citizen_name, c.name) as citizen_name,
+                    COALESCE(sr.phone, c.mobile) as citizen_mobile
                 FROM service_requests sr
                 JOIN citizens c ON sr.citizen_id = c.id
                 WHERE 1=1`;

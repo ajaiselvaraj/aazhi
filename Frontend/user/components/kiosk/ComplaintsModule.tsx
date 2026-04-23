@@ -11,7 +11,7 @@ import {
     Mic,
     FileText
 } from 'lucide-react';
-import { MOCK_USER_PROFILE, PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
+import { PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
 import { Language } from '../../types';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
@@ -60,15 +60,21 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
 
         setIsSubmitting(true);
 
+        // Read real logged-in user from session
+        const sessionStr = localStorage.getItem('aazhi_user');
+        const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+        const userName = sessionUser?.name || null;
+        const userPhone = sessionUser?.mobile || null;
+
         try {
             const newId = await addComplaint({
-                name: MOCK_USER_PROFILE.name,
-                phone: "9876543210", // In real app, this comes from user profile
+                name: userName,
+                phone: userPhone,
                 category: getDeptCategory(selectedDept),
                 complaintType: t(issueType),
                 description: description || t(issueType),
-                location: MOCK_USER_PROFILE.ward || "Unknown",
-                area: MOCK_USER_PROFILE.ward || "Unknown"
+                location: sessionUser?.ward || 'Unknown',
+                area: sessionUser?.ward || 'Unknown'
             });
 
             setTicketId(newId);

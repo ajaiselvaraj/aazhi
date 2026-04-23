@@ -3,7 +3,7 @@ import { Camera, MapPin, AlertCircle, CheckCircle, Mic, Plus } from 'lucide-reac
 import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGES_CONFIG, MOCK_USER_PROFILE } from '../../constants';
+import { LANGUAGES_CONFIG } from '../../constants';
 import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import DocumentScannerOverlay from '../kiosk/DocumentScannerOverlay';
@@ -102,6 +102,10 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
         setIsSubmitting(true);
         console.log("⏳ [Civic] Starting API submission process...");
 
+        // Read real logged-in user from session
+        const sessionStr = localStorage.getItem('aazhi_user');
+        const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+
         try {
             // Map the department ID to category
             let deptCat = 'Municipal';
@@ -111,13 +115,13 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
             console.log(`🚀 [Civic] Calling addComplaint for department: ${deptCat}`);
             const ticketId = await addComplaint({
-                name: MOCK_USER_PROFILE.name,
-                phone: MOCK_USER_PROFILE.mobile,
+                name: sessionUser?.name || null,
+                phone: sessionUser?.mobile || null,
                 category: deptCat,
                 complaintType: t(category), // Issue Type (translated)
                 description: desc || 'Filed via Aazhi Kiosk.',
                 location: location.address,
-                area: MOCK_USER_PROFILE.ward || 'Unknown'
+                area: sessionUser?.ward || 'Unknown'
             });
 
             console.log("✅ [Civic] Submission success. Ticket received:", ticketId);

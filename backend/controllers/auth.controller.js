@@ -286,3 +286,60 @@ export const logoutController = async (req, res, next) => {
         return serverError(res, "Failed to log out.", 500);
     }
 };
+
+/**
+ * UPDATE CITIZEN PROFILE
+ * Route: PUT /api/auth/profile
+ */
+export const updateProfileController = async (req, res, next) => {
+    try {
+        const citizenId = req.user.id;
+        const { name, email, address } = req.body;
+
+        if (!name || name.trim().length < 2) {
+            return fail(res, "Name must be at least 2 characters.", 400);
+        }
+
+        // Ensure email/address columns exist (safe migration)
+        await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS email TEXT`).catch(() => {});
+        await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS address TEXT`).catch(() => {});
+
+        const result = await pool.query(
+            `UPDATE citizens
+             SET name = $1,
+                 email = COALESCE($2, email),
+                 address = COALESCE($3, address),
+                 updated_at = NOW()
+             WHERE id = $4
+             RETURNING id, name, mobile, email, address, role, created_at`,
+            [name.trim(), email || null, address || null, citizenId]
+        );
+
+        if (result.rows.length === 0) {
+            return fail(res, "Citizen not found.", 404);
+        }
+
+        const updated = result.rows[0];
+
+        // Issue fresh tokens with the updated name baked in
+        const { accessToken, refreshToken } = generateTokens(updated);
+        setTokenCookies(res, accessToken, refreshToken);
+
+        logger.info(`[Auth Controller] Profile updated for citizen ${citizenId}: name="${updated.name}"`);
+
+        return success(res, "Profile updated successfully", {
+            citizen: {
+                id: updated.id,
+                name: updated.name,
+                mobile: updated.mobile,
+                email: updated.email,
+                address: updated.address,
+                role: updated.role
+            },
+            tokens: { accessToken, refreshToken }
+        }, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Update Profile Error: ${error.message}`);
+        return serverError(res, "Failed to update profile.", 500);
+    }
+};
