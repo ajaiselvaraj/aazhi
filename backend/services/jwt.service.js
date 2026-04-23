@@ -9,6 +9,7 @@ export const generateTokens = (user) => {
     const payload = {
         id: user.id,
         mobile: user.mobile,
+        name: user.name || null,
         role: user.role || "citizen",
         department: user.department || null
     };

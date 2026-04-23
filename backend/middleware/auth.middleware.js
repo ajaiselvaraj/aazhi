@@ -38,6 +38,7 @@ function verifyJwt(req, res, next) {
             id: decoded.id,
             role: decoded.role,
             name: decoded.name,
+            mobileNumber: decoded.mobile,
             department: decoded.department,
         };
         
@@ -68,6 +69,7 @@ export function optionalAuth(req, res, next) {
                 id: decoded.id,
                 role: decoded.role,
                 name: decoded.name,
+                mobileNumber: decoded.mobile,
                 department: decoded.department,
             };
         }

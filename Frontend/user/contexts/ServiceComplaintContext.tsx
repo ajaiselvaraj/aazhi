@@ -190,8 +190,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                     return {
                                         id: r.ticket_number || r.id,
                                         token: r.ticket_number || r.id,
-                                        name: r.citizen_name || r.name || 'Citizen',
-                                        phone: r.phone || '',
+                                        name: r.citizen_name || r.name,
+                                        phone: r.citizen_mobile || r.phone || r.citizen_phone,
                                         category: r.department || r.category || '',
                                         serviceType: r.request_type || r.serviceType || '',
                                         address: r.metadata?.address || r.address || '',
@@ -261,14 +261,14 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                                     return {
                                         id: r.ticket_number || r.id,
-                                        name: r.citizen_name || r.name || 'Citizen',
-                                        phone: r.phone || '',
+                                        name: r.citizen_name || r.name,
+                                        phone: r.citizen_mobile || r.phone || r.citizen_phone,
                                         category: r.department || r.category || '',
                                         complaintType: r.request_type || r.complaintType || '',
                                         location: r.metadata?.location || r.address || '',
                                         area: r.ward || 'Unknown',
                                         description: r.description || '',
-                                        priority: 'Medium',
+                                        priority: r.priority || 'Medium',
                                         status: r.status || 'active',
                                         currentStage: normalizedStage,
                                         stage: rawStage,
@@ -336,7 +336,22 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     
     const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): string => {
         const token = `TKT-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
-        const newReq: ServiceRequest = { ...data, citizenId: data.citizenId || MOCK_USER_PROFILE.id, phone: data.phone || MOCK_USER_PROFILE.mobile, id: token, token, status: "active", currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const userStr = localStorage.getItem('aazhi_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        
+        const newReq: ServiceRequest = { 
+            ...data, 
+            citizenId: user?.id, 
+            name: data.name || user?.name,
+            phone: data.phone || user?.mobile,
+            id: token, 
+            token, 
+            status: "active", 
+            currentStage: "Submitted", 
+            stage: "submitted", 
+            stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], 
+            createdAt: new Date().toISOString() 
+        };
         setServiceRequests(prev => { const updated = [newReq, ...prev]; persistData(LOCAL_STORAGE_KEYS.SERVICES, updated); return updated; });
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
 
@@ -352,8 +367,9 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     department: data.category,
                     description: data.description || `Service request for ${data.serviceType}`,
                     ward: undefined,
-                    phone: data.phone,
-                    metadata: { token, name: data.name, address: data.address }
+                    phone: data.phone || user?.mobile,
+                    name: data.name || user?.name,
+                    metadata: { token, name: data.name || user?.name, address: data.address }
                 });
                 console.log("✅ [API] Backend mirrored successfully:", res);
             } catch (err: any) { 
@@ -391,7 +407,9 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 subject: `Complaint regarding ${data.complaintType}`,
                 description: data.description || `Complaint regarding ${data.complaintType}`,
                 ward: data.area !== 'Unknown' ? data.area : undefined,
-                priority: priority.toLowerCase()
+                priority: priority.toLowerCase(),
+                name: data.name,
+                phone: data.phone
             });
             // Capture DB assigned ticket number
             finalId = (apiRes as any).ticket_number || apiRes.id;
@@ -401,7 +419,23 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         finalId = finalId || `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
 
-        const newComplaint: Complaint = { ...data, citizenId: data.citizenId || MOCK_USER_PROFILE.id, phone: data.phone || MOCK_USER_PROFILE.mobile, id: finalId, priority, status: "active", areaAlert, currentStage: "Submitted", stage: "submitted", stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], createdAt: new Date().toISOString() };
+        const userStr = localStorage.getItem('aazhi_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+
+        const newComplaint: Complaint = { 
+            ...data, 
+            citizenId: user?.id, 
+            name: data.name || user?.name,
+            phone: data.phone || user?.mobile, 
+            id: finalId, 
+            priority: priority as "Critical" | "High" | "Medium" | "Low", 
+            status: "active", 
+            areaAlert, 
+            currentStage: "Submitted", 
+            stage: "submitted", 
+            stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], 
+            createdAt: new Date().toISOString() 
+        };
         setComplaints(prev => { const updated = [newComplaint, ...prev]; persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated); return updated; });
         return finalId;
     };
