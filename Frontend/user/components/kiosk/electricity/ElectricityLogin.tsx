@@ -57,14 +57,19 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
 
         <form onSubmit={handleLogin} className="space-y-6">
             <div className="text-left">
-                <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Electricity Consumer No.</label>
+                <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-1 ml-1">{t('elecConsumerPrompt')}</label>
+                <div className="flex flex-col gap-1 mb-4 ml-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('elecConsumerFormat')}</span>
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider">{t('elecConsumerExample')}</span>
+                </div>
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="e.g. 123456789"
+                        placeholder="050010005678"
                         value={consumerId}
-                        onChange={(e) => setConsumerId(e.target.value.replace(/\D/g, ''))}
-                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-bold text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300"
+                        maxLength={12}
+                        onChange={(e) => setConsumerId(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-black text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-200 tracking-[0.2em]"
                     />
                     <ShieldCheck size={24} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" />
                 </div>

@@ -83,11 +83,11 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">{t('consumerNo')}</label>
                     <div className="relative mb-8">
                         <input
-                            inputMode="numeric"
                             type="text"
                             value={consumerNo}
+                            maxLength={12}
                             onChange={(e) => {
-                                setConsumerNo(e.target.value.toUpperCase());
+                                setConsumerNo(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
                                 setError('');
                             }}
                             className="w-full bg-slate-50 border-2 border-slate-100 p-6 pl-14 rounded-2xl text-2xl font-black uppercase tracking-widest outline-none focus:border-blue-600 focus:bg-white transition"
