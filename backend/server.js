@@ -50,16 +50,6 @@ async function startServer() {
         }
     });
 
-    // Schedule background refresh for dashboard stats to keep load times under 2 seconds
-    import { refreshDashboardStatsBackground } from "./controllers/admin.controller.js";
-    cron.schedule("*/2 * * * *", async () => {
-        try {
-            await refreshDashboardStatsBackground();
-        } catch (error) {
-            logger.error(`[CRON] Dashboard background refresh failed: ${error.message}`);
-        }
-    });
-
     app.listen(PORT, () => {
         logger.info(`
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════        ═╗
