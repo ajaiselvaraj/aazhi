@@ -137,14 +137,21 @@ export default function LoginPage() {
     }
     setError('')
     setLoading(true)
-    
-    // DEMO OVERRIDE: Bypass backend verification completely.
-    // If you type anything in the fields, it will let you in immediately.
-    setTimeout(() => {
-      localStorage.setItem('adminToken', 'demo-bypass-token-12345')
-      login({ adminId, department, name: 'Admin Officer' })
+    try {
+      const json = await adminApi.login({ adminId, password, department })
+      
+      // The API returns { admin: {...}, tokens: { accessToken, refreshToken } }
+      localStorage.setItem('adminToken', json.tokens.accessToken)
+      login({ 
+        adminId: json.admin.adminId, 
+        department: json.admin.department, 
+        name: json.admin.name 
+      })
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.')
+    } finally {
       setLoading(false)
-    }, 500)
+    }
   }
 
   return (
