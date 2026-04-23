@@ -121,3 +121,38 @@ export const getGasAccount = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Gas Quick Pay Bill (Public) ─────────────────────────
+export const getQuickPayBill = async (req, res, next) => {
+    try {
+        const { id } = req.params; // consumer ID or account number
+
+        // Find the unpaid bill for this account
+        const query = `
+            SELECT b.*, ua.account_number, c.name as consumer_name,
+                   CONCAT(SUBSTRING(c.name, 1, 1), '*** ', SUBSTRING(c.name, POSITION(' ' IN c.name) + 1, 1), '****') as consumer_name_masked
+            FROM bills b
+            JOIN utility_accounts ua ON b.account_id = ua.id
+            JOIN citizens c ON b.citizen_id = c.id
+            WHERE ua.account_number = $1 AND b.service_type = 'gas' AND b.status IN ('pending', 'overdue')
+            ORDER BY b.due_date ASC
+            LIMIT 1
+        `;
+        const result = await pool.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return fail(res, "No pending gas bill found for this Consumer ID.", 404);
+        }
+
+        const bill = result.rows[0];
+        // Embed masked name into metadata for frontend
+        bill.metadata = {
+            ...bill.metadata,
+            consumer_name_masked: bill.consumer_name_masked
+        };
+
+        return success(res, "Pending gas bill retrieved successfully", bill);
+    } catch (err) {
+        next(err);
+    }
+};
