@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController, updateProfileController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -50,5 +50,12 @@ router.post("/refresh", refreshTokenController);
  * @access  Protected
  */
 router.post("/logout", authMiddleware, logoutController);
+
+/**
+ * @desc    Update citizen profile (name, email, address)
+ * @route   PUT /api/auth/profile
+ * @access  Protected
+ */
+router.put("/profile", authMiddleware, updateProfileController);
 
 export default router;
