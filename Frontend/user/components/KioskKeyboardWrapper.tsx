@@ -231,6 +231,7 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
             input.removeEventListener('keyup', saveCursorPosition);
             input.removeEventListener('click', saveCursorPosition);
             input.removeEventListener('select', saveCursorPosition);
+            input.blur();
         }
 
         setIsOpen(false);
