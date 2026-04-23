@@ -85,11 +85,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-<<<<<<< Updated upstream
-  // Sync with global navigation requests
-=======
   // Sync with global navigation requests (Voice Commands from App.tsx)
->>>>>>> Stashed changes
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);

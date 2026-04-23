@@ -198,7 +198,7 @@ const App: React.FC = () => {
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
-  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker'>('home');
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker' | 'gas' | 'municipal'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const timerRef = useRef<number | null>(null);
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
