@@ -211,14 +211,17 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
         {/* Consumer Number */}
         <div className="space-y-3">
           <label className="block text-sm font-black text-slate-700 uppercase tracking-wider">
-            {t('elec_consumerNumber') || 'Consumer / Service Number'} <span className="text-red-500">*</span>
+            {t('elecConsumerPrompt')} <span className="text-red-500">*</span>
           </label>
+          <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
+            {t('elecConsumerFormat')} • {t('elecConsumerExample')}
+          </p>
           <input
             type="text"
             value={formData.consumer_number || ''}
-            onChange={(e) => handleInputChange('consumer_number', e.target.value)}
-            placeholder="e.g. 069-123-4567"
-            className={`w-full bg-slate-50 border-2 ${errors.consumer_number ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-semibold outline-none focus:border-indigo-500 focus:bg-white transition placeholder:text-slate-400`}
+            onChange={(e) => handleInputChange('consumer_number', e.target.value.toUpperCase().replace(/\s/g, ''))}
+            placeholder="050010005678"
+            className={`w-full bg-slate-50 border-2 ${errors.consumer_number ? 'border-red-400' : 'border-slate-200'} p-5 rounded-2xl text-lg font-black tracking-widest outline-none focus:border-indigo-500 focus:bg-white transition placeholder:text-slate-400`}
           />
           {errors.consumer_number && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-xl text-sm font-bold"><AlertCircle size={18} /> {errors.consumer_number}</div>}
         </div>
