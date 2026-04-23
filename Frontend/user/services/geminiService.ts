@@ -111,10 +111,18 @@ class SuvidhaIntelligence {
     if (nlp.intent === 'PAY_BILL_DIRECT') {
       session.data.billType = nlp.dept;
       session.step = 'BILL_CONSUMER_ID';
-      const label = nlp.dept === 'Electricity' ? t('ai_consumerNumber') || "Consumer Number" : t('ai_connectionId') || "Connection ID";
-      const enterMsg = (t('ai_enterConsumerId') || "Please enter your {billType} {label} to proceed.")
-        .replace('{billType}', session.data.billType)
-        .replace('{label}', label);
+      const isElec = nlp.dept === 'Electricity';
+      
+      let enterMsg = '';
+      if (isElec) {
+        enterMsg = `${t('elecConsumerPrompt')} ${t('elecConsumerFormat')}. ${t('elecConsumerExample')}`;
+      } else {
+        const label = t('ai_connectionId') || "Connection ID";
+        enterMsg = (t('ai_enterConsumerId') || "Please enter your {billType} {label} to proceed.")
+          .replace('{billType}', session.data.billType)
+          .replace('{label}', label);
+      }
+      
       return { text: `Got it! You want to pay your ${nlp.dept} bill.\n\n${enterMsg}`, voice: voiceEnabled ? enterMsg : undefined };
     }
 
@@ -207,12 +215,20 @@ class SuvidhaIntelligence {
       case 'BILL_TYPE':
         if (q === '5') { this.resetSession(); return this.renderWelcome(voiceEnabled, t); }
         if (['1', '2', '3', '4'].includes(q)) {
-          session.data.billType = q === '1' ? t('ai_billElec') : q === '2' ? t('ai_billWater') : t('ai_billGas');
+          const isElec = q === '1';
+          session.data.billType = isElec ? t('ai_billElec') : q === '2' ? t('ai_billWater') : t('ai_billGas');
           session.step = 'BILL_CONSUMER_ID';
-          const label = q === '1' ? t('ai_consumerNumber') : t('ai_connectionId');
-          const enterMsg = t('ai_enterConsumerId')
-            .replace('{billType}', session.data.billType)
-            .replace('{label}', label);
+          
+          let enterMsg = '';
+          if (isElec) {
+            enterMsg = `${t('elecConsumerPrompt')} ${t('elecConsumerFormat')}. ${t('elecConsumerExample')}`;
+          } else {
+            const label = t('ai_connectionId');
+            enterMsg = t('ai_enterConsumerId')
+              .replace('{billType}', session.data.billType)
+              .replace('{label}', label);
+          }
+
           return {
             text: enterMsg,
             voice: voiceEnabled ? enterMsg : undefined

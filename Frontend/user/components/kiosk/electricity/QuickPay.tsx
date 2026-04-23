@@ -75,8 +75,9 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <Zap size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('details')}</h2>
-                        <p className="text-slate-500 font-medium">{t('enterServiceNo')}</p>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('elecConsumerPrompt')}</h2>
+                        <p className="text-slate-500 font-medium mb-1">{t('elecConsumerFormat')}</p>
+                        <p className="text-blue-600 font-black text-sm">{t('elecConsumerExample')}</p>
                     </div>
 
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">{t('consumerNo')}</label>
@@ -90,7 +91,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 setError('');
                             }}
                             className="w-full bg-slate-50 border-2 border-slate-100 p-6 pl-14 rounded-2xl text-2xl font-black uppercase tracking-widest outline-none focus:border-blue-600 focus:bg-white transition"
-                            placeholder="04-123-456"
+                            placeholder="050010005678"
                         />
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
                         {error && (
