@@ -211,7 +211,6 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
     const NAV_ITEMS = [
         { id: 'home', label: t('navHome') || 'Home', icon: Home },
-        { id: 'services', label: t('navServices') || 'Services', icon: LayoutGrid },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navComplaints') || 'Complaints', icon: AlertTriangle },
         { id: 'tracker', label: t('trackApp'), icon: Search },

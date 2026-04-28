@@ -595,7 +595,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       activeTab={activeTab}
       onNavigate={(id) => {
         setActiveTab(id as any);
-        if (id === 'services') setSubmissionStep('select');
         if (id === 'billing') setBillingStep('select');
       }}
       onLogout={onLogout}

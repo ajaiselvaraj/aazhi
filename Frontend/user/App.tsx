@@ -337,8 +337,18 @@ const App: React.FC = () => {
       }, 1500);
     }
 
-    // Navigate directly to authentication page (LOGIN view)
-    setView(ViewState.LOGIN);
+    // [ACCESSIBILITY BYPASS] Skip authentication and go directly to Selection
+    // We set a guest session so the system treats the user as 'Offline'
+    // and uses the /debug endpoints automatically.
+    localStorage.removeItem('aazhi_token');
+    localStorage.setItem('aazhi_user', JSON.stringify({
+      id: 'guest_user',
+      name: 'Guest Citizen',
+      mobile: '0000000000',
+      role: 'citizen'
+    }));
+
+    setView(ViewState.SELECTION);
     setError('');
   };
 
@@ -434,7 +444,7 @@ const App: React.FC = () => {
     console.log('App received voice command:', command);
     switch (command) {
       case 'login':
-        setView(ViewState.LOGIN);
+        setView(ViewState.SELECTION);
         break;
       case 'home':
         setDashboardInitialTab('home');
@@ -883,7 +893,7 @@ const App: React.FC = () => {
       <KioskKeyboardWrapper language={language}>
         <ServiceComplaintProvider>
           {view === ViewState.LANDING && renderLanding()}
-          {view === ViewState.LOGIN && renderLogin()}
+          {view === ViewState.LOGIN && setView(ViewState.SELECTION)}
           {view === ViewState.SELECTION && renderSelection()}
           {view === ViewState.DASHBOARD && (
             <KioskUI
