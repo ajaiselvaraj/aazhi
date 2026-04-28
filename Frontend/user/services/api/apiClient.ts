@@ -33,14 +33,22 @@ axiosInstance.interceptors.request.use(
     const token = localStorage.getItem('aazhi_token');
 
     if (token) {
-      // Only attach if it looks like a real JWT (three dot-separated segments)
-      const isRealJwt = token.split('.').length === 3;
+      // Improved JWT detection: must have 3 segments and each segment should be base64-like
+      const segments = token.split('.');
+      const isRealJwt = segments.length === 3 && segments.every(s => s.length > 0);
+      
       if (isRealJwt) {
         config.headers.set('Authorization', `Bearer ${token}`);
-        console.log(`🔑 [apiClient] Token attached for ${config.method?.toUpperCase()} ${config.url}`);
+        // Log only once per minute to avoid spamming the console
+        const now = Date.now();
+        if (!config.params?._silent) {
+           console.log(`🔑 [apiClient] Token attached for ${config.method?.toUpperCase()} ${config.url}`);
+        }
       } else {
-        // It's a dev mock token — don't send it, just proceed without auth header
-        console.warn(`⚠️ [apiClient] Skipping mock/dev token for ${config.method?.toUpperCase()} ${config.url} — not a real JWT`);
+        // It's a dev mock token or malformed — don't send it to the real backend
+        if (token !== 'null' && token !== 'undefined') {
+          console.warn(`⚠️ [apiClient] Skipping mock/dev token for ${config.method?.toUpperCase()} ${config.url} — not a real JWT`);
+        }
       }
     }
     // No warning when token is absent — many routes are public or use optional auth
@@ -68,21 +76,21 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401) {
       // Only clear the session if a real token was sent with this request
-      // (i.e. the server actively rejected it as invalid/expired).
-      // Do NOT wipe the session just because the user is unauthenticated.
+      // AND the server actively rejected it.
       const sentHeader = error.config?.headers?.['Authorization'] as string | undefined;
       const hadRealToken = !!(sentHeader && sentHeader.startsWith('Bearer '));
 
       if (hadRealToken) {
-        console.warn('🔓 [Auth] Server rejected a real token — clearing session.');
-        localStorage.removeItem('aazhi_token');
-        localStorage.removeItem('aazhi_user');
-        // Uncomment to redirect to login on token expiry:
-        // window.location.href = '/login';
+        // Double check if the token is still in localStorage (it might have been cleared already)
+        const currentToken = localStorage.getItem('aazhi_token');
+        if (currentToken && sentHeader.includes(currentToken)) {
+          console.warn('🔓 [Auth] Server rejected the current token — clearing session.');
+          localStorage.removeItem('aazhi_token');
+          localStorage.removeItem('aazhi_user');
+        }
       } else {
         // No token was sent — this is an unauthenticated request hitting a protected route.
-        // The caller (e.g. ServiceComplaintContext) already has a localStorage fallback.
-        console.info(`ℹ️ [Auth] 401 on unauthenticated request to ${error.config?.url} — session preserved.`);
+        console.info(`ℹ️ [Auth] 401 on unauthenticated request to ${error.config?.url}.`);
       }
     }
 

@@ -65,7 +65,8 @@ export const GrievanceService = {
         // Use the authenticated route only when a real JWT is present.
         // The debug route requires no auth and is safe for offline/kiosk users.
         const token = localStorage.getItem('aazhi_token');
-        const hasRealJwt = !!(token && token.split('.').length === 3);
+        // A real JWT must have 3 segments and be substantial in length
+        const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
         const endpoint = hasRealJwt ? '/complaints' : '/complaints/debug';
 
         // For the debug route, attach stored user info so the complaint is attributed correctly
