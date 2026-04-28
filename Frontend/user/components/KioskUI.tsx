@@ -1008,7 +1008,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <MessageSquare size={32} className="text-indigo-600" />
                 </div>
                 <div>
-                  <h3 className="font-black text-2xl tracking-tight">SUVIDHA AI</h3>
+                  <h3 className="font-black text-2xl tracking-tight">AAZHI AI</h3>
                   <div className="flex items-center gap-2 opacity-80">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
                     <p className="text-[10px] uppercase font-black tracking-[0.2em]">{t('ai_online')} • {t('ai_voiceEnabled')}</p>

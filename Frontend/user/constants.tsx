@@ -462,7 +462,7 @@ const BASE_TRANSLATIONS = {
   footerSecure: "Secure • Encrypted • Private • Govt. of India",
   // Selection Screen
   sel_welcomeUser: "Welcome, Citizen",
-  sel_aiTitle: "SUVIDHA Assistant",
+  sel_aiTitle: "AAZHI Assistant",
   sel_aiDesc: "Ask me anything about government services, schemes, or local issues.",
   sel_aiBtn: "Use Voice or Text",
   sel_payTitle: "Quick Pay",
