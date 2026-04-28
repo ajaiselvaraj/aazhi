@@ -97,6 +97,10 @@ export const GrievanceService = {
         return await apiClient.get<ServiceRequest>(`/service-requests/track/${ticketNumber}`);
     },
 
+    trackComplaint: async (ticketNumber: string): Promise<any> => {
+        return await apiClient.get<any>(`/complaints/track/${ticketNumber}`);
+    },
+
     addMessageToRequest: async (requestId: string, text: string) => {
         // This endpoint might need to be added to backend or matched with existing
         return await apiClient.post(`/service-requests/${requestId}/messages`, { text });

@@ -4,6 +4,7 @@ import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/Serv
 import { TrackingStage } from '../types';
 import { MOCK_USER_PROFILE } from '../constants';
 import { useTranslation } from 'react-i18next';
+import { GrievanceService } from '../services/civicService';
 
 type ActivityItem =
     | (ServiceRequest & { type: 'Request' })
@@ -16,14 +17,34 @@ const ApplicationTracker: React.FC = () => {
     const [searchId, setSearchId] = useState('');
     const [viewMode, setViewMode] = useState<'my-activity' | 'search'>('my-activity');
     const [searchResult, setSearchResult] = useState<ActivityItem[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchError, setSearchError] = useState('');
+    // Get current user from storage for filtering
+    const userStr = localStorage.getItem('aazhi_user');
+    const token = localStorage.getItem('aazhi_token');
+    const currentUser = userStr ? JSON.parse(userStr) : MOCK_USER_PROFILE;
+
+    // Kiosk/Offline Mode Detection: If no real token, we treat all local items as visible
+    const isKioskMode = !token || currentUser.id === 'guest_user' || currentUser.id?.startsWith('dev_');
 
     // Normalize data for unified view
     const myActivity: ActivityItem[] = [
         ...serviceRequests
-            .filter(r => r.phone === MOCK_USER_PROFILE.mobile || !r.phone || r.citizenId === MOCK_USER_PROFILE.id)
+            .filter(r => {
+                if (isKioskMode) {
+                    // In kiosk mode, show anything that was created locally (likely guest/dev items)
+                    return r.citizenId === 'guest_user' || r.citizenId?.startsWith('dev_') || !r.citizenId;
+                }
+                return r.phone === currentUser.mobile || r.citizenId === currentUser.id;
+            })
             .map(r => ({ ...r, type: 'Request' as const })),
         ...complaints
-            .filter(c => c.phone === MOCK_USER_PROFILE.mobile || !c.phone || c.citizenId === MOCK_USER_PROFILE.id)
+            .filter(c => {
+                if (isKioskMode) {
+                    return c.citizenId === 'guest_user' || c.citizenId?.startsWith('dev_') || !c.citizenId;
+                }
+                return c.phone === currentUser.mobile || c.citizenId === currentUser.id;
+            })
             .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
     ].sort((a, b) => {
         const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
@@ -31,21 +52,73 @@ const ApplicationTracker: React.FC = () => {
         return dateB - dateA;
     });
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!searchId.trim()) return;
+        setIsSearching(true);
+        setSearchError('');
+        setSearchResult([]);
 
-        const foundRequests = serviceRequests.filter(req =>
+        // 1. Search locally first
+        const localRequests = serviceRequests.filter(req =>
             req.id.toLowerCase() === searchId.toLowerCase().trim() ||
             (req.phone && req.phone === searchId.trim())
         ).map(r => ({ ...r, type: 'Request' as const }));
 
-        const foundComplaints = complaints.filter(c =>
+        const localComplaints = complaints.filter(c =>
             c.id.toLowerCase() === searchId.toLowerCase().trim() ||
             c.phone === searchId.trim()
         ).map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }));
 
-        setSearchResult([...foundRequests, ...foundComplaints]);
-        setViewMode('search');
+        const localResults = [...localRequests, ...localComplaints];
+
+        if (localResults.length > 0) {
+            setSearchResult(localResults);
+            setViewMode('search');
+            setIsSearching(false);
+            return;
+        }
+
+        // 2. Search Backend if not found locally
+        try {
+            console.log(`🌐 [Tracker] Searching backend for: ${searchId}`);
+            
+            // Try Request first
+            let apiResult: ActivityItem[] = [];
+            try {
+                const req = await GrievanceService.trackRequest(searchId.trim());
+                if (req) apiResult.push({ ...req, type: 'Request' as const });
+            } catch (e) {
+                // Ignore failure, try complaint
+            }
+
+            if (apiResult.length === 0) {
+                try {
+                    const comp = await GrievanceService.trackComplaint(searchId.trim());
+                    if (comp) {
+                        apiResult.push({ 
+                            ...comp, 
+                            type: 'Complaint' as const, 
+                            serviceType: comp.request_type || comp.complaintType || comp.category,
+                            category: comp.department || comp.category
+                        });
+                    }
+                } catch (e) {
+                   // Ignore
+                }
+            }
+
+            if (apiResult.length > 0) {
+                setSearchResult(apiResult);
+            } else {
+                setSearchError(t('noResultsFound'));
+            }
+        } catch (error: any) {
+            console.error("Tracker search failed", error);
+            setSearchError(t('searchError') || "Error searching for application");
+        } finally {
+            setIsSearching(false);
+            setViewMode('search');
+        }
     };
 
     const getStageColor = (item: ActivityItem) => {
@@ -177,14 +250,26 @@ const ApplicationTracker: React.FC = () => {
                             placeholder={t('searchPlaceholder') || "e.g. SR-12345 or 9876543210"}
                             className="flex-1 bg-slate-50 border-2 border-slate-200 focus:border-blue-500 rounded-xl px-6 py-4 text-lg font-bold outline-none transition text-slate-900 placeholder:text-slate-400"
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            disabled={isSearching}
                         />
                         <button
                             onClick={handleSearch}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-blue-200"
+                            disabled={isSearching}
+                            className={`bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold transition flex items-center gap-2 shadow-lg shadow-blue-200 ${isSearching ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            <Search size={20} /> {t('search')}
+                            {isSearching ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                                <Search size={20} />
+                            )}
+                            {isSearching ? t('searching') || 'Searching...' : t('search')}
                         </button>
                     </div>
+                    {searchError && (
+                        <p className="text-red-500 text-sm font-bold mt-3 flex items-center gap-1 animate-in fade-in">
+                            <AlertCircle size={14} /> {searchError}
+                        </p>
+                    )}
                 </div>
             )}
 

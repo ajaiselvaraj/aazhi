@@ -134,7 +134,7 @@ export const trackComplaint = async (req, res, next) => {
                 COALESCE(c.citizen_name, ci.name) as citizen_name, 
                 COALESCE(c.metadata->>'citizen_mobile', ci.mobile) as citizen_mobile
              FROM complaints c
-             JOIN citizens ci ON c.citizen_id = ci.id
+             LEFT JOIN citizens ci ON c.citizen_id = ci.id
              WHERE c.ticket_number = $1`,
             [ticketNumber]
         );
