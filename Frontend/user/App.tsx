@@ -893,7 +893,6 @@ const App: React.FC = () => {
       <KioskKeyboardWrapper language={language}>
         <ServiceComplaintProvider>
           {view === ViewState.LANDING && renderLanding()}
-          {view === ViewState.LOGIN && setView(ViewState.SELECTION)}
           {view === ViewState.SELECTION && renderSelection()}
           {view === ViewState.DASHBOARD && (
             <KioskUI

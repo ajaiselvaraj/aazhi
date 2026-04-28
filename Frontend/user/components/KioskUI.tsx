@@ -1225,6 +1225,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
           </div>
         )}
 
+        {activeTab === 'tracker' && (
+          <ApplicationTracker />
+        )}
+
         {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
         {activeTab === 'complaints' && (
           <div className="h-full">
