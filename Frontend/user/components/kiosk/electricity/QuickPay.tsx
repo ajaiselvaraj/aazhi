@@ -22,7 +22,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [billData, setBillData] = useState<ElectricityBill | null>(null);
     const [paymentMode, setPaymentMode] = useState<string>('RAZORPAY');
-    const [paymentRef, setPaymentRef] = useState<{ txnId: string; bbpsRefId: string } | null>(null);
+    const [paymentRef, setPaymentRef] = useState<{ txnId: string; refId: string } | null>(null);
     const [error, setError] = useState<string>('');
     const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
@@ -36,7 +36,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
             setBillData(fetchedBill);
             setStep('DETAILS');
         } catch (err: any) {
-            setError(err.response?.data?.message || 'Failed to fetch bill details. Please check consumer number.');
+            setError(err.message || 'Failed to fetch bill details. Please check consumer number.');
         } finally {
             setIsLoading(false);
         }
@@ -44,7 +44,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const handlePaymentSuccess = (paymentId: string) => {
         setPaymentRef({
             txnId: paymentId,
-            bbpsRefId: paymentId // For Razorpay, we'll store the Razorpay payment ID as reference
+            refId: paymentId // Store the Razorpay payment ID as reference
         });
         setStep('SUCCESS');
     };
@@ -60,13 +60,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                 <ArrowLeft size={16} /> {t('back')}
             </button>
 
-            {/* BBPS BRANDING HEADER */}
-            <div className="flex justify-end mb-4 opacity-80">
-                <div className="flex items-center gap-2 bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">
-                    <div className="w-8 h-8 bg-orange-500 rounded-md flex items-center justify-center text-white font-black text-[10px]">BBPS</div>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bharat BillPay Enabled</span>
-                </div>
-            </div>
+
 
             {/* STEP 1: INPUT */}
             {step === 'INPUT' && (
@@ -127,8 +121,8 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 </h2>
                             </div>
                             <div className="text-right">
-                                <div className="inline-flex items-center gap-1.5 bg-orange-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-900/20">
-                                    BBPS VERIFIED
+                                <div className="inline-flex items-center gap-1.5 bg-green-500 text-white px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-900/20">
+                                    VERIFIED
                                 </div>
                                 <p className="text-xs font-bold text-slate-400 mt-2">{t('dueDate')}: {new Date(billData.due_date).toLocaleDateString()}</p>
                             </div>
@@ -201,7 +195,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                     </div>
 
                     <h2 className="text-4xl font-black text-slate-900 mb-2">{t('paymentSuccess')}</h2>
-                    <p className="text-slate-500 font-medium mb-8">BBPS Ref: {paymentRef.bbpsRefId}</p>
+                    <p className="text-slate-500 font-medium mb-8">Payment Ref: {paymentRef.refId}</p>
 
                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-left space-y-3 mb-8">
                         <div className="flex justify-between">
@@ -257,7 +251,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                         dateTime: new Date().toLocaleString(),
                         debitAmount: `Rs. ${billData.amount.toFixed(2)}`,
                         bankRef: paymentRef.txnId,
-                        authId: paymentRef.bbpsRefId, // Mapping BBPS Ref here
+                        authId: paymentRef.refId,
                         paymentMode: paymentMode
                     }}
                     language={language}

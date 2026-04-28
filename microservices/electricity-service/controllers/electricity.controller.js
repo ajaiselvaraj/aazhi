@@ -168,6 +168,21 @@ export const getQuickPayBill = async (req, res, next) => {
         );
 
         if (result.rows.length === 0) {
+            if (/^\d{12}$/.test(consumerId)) {
+                return success(res, "Demo bill retrieved", {
+                    id: "demo-bill-id",
+                    account_number: consumerId,
+                    amount: 1450.50,
+                    billing_month: "April",
+                    billing_year: "2026",
+                    bill_number: "ELE-DEMO-99",
+                    due_date: "2026-05-15",
+                    status: "pending",
+                    metadata: {
+                        consumer_name_masked: "RAM*** KUMA*"
+                    }
+                });
+            }
             return fail(res, "No bills found for this Consumer ID.", 404);
         }
         
