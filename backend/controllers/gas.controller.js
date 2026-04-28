@@ -128,7 +128,7 @@ export const getPaymentHistory = async (req, res, next) => {
 };
 
 // ─── Gas Payment Status (Old) ─────────────────────────────
-export const paymentStatus = async (req, res, next) => {
+// export const paymentStatus = async (req, res, next) => {
 
 // ─── Gas Account Info ────────────────────────────────────
 export const getGasAccount = async (req, res, next) => {
