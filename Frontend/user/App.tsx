@@ -399,9 +399,10 @@ const App: React.FC = () => {
       if (loginMethod === 'MOBILE') {
         // Static OTP bypass for development/offline testing
         if (otp === '123') {
-           localStorage.setItem('aazhi_token', 'mock_token_' + Date.now());
+           // Dev offline bypass — mark session as offline (no real JWT stored)
+           localStorage.removeItem('aazhi_token');
            localStorage.setItem('aazhi_user', JSON.stringify({
-             id: 'mock_123',
+             id: 'offline_user',
              name: 'Offline Citizen',
              mobile: identifier,
              role: 'citizen'
@@ -418,9 +419,10 @@ const App: React.FC = () => {
         // Aadhaar Login Simulation
         // Static OTP bypass for development/offline testing
         if (otp === '123') {
-           localStorage.setItem('aazhi_token', 'mock_token_aadhaar_' + Date.now());
+           // Dev offline bypass — mark session as offline (no real JWT stored)
+           localStorage.removeItem('aazhi_token');
            localStorage.setItem('aazhi_user', JSON.stringify({
-             id: 'mock_aadhaar',
+             id: 'offline_aadhaar',
              name: 'Aadhaar Citizen',
              mobile: '9876543210',
              role: 'citizen',

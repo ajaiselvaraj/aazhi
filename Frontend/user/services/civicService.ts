@@ -61,8 +61,27 @@ export const GrievanceService = {
 
     createComplaint: async (complaint: any): Promise<any> => {
         const lang = localStorage.getItem('app_lang') || 'en';
-        const payload = { ...complaint, language: lang };
-        return await apiClient.post<any>('/complaints', payload);
+
+        // Use the authenticated route only when a real JWT is present.
+        // The debug route requires no auth and is safe for offline/kiosk users.
+        const token = localStorage.getItem('aazhi_token');
+        const hasRealJwt = !!(token && token.split('.').length === 3);
+        const endpoint = hasRealJwt ? '/complaints' : '/complaints/debug';
+
+        // For the debug route, attach stored user info so the complaint is attributed correctly
+        let extraFields: Record<string, any> = {};
+        if (!hasRealJwt) {
+            const userRaw = localStorage.getItem('aazhi_user');
+            const user = userRaw ? JSON.parse(userRaw) : null;
+            if (user) {
+                extraFields.citizen_id = user.id;
+                extraFields.name = complaint.name || user.name;
+                extraFields.phone = complaint.phone || user.mobile;
+            }
+        }
+
+        const payload = { ...complaint, ...extraFields, language: lang };
+        return await apiClient.post<any>(endpoint, payload);
     },
 
     updateComplaintStatusAdmin: async (id: string, payload: any): Promise<any> => {

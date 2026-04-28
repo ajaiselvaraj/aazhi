@@ -9,7 +9,7 @@ export const Persistence = {
     /**
      * Save current route/view state
      */
-    saveRoute: (view: string, subView?: string) => {
+    saveRoute: (view: string, subView?: any) => {
         localStorage.setItem(`${APP_PREFIX}last_view`, JSON.stringify({ view, subView, timestamp: Date.now() }));
     },
 
