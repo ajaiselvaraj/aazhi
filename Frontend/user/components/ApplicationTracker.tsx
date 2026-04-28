@@ -225,9 +225,10 @@ const ApplicationTracker: React.FC = () => {
                 <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
                     <button
                         onClick={() => setViewMode('my-activity')}
-                        className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${viewMode === 'my-activity' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
+                        className={`px-6 py-2 rounded-lg font-bold text-sm transition-all flex items-center gap-2 ${viewMode === 'my-activity' ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}
                     >
                         {t('myActivity')}
+                        {myActivity.length > 0 && <span className="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{myActivity.length}</span>}
                     </button>
                     <button
                         onClick={() => setViewMode('search')}
@@ -276,20 +277,39 @@ const ApplicationTracker: React.FC = () => {
             {/* List View */}
             <div className="space-y-6 flex-1 overflow-y-auto pr-2">
                 {itemsToDisplay.length === 0 ? (
-                    <div className="text-center py-20 opacity-50 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
-                        {viewMode === 'search' ? (
-                            <>
-                                <Search className="mx-auto mb-4 text-slate-300" size={48} />
-                                <p className="text-xl font-bold text-slate-500">{t('noResultsFound')}</p>
-                                <p className="text-slate-400 font-medium">{t('tryDifferentId')}</p>
-                            </>
-                        ) : (
-                            <>
-                                <FileText className="mx-auto mb-4 text-slate-300" size={48} />
-                                <p className="text-xl font-bold text-slate-500">{t('noActivityYet')}</p>
-                                <p className="text-slate-400 font-medium">{t('activityWillAppear')}</p>
-                            </>
-                        )}
+                    <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in zoom-in-95">
+                        <div className="relative inline-block">
+                            {viewMode === 'search' ? <Search className="mx-auto mb-4 text-slate-300" size={48} /> : <FileText className="mx-auto mb-4 text-slate-300" size={48} />}
+                            {viewMode === 'my-activity' && complaints.length > 0 && (
+                                <div className="absolute -top-4 -right-8 bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce shadow-lg whitespace-nowrap">
+                                    {complaints.length} ITEMS FOUND BUT HIDDEN
+                                </div>
+                            )}
+                        </div>
+                        
+                        <p className="text-xl font-black text-slate-800 mb-2">{viewMode === 'search' ? t('noResultsFound') : t('noActivityYet')}</p>
+                        <p className="text-slate-400 font-medium mb-8 max-w-xs mx-auto">{viewMode === 'search' ? t('tryDifferentId') : t('activityWillAppear')}</p>
+                        
+                        <div className="flex gap-4 justify-center">
+                            <button 
+                                onClick={() => window.location.reload()}
+                                className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl shadow-slate-200 hover:scale-105 active:scale-95 transition-all"
+                            >
+                                <RefreshCw size={18} />
+                                REFRESH SYNC
+                            </button>
+                            {(viewMode === 'my-activity' && complaints.length > 0) && (
+                                <button 
+                                    onClick={() => {
+                                        localStorage.removeItem('aazhi_token'); 
+                                        window.location.reload();
+                                    }}
+                                    className="px-6 py-3 bg-amber-100 text-amber-700 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-amber-200 transition-all"
+                                >
+                                    FORCE GUEST SYNC
+                                </button>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     itemsToDisplay.map((item) => {
