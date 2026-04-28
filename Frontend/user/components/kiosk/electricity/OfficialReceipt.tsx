@@ -82,7 +82,7 @@ const OfficialReceipt: React.FC<Props> = ({ data, language = Language.ENGLISH })
                             <td className="py-2 font-bold" colSpan={4}>{data.bankRef}</td>
                         </tr>
                         <tr>
-                            <td className="py-2 font-medium">{t('bankAuthId') || "BBPS / Bank Ref No"}</td>
+                            <td className="py-2 font-medium">{t('bankAuthId') || "Bank Ref No"}</td>
                             <td className="py-2">:</td>
                             <td className="py-2 font-bold" colSpan={4}>{data.authId || "-"}</td>
                         </tr>

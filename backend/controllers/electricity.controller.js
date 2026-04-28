@@ -157,7 +157,7 @@ export const getQuickPayBill = async (req, res, next) => {
     try {
         const { id: consumerNumber } = req.params;
 
-        // Implementation Note: In a real BBPS system, this would call the utility provider's API.
+        // Implementation Note: In a real bill payment system, this would call the utility provider's API.
         // Here we query our bills table linked via utility_accounts.
         const result = await pool.query(
             `SELECT b.*, ua.account_number, c.name as citizen_name
@@ -172,7 +172,7 @@ export const getQuickPayBill = async (req, res, next) => {
 
         if (result.rows.length === 0) {
             // For Demo Purposes: If the characteristic "04-123-456" is used, return a mock bill if not found in DB
-            if (consumerNumber === '04-123-456' || consumerNumber === '123456789') {
+            if (consumerNumber === '04-123-456' || consumerNumber === '123456789' || /^\d{12}$/.test(consumerNumber)) {
                 return success(res, "Demo bill retrieved", {
                     id: "demo-bill-id",
                     account_number: consumerNumber,
