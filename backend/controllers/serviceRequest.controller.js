@@ -198,7 +198,7 @@ export const trackServiceRequest = async (req, res, next) => {
                 COALESCE(sr.citizen_name, c.name) as citizen_name, 
                 COALESCE(sr.phone, c.mobile) as citizen_mobile
              FROM service_requests sr
-             JOIN citizens c ON sr.citizen_id = c.id
+             LEFT JOIN citizens c ON sr.citizen_id = c.id
              WHERE sr.ticket_number = $1`,
             [ticketNumber]
         );
