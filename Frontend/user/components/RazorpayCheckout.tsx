@@ -56,12 +56,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             const endpoint = isGuest ? '/payment/guest-order' : '/payment/create-order';
             
             // Adjust this base URL to point to backend. 
-            // In development, Vite proxifies API requests or we can use the env vars
-            let backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-            // Force localhost if it's still somehow pointing to the live render URL during local dev
-            if (backendUrl.includes('onrender.com')) {
-                backendUrl = 'http://localhost:8000/api';
-            }
+            let backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+            
             // ensure no trailing slash
             if (backendUrl.endsWith('/')) backendUrl = backendUrl.slice(0, -1);
             
