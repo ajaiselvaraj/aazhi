@@ -65,7 +65,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
           <ShieldCheck size={16} />
           <span className="text-[10px] font-black uppercase tracking-widest">{t('officialPortal') || 'OFFICIAL MUNICIPAL CORPORATION PORTAL'}</span>
         </div>
-        <h1 className="text-5xl font-black text-slate-900 tracking-tight">{t('muniTitle') || 'Municipal Services'}</h1>
+        <h1 className="text-5xl font-black text-slate-900 tracking-tight">{t('water') || 'WATER'}</h1>
         <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
           {t('muniDesc') || 'Access water connections, property taxes, civil complaints, and secure bill payments.'}
         </p>
