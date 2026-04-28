@@ -76,11 +76,13 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                             type="text"
                             value={consumerNo}
                             onChange={(e) => {
-                                setConsumerNo(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+                                const val = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 12);
+                                setConsumerNo(val);
                                 setError('');
                             }}
                             className="w-full bg-slate-50 border-2 border-slate-100 p-6 pl-14 rounded-2xl text-2xl font-black uppercase tracking-widest outline-none focus:border-orange-600 focus:bg-white transition"
-                            placeholder="1234567890"
+                            placeholder="12-digit ID"
+                            maxLength={12}
                         />
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
                         {error && (
