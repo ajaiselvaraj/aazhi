@@ -395,22 +395,32 @@ export const getAllComplaintsAdminDebug = async (req, res, next) => {
 // ─── DEBUG: Create Complaint (Bypass Auth) ────────────────
 export const createComplaintDebug = async (req, res, next) => {
     try {
+        // Validate citizen_id — it must be a real UUID or we fall back to the first citizen in the DB
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         let citizenId = req.body.citizen_id;
-        if (!citizenId) {
+        const isValidUuid = citizenId && UUID_REGEX.test(citizenId);
+
+        if (!isValidUuid) {
             const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
-            if (cit.rows.length > 0) citizenId = cit.rows[0].id;
-            else citizenId = 1;
+            citizenId = cit.rows.length > 0 ? cit.rows[0].id : null;
         }
 
-        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+        if (!citizenId) {
+            return fail(res, "No citizen found in DB to attribute this complaint to.", 422);
+        }
+
+        const { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
         const ticketNumber = generateTicketNumber("CMP");
+
+        // Use provided name/phone for offline attribution, else look up from DB
+        const citizenName = name || null;
 
         const result = await pool.query(
             `INSERT INTO complaints 
              (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, 'submitted')
              RETURNING *`,
-            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, citizenName, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         const stages = [
@@ -436,6 +446,7 @@ export const createComplaintDebug = async (req, res, next) => {
         next(err);
     }
 };
+
 
 // ─── DEBUG: Update Status (Bypass Auth) ──────────────────
 export const updateComplaintStatusDebug = async (req, res, next) => {

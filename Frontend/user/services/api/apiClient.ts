@@ -1,15 +1,15 @@
-/**
- * Unified API Client for AAZHI
- * Handles base URL, auth tokens, response parsing,
- * automatic retry on 429, request throttling, and API usage logging.
- */
-
-import { callWithRetry, RateLimitError } from '../../utils/apiRetry';
+import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { callWithRetry } from '../../utils/apiRetry';
 import { enqueue } from '../../utils/apiThrottle';
 
+/**
+ * Unified API Client for AAZHI using Axios
+ * Handles base URL, auth tokens via interceptors, response parsing,
+ * automatic retry, and request throttling.
+ */
+
 const getBaseUrl = () => {
-  let url = ((import.meta as any).env.VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api');
-  // Remove trailing slash if present to ensure clean concatenation
+  let url = (import.meta as any).env.VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
   if (url.endsWith('/')) {
     url = url.slice(0, -1);
   }
@@ -18,144 +18,120 @@ const getBaseUrl = () => {
 
 const API_BASE_URL = getBaseUrl();
 
-if (!(import.meta as any).env.VITE_API_URL) {
-  console.warn("⚠️ [apiClient] VITE_API_URL is missing! Falling back to Render URL.");
-} else {
-  console.log("🌐 [apiClient] Connecting to:", API_BASE_URL);
-}
-
-// ── Error Class ───────────────────────────────────────────────────────────
-export class APIError extends Error {
-  constructor(
-    public message: string,
-    public status: number,
-    public data?: any
-  ) {
-    super(message);
-    this.name = 'APIError';
-  }
-}
-
-// ── Fallback message shown when all retries are exhausted ─────────────────
-const FALLBACK_MESSAGE = 'Service temporarily busy. Please try again.';
-
-// ── Core request function (single attempt) ────────────────────────────────
-async function singleRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const token = localStorage.getItem('aazhi_token');
-
-  const headers: HeadersInit = {
+// ── Axios Instance Configuration ──────────────────────────────────────────
+const axiosInstance: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
     'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  },
+  timeout: 15000, // 15 seconds timeout
+});
 
-  if (token) {
-    (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+// ── Request Interceptor: Attach Token ─────────────────────────────────────
+axiosInstance.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('aazhi_token');
+
+    if (token) {
+      // Only attach if it looks like a real JWT (three dot-separated segments)
+      const isRealJwt = token.split('.').length === 3;
+      if (isRealJwt) {
+        config.headers.set('Authorization', `Bearer ${token}`);
+        console.log(`🔑 [apiClient] Token attached for ${config.method?.toUpperCase()} ${config.url}`);
+      } else {
+        // It's a dev mock token — don't send it, just proceed without auth header
+        console.warn(`⚠️ [apiClient] Skipping mock/dev token for ${config.method?.toUpperCase()} ${config.url} — not a real JWT`);
+      }
+    }
+    // No warning when token is absent — many routes are public or use optional auth
+
+    // Add timestamp to prevent caching for GET requests
+    if (config.method === 'get') {
+      config.params = { ...config.params, _t: Date.now() };
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ── Response Interceptor: Handle Errors & 401s ──────────────────────────────
+axiosInstance.interceptors.response.use(
+  (response) => {
+    // The backend returns { data: ... } or the data directly
+    return response.data.data ?? response.data;
+  },
+  (error: AxiosError) => {
+    const status = error.response?.status;
+    const data: any = error.response?.data;
+    const message = data?.message || error.message || 'Something went wrong';
+
+    if (status === 401) {
+      // Only clear the session if a real token was sent with this request
+      // (i.e. the server actively rejected it as invalid/expired).
+      // Do NOT wipe the session just because the user is unauthenticated.
+      const sentHeader = error.config?.headers?.['Authorization'] as string | undefined;
+      const hadRealToken = !!(sentHeader && sentHeader.startsWith('Bearer '));
+
+      if (hadRealToken) {
+        console.warn('🔓 [Auth] Server rejected a real token — clearing session.');
+        localStorage.removeItem('aazhi_token');
+        localStorage.removeItem('aazhi_user');
+        // Uncomment to redirect to login on token expiry:
+        // window.location.href = '/login';
+      } else {
+        // No token was sent — this is an unauthenticated request hitting a protected route.
+        // The caller (e.g. ServiceComplaintContext) already has a localStorage fallback.
+        console.info(`ℹ️ [Auth] 401 on unauthenticated request to ${error.config?.url} — session preserved.`);
+      }
+    }
+
+    console.error(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}: ${message}`);
+
+    return Promise.reject({
+      message,
+      status,
+      data: data?.data || data
+    });
   }
-
-  const config: RequestInit = {
-    ...options,
-    headers,
-    cache: 'no-store'
-  };
-
-  // Ensure endpoint starts with a slash
-  const safeEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const fullUrl = `${API_BASE_URL}${safeEndpoint}`;
-  console.log(`📤 [API request start] ${config.method} ${fullUrl}`);
-
-  const response = await fetch(fullUrl, config);
-
-  // Handle 401 Unauthorized (expired token)
-  if (response.status === 401) {
-    localStorage.removeItem('aazhi_token');
-    localStorage.removeItem('aazhi_user');
-  }
-
-  // Handle 429 Too Many Requests — throw typed error so retry logic catches it
-  if (response.status === 429) {
-    const retryAfter = parseInt(
-      response.headers.get('Retry-After') || '0',
-      10
-    );
-    throw new RateLimitError(
-      'Rate limit exceeded. Too many requests.',
-      retryAfter || undefined
-    );
-  }
-
-  const result = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    console.error(`❌ [API error] ${config.method} ${fullUrl}: ${result.message || response.statusText}`);
-    throw new APIError(
-      result.message || 'Something went wrong',
-      response.status,
-      result.data
-    );
-  }
-
-  console.log(`✅ [API success] ${config.method} ${fullUrl}`);
-  return result.data || result;
-}
+);
 
 // ── Resilient request: throttled → retried → safe ─────────────────────────
 async function request<T>(
-  endpoint: string,
-  options: RequestInit = {}
+  apiCall: () => Promise<T>,
+  label: string
 ): Promise<T> {
   try {
-    // 1. Enqueue for concurrency control (throttle)
-    // 2. Each attempt is individually retried with exponential backoff
+    // Enqueue for concurrency control and wrap with retry logic
     return await enqueue(() =>
-      callWithRetry(() => singleRequest<T>(endpoint, options), {
-        label: `${options.method || 'GET'} ${endpoint}`,
-      })
+      callWithRetry(apiCall, { label })
     );
   } catch (error: any) {
-    // ── NEVER CRASH — catch anything the retry chain didn't absorb ───────
-    console.error(
-      `[apiClient] Request failed but system continues running:`,
-      error?.message || error
-    );
-
-    // Return a structured error the UI can present
-    throw new APIError(
-      error?.message || FALLBACK_MESSAGE,
-      error?.status || 0,
-      { fallback: true }
-    );
+    console.error(`[apiClient] Request failed after retries:`, error?.message || error);
+    throw error;
   }
 }
 
 // ── Public surface ────────────────────────────────────────────────────────
 export const apiClient = {
-  get: <T>(endpoint: string, options?: RequestInit) =>
-    request<T>(endpoint, { ...options, method: 'GET' }),
+  get: <T>(endpoint: string, config?: any) =>
+    request<T>(() => axiosInstance.get<any, T>(endpoint, config), `GET ${endpoint}`),
 
-  post: <T>(endpoint: string, body?: any, options?: RequestInit) =>
-    request<T>(endpoint, {
-      ...options,
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
+  post: <T>(endpoint: string, body?: any, config?: any) =>
+    request<T>(() => axiosInstance.post<any, T>(endpoint, body, config), `POST ${endpoint}`),
 
-  put: <T>(endpoint: string, body?: any, options?: RequestInit) =>
-    request<T>(endpoint, {
-      ...options,
-      method: 'PUT',
-      body: JSON.stringify(body),
-    }),
+  put: <T>(endpoint: string, body?: any, config?: any) =>
+    request<T>(() => axiosInstance.put<any, T>(endpoint, body, config), `PUT ${endpoint}`),
 
-  patch: <T>(endpoint: string, body?: any, options?: RequestInit) =>
-    request<T>(endpoint, {
-      ...options,
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
+  patch: <T>(endpoint: string, body?: any, config?: any) =>
+    request<T>(() => axiosInstance.patch<any, T>(endpoint, body, config), `PATCH ${endpoint}`),
 
-  delete: <T>(endpoint: string, options?: RequestInit) =>
-    request<T>(endpoint, { ...options, method: 'DELETE' }),
+  delete: <T>(endpoint: string, config?: any) =>
+    request<T>(() => axiosInstance.delete<any, T>(endpoint, config), `DELETE ${endpoint}`),
+  
+  // Expose the raw instance if needed for special cases
+  instance: axiosInstance
 };
+
+export default apiClient;
+
