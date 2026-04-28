@@ -153,7 +153,7 @@ const BASE_TRANSLATIONS = {
   scanAssistant: "Scanning Assistant",
   // Electricity Module
   elecServices: "Electricity Services",
-  officialPortal: "Official TANGEDCO / TNPDCL Portal",
+  officialPortal: "Official AAZHI PORTAL",
   quickPay: "Quick Pay",
   quickPayDesc: "Pay instantly with just your Service Number. No password or registration required.",
   consumerLogin: "Consumer Login",

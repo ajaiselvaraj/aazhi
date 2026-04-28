@@ -52,7 +52,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
           {t('gas') || 'GAS'}
         </h1>
         <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
-          {t('gas_landingDesc') || 'Access gas connections, book cylinders, manage bills, and resolve issues securely.'}
+          {t('') || 'Access gas connections, book cylinders, manage bills, and resolve issues securely.'}
         </p>
       </div>
 
@@ -120,7 +120,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
       </div>
 
       {/* Consumer Services Grid */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('gas_consumerServices') || 'Consumer Services'}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
           { id: 'NEW_CONNECTION', icon: Flame, label: 'Gas Services', desc: 'New connection / meter' },
@@ -143,7 +143,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
       </div>
 
       {/* Secondary Tools */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('gas_otherTools') || 'Other Tools'}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
           { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace status' },
