@@ -24,9 +24,12 @@ function verifyJwt(req, res, next) {
         console.log(`\n🛡️ [AUTH] Validating request to: ${req.method} ${req.originalUrl}`);
 
         const token = extractToken(req);
+        const authHeader = req.headers.authorization;
 
         if (!token) {
             console.warn(`🛡️ [AUTH DEBUG] Request blocked. Missing or malformed token.`);
+            console.log(`🛡️ [AUTH DEBUG] Authorization Header present: ${!!authHeader}`);
+            if (authHeader) console.log(`🛡️ [AUTH DEBUG] Header prefix: ${authHeader.substring(0, 15)}...`);
             return fail(res, "Access denied. No token provided.", 401);
         }
 

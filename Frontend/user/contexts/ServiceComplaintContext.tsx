@@ -165,6 +165,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
             // Fetch backend records and merge any new ones into state (cross-device sync)
             try {
+                // Only poll admin endpoints if user is staff/admin
+                const userStr = localStorage.getItem('aazhi_user');
+                const user = userStr ? JSON.parse(userStr) : null;
+                const isStaff = user?.role === 'staff' || user?.role === 'admin';
+
+                if (!isStaff) return;
+
                 const apiRequests = await GrievanceService.getAllRequestsAdmin();
                 const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
                 
