@@ -16,6 +16,7 @@ const SuvidhaVoiceControl = lazy(() => import('./components/SuvidhaVoiceControl'
 const TalkbackOverlay = lazy(() => import('./components/TalkbackOverlay'));
 import { authService } from './services/authService';
 import { GrievanceService } from './services/civicService';
+import { Persistence } from './utils/persistence';
 import cdacLogo from './assets/cdac_logo.png';
 
 
@@ -280,6 +281,13 @@ const App: React.FC = () => {
   // Initial detection on mount and accessibility setup
   useEffect(() => {
     handleAutoDetectLocation();
+
+    // ─── ROUTE PERSISTENCE: Restore last view ───
+    const savedRoute = Persistence.loadRoute();
+    if (savedRoute && savedRoute.view) {
+      console.log("♻️ Restoring last session view:", savedRoute.view);
+      setView(savedRoute.view as ViewState);
+    }
 
     // Pre-load Text-to-Speech voices for Accessibility
     loadVoices().then(() => {

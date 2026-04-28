@@ -36,6 +36,7 @@ import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import { useInactivityTimer } from '../hooks/useInactivityTimer';
+import { Persistence } from '../utils/persistence';
 
 interface Props {
   language: Language;
@@ -130,6 +131,30 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ServiceRequest | null>(null);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
+
+  // ─── PERSISTENCE: Restore Tab & Steps ───
+  useEffect(() => {
+    const saved = Persistence.loadRoute();
+    if (saved && saved.view === 'DASHBOARD' && saved.subView) {
+      const { tab, sStep, bStep, service, dept } = saved.subView;
+      if (tab) setActiveTab(tab);
+      if (sStep) setSubmissionStep(sStep);
+      if (bStep) setBillingStep(bStep);
+      if (service) setSelectedService(service);
+      if (dept) setSelectedDepartment(dept);
+    }
+  }, []);
+
+  // ─── PERSISTENCE: Save Sub-views ───
+  useEffect(() => {
+    Persistence.saveRoute('DASHBOARD', { 
+        tab: activeTab, 
+        sStep: submissionStep, 
+        bStep: billingStep,
+        service: selectedService,
+        dept: selectedDepartment
+    });
+  }, [activeTab, submissionStep, billingStep, selectedService, selectedDepartment]);
 
   // Kiosk Physical Security: Auto-logout after 45s of inactivity
   const { isWarning, countdown, resetTimer } = useInactivityTimer(45000, 15000, () => {
