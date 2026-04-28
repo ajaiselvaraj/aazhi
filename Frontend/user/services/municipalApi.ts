@@ -47,6 +47,13 @@ export const MunicipalAPI = {
     // ---- 5. Water Services ----
     async submitWaterConnectionRequest(data: any): Promise<any> {
         return await apiClient.post('/municipal/water/connections', data);
+    },
+
+    /**
+     * Get unauthenticated quick pay bill using assessment/consumer id
+     */
+    async getWaterQuickPayBill(consumerId: string): Promise<any> {
+        return await apiClient.get<any>(`/municipal/water/quick-pay/${consumerId}`);
     }
 };
 
