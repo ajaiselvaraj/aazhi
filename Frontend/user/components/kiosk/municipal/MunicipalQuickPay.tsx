@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, Printer, Flame } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, CreditCard, Printer, Droplet } from 'lucide-react';
 import PaymentReceipt from '../PaymentReceipt';
 import OfficialReceipt from '../electricity/OfficialReceipt';
 import { Language } from '../../../types';
-import { GasService } from '../../../services/gasService';
+import { MunicipalAPI } from '../../../services/municipalApi';
 import { useTranslation } from 'react-i18next';
 import RazorpayCheckout from '../../RazorpayCheckout';
 
@@ -12,7 +12,7 @@ interface Props {
     language: Language;
 }
 
-const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
+const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
     const { t } = useTranslation();
 
     const [step, setStep] = useState<'INPUT' | 'DETAILS' | 'PAYMENT' | 'SUCCESS'>('INPUT');
@@ -30,11 +30,11 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
         setError('');
 
         try {
-            const fetchedBill = await GasService.getQuickPayBill(consumerNo);
+            const fetchedBill = await MunicipalAPI.getWaterQuickPayBill(consumerNo);
             setBillData(fetchedBill);
             setStep('DETAILS');
         } catch (err: any) {
-            setError(err.message || 'Failed to fetch bill details. Please check consumer ID.');
+            setError(err.message || 'Failed to fetch bill details. Please check assessment number.');
         } finally {
             setIsLoading(false);
         }
@@ -42,14 +42,14 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
     const handlePaymentSuccess = (paymentId: string) => {
         setPaymentRef({
             txnId: paymentId,
-            refId: paymentId 
+            refId: paymentId // Store the Razorpay payment ID as reference
         });
         setStep('SUCCESS');
     };
 
     const handlePaymentFailure = (error: any) => {
         setError(typeof error === 'string' ? error : 'Payment failed');
-        setStep('DETAILS'); 
+        setStep('DETAILS'); // Return to details
     };
 
     return (
@@ -62,25 +62,26 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
             {step === 'INPUT' && (
                 <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
                     <div className="text-center mb-10">
-                        <div className="w-16 h-16 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <Flame size={32} />
+                        <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Droplet size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('gasConsumerPrompt') || 'Enter Gas Consumer ID'}</h2>
-                        <p className="text-slate-500 font-medium mb-1">Enter your gas consumer number or account ID.</p>
-                        <p className="text-orange-600 font-black text-sm">Example: 1234567890</p>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('muni_waterConsumerPrompt') || 'Enter Assessment Number'}</h2>
+                        <p className="text-slate-500 font-medium mb-1">Enter your 12-digit water assessment or property tax number.</p>
+                        <p className="text-cyan-600 font-black text-sm">Example: 123456789012</p>
                     </div>
 
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">Consumer ID</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">Assessment Number</label>
                     <div className="relative mb-8">
                         <input
                             type="text"
                             value={consumerNo}
+                            maxLength={12}
                             onChange={(e) => {
                                 setConsumerNo(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase());
                                 setError('');
                             }}
-                            className="w-full bg-slate-50 border-2 border-slate-100 p-6 pl-14 rounded-2xl text-2xl font-black uppercase tracking-widest outline-none focus:border-orange-600 focus:bg-white transition"
-                            placeholder="1234567890"
+                            className="w-full bg-slate-50 border-2 border-slate-100 p-6 pl-14 rounded-2xl text-2xl font-black uppercase tracking-widest outline-none focus:border-cyan-600 focus:bg-white transition"
+                            placeholder="123456789012"
                         />
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
                         {error && (
@@ -93,7 +94,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     <button
                         onClick={handleFetch}
                         disabled={!consumerNo || isLoading}
-                        className="w-full bg-orange-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-orange-700 transition shadow-xl shadow-orange-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-cyan-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-cyan-700 transition shadow-xl shadow-cyan-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? <RefreshCw className="animate-spin" /> : t('fetchBill')}
                     </button>
@@ -103,13 +104,16 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
             {/* STEP 2: DETAILS */}
             {step === 'DETAILS' && billData && (
                 <div className="space-y-6">
+                    {/* Bill Card */}
                     <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
+
+                        {/* Header Section with Status */}
                         <div className="bg-slate-900 p-8 text-white flex justify-between items-start">
                             <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400 mb-2">{t('totalPending')}</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2">{t('totalPending')}</p>
                                 <h2 className="text-5xl font-black tracking-tight flex items-baseline gap-1">
                                     <span className="text-2xl opacity-60">₹</span>
-                                    {(billData.amount || billData.total_amount).toFixed(2)}
+                                    {billData.amount.toFixed(2)}
                                 </h2>
                             </div>
                             <div className="text-right">
@@ -120,6 +124,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                             </div>
                         </div>
 
+                        {/* Bill Content */}
                         <div className="p-8 space-y-6">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -132,21 +137,22 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 </div>
                             </div>
 
-                            <div className="bg-orange-50/50 rounded-2xl p-5 border border-orange-100">
+                            <div className="bg-cyan-50/50 rounded-2xl p-5 border border-cyan-100">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-xs font-bold text-slate-600">{t('consumerName')}</span>
                                     <span className="text-sm font-black text-slate-900">{billData.metadata?.consumer_name_masked || 'Unknown'}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-xs font-bold text-slate-600">Consumer ID</span>
+                                    <span className="text-xs font-bold text-slate-600">Assessment No</span>
                                     <span className="text-sm font-black text-slate-900">{billData.account_number}</span>
                                 </div>
                             </div>
                         </div>
 
+                        {/* Action Buttons */}
                         <div className="p-8 pt-0 flex gap-4">
                             <button onClick={() => setStep('INPUT')} className="flex-1 py-4 rounded-xl font-bold bg-slate-100 text-slate-500 hover:bg-slate-200 transition text-sm uppercase tracking-wider">Cancel</button>
-                            <button onClick={() => setStep('PAYMENT')} className="flex-[2] py-4 rounded-xl font-black bg-orange-600 text-white hover:bg-orange-700 transition text-sm uppercase tracking-wider shadow-lg shadow-orange-200">{t('payNow')}</button>
+                            <button onClick={() => setStep('PAYMENT')} className="flex-[2] py-4 rounded-xl font-black bg-cyan-600 text-white hover:bg-cyan-700 transition text-sm uppercase tracking-wider shadow-lg shadow-cyan-200">{t('payNow')}</button>
                         </div>
                     </div>
                 </div>
@@ -160,18 +166,19 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         
                         <div className="bg-slate-50 p-8 rounded-3xl mb-8 border border-slate-100">
                             <p className="text-xs uppercase font-black text-slate-400 tracking-widest mb-2">Total Amount Due</p>
-                            <p className="text-5xl font-black text-slate-900 mb-6">₹{(billData.amount || billData.total_amount).toFixed(2)}</p>
+                            <p className="text-5xl font-black text-slate-900 mb-6">₹{billData.amount.toFixed(2)}</p>
                             <p className="text-sm font-bold text-slate-500 mb-8">Secure payments powered by Razorpay</p>
                             
                             <RazorpayCheckout 
-                                amount={billData.amount || billData.total_amount} 
-                                name="Gas Bill" 
-                                description={`Payment for consumer: ${billData.account_number}`}
+                                amount={billData.amount} 
+                                name="Water Bill" 
+                                description={`Payment for assessment: ${billData.account_number}`}
                                 onSuccess={handlePaymentSuccess}
                                 onFailure={handlePaymentFailure}
                                 onCancel={() => setStep('DETAILS')}
                             />
                         </div>
+
                     </div>
                 </div>
             )}
@@ -189,20 +196,20 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-left space-y-3 mb-8">
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase">Service</span>
-                            <span className="text-sm font-black text-slate-900">Gas Utility Bill</span>
+                            <span className="text-sm font-black text-slate-900">Water / Municipal Bill</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-xs font-bold text-slate-400 uppercase">Consumer ID</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase">Assessment No</span>
                             <span className="text-sm font-black text-slate-900">{billData.account_number}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase">{t('billAmount')}</span>
-                            <span className="text-sm font-black text-orange-600">₹{(billData.amount || billData.total_amount).toFixed(2)}</span>
+                            <span className="text-sm font-black text-cyan-600">₹{billData.amount.toFixed(2)}</span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-orange-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-orange-200">
+                        <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-cyan-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-200">
                             <Printer size={18} /> {t('printReceipt')}
                         </button>
                         <button onClick={onBack} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
@@ -213,11 +220,11 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     {showReceiptPreview && (
                         <PaymentReceipt 
                             data={{
-                                serviceName: 'Gas Bill',
-                                serviceId: 'gas',
+                                serviceName: 'Water Bill',
+                                serviceId: 'water',
                                 consumerId: consumerNo,
                                 consumerName: billData.metadata?.consumer_name_masked || 'Unknown',
-                                amount: (billData.amount || billData.total_amount).toString(),
+                                amount: billData.amount.toString(),
                                 txnId: paymentRef.txnId,
                                 date: new Date().toLocaleString(),
                                 mode: paymentMode
@@ -234,11 +241,11 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     data={{
                         serviceNo: billData.account_number,
                         consumerName: billData.metadata?.consumer_name_masked || 'Unknown',
-                        billAmount: `Rs. ${(billData.amount || billData.total_amount).toFixed(2)}`,
+                        billAmount: `Rs. ${billData.amount.toFixed(2)}`,
                         billMonth: billData.billing_month,
-                        receiptNo: `GR-${Date.now().toString().slice(-8)}`,
+                        receiptNo: `WR-${Date.now().toString().slice(-8)}`,
                         dateTime: new Date().toLocaleString(),
-                        debitAmount: `Rs. ${(billData.amount || billData.total_amount).toFixed(2)}`,
+                        debitAmount: `Rs. ${billData.amount.toFixed(2)}`,
                         bankRef: paymentRef.txnId,
                         authId: paymentRef.refId,
                         paymentMode: paymentMode
@@ -250,4 +257,4 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
     );
 };
 
-export default GasQuickPay;
+export default MunicipalQuickPay;
