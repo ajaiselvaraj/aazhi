@@ -78,23 +78,24 @@ export const confirmOtp = async (mobile, providedOtp) => {
         LIMIT 1
     `;
     const result = await pool.query(query, [mobile]);
+    const isDev = process.env.NODE_ENV === "development";
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 && !isDev) {
         throw new Error("OTP not found or expired.");
     }
 
-    const { otp, expiry } = result.rows[0];
+    if (result.rows.length > 0) {
+        const { otp, expiry } = result.rows[0];
 
-    // 2. Validate Expiry
-    if (new Date() > new Date(expiry)) {
-        throw new Error("OTP has expired. Please request a new one.");
-    }
+        // 2. Validate Expiry
+        if (new Date() > new Date(expiry) && !isDev) {
+            throw new Error("OTP has expired. Please request a new one.");
+        }
 
-    // 3. Match the OTP code (Development Mode Bypass: Accept ANY OTP)
-    const isDev = process.env.NODE_ENV === "development";
-    
-    if (otp !== providedOtp && !isDev) {
-        throw new Error("Invalid OTP code.");
+        // 3. Match the OTP code
+        if (otp !== providedOtp && !isDev) {
+            throw new Error("Invalid OTP code.");
+        }
     }
 
     if (isDev) {

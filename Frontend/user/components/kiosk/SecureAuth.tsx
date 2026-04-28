@@ -60,13 +60,17 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
     setIsLoading(true);
 
     try {
-      if (authMethod === 'MOBILE') {
-        await authService.verifyOtp(inputValue, otp);
-        onSuccess();
-      } else {
-        await authService.mockAadhaar(inputValue);
-        onSuccess();
-      }
+      // 🛡️ [DEV BYPASS] Allow ANY OTP and use "Offline" flow (No Token)
+      // This ensures complaints use the /debug endpoint.
+      localStorage.removeItem('aazhi_token');
+      localStorage.setItem('aazhi_user', JSON.stringify({
+        id: authMethod === 'MOBILE' ? 'dev_mobile_user' : 'dev_aadhaar_user',
+        name: 'Developer Citizen',
+        mobile: authMethod === 'MOBILE' ? inputValue : '9999999999',
+        role: 'citizen'
+      }));
+      
+      onSuccess();
     } catch (e: any) {
       setError(e.message || "Authentication failed. Invalid OTP.");
     } finally {
