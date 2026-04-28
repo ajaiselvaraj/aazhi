@@ -27,6 +27,7 @@ export enum Language {
 export enum ViewState {
   LANDING = 'LANDING',
   LOGIN = 'LOGIN',
+  SELECTION = 'SELECTION',
   DASHBOARD = 'DASHBOARD',
   SERVICE_FORM = 'SERVICE_FORM',
   COMPLAINT_FORM = 'COMPLAINT_FORM',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
-import { Globe, ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
-import { Language } from './types';
+import { Language, ViewState } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
@@ -15,20 +15,12 @@ const Admin = lazy(() => import('./components/Admin'));
 const SuvidhaVoiceControl = lazy(() => import('./components/SuvidhaVoiceControl'));
 const TalkbackOverlay = lazy(() => import('./components/TalkbackOverlay'));
 import { authService } from './services/authService';
-import { GrievanceService } from './services/civicService';
 import { Persistence } from './utils/persistence';
 import cdacLogo from './assets/cdac_logo.png';
 
 
 
-enum ViewState {
-  LANDING = 'LANDING',
-  LOGIN = 'LOGIN',
-  SELECTION = 'SELECTION',
-  DASHBOARD = 'DASHBOARD',
-  ADMIN = 'ADMIN',
-  DOCUMENTATION = 'DOCUMENTATION'
-}
+
 
 const LOGOUT_TIME = 120; // 2 minutes
 
@@ -199,7 +191,7 @@ const App: React.FC = () => {
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
-  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker' | 'gas' | 'municipal'>('home');
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const timerRef = useRef<number | null>(null);
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
@@ -396,6 +388,7 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
+      if (loginMethod === 'MOBILE') {
         // Authenticate with backend
         await authService.verifyOtp(identifier, otp);
         
@@ -897,12 +890,12 @@ const App: React.FC = () => {
           {view === ViewState.DASHBOARD && (
             <KioskUI
               language={language}
-              onNavigate={(v: any) => setView(v)}
+              onNavigate={(v: ViewState) => setView(v)}
               onLogout={handleBackToLanding}
               isPrivacyShield={isPrivacyShieldOn}
               timer={timer}
               onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
-              initialTab={dashboardInitialTab as any}
+              initialTab={dashboardInitialTab}
               initialAiQuery={dashboardInitialAiQuery}
               onVoiceCommand={handleVoiceCommand}
             />
