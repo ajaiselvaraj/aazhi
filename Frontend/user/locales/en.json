@@ -216,6 +216,7 @@
   "dept_water": "Water Supply & Sewage",
   "dept_gas": "Gas Distribution",
   "dept_municipal": "Municipal Corp",
+  "dept_waste": "Waste Management",
   "serv_NewConnection": "New Connection",
   "serv_BillingIssue": "Billing Issue",
   "serv_MeterFault": "Meter Fault",

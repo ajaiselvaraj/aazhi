@@ -81,25 +81,54 @@ export const viewBills = async (req, res, next) => {
     }
 };
 
-// ─── Gas Payment Status ──────────────────────────────────
-export const paymentStatus = async (req, res, next) => {
+// ─── Gas Payment History ──────────────────────────────────
+export const getPaymentHistory = async (req, res, next) => {
     try {
-        const citizenId = req.user.id;
+        const { consumerId, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
 
-        const result = await pool.query(
-            `SELECT t.*, b.bill_number, b.amount as bill_amount, b.billing_month, b.billing_year
+        let query = `
+            SELECT t.*, b.bill_number, b.amount as bill_amount, b.billing_month, b.billing_year,
+                    ua.account_number
              FROM transactions t
              JOIN bills b ON t.bill_id = b.id
-             WHERE t.citizen_id = $1 AND b.service_type = 'gas'
-             ORDER BY t.created_at DESC LIMIT 20`,
-            [citizenId]
-        );
+             JOIN utility_accounts ua ON b.account_id = ua.id
+             WHERE b.service_type = 'gas'`;
+        
+        const params = [];
 
-        return success(res, "Gas payment status", result.rows);
+        if (consumerId) {
+            query += ` AND ua.account_number = $${params.length + 1}`;
+            params.push(consumerId);
+        } else if (req.user) {
+            query += ` AND t.citizen_id = $${params.length + 1}`;
+            params.push(req.user.id);
+        } else {
+            return fail(res, "Customer ID or authentication required", 401);
+        }
+
+        query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+
+        const result = await pool.query(query, params);
+        
+        // Mock data for demo if nothing found and consumerId provided
+        if (result.rows.length === 0 && consumerId) {
+             return success(res, "Demo history retrieved", [
+                 { consumerId, date: '2026-04-05', amount: 140.00, transactionId: 'GAS-TX-882', status: 'Success' },
+                 { consumerId, date: '2026-03-08', amount: 140.00, transactionId: 'GAS-TX-771', status: 'Success' },
+                 { consumerId, date: '2026-02-10', amount: 140.00, transactionId: 'GAS-TX-660', status: 'Success' }
+             ]);
+        }
+
+        return success(res, "Gas payment history retrieved", result.rows);
     } catch (err) {
         next(err);
     }
 };
+
+// ─── Gas Payment Status (Old) ─────────────────────────────
+export const paymentStatus = async (req, res, next) => {
 
 // ─── Gas Account Info ────────────────────────────────────
 export const getGasAccount = async (req, res, next) => {

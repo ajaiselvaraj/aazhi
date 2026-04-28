@@ -23,6 +23,12 @@ export const BillingService = {
 
     verifyPayment: async (paymentData: any) => {
         return await apiClient.post<any>('/payment/verify', paymentData);
+    },
+
+    getTransactionHistory: async (serviceType: string, consumerId: string): Promise<any[]> => {
+        // We use the service-specific history endpoint
+        // If consumerId is provided, we might need a specific query param or public endpoint
+        return await apiClient.get<any[]>(`/${serviceType}/history?consumerId=${consumerId}`);
     }
 };
 

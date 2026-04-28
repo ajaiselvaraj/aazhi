@@ -11,14 +11,15 @@
 import express from "express";
 import {
     getWaterBills, getPropertyTax, payPropertyTax,
-    addressChange, wasteServiceRequest, getMyServiceRequests, getWaterQuickPayBill
+    addressChange, wasteServiceRequest, getMyServiceRequests, getWaterQuickPayBill, getPaymentHistory
 } from "../controllers/municipal.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import authMiddleware, { optionalAuth } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.get("/water/bills", authMiddleware, getWaterBills);
 router.get("/water/quick-pay/:id", getWaterQuickPayBill); // Public route for Quick Pay
+router.get("/history", optionalAuth, getPaymentHistory);
 router.get("/property-tax", authMiddleware, getPropertyTax);
 router.post("/property-tax/pay", authMiddleware, payPropertyTax);
 router.post("/address-change", authMiddleware, addressChange);
