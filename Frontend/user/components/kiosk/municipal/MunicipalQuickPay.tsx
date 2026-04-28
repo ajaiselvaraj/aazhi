@@ -63,10 +63,10 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                 <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
                     <div className="text-center mb-10">
                         <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <Droplet size={32} />
+                            <CreditCard size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('muni_waterConsumerPrompt') || 'Enter Assessment Number'}</h2>
-                        <p className="text-slate-500 font-medium mb-1">Enter your 12-digit water assessment or property tax number.</p>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('muni_consumerPrompt') || 'Enter Assessment Number'}</h2>
+                        <p className="text-slate-500 font-medium mb-1">Enter your 10 or 12-digit Water or Property Tax assessment number.</p>
                         <p className="text-cyan-600 font-black text-sm">Example: 123456789012</p>
                     </div>
 
@@ -171,7 +171,7 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                             
                             <RazorpayCheckout 
                                 amount={billData.amount} 
-                                name="Water Bill" 
+                                name="Municipal Bill" 
                                 description={`Payment for assessment: ${billData.account_number}`}
                                 onSuccess={handlePaymentSuccess}
                                 onFailure={handlePaymentFailure}

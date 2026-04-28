@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle, SearchCode } from 'lucide-react';
+import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle, SearchCode, Building2 } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import WaterConnectionForm from './WaterConnectionForm';
@@ -11,6 +11,8 @@ import WaterLogin from './WaterLogin';
 import MunicipalTransactions from './MunicipalTransactions';
 import WaterTariff from './WaterTariff';
 import WaterBillCalculator from './WaterBillCalculator';
+import PropertyTaxTariff from './PropertyTaxTariff';
+import PropertyTaxCalculator from './PropertyTaxCalculator';
 
 interface Props {
   onBack: () => void;
@@ -20,7 +22,7 @@ interface Props {
 
 const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
   const { t } = useTranslation();
-  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
+  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR'>('HOME');
 
   const handleInternalBack = () => {
     setView('HOME');
@@ -42,13 +44,60 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
   if (view === 'TRANSACTIONS') return <MunicipalTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />;
   if (view === 'TARIFF') return <WaterTariff onBack={handleInternalBack} language={language} />;
   if (view === 'CALCULATOR') return <WaterBillCalculator onBack={handleInternalBack} language={language} />;
+  if (view === 'PT_TARIFF') return <PropertyTaxTariff onBack={handleInternalBack} language={language} />;
+  if (view === 'PT_CALCULATOR') return <PropertyTaxCalculator onBack={handleInternalBack} language={language} />;
   if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />;
   if (view === 'TAXES') {
       return (
-        <div className="max-w-4xl mx-auto p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center">
-            <button onClick={handleInternalBack} className="block mb-6 font-bold text-slate-500 hover:text-slate-900">{t('back') || "Back"}</button>
-            <h2 className="text-4xl font-black mb-4 capitalize">{view.replace('_', ' ')}</h2>
-            <p className="text-slate-500 text-lg">Integration for {view.replace('_', ' ')} is coming soon.</p>
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
+            <button onClick={handleInternalBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-2 hover:text-slate-900 transition">
+                <ArrowLeft size={16} /> Back
+            </button>
+            
+            <div className="text-center space-y-4 mb-12">
+                <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-blue-100">
+                    <Building2 size={40} />
+                </div>
+                <h2 className="text-4xl font-black text-slate-900 mb-2">Property Tax Services</h2>
+                <p className="text-slate-500 font-medium max-w-lg mx-auto">
+                    Manage your municipal property taxes, calculate yearly estimates, and view current tax rates.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <button
+                    onClick={() => handleNavigate('QUICK_PAY')}
+                    className="group bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 hover:border-blue-500 transition text-left"
+                >
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition">
+                        <CreditCard size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Quick Pay</h3>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">Pay your property tax instantly using your holding number.</p>
+                </button>
+
+                <button
+                    onClick={() => setView('PT_CALCULATOR')}
+                    className="group bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 hover:border-blue-500 transition text-left"
+                >
+                    <div className="w-12 h-12 bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 group-hover:text-white transition">
+                        <Calculator size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Tax Calculator</h3>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">Estimate your property tax based on unit area value.</p>
+                </button>
+
+                <button
+                    onClick={() => setView('PT_TARIFF')}
+                    className="group bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 hover:border-blue-500 transition text-left"
+                >
+                    <div className="w-12 h-12 bg-slate-50 text-slate-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-slate-900 group-hover:text-white transition">
+                        <FileText size={24} />
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 mb-2">Tax Tariffs</h3>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">View current tax rates and multipliers for different zones.</p>
+                </button>
+            </div>
         </div>
       );
   }
@@ -67,7 +116,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
         </div>
         <h1 className="text-5xl font-black text-slate-900 tracking-tight">{t('water') || 'WATER'}</h1>
         <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
-          {t('muniDesc') || 'Access water connections, property taxes, civil complaints, and secure bill payments.'}
+          {t('') || 'Access water connections, property taxes, civil complaints, and secure bill payments.'}
         </p>
       </div>
 
@@ -135,7 +184,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       </div>
 
       {/* Consumer Services Grid */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('muni_consumerServices') || 'Citizen Services'}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
           { id: 'WATER', icon: Droplet, label: 'Water Services', desc: 'New connection / Upgrade' },
@@ -158,13 +207,15 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       </div>
 
       {/* Secondary Tools */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('muni_otherTools') || 'Other Tools'}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
           { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace application status' },
-          { id: 'CALCULATOR', icon: Calculator, label: 'Bill Calculator', desc: 'Estimate usage charges' },
-          { id: 'TARIFF', icon: FileText, label: 'Water Tariffs', desc: 'View water charge slabs' },
           { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
+          { id: 'CALCULATOR', icon: Calculator, label: 'Water Calculator', desc: 'Estimate water charges' },
+          { id: 'TARIFF', icon: FileText, label: 'Water Tariffs', desc: 'View water charge slabs' },
+          { id: 'PT_CALCULATOR', icon: Calculator, label: 'Tax Calculator', desc: 'Estimate property tax' },
+          { id: 'PT_TARIFF', icon: FileText, label: 'Tax Tariffs', desc: 'View property tax rates' },
         ].map((item) => (
           <button
             key={item.id}
