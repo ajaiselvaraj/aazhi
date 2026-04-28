@@ -61,17 +61,9 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
 
     try {
       if (authMethod === 'MOBILE') {
-        if (otp === '123') {
-           onSuccess();
-           return;
-        }
         await authService.verifyOtp(inputValue, otp);
         onSuccess();
       } else {
-        if (otp === '123') {
-           onSuccess();
-           return;
-        }
         await authService.mockAadhaar(inputValue);
         onSuccess();
       }
