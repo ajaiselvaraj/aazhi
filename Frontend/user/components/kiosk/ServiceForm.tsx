@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Upload, CheckCircle, AlertCircle, X, FileText } from 'lucide-react';
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { Persistence, debounceSaveForm } from '../../utils/persistence';
 
 interface FormField {
     name: string;
@@ -27,9 +28,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
 
+    const formKey = `${departmentId}_${serviceName.replace(/[\s\/]/g, '_')}`;
+
+    // ─── PERSISTENCE: Restore form data ───
+    React.useEffect(() => {
+        const savedData = Persistence.loadFormData(formKey);
+        if (savedData) {
+            console.log(`♻️ Restoring form data for ${formKey}`);
+            setFormData(savedData);
+        }
+    }, [formKey]);
+
     // Define form fields for each service
     const getFormFields = (): FormField[] => {
-        const serviceKey = `${departmentId}_${serviceName.replace(/[\s\/]/g, '_')}`;
+        const serviceKey = formKey;
 
         const formConfigs: Record<string, FormField[]> = {
             // ELECTRICITY BOARD (6 services)
@@ -205,6 +217,9 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                 return newErrors;
             });
         }
+        
+        // ─── PERSISTENCE: Auto-save ───
+        debounceSaveForm(formKey, { ...formData, [name]: value });
     };
 
     const handleFileUpload = (name: string, file: File | null) => {
@@ -262,6 +277,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
         try {
             if (validateForm()) {
                 console.log("🚀 [Form] Triggering onSubmit parent handler...");
+                Persistence.clearFormData(formKey);
                 onSubmit(formData);
             }
         } catch (err) {
@@ -273,6 +289,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
         setFormData({});
         setErrors({});
         setUploadedFiles({});
+        Persistence.clearFormData(formKey);
     };
 
     // Check if description should be shown (when "Other" is selected)
