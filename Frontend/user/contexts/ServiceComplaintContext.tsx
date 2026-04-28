@@ -136,8 +136,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 const kiosksData = localStorage.getItem(LOCAL_STORAGE_KEYS.KIOSKS);
                 const logData = localStorage.getItem(LOCAL_STORAGE_KEYS.ACTIVITY);
 
-                // Clear any leftover mock data from previous sessions
-                if (services && (services.includes('REQ-2024') || services.includes('Rajesh Kumar'))) {
+                // Clear any leftover mock data from previous sessions ONLY if it contains legacy specific names
+                if (services && (services.includes('REQ-2024') || (services.includes('Rajesh') && !services.includes('dev_')))) {
                      localStorage.removeItem(LOCAL_STORAGE_KEYS.SERVICES);
                      localStorage.removeItem(LOCAL_STORAGE_KEYS.COMPLAINTS);
                      localStorage.removeItem(LOCAL_STORAGE_KEYS.ALERTS);
@@ -147,11 +147,16 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                      return;
                 }
 
-                setServiceRequests(services ? JSON.parse(services) : []);
-                setComplaints(complaintsData ? JSON.parse(complaintsData) : []);
-                setAreaAlerts(alertsData ? JSON.parse(alertsData) : []);
-                setKiosks(kiosksData ? JSON.parse(kiosksData) : []);
-                setActivityLog(logData ? JSON.parse(logData) : [{ id: '1', action: 'System Init', details: 'Dashboard boot sequence complete.', timestamp: new Date().toISOString() }]);
+                const safeParse = (data: string | null) => {
+                    if (!data || data === 'undefined') return [];
+                    try { return JSON.parse(data); } catch (e) { return []; }
+                };
+
+                setServiceRequests(safeParse(services));
+                setComplaints(safeParse(complaintsData));
+                setAreaAlerts(safeParse(alertsData));
+                setKiosks(safeParse(kiosksData));
+                setActivityLog(logData ? safeParse(logData) : [{ id: '1', action: 'System Init', details: 'Dashboard boot sequence complete.', timestamp: new Date().toISOString() }]);
             } catch (error) {
                 console.error("Failed to load data from localStorage", error);
             }
