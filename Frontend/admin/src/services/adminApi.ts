@@ -6,7 +6,7 @@ const VITE_API_URL = import.meta.env.VITE_API_URL as string;
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // Override VITE_API_URL with localhost if we are running locally to avoid CORS and remote DB issues
-const API_BASE = isLocal ? 'http://localhost:8000/api' : (VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api');
+const API_BASE = isLocal ? 'http://localhost:5000/api' : (VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api');
 
 // 🔍 Debug
 if (!VITE_API_URL) {

@@ -90,9 +90,15 @@ export const confirmOtp = async (mobile, providedOtp) => {
         throw new Error("OTP has expired. Please request a new one.");
     }
 
-    // 3. Match the OTP code
-    if (otp !== providedOtp) {
+    // 3. Match the OTP code (Development Mode Bypass: Accept ANY OTP)
+    const isDev = process.env.NODE_ENV === "development";
+    
+    if (otp !== providedOtp && !isDev) {
         throw new Error("Invalid OTP code.");
+    }
+
+    if (isDev) {
+        logger.info(`🛡️ [Auth Dev] Bypassing OTP check for ${mobile}. Accepted provided OTP: ${providedOtp}`);
     }
 
     // 4. Mark OTP as used (by deleting ALL OTPs for this mobile to prevent reuse/spam)

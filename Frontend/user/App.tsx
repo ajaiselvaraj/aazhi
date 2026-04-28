@@ -396,51 +396,18 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      if (loginMethod === 'MOBILE') {
-        // Static OTP bypass for development/offline testing
-        if (otp === '123') {
-           // Dev offline bypass — mark session as offline (no real JWT stored)
-           localStorage.removeItem('aazhi_token');
-           localStorage.setItem('aazhi_user', JSON.stringify({
-             id: 'offline_user',
-             name: 'Offline Citizen',
-             mobile: identifier,
-             role: 'citizen'
-           }));
-           setView(ViewState.SELECTION);
-           return;
-        }
-
         // Authenticate with backend
         await authService.verifyOtp(identifier, otp);
         
         setView(ViewState.SELECTION);
       } else {
         // Aadhaar Login Simulation
-        // Static OTP bypass for development/offline testing
-        if (otp === '123') {
-           // Dev offline bypass — mark session as offline (no real JWT stored)
-           localStorage.removeItem('aazhi_token');
-           localStorage.setItem('aazhi_user', JSON.stringify({
-             id: 'offline_aadhaar',
-             name: 'Aadhaar Citizen',
-             mobile: '9876543210',
-             role: 'citizen',
-             aadhaar_masked: 'XXXX-XXXX-' + identifier.slice(-4)
-           }));
-           speakText({ text: "Aadhaar offline authentication successful", language: "English" });
-           setView(ViewState.SELECTION);
-           return;
-        }
-
-        // Try backend first if not 123
+        // Try backend first
         try {
           await authService.mockAadhaar(identifier);
           speakText({ text: "Aadhaar authentication successful", language: "English" });
           setView(ViewState.SELECTION);
         } catch (e: any) {
-          // If backend fails but they entered 123, we already handled it above.
-          // If they entered something else and backend is down, show error.
           throw e;
         }
       }
