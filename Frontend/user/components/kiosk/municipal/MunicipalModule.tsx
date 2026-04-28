@@ -8,13 +8,17 @@ import { CivicComplaintForm } from '../../municipal/CivicComplaintForm';
 import MunicipalTracker from './MunicipalTracker';
 import MunicipalQuickPay from './MunicipalQuickPay';
 import WaterLogin from './WaterLogin';
+import MunicipalTransactions from './MunicipalTransactions';
+import WaterTariff from './WaterTariff';
+import WaterBillCalculator from './WaterBillCalculator';
 
 interface Props {
   onBack: () => void;
   language: Language;
+  onGlobalNavigate?: (tab: string) => void;
 }
 
-const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
+const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
   const { t } = useTranslation();
   const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS'>('HOME');
 
@@ -23,6 +27,10 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
   };
 
   const handleNavigate = (newView: any) => {
+    if (newView === 'TRACKER' && onGlobalNavigate) {
+      onGlobalNavigate('tracker');
+      return;
+    }
     setView(newView);
   };
 
@@ -31,8 +39,11 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
   if (view === 'COMPLAINTS') return <CivicComplaintForm onBack={handleInternalBack} isPrivacyOn={false} language={language} />;
   if (view === 'TRACKER') return <MunicipalTracker onBack={handleInternalBack} language={language} />;
   if (view === 'QUICK_PAY') return <MunicipalQuickPay onBack={handleInternalBack} language={language} />;
+  if (view === 'TRANSACTIONS') return <MunicipalTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />;
+  if (view === 'TARIFF') return <WaterTariff onBack={handleInternalBack} language={language} />;
+  if (view === 'CALCULATOR') return <WaterBillCalculator onBack={handleInternalBack} language={language} />;
   if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />;
-  if (view === 'TAXES' || view === 'CALCULATOR' || view === 'TARIFF' || view === 'TRANSACTIONS') {
+  if (view === 'TAXES') {
       return (
         <div className="max-w-4xl mx-auto p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center">
             <button onClick={handleInternalBack} className="block mb-6 font-bold text-slate-500 hover:text-slate-900">{t('back') || "Back"}</button>
@@ -151,7 +162,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
         {[
           { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace application status' },
-          { id: 'CALCULATOR', icon: Calculator, label: 'Tax Calculator', desc: 'Estimate property tax' },
+          { id: 'CALCULATOR', icon: Calculator, label: 'Bill Calculator', desc: 'Estimate usage charges' },
           { id: 'TARIFF', icon: FileText, label: 'Water Tariffs', desc: 'View water charge slabs' },
           { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
         ].map((item) => (

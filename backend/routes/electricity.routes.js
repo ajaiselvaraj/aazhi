@@ -12,7 +12,7 @@ import {
     getBills, getBillById, getPaymentHistory,
     getAccount, requestNewConnection, getQuickPayBill
 } from "../controllers/electricity.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import authMiddleware, { optionalAuth } from "../middleware/auth.middleware.js";
 import { checkServiceEnabled } from "../middleware/serviceCheck.middleware.js";
 
 const router = express.Router();
@@ -22,7 +22,7 @@ router.use(checkServiceEnabled("electricity"));
 router.get("/bills", authMiddleware, getBills);
 router.get("/bills/:id", authMiddleware, getBillById);
 router.get("/quick-pay/:id", getQuickPayBill); // Public route for Quick Pay
-router.get("/history", authMiddleware, getPaymentHistory);
+router.get("/history", optionalAuth, getPaymentHistory);
 router.get("/account", authMiddleware, getAccount);
 router.post("/new-connection", authMiddleware, requestNewConnection);
 

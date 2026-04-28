@@ -24,7 +24,7 @@ export const DEPARTMENTS: Department[] = [
   },
   {
     id: 'waste',
-    name: 'dept_municipal',
+    name: 'dept_waste',
     icon: 'Trash2',
     services: ['serv_GarbageCollectionPickupRequest', 'serv_WasteManagement', 'serv_ComplaintRegistration', 'serv_RecyclingInformation', 'serv_AddressChange']
   },
@@ -343,6 +343,7 @@ const BASE_TRANSLATIONS = {
   dept_water: "Water Supply & Sewage",
   dept_gas: "Gas Distribution",
   dept_municipal: "Municipal Corp",
+  dept_waste: "Waste Management",
   // Services & Issues
   serv_NewConnection: "New Connection",
   serv_BillingIssue: "Billing Issue",

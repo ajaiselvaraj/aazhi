@@ -841,11 +841,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {billingStep === 'form' && selectedBillService && (
               // If Electricity, use Module, else generic form
               selectedBillService.id === 'elec' ? (
-                <ElectricityModule onBack={resetBilling} language={language} />
+                <ElectricityModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
               ) : selectedBillService.id === 'water' ? (
-                <MunicipalModule onBack={resetBilling} language={language} />
+                <MunicipalModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
               ) : selectedBillService.id === 'gas' ? (
-                <GasModule onBack={resetBilling} language={language} />
+                <GasModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
                   <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-10 hover:text-blue-600 transition">

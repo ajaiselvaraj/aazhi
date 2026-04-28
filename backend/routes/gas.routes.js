@@ -7,8 +7,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { bookCylinder, viewBills, paymentStatus, getGasAccount, getQuickPayBill } from "../controllers/gas.controller.js";
-import authMiddleware from "../middleware/auth.middleware.js";
+import { bookCylinder, viewBills, paymentStatus, getGasAccount, getQuickPayBill, getPaymentHistory } from "../controllers/gas.controller.js";
+import authMiddleware, { optionalAuth } from "../middleware/auth.middleware.js";
 import { checkServiceEnabled } from "../middleware/serviceCheck.middleware.js";
 
 const router = express.Router();
@@ -18,6 +18,7 @@ router.use(checkServiceEnabled("gas"));
 router.post("/book", authMiddleware, bookCylinder);
 router.get("/bills", authMiddleware, viewBills);
 router.get("/status", authMiddleware, paymentStatus);
+router.get("/history", optionalAuth, getPaymentHistory);
 router.get("/account", authMiddleware, getGasAccount);
 router.get("/quick-pay/:id", getQuickPayBill); // Public route for Quick Pay
 

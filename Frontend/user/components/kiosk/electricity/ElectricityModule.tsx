@@ -17,14 +17,19 @@ import { useTranslation } from 'react-i18next';
 interface Props {
     onBack: () => void;
     language: Language;
+    onGlobalNavigate?: (tab: string) => void;
 }
 
 // Wrapper component to manage state between sub-modules
-const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
+const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
     const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST'>('HOME');
     const { t } = useTranslation();
 
     const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => {
+        if (target === 'TRACK_REQUEST' && onGlobalNavigate) {
+            onGlobalNavigate('tracker');
+            return;
+        }
         setView(target);
     };
 
