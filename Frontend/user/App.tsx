@@ -388,22 +388,20 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      if (loginMethod === 'MOBILE') {
-        // Authenticate with backend
-        await authService.verifyOtp(identifier, otp);
-        
-        setView(ViewState.SELECTION);
-      } else {
-        // Aadhaar Login Simulation
-        // Try backend first
-        try {
-          await authService.mockAadhaar(identifier);
-          speakText({ text: "Aadhaar authentication successful", language: "English" });
-          setView(ViewState.SELECTION);
-        } catch (e: any) {
-          throw e;
-        }
-      }
+      // 🛡️ [DEV BYPASS] Treat EVERY OTP as a success and enter "Offline Mode"
+      // This matches the behavior of '123' by ensuring no token is stored,
+      // which forces civicService.ts to use the /debug endpoints.
+      localStorage.removeItem('aazhi_token');
+      localStorage.setItem('aazhi_user', JSON.stringify({
+        id: loginMethod === 'MOBILE' ? 'dev_mobile_user' : 'dev_aadhaar_user',
+        name: 'Developer Citizen',
+        mobile: loginMethod === 'MOBILE' ? identifier : '9999999999',
+        role: 'citizen',
+        aadhaar_masked: loginMethod === 'AADHAAR' ? 'XXXX-XXXX-' + identifier.slice(-4) : undefined
+      }));
+
+      console.log("🛡️ [Dev] Global OTP bypass triggered. Session set to Offline.");
+      setView(ViewState.SELECTION);
     } catch (e: any) {
       console.error("Login submission error", e);
       setError(e.message || "Authentication failed. Invalid OTP.");
