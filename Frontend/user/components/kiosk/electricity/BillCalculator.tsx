@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calculator, Info, Zap, Factory, Home, Building2, Sprout, Landmark, GraduationCap, BatteryCharging, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Calculator, Zap, Home, Building2, Factory, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
@@ -8,393 +8,333 @@ interface Props {
     language: Language;
 }
 
-// Tariff Constants (FY 2025-26)
-const TARIFFS = {
+// Config-driven Tariff Rates for Assam (FY 2026-27)
+const TARIFF_CONFIG = {
     DOMESTIC: {
         slabs: [
-            { limit: 100, rate: 0 },
-            { limit: 200, rate: 2.35 },
-            { limit: 400, rate: 4.70 },
-            { limit: 500, rate: 6.30 },
-            { limit: 600, rate: 8.40 },
-            { limit: 800, rate: 9.45 },
-            { limit: 1000, rate: 10.50 },
-            { limit: Infinity, rate: 11.55 }
-        ]
+            { id: 1, limit: 120, rate: 5.25, label: 'First 120 Units' },
+            { id: 2, limit: 120, rate: 7.30, label: 'Next 120 Units (121-240)' },
+            { id: 3, limit: Infinity, rate: 8.00, label: 'Above 240 Units' }
+        ],
+        lifelineRate: 4.25, // For units <= 30 if applicable, but we follow user rule
+        defaultFixedCharge: 60,
+        defaultDutyPercent: 5
     },
-    COMMERCIAL_LT: {
-        slabs: [
-            { limit: 100, rate: 6.45 },
-            { limit: Infinity, rate: 10.15 }
-        ]
+    COMMERCIAL: {
+        rate: 8.50,
+        defaultFixedCharge: 250,
+        defaultDutyPercent: 5
     },
-    WORSHIP_LT: {
-        slabs: [
-            { limit: 120, rate: 3.05 },
-            { limit: Infinity, rate: 7.50 }
-        ]
+    INDUSTRIAL: {
+        rate: 7.80,
+        defaultFixedCharge: 300,
+        defaultDutyPercent: 5
     }
 };
 
-type Category = 'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL' | 'AGRICULTURE' | 'HUT' | 'POWERLOOM' | 'WORSHIP' | 'EDUCATION' | 'EV';
-type Voltage = 'LT' | 'HT';
+interface SlabResult {
+    range: string;
+    units: number;
+    rate: number;
+    cost: number;
+}
+
+interface CalculationResult {
+    total_units: number;
+    slab_breakdown: SlabResult[];
+    energy_charge: number;
+    fixed_charge: number;
+    duty_amount: number;
+    total_bill: number;
+}
 
 const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
     const { t } = useTranslation();
 
-    // State
-    const [category, setCategory] = useState<Category>('DOMESTIC');
-    const [voltage, setVoltage] = useState<Voltage>('LT');
+    // Inputs
     const [units, setUnits] = useState<string>('');
-    const [unitsPeak, setUnitsPeak] = useState<string>(''); // For EV
-    const [unitsOffPeak, setUnitsOffPeak] = useState<string>(''); // For EV
-    const [load, setLoad] = useState<string>(''); // kW or kVA depending on category
+    const [category, setCategory] = useState<'DOMESTIC' | 'COMMERCIAL' | 'INDUSTRIAL'>('DOMESTIC');
+    const [fixedCharge, setFixedCharge] = useState<string>('');
+    const [dutyPercent, setDutyPercent] = useState<string>('5');
+    
+    // Results & UI State
+    const [result, setResult] = useState<CalculationResult | null>(null);
+    const [error, setError] = useState<string>('');
 
-    // Results
-    const [result, setResult] = useState<any>(null);
-
-    // Reset when category changes
+    // Auto-fill defaults based on category
     useEffect(() => {
-        setUnits('');
-        setUnitsPeak('');
-        setUnitsOffPeak('');
-        setLoad('');
-        setResult(null);
-        // Default voltage reset
-        if (['EDUCATION'].includes(category)) setVoltage('HT');
-        else if (['HUT', 'WORSHIP', 'EV', 'POWERLOOM'].includes(category)) setVoltage('LT');
-        else setVoltage('LT'); // Default
+        if (category === 'DOMESTIC') {
+            setFixedCharge(TARIFF_CONFIG.DOMESTIC.defaultFixedCharge.toString());
+            setDutyPercent(TARIFF_CONFIG.DOMESTIC.defaultDutyPercent.toString());
+        } else if (category === 'COMMERCIAL') {
+            setFixedCharge(TARIFF_CONFIG.COMMERCIAL.defaultFixedCharge.toString());
+            setDutyPercent(TARIFF_CONFIG.COMMERCIAL.defaultDutyPercent.toString());
+        } else if (category === 'INDUSTRIAL') {
+            setFixedCharge(TARIFF_CONFIG.INDUSTRIAL.defaultFixedCharge.toString());
+            setDutyPercent(TARIFF_CONFIG.INDUSTRIAL.defaultDutyPercent.toString());
+        }
     }, [category]);
 
-    const calculate = () => {
-        let totalBill = 0;
-        let energyCharge = 0;
-        let fixedCharge = 0;
-        let subsidy = false;
-        let breakdown: string[] = [];
-        const u = parseFloat(units) || 0;
+    const calculateBill = () => {
+        setError('');
+        const u = parseFloat(units);
+        const fc = parseFloat(fixedCharge) || 0;
+        const dp = parseFloat(dutyPercent) || 0;
 
-        // 1. DOMESTIC
+        // Edge Cases & Validation
+        if (units === '') {
+            setError('Please enter units consumed');
+            return;
+        }
+        if (isNaN(u) || u < 0) {
+            setError('Negative units are not allowed');
+            setResult(null);
+            return;
+        }
+
+        let energyCharge = 0;
+        const slabBreakdown: SlabResult[] = [];
+
         if (category === 'DOMESTIC') {
             let remaining = u;
-            let currentSlabBottom = 0;
-
-            // TNERC Domestic Logic: 
-            if (u <= 100) {
-                breakdown.push(`0 - ${u} units @ ₹0.00/unit : ₹0.00`);
-            } else {
-                if (u > 0) breakdown.push(`0 - 100 units @ ₹0.00/unit : ₹0.00 (Subsidy)`);
+            
+            // Slab 1: First 120 Units
+            const s1Units = Math.min(remaining, 120);
+            if (s1Units > 0 || u === 0) {
+                // Subsidy logic: If total units <= 120, rate is 4.25 (User requirement: 4.25 to 5.25)
+                const rate = u <= 30 ? 4.25 : 5.25; 
+                const cost = s1Units * rate;
+                energyCharge += cost;
+                slabBreakdown.push({
+                    range: '0 - 120 Units',
+                    units: s1Units,
+                    rate: rate,
+                    cost: cost
+                });
+                remaining -= s1Units;
             }
 
-            // Calculation loop
-            if (u > 100) {
-                // 101-200
-                const slabUnits = Math.min(u - 100, 100);
-                energyCharge += slabUnits * 2.35;
-                if (slabUnits > 0) breakdown.push(`101 - ${100 + slabUnits} units @ ₹2.35/unit : ₹${(slabUnits * 2.35).toFixed(2)}`);
-            }
-            if (u > 200) {
-                // 201-400
-                const slabUnits = Math.min(u - 200, 200);
-                energyCharge += slabUnits * 4.70;
-                if (slabUnits > 0) breakdown.push(`201 - ${200 + slabUnits} units @ ₹4.70/unit : ₹${(slabUnits * 4.70).toFixed(2)}`);
-            }
-            if (u > 400) {
-                // 401-500
-                const slabUnits = Math.min(u - 400, 100);
-                energyCharge += slabUnits * 6.30;
-                if (slabUnits > 0) breakdown.push(`401 - ${400 + slabUnits} units @ ₹6.30/unit : ₹${(slabUnits * 6.30).toFixed(2)}`);
-            }
-            if (u > 500) {
-                // 501-600
-                const slabUnits = Math.min(u - 500, 100);
-                energyCharge += slabUnits * 8.40;
-                if (slabUnits > 0) breakdown.push(`501 - ${500 + slabUnits} units @ ₹8.40/unit : ₹${(slabUnits * 8.40).toFixed(2)}`);
-            }
-            if (u > 600) {
-                // 601-800
-                const slabUnits = Math.min(u - 600, 200);
-                energyCharge += slabUnits * 9.45;
-                if (slabUnits > 0) breakdown.push(`601 - ${600 + slabUnits} units @ ₹9.45/unit : ₹${(slabUnits * 9.45).toFixed(2)}`);
-            }
-            if (u > 800) {
-                // 801-1000
-                const slabUnits = Math.min(u - 800, 200);
-                energyCharge += slabUnits * 10.50;
-                if (slabUnits > 0) breakdown.push(`801 - ${800 + slabUnits} units @ ₹10.50/unit : ₹${(slabUnits * 10.50).toFixed(2)}`);
-            }
-            if (u > 1000) {
-                // > 1000
-                const slabUnits = u - 1000;
-                energyCharge += slabUnits * 11.55;
-                if (slabUnits > 0) breakdown.push(`> 1000 units @ ₹11.55/unit : ₹${(slabUnits * 11.55).toFixed(2)}`);
+            // Slab 2: 121 - 240 Units
+            if (remaining > 0) {
+                const s2Units = Math.min(remaining, 120);
+                const cost = s2Units * 7.30;
+                energyCharge += cost;
+                slabBreakdown.push({
+                    range: '121 - 240 Units',
+                    units: s2Units,
+                    rate: 7.30,
+                    cost: cost
+                });
+                remaining -= s2Units;
             }
 
-            subsidy = true;
+            // Slab 3: Above 240 Units
+            if (remaining > 0) {
+                const s3Units = remaining;
+                const cost = s3Units * 8.00;
+                energyCharge += cost;
+                slabBreakdown.push({
+                    range: 'Above 240 Units',
+                    units: s3Units,
+                    rate: 8.00,
+                    cost: cost
+                });
+            }
+        } else {
+            // Commercial / Industrial (Flat Rate for simplicity as per requirement focus on Domestic)
+            const rate = category === 'COMMERCIAL' ? TARIFF_CONFIG.COMMERCIAL.rate : TARIFF_CONFIG.INDUSTRIAL.rate;
+            energyCharge = u * rate;
+            slabBreakdown.push({
+                range: 'Flat Rate',
+                units: u,
+                rate: rate,
+                cost: energyCharge
+            });
         }
 
-        // 2. HUT
-        else if (category === 'HUT') {
-            energyCharge = 0;
-            breakdown.push(`Flat Rate (Subsidized): ₹0.00`);
-            subsidy = true;
-        }
+        // Step 4: Apply electricity duty
+        // duty_amount = (energy charge + fixed charge) × (duty % / 100)
+        const dutyAmount = (energyCharge + fc) * (dp / 100);
 
-        // 3. COMMERCIAL
-        else if (category === 'COMMERCIAL') {
-            if (voltage === 'LT') {
-                // 0-100 @ 6.45, >100 @ 10.15
-                if (u <= 100) {
-                    energyCharge += u * 6.45;
-                    breakdown.push(`0 - ${u} units @ ₹6.45/unit : ₹${(u * 6.45).toFixed(2)}`);
-                } else {
-                    energyCharge += 100 * 6.45;
-                    breakdown.push(`0 - 100 units @ ₹6.45/unit : ₹${(100 * 6.45).toFixed(2)}`);
+        // Step 5: Total bill
+        const totalBill = energyCharge + fc + dutyAmount;
 
-                    const rem = u - 100;
-                    energyCharge += rem * 10.15;
-                    breakdown.push(`> 100 units (${rem}) @ ₹10.15/unit : ₹${(rem * 10.15).toFixed(2)}`);
-                }
-            } else { // HT
-                // 9.40 per kWh + 608 per kVA
-                let l = parseFloat(load) || 0;
-                energyCharge = u * 9.40;
-                fixedCharge = l * 608;
-                breakdown.push(`${u} units @ ₹9.40/unit : ₹${energyCharge.toFixed(2)}`);
-                breakdown.push(`Demand Charge (${l} kVA @ ₹608) : ₹${fixedCharge.toFixed(2)}`);
-            }
-        }
-
-        // 4. INDUSTRIAL
-        else if (category === 'INDUSTRIAL') {
-            let l = parseFloat(load) || 0;
-            if (voltage === 'LT') {
-                // 8.00 per unit + Fixed (162-589). Using 589 as safe max estimate
-                energyCharge = u * 8.00;
-                fixedCharge = l * 589;
-                breakdown.push(`${u} units @ ₹8.00/unit : ₹${energyCharge.toFixed(2)}`);
-                breakdown.push(`Fixed Charge (Est. max ₹589/kW for ${l} kW) : ₹${fixedCharge.toFixed(2)}`);
-            } else {
-                // HT: 7.50 per kWh + 608 per kVA
-                energyCharge = u * 7.50;
-                fixedCharge = l * 608;
-                breakdown.push(`${u} units @ ₹7.50/unit : ₹${energyCharge.toFixed(2)}`);
-                breakdown.push(`Demand Charge (${l} kVA @ ₹608) : ₹${fixedCharge.toFixed(2)}`);
-            }
-        }
-
-        // 5. AGRICULTURE
-        else if (category === 'AGRICULTURE') {
-            energyCharge = 0;
-            breakdown.push('Fully Subsidized : ₹0.00');
-            subsidy = true;
-        }
-
-        // 6. POWERLOOM
-        else if (category === 'POWERLOOM') {
-            if (u <= 1000) {
-                energyCharge = 0;
-                breakdown.push(`0 - ${u} units : Free (Subsidy)`);
-                subsidy = true;
-            } else {
-                energyCharge = (u - 1000) * 8.00;
-                breakdown.push(`First 1000 units : Free`);
-                breakdown.push(`Excess ${u - 1000} units @ ₹8.00/unit (Industrial Base) : ₹${energyCharge.toFixed(2)}`);
-            }
-        }
-
-        // 7. WORSHIP
-        else if (category === 'WORSHIP') {
-            // 0-120 @ 3.05, >120 @ 7.50
-            if (u <= 120) {
-                energyCharge += u * 3.05;
-                breakdown.push(`0 - ${u} units @ ₹3.05/unit : ₹${(u * 3.05).toFixed(2)}`);
-            } else {
-                energyCharge += 120 * 3.05;
-                breakdown.push(`0 - 120 units @ ₹3.05/unit : ₹${(120 * 3.05).toFixed(2)}`);
-
-                const rem = u - 120;
-                energyCharge += rem * 7.50;
-                breakdown.push(`> 120 units (${rem}) @ ₹7.50/unit : ₹${(rem * 7.50).toFixed(2)}`);
-            }
-        }
-
-        // 8. EDUCATION (HT)
-        else if (category === 'EDUCATION') {
-            let l = parseFloat(load) || 0;
-            energyCharge = u * 8.00;
-            fixedCharge = l * 589;
-            breakdown.push(`${u} units @ ₹8.00/unit : ₹${energyCharge.toFixed(2)}`);
-            breakdown.push(`Demand Charge (${l} kVA @ ₹589) : ₹${fixedCharge.toFixed(2)}`);
-        }
-
-        // 9. EV CHARGING
-        else if (category === 'EV') {
-            const up = parseFloat(unitsPeak) || 0;
-            const uop = parseFloat(unitsOffPeak) || 0;
-            const costP = up * 9.45;
-            const costOP = uop * 6.30;
-
-            energyCharge = costP + costOP;
-            breakdown.push(`Peak Units (${up}) @ ₹9.45 : ₹${costP.toFixed(2)}`);
-            breakdown.push(`Off-Peak Units (${uop}) @ ₹6.30 : ₹${costOP.toFixed(2)}`);
-        }
-
-        totalBill = energyCharge + fixedCharge;
         setResult({
-            total: totalBill,
-            energy: energyCharge,
-            fixed: fixedCharge,
-            subsidy: subsidy,
-            breakdown: breakdown
+            total_units: u,
+            slab_breakdown: slabBreakdown,
+            energy_charge: Number(energyCharge.toFixed(2)),
+            fixed_charge: Number(fc.toFixed(2)),
+            duty_amount: Number(dutyAmount.toFixed(2)),
+            total_bill: Number(totalBill.toFixed(2))
         });
     };
 
-    const categories = [
-        { id: 'DOMESTIC', label: t('domestic') || 'Domestic', icon: Home },
-        { id: 'COMMERCIAL', label: t('commercial') || 'Commercial', icon: Building2 },
-        { id: 'INDUSTRIAL', label: t('industrial') || 'Industrial', icon: Factory },
-        { id: 'AGRICULTURE', label: t('agriculture') || 'Agriculture', icon: Sprout },
-        { id: 'HUT', label: t('hut') || 'Hut (Dwelling)', icon: Home },
-        { id: 'POWERLOOM', label: t('powerloom') || 'Power Loom', icon: Zap },
-        { id: 'WORSHIP', label: t('worship') || 'Place of Worship', icon: Landmark },
-        { id: 'EDUCATION', label: t('education') || 'Private Education', icon: GraduationCap },
-        { id: 'EV', label: t('ev') || 'EV Charging', icon: BatteryCharging },
-    ];
-
     return (
-        <div className="max-w-4xl mx-auto animate-in slide-in-from-right-8 pb-10">
+        <div className="max-w-5xl mx-auto animate-in slide-in-from-right-8 pb-10">
             <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-6 hover:text-slate-900 transition">
                 <ArrowLeft size={16} /> {t('back')}
             </button>
 
             <div className="flex flex-col lg:flex-row gap-8">
-                {/* Input Panel */}
-                <div className="flex-[2] bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100">
-                    <div className="flex items-center gap-4 mb-8">
-                        <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                            <Calculator size={28} />
-                        </div>
-                        <div>
-                            <h2 className="text-2xl font-black text-slate-900">{t('calcHeading')}</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{t('calcSub')}</p>
-                        </div>
-                    </div>
-
-                    <div className="space-y-6">
-                        {/* Category Select */}
-                        <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('connType')}</label>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                                {categories.map((cat) => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setCategory(cat.id as Category)}
-                                        className={`p-3 rounded-2xl border-2 transition flex flex-col items-center gap-2 ${category === cat.id ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-50 bg-slate-50 text-slate-500 hover:border-slate-200'}`}
-                                    >
-                                        <cat.icon size={20} />
-                                        <span className="text-[10px] font-black uppercase tracking-wider text-center">{cat.label}</span>
-                                    </button>
-                                ))}
+                {/* Input Section */}
+                <div className="lg:w-[450px] space-y-6">
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                                <Calculator size={28} />
                             </div>
-                        </div>
-
-                        {/* Voltage Select for Ind/Comm */}
-                        {['COMMERCIAL', 'INDUSTRIAL'].includes(category) && (
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Supply Level</label>
-                                <div className="flex gap-4">
-                                    <button onClick={() => setVoltage('LT')} className={`flex-1 p-4 rounded-xl font-black border-2 transition ${voltage === 'LT' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-100'}`}>Low Tension (LT)</button>
-                                    <button onClick={() => setVoltage('HT')} className={`flex-1 p-4 rounded-xl font-black border-2 transition ${voltage === 'HT' ? 'border-blue-600 bg-blue-50 text-blue-900' : 'border-slate-100'}`}>High Tension (HT)</button>
-                                </div>
+                                <h2 className="text-2xl font-black text-slate-900 leading-tight">Bill Calculator</h2>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Assam FY 2026-27</p>
                             </div>
-                        )}
-
-                        {/* Inputs */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {category !== 'EV' && (
-                                <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">{t('unitsConsumed')}</label>
-                                    <input inputMode="numeric" type="number" value={units} onChange={(e) => setUnits(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-600" placeholder="0" />
-                                </div>
-                            )}
-
-                            {category === 'EV' && (
-                                <>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Peak Hours Units</label>
-                                        <input inputMode="numeric" type="number" value={unitsPeak} onChange={(e) => setUnitsPeak(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-600" placeholder="0" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Off-Peak Units</label>
-                                        <input inputMode="numeric" type="number" value={unitsOffPeak} onChange={(e) => setUnitsOffPeak(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-600" placeholder="0" />
-                                    </div>
-                                </>
-                            )}
-
-                            {(voltage === 'HT' || category === 'INDUSTRIAL' || category === 'EDUCATION') && (
-                                <div className="col-span-full">
-                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Sanctioned Demand ({voltage === 'HT' ? 'kVA' : 'kW'})</label>
-                                    <input inputMode="numeric" type="number" value={load} onChange={(e) => setLoad(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 p-5 rounded-2xl text-xl font-bold outline-none focus:border-blue-600" placeholder="0" />
-                                </div>
-                            )}
                         </div>
 
-                        <button onClick={calculate} className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg uppercase tracking-wider hover:bg-slate-800 transition shadow-xl mt-6">
-                            {t('calculate')}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Results Panel */}
-                <div className="flex-1 space-y-4">
-                    {result ? (
-                        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[3rem] text-white shadow-2xl animate-in zoom-in-95">
-                            <p className="text-indigo-200 font-bold text-xs uppercase tracking-widest mb-2">{t('estCharge')}</p>
-                            <h3 className="text-5xl font-black mb-6">₹{result.total.toFixed(2)}</h3>
-
-                            <div className="space-y-4 mb-6">
-                                {/* Details can be translated if we strictly want, but keeping currency values visible mainly */}
-                                <div className="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                                    <div className="flex justify-between text-xs font-bold mb-1 opacity-80">
-                                        <span>Energy Charges</span>
-                                        <span>₹{result.energy.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs font-bold opacity-80">
-                                        <span>Fixed/Demand Charges</span>
-                                        <span>₹{result.fixed.toFixed(2)}</span>
-                                    </div>
-                                </div>
-                                {result.subsidy && (
-                                    <div className="flex items-center gap-2 text-green-300 text-xs font-black uppercase tracking-wider">
-                                        <CheckCircle size={14} /> Govt. Subsidy Applied
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="border-t border-white/20 pt-6">
-                                <p className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-70">Calculation Breakdown</p>
-                                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                    {result.breakdown.map((line: string, i: number) => (
-                                        <p key={i} className="text-xs font-medium opacity-90 border-b border-white/10 pb-2 last:border-0">{line}</p>
+                        <div className="space-y-6">
+                            {/* Category */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-3">Consumer Category</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'DOMESTIC', icon: Home, label: 'Domestic' },
+                                        { id: 'COMMERCIAL', icon: Building2, label: 'Commercial' },
+                                        { id: 'INDUSTRIAL', icon: Factory, label: 'Industrial' }
+                                    ].map(cat => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => setCategory(cat.id as any)}
+                                            className={`p-3 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${category === cat.id ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-50 bg-slate-50 text-slate-400 hover:border-slate-200'}`}
+                                        >
+                                            <cat.icon size={20} />
+                                            <span className="text-[9px] font-black uppercase tracking-tight">{cat.label}</span>
+                                        </button>
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Units */}
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Units Consumed</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={units}
+                                        onChange={(e) => setUnits(e.target.value)}
+                                        placeholder="e.g. 250"
+                                        className={`w-full bg-slate-50 border-2 ${error ? 'border-red-100 focus:border-red-500' : 'border-slate-50 focus:border-blue-600'} p-5 pl-6 rounded-2xl text-xl font-black transition outline-none`}
+                                    />
+                                    <Zap className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                                </div>
+                                {error && <p className="text-red-500 text-[10px] font-bold mt-2 ml-2 uppercase tracking-wider flex items-center gap-1"><AlertCircle size={10} /> {error}</p>}
+                            </div>
+
+                            {/* Advanced Options */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Fixed Charge (₹)</label>
+                                    <input
+                                        type="number"
+                                        value={fixedCharge}
+                                        onChange={(e) => setFixedCharge(e.target.value)}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 focus:border-blue-600 p-4 rounded-xl text-lg font-bold transition outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Duty (%)</label>
+                                    <input
+                                        type="number"
+                                        value={dutyPercent}
+                                        onChange={(e) => setDutyPercent(e.target.value)}
+                                        className="w-full bg-slate-50 border-2 border-slate-50 focus:border-blue-600 p-4 rounded-xl text-lg font-bold transition outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                onClick={calculateBill}
+                                className="w-full bg-slate-900 text-white p-6 rounded-[1.5rem] font-black text-lg uppercase tracking-widest hover:bg-blue-600 transition shadow-xl hover:shadow-blue-200 active:scale-95"
+                            >
+                                Calculate Bill
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex gap-4">
+                        <div className="bg-blue-100 text-blue-600 p-2 h-fit rounded-lg"><Info size={18} /></div>
+                        <p className="text-blue-800 text-[11px] font-medium leading-relaxed">
+                            <strong>Subsidy Notice:</strong> Low consumption users (under 30 units) are charged at the life-line rate of ₹4.25/unit.
+                        </p>
+                    </div>
+                </div>
+
+                {/* Output Section */}
+                <div className="flex-1">
+                    {result ? (
+                        <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden h-full flex flex-col animate-in zoom-in-95 duration-300">
+                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-10 text-white">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Bill Amount</p>
+                                        <h3 className="text-6xl font-black tracking-tight">₹{result.total_bill.toFixed(2)}</h3>
+                                    </div>
+                                    <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20">
+                                        <p className="text-[10px] font-black uppercase mb-1">Units</p>
+                                        <p className="text-2xl font-black">{result.total_units}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 text-blue-200 text-[10px] font-black uppercase tracking-widest mt-6">
+                                    <CheckCircle size={14} className="text-green-400" /> Payment Estimate Generated
+                                </div>
+                            </div>
+
+                            <div className="p-10 flex-1 space-y-8">
+                                <div>
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Slab-wise Breakdown</h4>
+                                    <div className="space-y-3">
+                                        {result.slab_breakdown.map((slab, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition">
+                                                <div>
+                                                    <p className="text-xs font-black text-slate-900">{slab.range}</p>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase">{slab.units} Units × ₹{slab.rate.toFixed(2)}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="font-black text-slate-900">₹{slab.cost.toFixed(2)}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Energy Charge</span>
+                                        <span className="font-black text-slate-900">₹{result.energy_charge.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Fixed Charge</span>
+                                        <span className="font-black text-slate-900">₹{result.fixed_charge.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Electricity Duty ({dutyPercent}%)</span>
+                                        <span className="font-black text-slate-900">₹{result.duty_amount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-8 bg-slate-50 text-center">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Note: This is an estimated bill. Actual bill may include FPPPA or other minor adjustments.</p>
+                            </div>
                         </div>
                     ) : (
-                        <div className="h-full bg-slate-50 rounded-[3rem] border border-slate-100 flex flex-col items-center justify-center p-8 text-center opacity-50">
-                            <Zap size={48} className="text-slate-300 mb-4" />
-                            <p className="font-bold text-slate-400">{t('calcSub')}</p>
+                        <div className="bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200 h-full flex flex-col items-center justify-center p-12 text-center opacity-60 min-h-[500px]">
+                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
+                                <Zap size={40} className="text-slate-300" />
+                            </div>
+                            <h3 className="text-xl font-black text-slate-900 mb-2">Ready to Calculate</h3>
+                            <p className="text-slate-500 font-medium max-w-xs">Enter your consumption units and details to generate a detailed slab-based estimate.</p>
                         </div>
                     )}
                 </div>
             </div>
-
-            <style>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
-            `}</style>
         </div>
     );
 };

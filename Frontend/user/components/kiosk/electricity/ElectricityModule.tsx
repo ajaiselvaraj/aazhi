@@ -9,6 +9,7 @@ import ElectricityMeterServiceForm from './ElectricityMeterServiceForm';
 import ElectricityComplaints from './ElectricityComplaints';
 import ElectricityProfile from './ElectricityProfile';
 import ElectricityTracker from './ElectricityTracker';
+import TariffDetails from './TariffDetails';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -45,14 +46,7 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language }) => {
             {view === 'PROFILE' && <ElectricityProfile onBack={handleInternalBack} language={language} />}
             {view === 'TRACK_REQUEST' && <ElectricityTracker onBack={handleInternalBack} language={language} />}
 
-            {/* Placeholder for Tariff */}
-            {view === 'TARIFF' && (
-                <div className="max-w-4xl mx-auto p-8 bg-white rounded-[2rem] shadow-xl border border-slate-100">
-                    <button onClick={handleInternalBack} className="mb-6 font-bold text-slate-500 hover:text-slate-900">{t('back') || "Back"}</button>
-                    <h2 className="text-3xl font-black mb-4">{t('tariffDetails') || "Tariff Details"}</h2>
-                    <p>{t('upcoming') || "Coming Soon..."}</p>
-                </div>
-            )}
+            {view === 'TARIFF' && <TariffDetails onBack={handleInternalBack} language={language} />}
         </div>
     );
 };
