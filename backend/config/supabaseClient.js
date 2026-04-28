@@ -14,8 +14,12 @@ if (supabaseUrl && supabaseKey && supabaseUrl.startsWith('http')) {
             persistSession: false
         }
     });
+    console.log("✅ [SUPABASE] Client initialized successfully.");
 } else {
-    console.warn("⚠️ [SUPABASE] Client not initialized. MISSING VARS: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.");
+    const missing = [];
+    if (!supabaseUrl) missing.push("SUPABASE_URL");
+    if (!supabaseKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+    console.warn(`⚠️ [SUPABASE] Client not initialized. MISSING VARS: ${missing.join(" / ")}.`);
 }
 
 export const supabase = supabaseClient;

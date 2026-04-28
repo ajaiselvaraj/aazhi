@@ -6,7 +6,10 @@
 import { Pool } from "pg";
 import dotenv from "dotenv";
 
-dotenv.config();
+// Load environment variables if not already loaded by server.js
+if (!process.env.DATABASE_URL) {
+    dotenv.config();
+}
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -19,10 +22,14 @@ const poolConfig = {
     min: isProd ? 2 : 1,                    // keep warm connections alive
     idleTimeoutMillis: 30_000,              // release idle connections after 30s
     connectionTimeoutMillis: 10_000,        // fail fast if DB is unreachable
-    ssl: {
-        rejectUnauthorized: false           // ALLOWED: Supabase/Render often use self-signed certificates in their internal network
-    }
 };
+
+// Only enable SSL for Supabase or when explicitly requested
+if (process.env.DATABASE_URL?.includes("supabase.co") || process.env.DB_SSL === "true") {
+    poolConfig.ssl = {
+        rejectUnauthorized: false
+    };
+}
 
 export const pool = new Pool(poolConfig);
 
@@ -47,6 +54,10 @@ pool.on("connect", () => {
  * @returns {boolean}           - true if connected, false after all retries fail
  */
 export const testConnection = async (maxRetries = 5, delayMs = 2000) => {
+    if (!process.env.DATABASE_URL) {
+        console.warn("⚠️ [DB] DATABASE_URL is not set. Skipping database connection test.");
+        return false;
+    }
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
             const client = await pool.connect();

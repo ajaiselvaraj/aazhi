@@ -22,8 +22,8 @@ export const authService = {
         return data;
     },
 
-    kioskLogin: async (consumerId: string): Promise<AuthResponse> => {
-        const data = await apiClient.post<any>('/auth/kiosk/login', { consumerId });
+    kioskLogin: async (consumerId: string, pin?: string): Promise<AuthResponse> => {
+        const data = await apiClient.post<any>('/auth/kiosk/login', { consumerId, pin });
         const { citizen, tokens } = data;
         const authData: AuthResponse = {
             user: citizen,

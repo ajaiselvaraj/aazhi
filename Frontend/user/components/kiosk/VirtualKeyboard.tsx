@@ -88,6 +88,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                                 <button
                                     key={num}
                                     onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
                                     onClick={() => handleKeyClick(num)}
                                     className="bg-white rounded-2xl shadow-sm text-3xl font-black text-slate-700 hover:bg-blue-50 hover:text-blue-600 active:scale-95 transition-all border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 h-full"
                                 >
@@ -95,23 +96,23 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                                 </button>
                             ))}
                             {/* Row 4 */}
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => handleKeyClick('-')} className="bg-slate-50 rounded-2xl shadow-sm text-2xl font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => handleKeyClick('-')} className="bg-slate-50 rounded-2xl shadow-sm text-2xl font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
                                 -
                             </button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => handleKeyClick('0')} className="bg-white rounded-2xl shadow-sm text-3xl font-black text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => handleKeyClick('0')} className="bg-white rounded-2xl shadow-sm text-3xl font-black text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
                                 0
                             </button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => handleKeyClick('.')} className="bg-slate-50 rounded-2xl shadow-sm text-2xl font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => handleKeyClick('.')} className="bg-slate-50 rounded-2xl shadow-sm text-2xl font-black text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition border-b-4 border-slate-200 active:border-b-0 active:translate-y-1">
                                 .
                             </button>
                         </div>
 
                         {/* Control Row */}
                         <div className="grid grid-cols-2 gap-3 h-20">
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={onClear} className="bg-red-50 rounded-2xl shadow-sm text-red-600 font-black text-xs uppercase tracking-wider hover:bg-red-100 transition border-b-4 border-red-100 active:border-b-0 active:translate-y-1">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onClear} className="bg-red-50 rounded-2xl shadow-sm text-red-600 font-black text-xs uppercase tracking-wider hover:bg-red-100 transition border-b-4 border-red-100 active:border-b-0 active:translate-y-1">
                                 {t('kb_clear') || 'Clear'}
                             </button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={onDelete} className="bg-slate-200 rounded-2xl shadow-sm text-slate-600 flex items-center justify-center hover:bg-slate-300 transition border-b-4 border-slate-300 active:border-b-0 active:translate-y-1">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onDelete} className="bg-slate-200 rounded-2xl shadow-sm text-slate-600 flex items-center justify-center hover:bg-slate-300 transition border-b-4 border-slate-300 active:border-b-0 active:translate-y-1">
                                 <Delete size={28} />
                             </button>
                         </div>
@@ -125,6 +126,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                                     <button
                                         key={key}
                                         onMouseDown={(e) => e.preventDefault()}
+                                    onTouchStart={(e) => e.preventDefault()}
                                         onClick={() => handleKeyClick(key)}
                                         className="flex-1 min-w-[36px] h-14 bg-white rounded-xl shadow-sm text-xl font-bold text-slate-700 hover:bg-blue-50 hover:text-blue-600 hover:-translate-y-0.5 active:translate-y-0 transition-all border-b-2 border-slate-200"
                                     >
@@ -136,13 +138,13 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
 
                         {/* Action Row */}
                         <div className="flex gap-2 mt-2">
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={onClear} className="px-6 h-14 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase shadow-sm border-b-2 border-red-100 active:border-b-0 active:translate-y-0.5">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onClear} className="px-6 h-14 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase shadow-sm border-b-2 border-red-100 active:border-b-0 active:translate-y-0.5">
                                 {t('kb_clear') || 'Clear'}
                             </button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={() => handleKeyClick(' ')} className="flex-1 h-14 bg-white text-slate-400 rounded-xl shadow-sm border-b-2 border-slate-200 active:border-b-0 active:translate-y-0.5 flex items-center justify-center gap-2">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => handleKeyClick(' ')} className="flex-1 h-14 bg-white text-slate-400 rounded-xl shadow-sm border-b-2 border-slate-200 active:border-b-0 active:translate-y-0.5 flex items-center justify-center gap-2">
                                 <Space size={20} /> {t('kb_space') || 'Space'}
                             </button>
-                            <button onMouseDown={(e) => e.preventDefault()} onClick={onDelete} className="px-6 h-14 bg-slate-200 text-slate-600 rounded-xl shadow-sm border-b-2 border-slate-300 active:border-b-0 active:translate-y-0.5 flex items-center justify-center">
+                            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onDelete} className="px-6 h-14 bg-slate-200 text-slate-600 rounded-xl shadow-sm border-b-2 border-slate-300 active:border-b-0 active:translate-y-0.5 flex items-center justify-center">
                                 <Delete size={20} />
                             </button>
                         </div>
@@ -154,6 +156,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
             <div className="p-4 bg-slate-50 border-t border-slate-200">
                 <button
                     onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
                     onClick={onEnter}
                     className="w-full bg-blue-600 text-white p-4 rounded-xl font-black text-lg uppercase tracking-widest hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                 >
