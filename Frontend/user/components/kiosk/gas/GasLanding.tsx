@@ -49,7 +49,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
         </div>
         <h1 className="text-5xl font-black text-slate-900 tracking-tight flex items-center justify-center gap-3">
           <Flame className="text-orange-500" size={48} />
-          {t('gas_services') || 'Gas Services'}
+          {t('gas') || 'GAS'}
         </h1>
         <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto">
           {t('gas_landingDesc') || 'Access gas connections, book cylinders, manage bills, and resolve issues securely.'}
