@@ -17,9 +17,29 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
 
-      <button onClick={onExit} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-2 hover:text-slate-900 transition">
-        <ArrowLeft size={16} /> {t('backToUtils') || 'Back'}
-      </button>
+      <div className="flex justify-between items-center">
+        <button onClick={onExit} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-900 transition">
+          <ArrowLeft size={16} /> {t('backToUtils') || 'Back'}
+        </button>
+
+        {localStorage.getItem('selectedGasBrand') && (
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm animate-in fade-in slide-in-from-right-4">
+             <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-lg flex items-center justify-center font-black text-[8px] uppercase">
+                {localStorage.getItem('selectedGasBrand')}
+             </div>
+             <div>
+                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Service Provider</p>
+                <p className="text-xs font-bold text-slate-700 capitalize">{localStorage.getItem('selectedGasBrand')} Gas</p>
+             </div>
+             <button 
+                onClick={() => onNavigate('BRAND_SELECTION' as any)}
+                className="ml-2 text-[9px] font-black text-blue-600 uppercase hover:underline"
+             >
+                Change
+             </button>
+          </div>
+        )}
+      </div>
 
       {/* Header */}
       <div className="text-center space-y-4">

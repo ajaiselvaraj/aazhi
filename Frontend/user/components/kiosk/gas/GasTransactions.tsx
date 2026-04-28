@@ -66,9 +66,10 @@ const GasTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                         <input
                             type="text"
                             value={consumerNo}
-                            onChange={(e) => setConsumerNo(e.target.value.toUpperCase())}
+                            onChange={(e) => setConsumerNo(e.target.value.toUpperCase().slice(0, 12))}
                             className="w-full p-3 border border-orange-300 rounded-lg outline-none focus:border-orange-500 font-bold text-slate-700"
-                            placeholder="e.g. GAS-778899"
+                            placeholder="12-digit ID"
+                            maxLength={12}
                         />
                     </div>
                     <button
