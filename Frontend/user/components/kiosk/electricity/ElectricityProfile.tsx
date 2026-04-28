@@ -57,7 +57,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
         // 1. Call backend to persist name/email/address permanently in DB
         const token = localStorage.getItem('aazhi_token');
         const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-          ? 'http://localhost:5000/api'
+          ? 'http://localhost:8000/api'
           : 'https://aazhi-9gj2.onrender.com/api';
 
         const res = await fetch(`${API_BASE}/auth/profile`, {

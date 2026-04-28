@@ -2,8 +2,10 @@
 // SUVIDHA KIOSK — Server Entry Point
 // ═══════════════════════════════════════════════════════════════
 
-import app from "./app.js";
 import dotenv from "dotenv";
+dotenv.config();
+
+import app from "./app.js";
 import { testConnection } from "./config/db.js";
 import logger from "./utils/logger.js";
 import fs from "fs";
@@ -12,8 +14,6 @@ import { fileURLToPath } from "url";
 import cron from "node-cron";
 import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

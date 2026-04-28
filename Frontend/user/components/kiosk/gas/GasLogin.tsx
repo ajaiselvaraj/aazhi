@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, KeySquare, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ArrowLeft, KeySquare, ShieldCheck, ChevronRight, Lock } from 'lucide-react';
 import { authService } from '../../../services/authService';
+import KioskInput from '../KioskInput';
 
 interface Props {
   onBack: () => void;
@@ -12,18 +13,19 @@ interface Props {
 const GasLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
   const { t } = useTranslation();
   const [consumerId, setConsumerId] = useState('');
+  const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!consumerId) return;
+    if (!consumerId || !pin) return;
     
     setLoading(true);
     setError('');
     
     try {
-      await authService.kioskLogin(consumerId);
+      await authService.kioskLogin(consumerId.replace(/\D/g, ''), pin);
       onLoginSuccess();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid Consumer ID or Login failed. Please try again.');
@@ -56,23 +58,38 @@ const GasLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
         )}
 
         <form onSubmit={handleLogin} className="space-y-6">
-            <div className="text-left">
-                <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Gas Consumer ID</label>
-                <div className="relative">
-                    <input
+            <div className="text-left space-y-4">
+                <div>
+                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Gas Consumer ID</label>
+                    <KioskInput
+                        formatType="consumer"
                         type="text"
-                        placeholder="e.g. 123456789"
+                        inputMode="numeric"
+                        placeholder="XXXX XXXX XXXX"
                         value={consumerId}
-                        onChange={(e) => setConsumerId(e.target.value.replace(/\D/g, ''))}
-                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-bold text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300"
+                        onChangeValue={setConsumerId}
+                        icon={<ShieldCheck size={24} />}
+                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-bold text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300 tracking-[0.2em]"
                     />
-                    <ShieldCheck size={24} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300" />
+                </div>
+                <div>
+                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Secure PIN</label>
+                    <KioskInput
+                        formatType="pin"
+                        type="password"
+                        inputMode="numeric"
+                        placeholder="••••••"
+                        value={pin}
+                        onChangeValue={setPin}
+                        icon={<Lock size={24} />}
+                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-3xl tracking-[0.5em] font-bold text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300 placeholder:text-xl placeholder:tracking-normal"
+                    />
                 </div>
             </div>
 
             <button
                 type="submit"
-                disabled={loading || consumerId.length < 5}
+                disabled={loading || consumerId.replace(/\D/g, '').length < 12 || pin.length < 6}
                 className="w-full py-5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-2xl font-black text-xl shadow-xl shadow-blue-500/30 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
             >
                 {loading ? 'Authenticating...' : 'Access My Profile'} {!loading && <ChevronRight size={24} />}

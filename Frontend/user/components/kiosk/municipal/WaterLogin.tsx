@@ -10,7 +10,7 @@ interface Props {
   language: string;
 }
 
-const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
+const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
   const { t } = useTranslation();
   const [consumerId, setConsumerId] = useState('');
   const [pin, setPin] = useState('');
@@ -28,7 +28,7 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
       await authService.kioskLogin(consumerId.replace(/\D/g, ''), pin);
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid Consumer Number or Login failed. Please try again.');
+      setError(err.response?.data?.message || 'Invalid Consumer ID or Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -41,15 +41,14 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
       </button>
 
       <div className="bg-white rounded-[3rem] shadow-xl p-12 border border-slate-100 text-center relative overflow-hidden">
-        {/* Top Decorative Graphic */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-blue-50/50 -z-10 rounded-t-[3rem]"></div>
+        <div className="absolute top-0 left-0 right-0 h-32 bg-cyan-50/50 -z-10 rounded-t-[3rem]"></div>
         
-        <div className="w-20 h-20 bg-blue-600 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-blue-500/30 mb-8 border-[6px] border-white relative z-10">
+        <div className="w-20 h-20 bg-cyan-600 text-white rounded-3xl mx-auto flex items-center justify-center shadow-lg shadow-cyan-500/30 mb-8 border-[6px] border-white relative z-10">
             <KeySquare size={36} />
         </div>
 
         <h2 className="text-3xl font-black mb-2 text-slate-900">Citizen Secure Login</h2>
-        <p className="text-slate-500 font-bold mb-10">Access your full billing history, complaints, and service requests.</p>
+        <p className="text-slate-500 font-bold mb-10">Access your water billing history and service requests.</p>
 
         {error && (
             <div className="p-4 bg-red-50 text-red-600 font-bold rounded-2xl mb-8 border border-red-100 text-sm">
@@ -60,11 +59,7 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
         <form onSubmit={handleLogin} className="space-y-6">
             <div className="text-left space-y-4">
                 <div>
-                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-1 ml-1">{t('elecConsumerPrompt')}</label>
-                    <div className="flex flex-col gap-1 mb-4 ml-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('elecConsumerFormat')}</span>
-                        <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider">{t('elecConsumerExample')}</span>
-                    </div>
+                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Water Consumer ID</label>
                     <KioskInput
                         formatType="consumer"
                         type="text"
@@ -73,7 +68,7 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
                         value={consumerId}
                         onChangeValue={setConsumerId}
                         icon={<ShieldCheck size={24} />}
-                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-black text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-200 tracking-[0.2em]"
+                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-xl font-bold text-center outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all placeholder:text-slate-300 tracking-[0.2em]"
                     />
                 </div>
                 <div>
@@ -86,7 +81,7 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
                         value={pin}
                         onChangeValue={setPin}
                         icon={<Lock size={24} />}
-                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-3xl tracking-[0.5em] font-bold text-center outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-300 placeholder:text-xl placeholder:tracking-normal"
+                        className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-5 rounded-2xl text-3xl tracking-[0.5em] font-bold text-center outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/20 transition-all placeholder:text-slate-300 placeholder:text-xl placeholder:tracking-normal"
                     />
                 </div>
             </div>
@@ -94,7 +89,7 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
             <button
                 type="submit"
                 disabled={loading || consumerId.replace(/\D/g, '').length < 12 || pin.length < 6}
-                className="w-full py-5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white rounded-2xl font-black text-xl shadow-xl shadow-blue-500/30 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
+                className="w-full py-5 bg-cyan-600 hover:bg-cyan-700 active:scale-[0.98] text-white rounded-2xl font-black text-xl shadow-xl shadow-cyan-500/30 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
             >
                 {loading ? 'Authenticating...' : 'Access My Profile'} {!loading && <ChevronRight size={24} />}
             </button>
@@ -108,4 +103,4 @@ const ElectricityLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language })
   );
 };
 
-export default ElectricityLogin;
+export default WaterLogin;

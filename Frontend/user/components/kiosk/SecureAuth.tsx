@@ -3,6 +3,7 @@ import { User, Smartphone, ShieldCheck, ArrowRight, ArrowLeft, RefreshCw } from 
 import { useTranslation } from 'react-i18next';
 import { Language } from '../../types';
 import { authService } from '../../services/authService';
+import KioskInput from './KioskInput';
 
 interface SecureAuthProps {
   onSuccess: () => void;
@@ -145,22 +146,19 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
                   {authMethod === 'AADHAAR' ? (t('aadhaarNumber') || "AADHAAR NUMBER") : (t('mobileNumber') || "MOBILE NUMBER")}
                 </label>
                 <div className="relative">
-                  <input
+                  <KioskInput
+                    formatType={authMethod === 'AADHAAR' ? 'consumer' : 'text'}
                     inputMode="numeric"
                     type="text"
-                    value={authMethod === 'AADHAAR' ? inputValue.replace(/(\d{4})(?=\d)/g, "$1 ") : inputValue}
-                    onChange={(e) => {
-                      setInputValue(e.target.value.replace(/\D/g, '').slice(0, authMethod === 'AADHAAR' ? 12 : 10));
+                    value={inputValue}
+                    onChangeValue={(val) => {
+                      setInputValue(val);
                       setError('');
                     }}
                     placeholder={authMethod === 'AADHAAR' ? "XXXX XXXX XXXX" : "98765 43210"}
                     className={`w-full bg-slate-50 border p-5 rounded-2xl text-xl font-bold outline-none focus:bg-white focus:ring-4 transition text-slate-700 tracking-wider placeholder-slate-300 ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-50'}`}
+                    icon={authMethod === 'AADHAAR' ? <ShieldCheck size={24} strokeWidth={1.5} /> : <Smartphone size={24} strokeWidth={1.5} />}
                   />
-                  {authMethod === 'AADHAAR' ? (
-                    <ShieldCheck className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={24} strokeWidth={1.5} />
-                  ) : (
-                    <Smartphone className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={24} strokeWidth={1.5} />
-                  )}
                 </div>
                 {error && <p className="text-red-500 text-xs font-bold px-2">{error}</p>}
               </div>
@@ -183,16 +181,17 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
           ) : (
             <div className="text-center space-y-6 animate-in slide-in-from-right-8 fade-in">
               <p className="text-slate-500 font-medium">{t('enterCodeLinked') || 'Enter the 6-digit code sent to linked mobile'}</p>
-              <input
+              <KioskInput
+                formatType="pin"
                 inputMode="numeric"
-                maxLength={6}
+                type="password"
                 value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/\D/g, ''));
+                onChangeValue={(val) => {
+                  setOtp(val);
                   setError('');
                 }}
                 className={`w-full bg-white border-2 p-4 rounded-2xl text-3xl font-black text-center outline-none tracking-[1em] ${error ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-green-500'}`}
-                placeholder="------"
+                placeholder="••••••"
               />
               {error && <p className="text-red-500 text-xs font-bold text-left px-2">{error}</p>}
               <button

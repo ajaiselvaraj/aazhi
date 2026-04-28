@@ -7,6 +7,7 @@ import MunicipalProfile from './MunicipalProfile';
 import { CivicComplaintForm } from '../../municipal/CivicComplaintForm';
 import MunicipalTracker from './MunicipalTracker';
 import MunicipalQuickPay from './MunicipalQuickPay';
+import WaterLogin from './WaterLogin';
 
 interface Props {
   onBack: () => void;
@@ -30,7 +31,8 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language }) => {
   if (view === 'COMPLAINTS') return <CivicComplaintForm onBack={handleInternalBack} isPrivacyOn={false} language={language} />;
   if (view === 'TRACKER') return <MunicipalTracker onBack={handleInternalBack} language={language} />;
   if (view === 'QUICK_PAY') return <MunicipalQuickPay onBack={handleInternalBack} language={language} />;
-  if (view === 'TAXES' || view === 'LOGIN' || view === 'CALCULATOR' || view === 'TARIFF' || view === 'TRANSACTIONS') {
+  if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />;
+  if (view === 'TAXES' || view === 'CALCULATOR' || view === 'TARIFF' || view === 'TRANSACTIONS') {
       return (
         <div className="max-w-4xl mx-auto p-12 bg-white rounded-[3rem] shadow-xl border border-slate-100 text-center">
             <button onClick={handleInternalBack} className="block mb-6 font-bold text-slate-500 hover:text-slate-900">{t('back') || "Back"}</button>
