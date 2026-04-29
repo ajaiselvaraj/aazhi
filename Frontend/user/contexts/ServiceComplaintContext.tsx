@@ -190,8 +190,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         let rawStage = r.stage || r.current_stage || r.status || 'submitted';
                         const stageMap: Record<string, string> = {
                             'created': 'Submitted', 'submitted': 'Submitted',
-                            'officer_assigned': 'Officer Assigned', 'manager_review': 'Manager Review',
-                            'gm_approval': 'GM Approval', 'resolved': 'Resolved'
+                            'under_review': 'Under Review', 'officer_assigned': 'Under Review',
+                            'verification': 'Verification', 'manager_review': 'Verification',
+                            'approval_pending': 'Approval Pending', 'gm_approval': 'Approval Pending',
+                            'completed': 'Completed', 'resolved': 'Completed'
                         };
                         const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
                         return {
