@@ -335,8 +335,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                 : rawStatus;
                             const newStages = fresh.stages || existing.stages;
 
-                            const stagesLengthChanged = existing.stages?.length !== newStages?.length;
-                            if (existing.stage === newStage && existing.status === newStatus && !stagesLengthChanged) return existing;
+                            const stagesChanged = JSON.stringify(existing.stages) !== JSON.stringify(newStages);
+                            if (existing.stage === newStage && existing.status === newStatus && !stagesChanged) return existing;
                             changed = true;
                             const stageMap: Record<string, string> = {
                                 'created': 'Submitted', 'submitted': 'Submitted',
@@ -392,11 +392,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                             const newStages = fresh.stages || existing.stages;
 
-                            // Force update if EITHER stage, status, or stages length changed
+                            // Force update if EITHER stage, status, or any stage data changed
                             const stageChanged = existing.stage !== newStage;
                             const statusChanged = existing.status !== newStatus;
-                            const stagesLengthChanged = existing.stages?.length !== newStages?.length;
-                            if (!stageChanged && !statusChanged && !stagesLengthChanged) return existing;
+                            const stagesChanged = JSON.stringify(existing.stages) !== JSON.stringify(newStages);
+                            if (!stageChanged && !statusChanged && !stagesChanged) return existing;
 
                             changed = true;
                             const stageMap: Record<string, string> = {
