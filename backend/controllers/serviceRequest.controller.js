@@ -415,7 +415,7 @@ export const searchRequests = async (req, res, next) => {
         const result = await pool.query(
             `SELECT sr.*, c.name as citizen_name 
              FROM service_requests sr
-             JOIN citizens c ON sr.citizen_id = c.id
+             LEFT JOIN citizens c ON sr.citizen_id = c.id
              WHERE sr.ticket_number ILIKE $1 OR sr.phone ILIKE $1 OR c.name ILIKE $1
              ORDER BY sr.created_at DESC LIMIT 20`,
             [`%${searchQuery}%`]
@@ -433,7 +433,7 @@ export const getAllRequestsAdminDebug = async (req, res, next) => {
         const result = await pool.query(`
             SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
             FROM service_requests sr
-            JOIN citizens c ON sr.citizen_id = c.id
+            LEFT JOIN citizens c ON sr.citizen_id = c.id
             ORDER BY sr.created_at DESC
         `);
         return success(res, "All service requests retrieved", result.rows);
