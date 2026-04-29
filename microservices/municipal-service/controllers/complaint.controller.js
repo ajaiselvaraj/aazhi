@@ -266,12 +266,216 @@ export const updateComplaintStatus = async (req, res, next) => {
             updateFields.push("closed_at = NOW()");
         }
 
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            logger.warn("AI duplicate check returned non-OK", { status: response.status });
+            return { is_duplicate: false, reason: "AI service error — allowing through" };
+        }
+
+        const result = await response.json();
+        return result.data || { is_duplicate: false, reason: "No data in AI response" };
+    } catch (err) {
+        logger.warn("AI duplicate check unavailable — allowing through", { error: err.message });
+        return { is_duplicate: false, reason: "AI service unavailable — fail-open" };
+    }
+};
+
+// ─── Register Complaint ──────────────────────────────────
+export const registerComplaint = async (req, res, next) => {
+    try {
+        const citizenId = req.user.id;
+        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+
+        // 🤖 AI Spam Filter — check before persisting
+        const complaintText = `${subject || ""} ${description || ""}`.trim();
+        if (complaintText.length >= 5) {
+            const spamResult = await checkSpam(complaintText);
+            if (spamResult.is_spam) {
+                logger.warn("Spam complaint blocked", { citizenId, reason: spamResult.reason, confidence: spamResult.confidence });
+                return fail(res, "Your complaint was flagged as spam. If this is a mistake, please rephrase and try again.", 400);
+            }
+
+            // 🔁 Duplicate Check — block repeated complaints
+            const dupResult = await checkDuplicate(complaintText, citizenId);
+            if (dupResult.is_duplicate) {
+                logger.warn("Duplicate complaint blocked", { citizenId, similarity: dupResult.similarity, matched_ticket: dupResult.matched_ticket });
+                return fail(res, `This complaint appears to be a duplicate of ticket ${dupResult.matched_ticket} (${Math.round(dupResult.similarity * 100)}% similar). Please check your existing complaints.`, 409);
+            }
+        }
+
+        const ticketNumber = generateTicketNumber("CMP");
+
+        const result = await pool.query(
+            `INSERT INTO complaints 
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             RETURNING *`,
+            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+        );
+
+        // Create complaint lifecycle stages
+        const stages = [
+            { stage: "submitted", status: "current" },
+            { stage: "acknowledged", status: "pending" },
+            { stage: "assigned", status: "pending" },
+            { stage: "in_progress", status: "pending" },
+            { stage: "resolved", status: "pending" },
+            { stage: "closed", status: "pending" },
+        ];
+
+        for (const s of stages) {
+            await pool.query(
+                `INSERT INTO complaint_stages (complaint_id, stage, status) VALUES ($1, $2, $3)`,
+                [result.rows[0].id, s.stage, s.status]
+            );
+        }
+
+        logger.info("Complaint registered", { citizenId, ticketNumber, category, department });
+
+        return success(res, "Complaint registered successfully", {
+            ...result.rows[0],
+            stages: stages.map((s) => ({
+                stage: s.stage,
+                status: s.status,
+            })),
+        }, 201);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Track Complaint by Ticket Number ────────────────────
+export const trackComplaint = async (req, res, next) => {
+    try {
+        const { ticketNumber } = req.params;
+
+        const complaint = await pool.query(
+            `SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile
+             FROM complaints c
+             JOIN citizens ci ON c.citizen_id = ci.id
+             WHERE c.ticket_number = $1`,
+            [ticketNumber]
+        );
+
+        if (complaint.rows.length === 0) {
+            return fail(res, "Complaint not found.", 404);
+        }
+
+        // Get stages
+        const stages = await pool.query(
+            `SELECT stage, status, notes, updated_at 
+             FROM complaint_stages 
+             WHERE complaint_id = $1 
+             ORDER BY updated_at ASC`,
+            [complaint.rows[0].id]
+        );
+
+        // Get messages
+        const messages = await pool.query(
+            `SELECT m.*, c.name as sender_name
+             FROM messages m
+             LEFT JOIN citizens c ON m.sender_id = c.id
+             WHERE m.complaint_id = $1
+             ORDER BY m.created_at ASC`,
+            [complaint.rows[0].id]
+        );
+
+        return success(res, "Complaint tracking details", {
+            ...complaint.rows[0],
+            stages: stages.rows,
+            messages: messages.rows,
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Get My Complaints ───────────────────────────────────
+export const getMyComplaints = async (req, res, next) => {
+    try {
+        const citizenId = req.user.id;
+        const { status, department, page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        let query = `SELECT * FROM complaints WHERE citizen_id = $1`;
+        const params = [citizenId];
+
+        if (status) {
+            query += ` AND status = $${params.length + 1}`;
+            params.push(status);
+        }
+        if (department) {
+            query += ` AND department = $${params.length + 1}`;
+            params.push(department);
+        }
+
+        // Get total count
+        const countQuery = query.replace("SELECT *", "SELECT COUNT(*)");
+        const countResult = await pool.query(countQuery, params);
+
+        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(parseInt(limit), parseInt(offset));
+
+        const result = await pool.query(query, params);
+
+        return paginated(res, "Complaints retrieved", result.rows, {
+            total: parseInt(countResult.rows[0].count),
+            page: parseInt(page),
+            limit: parseInt(limit),
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Update Complaint Status (Admin/Staff) ───────────────
+export const updateComplaintStatus = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status, notes, assigned_to, resolution_note } = req.body;
+        const updatedBy = req.user.id;
+
+        // Get current complaint
+        const current = await pool.query("SELECT * FROM complaints WHERE id = $1", [id]);
+        if (current.rows.length === 0) {
+            return fail(res, "Complaint not found.", 404);
+        }
+
+        // Update complaint
+        const updateFields = ["status = $2", "updated_at = NOW()"];
+        const updateParams = [id, status];
+
+        if (assigned_to) {
+            updateFields.push(`assigned_to = $${updateParams.length + 1}`);
+            updateParams.push(assigned_to);
+        }
+        if (resolution_note) {
+            updateFields.push(`resolution_note = $${updateParams.length + 1}`);
+            updateParams.push(resolution_note);
+        }
+        if (status === "resolved") {
+            updateFields.push("resolved_at = NOW()");
+        }
+        if (status === "closed") {
+            updateFields.push("closed_at = NOW()");
+        }
+
         const result = await pool.query(
             `UPDATE complaints SET ${updateFields.join(", ")} WHERE id = $1 RETURNING *`,
             updateParams
         );
 
         // Update complaint stages
+        // Map top-level status to the actual stage name in complaint_stages
+        const stageNameMap = {
+            'pending': 'submitted', 'submitted': 'submitted',
+            'acknowledged': 'acknowledged', 'assigned': 'assigned',
+            'in_progress': 'in_progress', 'resolved': 'resolved',
+            'closed': 'closed', 'rejected': 'closed',
+        };
+        const dbStageName = stageNameMap[status] || status;
+
         // Mark previous stage as completed
         await pool.query(
             `UPDATE complaint_stages SET status = 'completed', updated_at = NOW()
@@ -283,7 +487,7 @@ export const updateComplaintStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE complaint_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || null, updatedBy, id, dbStageName]
         );
 
         logger.info("Complaint status updated", { complaintId: id, oldStatus: current.rows[0].status, newStatus: status, updatedBy });
@@ -414,6 +618,14 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
             return fail(res, "Complaint not found", 404);
         }
 
+        const stageNameMap = {
+            'pending': 'submitted', 'submitted': 'submitted',
+            'acknowledged': 'acknowledged', 'assigned': 'assigned',
+            'in_progress': 'in_progress', 'resolved': 'resolved',
+            'closed': 'closed', 'rejected': 'closed',
+        };
+        const dbStageName = stageNameMap[status] || status;
+
         await pool.query(
             `UPDATE complaint_stages SET status = 'completed', updated_at = NOW()
              WHERE complaint_id = $1 AND status = 'current'`,
@@ -423,7 +635,7 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
         await pool.query(
             `UPDATE complaint_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE complaint_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || null, updatedBy, id, dbStageName]
         );
 
         return success(res, "Complaint updated (DEBUG)", result.rows[0]);

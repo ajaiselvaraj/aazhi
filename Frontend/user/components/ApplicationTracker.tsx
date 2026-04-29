@@ -391,7 +391,9 @@ const ApplicationTracker: React.FC = () => {
                                     .replace(/inprogress/g, 'in_progress'); // Handle 'inprogress' case
                         };
 
-                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || activeStatus || 'pending');
+                        // Prioritize activeStatus (complaints.status from DB) — this is the same field
+                        // the Admin panel reads, guaranteeing the steppers stay in sync.
+                        const rawStage = (activeStatus || latestUpdate?.stage || item.stage || item.currentStage || 'pending');
                         const derivedStage = normalizeStatus(rawStage);
                         
                         const badgeIsRejected = derivedStage === 'rejected' || item.status === 'rejected';
