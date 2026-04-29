@@ -316,16 +316,28 @@ const ApplicationTracker: React.FC = () => {
             <div className="space-y-6 flex-1 overflow-y-auto pr-2">
                 {itemsToDisplay.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in zoom-in-95">
-                        <p className="text-xl font-black text-slate-800 mb-2">{t('noActivityYet')}</p>
-                        <p className="text-slate-400 font-medium">{t('activityWillAppear')}</p>
+                        <div className="relative inline-block">
+                            {viewMode === 'search' ? <Search className="mx-auto mb-4 text-slate-300" size={48} /> : <FileText className="mx-auto mb-4 text-slate-300" size={48} />}
+                            {viewMode === 'my-activity' && complaints.length > 0 && (
+                                <div className="absolute -top-4 -right-8 bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce shadow-lg whitespace-nowrap">
+                                    {complaints.length} ITEMS FOUND BUT HIDDEN
+                                </div>
+                            )}
+                        </div>
+                        
+                        <p className="text-xl font-black text-slate-800 mb-2">{viewMode === 'search' ? t('noResultsFound') : t('noActivityYet')}</p>
+                        <p className="text-slate-400 font-medium mb-8 max-w-xs mx-auto">{viewMode === 'search' ? t('tryDifferentId') : t('activityWillAppear')}</p>
                     </div>
                 ) : itemsToDisplay.map((item) => {
                     const liveData = realTimeData[item.id];
                     const activeStages = liveData?.stages || item.stages;
                     const activeStatus = liveData?.status || item.status;
                     
+                    // Find the currently active stage, or fallback to the last completed one, or just the last one
                     const latestUpdate = activeStages && activeStages.length > 0 
-                        ? (activeStages.find(s => s.status?.toLowerCase() === 'current') || [...activeStages].reverse()[0])
+                        ? (activeStages.find(s => s.status?.toLowerCase() === 'current') 
+                           || [...activeStages].reverse().find(s => s.status?.toLowerCase() === 'completed')
+                           || [...activeStages].reverse()[0])
                         : null;
 
                     const rawStage = (activeStatus || latestUpdate?.stage || item.stage || 'pending');
