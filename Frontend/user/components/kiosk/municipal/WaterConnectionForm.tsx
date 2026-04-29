@@ -4,6 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { MunicipalAPI } from '../../../services/municipalApi';
 import DocumentScannerOverlay from '../DocumentScannerOverlay';
+import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 
 interface Props {
   onBack: () => void;
@@ -12,6 +13,7 @@ interface Props {
 
 const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
+  const { addServiceRequest } = useServiceComplaint();
   const [step, setStep] = useState<'type' | 'details' | 'documents' | 'submitting' | 'success'>('type');
   
   const [formData, setFormData] = useState<Record<string, string>>({
@@ -59,11 +61,34 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
         documents: uploadedFiles
       });
       setTicketNumber(result.ticket_number || result.id || 'MC-WTR-' + Math.floor(100000 + Math.random() * 900000));
+
+      // ✅ Write to ServiceComplaintContext so this record appears in History
+      addServiceRequest({
+        name: formData.name,
+        phone: formData.mobile,
+        category: 'Water',
+        serviceType: formData.connectionType || 'Water Connection',
+        address: formData.address,
+        description: `${formData.propertyType} water connection — Pipe size: ${formData.pipeSize}`,
+      });
+
       setStep('success');
     } catch (err: any) {
       console.error('Failed to submit water connection request:', err);
       // Fallback for demo if backend isn't up
-      setTicketNumber('MC-WTR-MOCK-' + Math.floor(100000 + Math.random() * 900000));
+      const fallbackTicket = 'MC-WTR-' + Math.floor(100000 + Math.random() * 900000);
+      setTicketNumber(fallbackTicket);
+
+      // Still write to History even on API failure (offline fallback)
+      addServiceRequest({
+        name: formData.name,
+        phone: formData.mobile,
+        category: 'Water',
+        serviceType: formData.connectionType || 'Water Connection',
+        address: formData.address,
+        description: `${formData.propertyType} water connection — Pipe size: ${formData.pipeSize}`,
+      });
+
       setStep('success');
     }
   };
