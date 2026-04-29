@@ -172,7 +172,15 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             try {
                 // Only poll admin endpoints if user is staff/admin
                 const userStr = localStorage.getItem('aazhi_user');
-                const user = userStr ? JSON.parse(userStr) : null;
+                let user: any = null;
+                try {
+                    if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+                        user = JSON.parse(userStr);
+                    }
+                } catch (e) {
+                    // Corrupted user data — skip this poll cycle safely
+                    return;
+                }
                 const isStaff = user?.role === 'staff' || user?.role === 'admin';
 
                 if (!isStaff) return;

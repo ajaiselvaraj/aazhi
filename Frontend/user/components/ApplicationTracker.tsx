@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, ArrowRight, User } from 'lucide-react';
+import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, ArrowRight, User, RefreshCw } from 'lucide-react';
 import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/ServiceComplaintContext';
 import { TrackingStage } from '../types';
 import { MOCK_USER_PROFILE } from '../constants';
