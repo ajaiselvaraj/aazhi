@@ -81,9 +81,15 @@ export type VoiceCommand =
   | 'municipal';
 
 export interface UseSpeechRecognitionOptions {
+<<<<<<< Updated upstream
   /** Callback fired with a matched VoiceCommand string, or "ai_query:<text>" */
   onCommand: (command: string) => void;
   /** BCP-47 language tag. Default: "en-IN". Reactive — changing it takes effect on next session. */
+=======
+  /** Callback fired when a voice command is recognized, or raw transcript is captured */
+  onCommand: (command: string) => void;
+  /** BCP-47 language code for recognition, default "en-IN" */
+>>>>>>> Stashed changes
   lang?: string;
   /** If true, begin listening as soon as the component mounts. */
   autoStart?: boolean;
@@ -452,6 +458,38 @@ export function useSpeechRecognition({
           setLastCommand(matched);
           onCommandRef.current(matched);
           setTimeout(() => setLastCommand(null), 3000);
+<<<<<<< Updated upstream
+=======
+        } else {
+          // If no static command match, pass it for Natural Language processing
+          console.log(`[VoiceHook] Unmatched phrase pushed to AI engine: "${rawTranscript}"`);
+          onCommandRef.current(`ai_query:${rawTranscript}`);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn('[VoiceHook] Error:', event.error);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setError('Microphone access was denied. Please allow microphone permissions.');
+          setIsListening(false);
+          isManuallyStopped.current = true;
+        } else if (event.error === 'no-speech') {
+          // Silence — will auto-restart in onend
+        } else if (event.error === 'network') {
+          setError('Network error. Speech recognition requires an internet connection.');
+        }
+      };
+
+      // Auto-restart on natural end (silence timeout, etc.)
+      recognition.onend = () => {
+        if (!isManuallyStopped.current) {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.warn('[VoiceHook] Restart failed:', e);
+            setIsListening(false);
+          }
+>>>>>>> Stashed changes
         } else {
           // Pass unmatched speech to AI assistant
           const primary = finalAlternatives[0];
