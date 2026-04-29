@@ -192,7 +192,11 @@ const App: React.FC = () => {
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
+<<<<<<< Updated upstream
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>('home');
+=======
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'ai' | 'billing' | 'status' | 'services' | 'complaints' | 'tracker'>('home');
+>>>>>>> Stashed changes
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const timerRef = useRef<number | null>(null);
   // Refactored Login States - Defaulting to AADHAAR while providing a backend-linked mock that generates real JWT tokens.
@@ -476,10 +480,54 @@ const App: React.FC = () => {
         setDashboardInitialAiQuery(query);
         setDashboardInitialTab('ai');
         setView(ViewState.DASHBOARD);
+<<<<<<< Updated upstream
       }
     );
   }, [view, dashboardInitialTab, setView, handleBackToLanding]);
 
+=======
+        break;
+      case 'paybill':
+        setDashboardInitialTab('billing');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'history':
+        setDashboardInitialTab('status');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'service':
+        setDashboardInitialTab('services');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'complaints':
+        setDashboardInitialTab('complaints');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'trackapp':
+        setDashboardInitialTab('tracker');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'gas':
+        setDashboardInitialTab('gas');
+        setView(ViewState.DASHBOARD);
+        break;
+      case 'exit':
+        handleBackToLanding();
+        break;
+      default:
+        if (command.startsWith('ai_query:')) {
+          const rawQuery = command.replace('ai_query:', '').trim();
+          if (rawQuery) {
+            setDashboardInitialAiQuery(rawQuery);
+            setDashboardInitialTab('ai');
+            setView(ViewState.DASHBOARD);
+          }
+        } else {
+          console.warn('Unhandled app-level command:', command);
+        }
+    }
+  }, [setView, handleBackToLanding]);
+>>>>>>> Stashed changes
 
   // ─────────────────────────────────────────────
   // Render: LANDING (Language Selection)
@@ -887,7 +935,11 @@ const App: React.FC = () => {
               isPrivacyShield={isPrivacyShieldOn}
               timer={timer}
               onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
+<<<<<<< Updated upstream
               initialTab={dashboardInitialTab}
+=======
+              initialTab={dashboardInitialTab as any}
+>>>>>>> Stashed changes
               initialAiQuery={dashboardInitialAiQuery}
               onVoiceCommand={handleVoiceCommand}
             />
