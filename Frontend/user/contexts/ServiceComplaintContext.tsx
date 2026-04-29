@@ -283,16 +283,37 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                 if (realRequestTickets.length === 0 && realComplaintTickets.length === 0) return;
 
+                // ── Helper: Direct fetch bypasses apiThrottle/retry queue ──────
+                // The apiClient uses MAX_CONCURRENT=2 and per-minute throttling.
+                // Background polls should NEVER compete with user-facing requests.
+                const API_URL = (() => {
+                    const envUrl = (import.meta as any).env?.VITE_API_URL;
+                    const isProd = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+                    if (isProd && envUrl?.includes('localhost')) return 'https://aazhi-9gj2.onrender.com/api';
+                    return envUrl || 'https://aazhi-9gj2.onrender.com/api';
+                })();
+
+                const directTrack = async (endpoint: string): Promise<any> => {
+                    const res = await fetch(`${API_URL}${endpoint}?_t=${Date.now()}`, {
+                        method: 'GET',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: AbortSignal.timeout(8000),
+                    });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const json = await res.json();
+                    return json?.data ?? json;
+                };
+
                 // Fetch updates in parallel (max 5 at a time to avoid flooding)
                 const reqUpdates = await Promise.allSettled(
                     realRequestTickets.slice(0, 5).map(async (r) => {
-                        const fresh = await GrievanceService.trackRequest(r.id);
+                        const fresh = await directTrack(`/service-requests/track/${encodeURIComponent(r.id)}`);
                         return { localId: r.id, fresh };
                     })
                 );
                 const compUpdates = await Promise.allSettled(
                     realComplaintTickets.slice(0, 5).map(async (c) => {
-                        const fresh = await GrievanceService.trackComplaint(c.id);
+                        const fresh = await directTrack(`/complaints/track/${encodeURIComponent(c.id)}`);
                         return { localId: c.id, fresh };
                     })
                 );
