@@ -153,6 +153,16 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         );
 
         // Update stages
+        // Map admin stage IDs to the actual database stage names
+        const stageNameMap = {
+            'submitted': 'submitted',
+            'officer_assigned': 'under_review',
+            'manager_review': 'verification',
+            'gm_approval': 'approval_pending',
+            'resolved': 'completed'
+        };
+        const dbStageName = stageNameMap[status] || status;
+
         await pool.query(
             `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
              WHERE service_request_id = $1 AND status = 'current'`,
@@ -162,7 +172,7 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         await pool.query(
             `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE service_request_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || null, updatedBy, id, dbStageName]
         );
 
         logger.info("Service request updated", { requestId: id, newStatus: status, updatedBy });
@@ -274,6 +284,15 @@ export const updateRequestStatusDebug = async (req, res, next) => {
             [status, id]
         );
 
+        const stageNameMap = {
+            'submitted': 'submitted',
+            'officer_assigned': 'under_review',
+            'manager_review': 'verification',
+            'gm_approval': 'approval_pending',
+            'resolved': 'completed'
+        };
+        const dbStageName = stageNameMap[status] || status;
+
         await pool.query(
             `UPDATE service_request_stages SET status = 'completed', updated_at = NOW()
              WHERE service_request_id = $1 AND status = 'current'`,
@@ -283,7 +302,7 @@ export const updateRequestStatusDebug = async (req, res, next) => {
         await pool.query(
             `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
              WHERE service_request_id = $3 AND stage = $4`,
-            [notes || null, updatedBy, id, status]
+            [notes || null, updatedBy, id, dbStageName]
         );
 
         return success(res, "Service request status updated (DEBUG)", result.rows[0]);
