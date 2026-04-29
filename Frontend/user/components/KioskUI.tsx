@@ -37,6 +37,8 @@ import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import { useInactivityTimer } from '../hooks/useInactivityTimer';
 import { Persistence } from '../utils/persistence';
+import { routeHierarchy, detectActiveModule } from '../utils/VoiceHierarchyRouter';
+import type { ElectricityView, GasView } from '../utils/VoiceHierarchyRouter';
 
 interface Props {
   language: Language;
@@ -70,6 +72,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   // New Assistant Payment Flow States
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [assistantStep, setAssistantStep] = useState<string | null>(null);
+
+  // ── Voice deep-link sub-view state ──
+  // These carry the L2 view name into ElectricityModule / GasModule
+  // when a voice command skips the landing screen entirely.
+  const [electricitySubView, setElectricitySubView] = useState<ElectricityView | undefined>(undefined);
+  const [gasSubView, setGasSubView] = useState<GasView | undefined>(undefined);
 
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
     return localStorage.getItem('voice_enabled') === 'true';
@@ -161,51 +169,85 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     onLogout();
   });
 
-  // Voice Command Handler
+  // Voice Command Handler — uses VoiceHierarchyRouter for L1+L2 routing
   const handleVoiceCommand = (command: string) => {
-    console.log('[KioskUI] Voice Command Received:', command);
-    switch (command) {
+    console.log('[KioskUI] Voice input received:', command);
+
+    // Build current module context for context-aware matching
+    const ctx = detectActiveModule(activeTab);
+    const action = routeHierarchy(command, ctx);
+
+    if (!action) {
+      // Unrecognized — try simple legacy fallback then speak error
+      console.warn('[KioskUI] No route match for:', command);
+      speakText(t('commandNotUnderstood', 'I did not understand that command.'));
+      return;
+    }
+
+    console.log(`[KioskUI] Route → module=${action.module} subView=${action.subView} tab=${action.dashboardTab}`);
+    speakText(action.announcement);
+
+    // ── L1: Handle global nav modules (no sub-view) ──
+    switch (action.module) {
       case 'home':
         setActiveTab('home');
-        break;
-      case 'service':
-        setActiveTab('services');
-        setSubmissionStep('select');
-        break;
+        return;
       case 'complaints':
         setActiveTab('complaints');
-        break;
-      case 'trackapp':
-        setActiveTab('tracker');
-        break;
+        return;
       case 'assistant':
         setActiveTab('ai');
-        break;
-      case 'paybill':
-        setActiveTab('billing');
-        setBillingStep('select');
-        break;
+        return;
+      case 'tracker':
+        setActiveTab('tracker');
+        return;
       case 'history':
         setActiveTab('status');
-        break;
-      case 'gas':
-        setActiveTab('gas');
-        break;
-      case 'exit':
-        onLogout();
-        break;
-      case 'submit':
-        if (activeTab === 'services' && submissionStep === 'form') {
-          // Simulate submission if needed, or prompt user.
-          setSubmissionStep('success'); // just moving forward for demo
-        } else if (activeTab === 'billing' && billingStep === 'details') {
-          setBillingStep('success');
-        }
-        break;
-      default:
-        console.warn('Unhandled command in KioskUI:', command);
+        return;
+      case 'services':
+        setActiveTab('services');
+        setSubmissionStep('select');
+        return;
+      case 'municipal':
+        setActiveTab('municipal');
+        return;
+    }
+
+    // ── L2: Electricity deep navigation ──
+    if (action.module === 'electricity') {
+      const subView = (action.subView ?? 'HOME') as ElectricityView;
+      setElectricitySubView(subView);
+      // If not already in billing/electricity, navigate there first
+      if (activeTab !== 'billing' || selectedBillService?.id !== 'elec') {
+        setSelectedBillService({ id: 'elec', name: 'Electricity' });
+        setBillingStep('form'); // skip selection — go straight to module
+        setActiveTab('billing');
+      }
+      return;
+    }
+
+    // ── L2: Gas deep navigation ──
+    if (action.module === 'gas') {
+      const subView = (action.subView ?? 'HOME') as GasView;
+      setGasSubView(subView);
+      setActiveTab('gas');
+      return;
+    }
+
+    // ── L2: Water / Pay Bill ──
+    if (action.module === 'water') {
+      setSelectedBillService({ id: 'water', name: 'Water' });
+      setBillingStep('select');
+      setActiveTab('billing');
+      return;
+    }
+    if (action.module === 'paybill') {
+      setBillingStep('select');
+      setActiveTab('billing');
+      return;
     }
   };
+
 
   // Initialize Chat with Welcome Message on Load
   useEffect(() => {
@@ -790,7 +832,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         )}
 
         {/* VIEW: GAS MODULE */}
-        {activeTab === 'gas' && <GasModule onBack={() => setActiveTab('services')} language={language} />}
+        {activeTab === 'gas' && <GasModule
+          onBack={() => { setGasSubView(undefined); setActiveTab('services'); }}
+          language={language}
+          initialSubView={gasSubView}
+          onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+        />}
         
         {/* VIEW: MUNICIPAL MODULE */}
         {activeTab === 'municipal' && <MunicipalModule onBack={() => setActiveTab('services')} language={language} />}
@@ -840,11 +887,21 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {billingStep === 'form' && selectedBillService && (
               // If Electricity, use Module, else generic form
               selectedBillService.id === 'elec' ? (
-                <ElectricityModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
+                <ElectricityModule
+                  onBack={resetBilling}
+                  language={language}
+                  onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+                  initialSubView={electricitySubView}
+                />
               ) : selectedBillService.id === 'water' ? (
                 <MunicipalModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
               ) : selectedBillService.id === 'gas' ? (
-                <GasModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
+                <GasModule
+                  onBack={resetBilling}
+                  language={language}
+                  onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+                  initialSubView={gasSubView}
+                />
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
                   <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-10 hover:text-blue-600 transition">

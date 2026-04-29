@@ -1,19 +1,66 @@
 /**
- * useSpeechRecognition — Custom React hook for Speech-to-Text (Voice Commands)
+ * useSpeechRecognition — Production-Grade, Kiosk-Safe Voice Recognition Hook
  *
- * Supported Commands:
- *   login, home, service, complaints, trackapp, assistant, submit
+ * ── WHAT WAS BROKEN (and why) ──────────────────────────────────────────────
  *
- * Uses Web Speech API (SpeechRecognition) with automatic fallback detection.
- * Continuously listens and auto-restarts on silence.
+ * 1. CIRCULAR useCallback DEPENDENCY (critical bug):
+ *    createRecognition() called destroyInstance() and itself inside onend.
+ *    This created a circular dependency chain between two useCallback hooks,
+ *    meaning every time either ref changed, BOTH callbacks were re-created,
+ *    and the closure inside onend always held a stale copy of createRecognition.
+ *    Result: the auto-restart logic was calling a stale no-op version of itself.
  *
- * @param onCommand - callback fired when a recognized command is detected
- * @returns { isListening, isSupported, error, transcript, startListening, stopListening, toggleListening }
+ * 2. CLOSURE CAPTURE IN onend:
+ *    The onend handler captured createRecognition/destroyInstance from the
+ *    useCallback closure at the time the instance was created. If React
+ *    re-rendered between creation and onend firing, the captured references
+ *    were stale. This is why the restart "appeared" to run but produced no result.
+ *
+ * 3. INSTANCE BUILT INSIDE useCallback:
+ *    Building the SpeechRecognition instance inside a useCallback meant every
+ *    dependency change silently rebuilt the factory but not the active instance.
+ *    The live recognition object was always wired to callbacks from a previous
+ *    render cycle.
+ *
+ * ── HOW IT IS FIXED ────────────────────────────────────────────────────────
+ *
+ * - ALL mutable state used inside recognition callbacks is stored in useRef.
+ *   Refs never go stale. Closures always read the current value.
+ *
+ * - The recognition instance lifecycle (create, start, destroy, restart) is
+ *   managed by a single internal function (buildAndStart) that reads from
+ *   refs only — no useCallback, no dependency arrays, no stale closures.
+ *
+ * - buildAndStart is stored in a ref (buildAndStartRef) and called by name
+ *   inside the onend handler. Since refs are stable, onend always calls the
+ *   latest version of the function.
+ *
+ * - startListening / stopListening / toggleListening are the only useCallback
+ *   functions exposed. They have zero dependencies (they only touch refs and
+ *   call buildAndStartRef.current).
+ *
+ * ── ARCHITECTURE ───────────────────────────────────────────────────────────
+ *
+ *   startListening()
+ *     → destroyActive()           [nulls all handlers, aborts, clears ref]
+ *     → buildAndStart()           [creates fresh instance, wires handlers, .start()]
+ *         onstart   → sets isListening=true
+ *         onspeechstart → logs
+ *         onresult  → updates transcript, fires onCommand on isFinal only
+ *         onerror   → logs; fatal errors set isManuallyStopped=true
+ *         onend     → if !manuallyStopped: setTimeout(800ms) → buildAndStart()
+ *
+ *   stopListening()
+ *     → sets isManuallyStopped=true
+ *     → destroyActive()
+ *     → setIsListening(false)
+ *
+ * COMPATIBILITY: Chrome 70+ desktop, Chrome Android, Android WebView (kiosk)
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-// ─── Types ────────────────────────────────────────────────────────
+// ─── Public Types ─────────────────────────────────────────────────
 export type VoiceCommand =
   | 'login'
   | 'home'
@@ -25,211 +72,597 @@ export type VoiceCommand =
   | 'history'
   | 'gas'
   | 'exit'
-  | 'submit';
+  | 'submit'
+  | 'electricity_bill'
+  | 'water_bill'
+  | 'aadhaar'
+  | 'back'
+  | 'repeat'
+  | 'municipal';
 
 export interface UseSpeechRecognitionOptions {
-  /** Callback fired when a voice command is recognized, or raw transcript is captured */
+  /** Callback fired with a matched VoiceCommand string, or "ai_query:<text>" */
   onCommand: (command: string) => void;
-  /** BCP-47 language code for recognition, default "en-IN" */
+  /** BCP-47 language tag. Default: "en-IN". Reactive — changing it takes effect on next session. */
   lang?: string;
-  /** Whether to automatically start listening on mount */
+  /** If true, begin listening as soon as the component mounts. */
   autoStart?: boolean;
 }
 
 export interface UseSpeechRecognitionReturn {
-  /** Whether the recognizer is actively listening */
   isListening: boolean;
-  /** Whether the browser supports Web Speech API */
   isSupported: boolean;
-  /** Error message (mic denied, unsupported, etc.) */
   error: string | null;
-  /** The last raw transcript received */
   transcript: string;
-  /** The last matched command (for visual feedback) */
   lastCommand: VoiceCommand | null;
-  /** Start listening */
   startListening: () => void;
-  /** Stop listening */
   stopListening: () => void;
-  /** Toggle listening on/off */
   toggleListening: () => void;
 }
 
-// ─── Command Keyword Map ──────────────────────────────────────────
-// Each command maps to an array of keywords/phrases that trigger it.
-// Uses loose "includes" matching for robustness with speech recognition.
-const COMMAND_MAP: Record<VoiceCommand, string[]> = {
-  login: ['login', 'log in', 'sign in', 'signin', 'authenticate'],
-  home: ['home', 'go home', 'main page', 'dashboard', 'main'],
-  service: ['service', 'services', 'department', 'departments', 'apply'],
-  complaints: ['complaint', 'complaints', 'grievance', 'grievances', 'report', 'issue', 'problem'],
-  trackapp: ['track', 'track app', 'track application', 'tracking', 'status', 'check status'],
-  assistant: ['assistant', 'help', 'ai', 'chatbot', 'chat', 'support', 'guide'],
-  paybill: ['pay bill', 'pay bills', 'billing', 'payment', 'pay'],
-  history: ['history', 'records', 'past requests', 'my history'],
-  gas: ['gas', 'gas services', 'gas department', 'gas connection', 'lpg', 'cylinder', 'gas booking'],
-  exit: ['exit', 'logout', 'log out', 'sign out', 'leave', 'quit'],
-  submit: ['submit', 'send', 'confirm', 'yes', 'done', 'finish', 'complete'],
-};
+// ─── Intent / Command Map ─────────────────────────────────────────
+// Priority-ordered: more specific multi-word phrases come BEFORE single words.
+const COMMAND_MAP: [VoiceCommand, string[]][] = [
+  ['electricity_bill', [
+    'electricity bill', 'electricity payment', 'open electricity',
+    'eb bill', 'e b bill', 'power bill', 'current bill', 'pay current bill',
+    'current payment', 'bijli bill', 'bijli ka bill',
+    'बिजली बिल', 'बिजली का बिल', 'বিদ্যুৎ বিল', 'மின்சார கட்டணம்',
+  ]],
+  ['water_bill', [
+    'water bill', 'water payment', 'water tax', 'pay water',
+    'water supply bill', 'jal bill',
+    'पानी का बिल', 'पानी बिल', 'জল বিল', 'தண்ணீர் கட்டணம்',
+  ]],
+  ['gas', [
+    'gas booking', 'gas service', 'gas cylinder', 'gas connection', 'book gas',
+    'lpg booking', 'lpg cylinder', 'lpg service',
+    'गैस बुकिंग', 'गैस', 'সিলিন্ডার', 'கேஸ்',
+  ]],
+  ['aadhaar', [
+    'aadhaar verification', 'aadhaar check', 'aadhar verification', 'aadhar check',
+    'verify aadhaar', 'open aadhaar', 'aadhaar', 'aadhar',
+    'आधार', 'আধাৰ', 'ஆதார்',
+  ]],
+  ['municipal', [
+    'municipal services', 'municipality services', 'corporation services',
+    'municipal corporation', 'municipality', 'corporation',
+    'नगर पालिका', 'পৌৰসভা', 'நகராட்சி',
+  ]],
+  ['home', [
+    'go home', 'go to home', 'open home', 'main page', 'home page', 'dashboard', 'home',
+    'मुख्य पृष्ठ', 'होम', 'হোম', 'முகப்பு',
+  ]],
+  ['service', [
+    'open services', 'government services', 'all services', 'view services',
+    'services', 'service', 'department',
+    'सेवाएं', 'সেৱা', 'சேவைகள்',
+  ]],
+  ['complaints', [
+    'register complaint', 'file complaint', 'submit complaint', 'grievance',
+    'complaint', 'complaints', 'report problem',
+    'शिकायत', 'অভিযোগ', 'புகார்',
+  ]],
+  ['trackapp', [
+    'track application', 'track app', 'track my request', 'check status',
+    'application status', 'track status', 'track',
+    'स्थिति', 'আৱেদনৰ অৱস্থা', 'நிலைமை',
+  ]],
+  ['assistant', [
+    'open assistant', 'ai assistant', 'talk to assistant',
+    'help me', 'assistant', 'chatbot', 'help', 'support',
+    'मदद', 'সহায়', 'உதவி',
+  ]],
+  ['paybill', [
+    'pay bills', 'pay my bill', 'bill payment', 'billing', 'payment',
+    'बिल भुगतान', 'বিল', 'பில்',
+  ]],
+  ['history', [
+    'my history', 'past requests', 'my requests', 'view history', 'records', 'history',
+    'इतिहास', 'ইতিহাস', 'வரலாறு',
+  ]],
+  ['back', [
+    'go back', 'previous page', 'back', 'return',
+    'वापस', 'পিছলৈ', 'பின்னால்',
+  ]],
+  ['exit', [
+    'log out', 'logout', 'sign out', 'exit app', 'exit', 'quit',
+    'लॉगआउट', 'বাহিৰলৈ', 'வெளியேறு',
+  ]],
+  ['submit', [
+    'submit form', 'submit request', 'confirm submit', 'confirm',
+    'submit', 'send', 'done', 'finish',
+    'सबमिट', 'জমা দিয়ক', 'சமர்ப்பி',
+  ]],
+  ['login', [
+    'log in', 'sign in', 'login', 'authenticate',
+    'लॉग इन', 'লগ ইন', 'நுழை',
+  ]],
+  ['repeat', [
+    'say again', 'repeat that', 'pardon', 'repeat',
+    'दोहराएं', 'পুনৰাবৃত্তি', 'மீண்டும்',
+  ]],
+];
 
-// ─── Hook Implementation ──────────────────────────────────────────
+// ─── Text Normalizer (Unicode-safe) ──────────────────────────────
+// Strips ASCII punctuation only. Does NOT strip Hindi/Tamil/Assamese characters.
+function normalizeText(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[.,?!;:()'"\-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ─── Intent Matcher ───────────────────────────────────────────────
+function matchIntent(raw: string): VoiceCommand | null {
+  const normalized = normalizeText(raw);
+  console.log('[STT:Intent] Matching normalized text:', JSON.stringify(normalized));
+  for (const [cmd, keywords] of COMMAND_MAP) {
+    for (const kw of keywords) {
+      if (normalized.includes(kw.toLowerCase())) {
+        console.log(`[STT:Intent] ✅ Matched command="${cmd}" via keyword="${kw}"`);
+        return cmd;
+      }
+    }
+  }
+  console.log('[STT:Intent] ❌ No match — will route to AI');
+  return null;
+}
+
+// ─── Resolve the SpeechRecognition constructor once at module level ─
+// Stored at module scope so it is computed exactly once, not on every render.
+const SpeechRecognitionAPI: (new () => any) | null =
+  typeof window !== 'undefined'
+    ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null)
+    : null;
+
+// ─── Environment diagnostics (run once at startup) ────────────────
+if (typeof window !== 'undefined') {
+  const isSecure = window.isSecureContext;
+  const proto    = window.location.protocol;
+  const host     = window.location.hostname;
+  const origin   = window.location.origin;
+  console.log(`[STT:Env] Protocol: ${proto}  Host: ${host}  Origin: ${origin}  SecureContext: ${isSecure}`);
+  if (!isSecure) {
+    console.error(
+      '[STT:Env] ⛔ PAGE IS NOT A SECURE CONTEXT.\n' +
+      '  SpeechRecognition REQUIRES https:// or localhost.\n' +
+      `  Current origin: ${origin}\n` +
+      '  If you are on a LAN IP (e.g., 192.168.x.x), Chrome will block mic access\n' +
+      '  and return onerror("network") or onerror("not-allowed").\n' +
+      '  FIX: Open the app via http://localhost:3000 (not the LAN IP).'
+    );
+  }
+  if (!SpeechRecognitionAPI) {
+    console.error('[STT:Env] ❌ SpeechRecognition API not found. Chrome / Chrome Android required.');
+  } else {
+    console.log('[STT:Env] ✅ SpeechRecognition API available.');
+  }
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────
 export function useSpeechRecognition({
   onCommand,
   lang = 'en-IN',
   autoStart = false,
 }: UseSpeechRecognitionOptions): UseSpeechRecognitionReturn {
-  const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState('');
-  const [lastCommand, setLastCommand] = useState<VoiceCommand | null>(null);
 
-  const recognitionRef = useRef<any>(null);
-  const isManuallyStopped = useRef(false);
-  const onCommandRef = useRef(onCommand);
+  // ── React state (drives UI) ──────────────────────────────────────
+  const [isListening,  setIsListening]  = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [transcript,   setTranscript]   = useState('');
+  const [lastCommand,  setLastCommand]  = useState<VoiceCommand | null>(null);
 
-  // Keep the callback reference fresh without re-creating the recognizer
-  useEffect(() => {
-    onCommandRef.current = onCommand;
-  }, [onCommand]);
+  // ── Refs (readable from any closure without stale capture) ────────
+  //
+  // RULE: Every value that a recognition event handler needs to READ or WRITE
+  //       must live in a ref. Closures over useState setters are fine because
+  //       React guarantees setter identity is stable across renders.
+  //
+  const recognitionRef      = useRef<any>(null);       // The active SpeechRecognition instance
+  const isManuallyStopped   = useRef(false);           // True when user deliberately stopped
+  const isListeningRef      = useRef(false);           // Mirror of isListening for sync reads
+  const restartTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onCommandRef        = useRef(onCommand);       // Always current callback
+  const langRef             = useRef(lang);            // Always current lang
+  // Counts consecutive network errors — drives restart backoff
+  const networkErrCount     = useRef(0);
 
-  // ── Feature detection ───────────────────────────────────────────
-  const SpeechRecognitionAPI =
-    typeof window !== 'undefined'
-      ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-      : null;
+  // Keep refs in sync with props on every render (no dependency array needed)
+  onCommandRef.current = onCommand;
+  langRef.current      = lang;
 
   const isSupported = !!SpeechRecognitionAPI;
 
-  // ── Match transcript to a command ───────────────────────────────
-  const matchCommand = useCallback((text: string): VoiceCommand | null => {
-    const cleaned = text.toLowerCase().trim().replace(/[^\w\s]/gi, '');
-
-    for (const [command, keywords] of Object.entries(COMMAND_MAP)) {
-      for (const keyword of keywords) {
-        if (cleaned.includes(keyword)) {
-          return command as VoiceCommand;
-        }
-      }
+  // ── destroyActive ─────────────────────────────────────────────────
+  // Tears down the current recognition instance completely.
+  // Nulls out ALL event handlers before abort() to prevent ghost callbacks.
+  // Safe to call even if no instance exists.
+  //
+  // NOTE: This is a plain function (not useCallback) because it only touches
+  // refs and is only ever called from other ref-stored functions or stable
+  // useCallback wrappers. It never needs to be passed as a prop.
+  function destroyActive() {
+    if (restartTimerRef.current !== null) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+      console.log('[STT:Lifecycle] Pending restart timer cancelled.');
     }
-    return null;
-  }, []);
+    if (recognitionRef.current) {
+      console.log('[STT:Lifecycle] 🧹 Destroying active recognition instance.');
+      const rec = recognitionRef.current;
+      // Null every handler BEFORE abort to prevent any late-firing callbacks.
+      rec.onstart       = null;
+      rec.onaudiostart  = null;
+      rec.onsoundstart  = null;
+      rec.onspeechstart = null;
+      rec.onspeechend   = null;
+      rec.onsoundend    = null;
+      rec.onaudioend    = null;
+      rec.onresult      = null;
+      rec.onerror       = null;
+      rec.onend         = null;
+      try { rec.abort(); } catch (_) { /* already stopped — ignore */ }
+      recognitionRef.current = null;
+    }
+  }
 
-  // ── Start Recognition ───────────────────────────────────────────
-  const startListening = useCallback(() => {
+  // ── buildAndStart ─────────────────────────────────────────────────
+  // Creates a FRESH SpeechRecognition instance, wires all event handlers,
+  // and calls .start(). Reads exclusively from refs — never from closure state.
+  //
+  // Stored in a ref (buildAndStartRef) so the onend handler can call
+  // "the current version" of this function without capturing a stale closure.
+  //
+  function buildAndStart() {
     if (!SpeechRecognitionAPI) {
-      setError('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+      console.error('[STT:Lifecycle] ❌ SpeechRecognition API not available. Aborting.');
+      return;
+    }
+    if (isManuallyStopped.current) {
+      console.log('[STT:Lifecycle] Skipping buildAndStart — manually stopped.');
+      return;
+    }
+    if (isListeningRef.current) {
+      console.warn('[STT:Lifecycle] Already listening — skipping duplicate buildAndStart.');
       return;
     }
 
-    // Tear down previous instance
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      try { recognitionRef.current.stop(); } catch (_) { /* ignore */ }
-    }
+    console.log('[STT:Lifecycle] 🔧 Creating FRESH SpeechRecognition instance...');
+    const rec = new SpeechRecognitionAPI();
 
-    try {
-      const recognition = new SpeechRecognitionAPI();
-      recognition.lang = lang;
-      recognition.continuous = true;
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 3;
+    // ── Core Configuration ──────────────────────────────────────────
+    //
+    // continuous=true  → do not stop after one phrase; keep mic open.
+    //                    This eliminates the need for rapid restart cycles.
+    //
+    // interimResults=true → receive partial results in real time.
+    //                       We only fire commands on isFinal=true results,
+    //                       but the partial transcript is shown in the UI.
+    //
+    // maxAlternatives=5 → increases the chance of matching a keyword even
+    //                      if the top-1 transcript has a transcription error.
+    //
+    // lang              → always read from langRef so it reflects the latest
+    //                     prop value at the moment of instance creation.
+    //
+    rec.continuous      = true;
+    rec.interimResults  = true;
+    rec.maxAlternatives = 5;
+    rec.lang            = langRef.current;
 
-      recognition.onstart = () => {
-        setIsListening(true);
-        setError(null);
-        isManuallyStopped.current = false;
-      };
+    console.log(
+      `[STT:Lifecycle] Config → lang="${rec.lang}" continuous=${rec.continuous} ` +
+      `interimResults=${rec.interimResults} maxAlternatives=${rec.maxAlternatives}`
+    );
 
-      recognition.onresult = (event: any) => {
-        const results = event.results;
-        const latestResult = results[results.length - 1];
-        const rawTranscript = latestResult[0].transcript;
+    // ── onstart ────────────────────────────────────────────────────
+    rec.onstart = () => {
+      console.log('[STT:Event] ✅ onstart — microphone is OPEN. lang=' + rec.lang);
+      isListeningRef.current = true;
+      networkErrCount.current = 0; // clean start — reset backoff counter
+      setIsListening(true);
+      setError(null);
+    };
 
-        setTranscript(rawTranscript);
-        console.log('[VoiceHook] Transcript:', rawTranscript);
+    // ── onaudiostart ───────────────────────────────────────────────
+    rec.onaudiostart = () => {
+      console.log('[STT:Event] 🎙️ onaudiostart — audio pipeline receiving data');
+    };
 
-        const matched = matchCommand(rawTranscript);
+    // ── onsoundstart ───────────────────────────────────────────────
+    rec.onsoundstart = () => {
+      console.log('[STT:Event] 🔉 onsoundstart — sound present in audio stream');
+    };
+
+    // ── onspeechstart ──────────────────────────────────────────────
+    rec.onspeechstart = () => {
+      console.log('[STT:Event] 🗣️ onspeechstart — SPEECH DETECTED');
+    };
+
+    // ── onspeechend ────────────────────────────────────────────────
+    rec.onspeechend = () => {
+      console.log('[STT:Event] 🔇 onspeechend — user stopped speaking');
+    };
+
+    // ── onsoundend ─────────────────────────────────────────────────
+    rec.onsoundend = () => {
+      console.log('[STT:Event] 🔈 onsoundend — sound ended');
+    };
+
+    // ── onaudioend ─────────────────────────────────────────────────
+    rec.onaudioend = () => {
+      console.log('[STT:Event] 🎧 onaudioend — audio capture ended');
+    };
+
+    // ── onresult ───────────────────────────────────────────────────
+    // Fired every time the engine produces a transcript (interim or final).
+    // We always update the displayed transcript for any result.
+    // We ONLY run intent matching on isFinal=true results to prevent
+    // premature command firing from partial speech.
+    rec.onresult = (event: any) => {
+      console.log(
+        `[STT:Event] 📝 onresult — resultIndex=${event.resultIndex} ` +
+        `total=${event.results.length}`
+      );
+
+      let latestTopTranscript = '';       // Best alt of newest result (for display)
+      const finalAlternatives: string[] = []; // All alts from final results only
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        for (let a = 0; a < result.length; a++) {
+          const text = result[a].transcript?.trim() ?? '';
+          const conf = result[a].confidence?.toFixed(3) ?? 'n/a';
+          if (!text) continue;
+
+          console.log(
+            `[STT:Event]   results[${i}].alternatives[${a}]: "${text}" ` +
+            `isFinal=${result.isFinal} confidence=${conf}`
+          );
+
+          if (a === 0 && i === event.results.length - 1) {
+            // Top alternative of the most recent result → update display
+            latestTopTranscript = text;
+          }
+          if (result.isFinal) {
+            finalAlternatives.push(text);
+          }
+        }
+      }
+
+      // Update live transcript display
+      if (latestTopTranscript) {
+        setTranscript(latestTopTranscript);
+      }
+
+      // Intent matching — ONLY on finalized speech
+      if (finalAlternatives.length > 0) {
+        console.log('[STT:Intent] 🏁 Final transcript(s):', finalAlternatives);
+        let matched: VoiceCommand | null = null;
+        for (const alt of finalAlternatives) {
+          matched = matchIntent(alt);
+          if (matched) break;
+        }
+
         if (matched) {
-          console.log(`[VoiceHook] Command matched: "${matched}"`);
+          console.log(`[STT:Intent] 🚀 Firing command: "${matched}"`);
           setLastCommand(matched);
           onCommandRef.current(matched);
-
-          // Clear the last-command indicator after 3 seconds
           setTimeout(() => setLastCommand(null), 3000);
         } else {
-          // If no static command match, pass it for Natural Language processing
-          console.log(`[VoiceHook] Unmatched phrase pushed to AI engine: "${rawTranscript}"`);
-          onCommandRef.current(`ai_query:${rawTranscript}`);
+          // Pass unmatched speech to AI assistant
+          const primary = finalAlternatives[0];
+          console.log(`[STT:Intent] 🤖 Routing to AI: "${primary}"`);
+          onCommandRef.current(`ai_query:${primary}`);
         }
-      };
+      }
+    };
 
-      recognition.onerror = (event: any) => {
-        console.warn('[VoiceHook] Error:', event.error);
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setError('Microphone access was denied. Please allow microphone permissions.');
-          setIsListening(false);
+    // ── onerror ────────────────────────────────────────────────────
+    // Handles all recognition errors. Fatal errors (permission denied, no mic)
+    // set isManuallyStopped=true so onend does NOT auto-restart.
+    // Non-fatal errors (no-speech, network blip, aborted) allow onend to restart.
+    //
+    // "network" error most likely causes in this project:
+    //  1. App opened via LAN IP on HTTP — insecure context, Chrome blocks cloud speech
+    //  2. Zero-delay instance reuse — previous TCP session not fully closed
+    //  3. Firewall/proxy blocking speech.googleapis.com
+    //  4. Rapid restart loop exhausting Chrome speech service quota
+    rec.onerror = (event: any) => {
+      const type = event.error as string;
+      const msg  = (event.message as string) || '(no message)';
+      console.warn(`[STT:Event] ⚠️ onerror — type="${type}" message="${msg}"`);
+      // Dump full event for debugging
+      console.warn('[STT:Event] Full error event:', JSON.stringify({
+        error:     event.error,
+        message:   event.message,
+        timeStamp: event.timeStamp,
+      }));
+
+      switch (type) {
+        case 'not-allowed':
+        case 'service-not-allowed':
+          console.error(
+            '[STT:Error] 🔒 FATAL — Microphone permission denied.\n' +
+            '  Possible causes:\n' +
+            '  1. User clicked "Block" on the mic permission prompt.\n' +
+            '  2. Page served over HTTP on a LAN IP (not localhost/HTTPS).\n' +
+            `  Current origin: ${typeof window !== 'undefined' ? window.location.origin : 'unknown'}\n` +
+            '  FIX: Open via http://localhost:3000, not the LAN IP.'
+          );
+          setError('Microphone access denied. Open via localhost or HTTPS and allow mic permission.');
           isManuallyStopped.current = true;
-        } else if (event.error === 'no-speech') {
-          // Silence — will auto-restart in onend
-        } else if (event.error === 'network') {
-          setError('Network error. Speech recognition requires an internet connection.');
-        }
-      };
-
-      // Auto-restart on natural end (silence timeout, etc.)
-      recognition.onend = () => {
-        if (!isManuallyStopped.current) {
-          try {
-            recognition.start();
-          } catch (e) {
-            console.warn('[VoiceHook] Restart failed:', e);
-            setIsListening(false);
-          }
-        } else {
+          isListeningRef.current    = false;
           setIsListening(false);
-        }
-      };
+          break;
 
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (e) {
-      console.error('[VoiceHook] Init failed:', e);
-      setError('Failed to initialize speech recognition.');
+        case 'audio-capture':
+          console.error('[STT:Error] 🎙️ FATAL — No microphone hardware detected.');
+          setError('No microphone found. Please connect a microphone.');
+          isManuallyStopped.current = true;
+          isListeningRef.current    = false;
+          setIsListening(false);
+          break;
+
+        case 'network':
+          networkErrCount.current += 1;
+          console.error(
+            `[STT:Error] 🌐 Network error (occurrence #${networkErrCount.current}).\n` +
+            '  Most likely causes for THIS app:\n' +
+            '  1. App opened via LAN IP on HTTP — insecure context.\n' +
+            '     SOLUTION: Use http://localhost:3000\n' +
+            '  2. Previous session not fully closed before restart (zero-delay restart).\n' +
+            '     SOLUTION: 800ms+ delay before restart (enforced in onend).\n' +
+            '  3. Firewall or proxy blocking speech.googleapis.com.\n' +
+            '     SOLUTION: Whitelist *.googleapis.com on your network.\n' +
+            '  4. Chrome speech quota exceeded by rapid restart loops.\n' +
+            '     SOLUTION: Backoff enforced in onend.'
+          );
+          if (networkErrCount.current >= 3) {
+            setError(
+              'Speech service unavailable. Use localhost (not LAN IP), check internet, or refresh.'
+            );
+          }
+          // Non-fatal — onend will restart with exponential backoff
+          break;
+
+        case 'no-speech':
+          console.log('[STT:Error] 🔕 no-speech — silence timeout. onend will restart.');
+          break;
+
+        case 'aborted':
+          console.log('[STT:Error] ⏸ aborted — intentional (manual stop or restart).');
+          break;
+
+        default:
+          console.warn(`[STT:Error] ❓ Unhandled error type: "${type}"`);
+          break;
+      }
+    };
+
+    // ── onend ──────────────────────────────────────────────────────
+    // Fires after EVERY recognition session end — whether from silence timeout,
+    // error, or explicit stop. This is the ONLY place that schedules a restart.
+    //
+    // CRITICAL RULES enforced here:
+    //  1. Never restart if isManuallyStopped is true.
+    //  2. Always wait at least 800ms before restarting (hardware mic release time).
+    //  3. ALWAYS call buildAndStartRef.current() — never call buildAndStart()
+    //     directly — to ensure we execute the LATEST version of the function,
+    //     not a stale closure captured when this instance was first created.
+    rec.onend = () => {
+      isListeningRef.current = false;
+      setIsListening(false);
+      console.log(
+        `[STT:Event] 🔚 onend — session ended. manuallyStopped=${isManuallyStopped.current} ` +
+        `networkErrCount=${networkErrCount.current}`
+      );
+
+      if (isManuallyStopped.current) {
+        console.log('[STT:Lifecycle] Staying stopped (manual stop requested).');
+        return;
+      }
+
+      // Compute restart delay with exponential backoff for network errors.
+      // Base: 800ms (minimum hardware mic release time).
+      // Each consecutive network error adds 500ms, capped at 5s total.
+      // This prevents hammering the speech service when connection is unstable.
+      const baseDelay    = 800;
+      const backoffExtra = Math.min(networkErrCount.current * 500, 4200);
+      const delay        = baseDelay + backoffExtra;
+
+      console.log(`[STT:Lifecycle] ⏳ Scheduling fresh restart in ${delay}ms (backoff=${backoffExtra}ms)...`);
+      restartTimerRef.current = setTimeout(() => {
+        restartTimerRef.current = null;
+        if (isManuallyStopped.current) {
+          console.log('[STT:Lifecycle] Restart aborted — stopped during wait window.');
+          return;
+        }
+        console.log('[STT:Lifecycle] 🔄 Restarting with FRESH instance...');
+        // Always call via ref — never call buildAndStart() directly in a closure.
+        // This ensures we execute the LATEST version, not a stale captured copy.
+        buildAndStartRef.current();
+      }, delay);
+    };
+
+    // Store and start
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      console.log('[STT:Lifecycle] 🚀 recognition.start() called.');
+    } catch (e: any) {
+      console.error('[STT:Lifecycle] ❌ recognition.start() threw:', e.message);
+      setError('Failed to start speech recognition: ' + e.message);
+      recognitionRef.current = null;
+      isListeningRef.current = false;
       setIsListening(false);
     }
-  }, [SpeechRecognitionAPI, lang, matchCommand]);
+  }
 
-  // ── Stop Recognition ────────────────────────────────────────────
-  const stopListening = useCallback(() => {
-    isManuallyStopped.current = true;
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null;
-      recognitionRef.current.onerror = null;
-      try { recognitionRef.current.stop(); } catch (_) { /* ignore */ }
+  // Store buildAndStart in a ref so onend can ALWAYS call the current version.
+  // This is the key pattern that breaks the circular-closure problem:
+  //   onend → buildAndStartRef.current()  (always current, never stale)
+  const buildAndStartRef = useRef(buildAndStart);
+  buildAndStartRef.current = buildAndStart; // Updated on every render
+
+  // ── startListening (public API) ────────────────────────────────────
+  const startListening = useCallback(() => {
+    if (!SpeechRecognitionAPI) {
+      console.error('[STT:API] ❌ SpeechRecognition not supported in this browser.');
+      setError('Speech recognition is not supported. Please use Chrome.');
+      return;
     }
-    setIsListening(false);
-  }, []);
+    if (isListeningRef.current) {
+      console.warn('[STT:API] Already listening — ignoring duplicate start call.');
+      return;
+    }
+    console.log('[STT:API] startListening() invoked.');
+    destroyActive();
+    isManuallyStopped.current = false;
+    networkErrCount.current   = 0;   // reset backoff on explicit user start
+    buildAndStartRef.current();
+  }, []); // zero deps — reads exclusively from refs
 
-  // ── Toggle ──────────────────────────────────────────────────────
+  // ── stopListening (public API) ─────────────────────────────────────
+  const stopListening = useCallback(() => {
+    console.log('[STT:API] stopListening() invoked — halting recognition.');
+    isManuallyStopped.current = true;
+    isListeningRef.current    = false;
+    destroyActive();
+    setIsListening(false);
+  }, []); // zero deps — reads exclusively from refs
+
+  // ── toggleListening (public API) ───────────────────────────────────
   const toggleListening = useCallback(() => {
-    if (isListening) {
+    if (isListeningRef.current) {
       stopListening();
     } else {
       startListening();
     }
-  }, [isListening, startListening, stopListening]);
+  }, [startListening, stopListening]);
 
-  // ── Auto-start on mount (optional) ─────────────────────────────
+  // ── Auto-start on mount ────────────────────────────────────────────
   useEffect(() => {
     if (autoStart && isSupported) {
-      startListening();
+      // Delay 300ms to let React complete the mount cycle before touching audio APIs.
+      const t = setTimeout(() => {
+        console.log('[STT:API] 🟢 Auto-start triggered (mount delay 300ms).');
+        startListening();
+      }, 300);
+      return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Cleanup on unmount ─────────────────────────────────────────────
+  useEffect(() => {
     return () => {
+      console.log('[STT:API] 🔴 Component unmounting — stopping recognition.');
       isManuallyStopped.current = true;
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop(); } catch (_) { /* ignore */ }
-      }
+      destroyActive();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

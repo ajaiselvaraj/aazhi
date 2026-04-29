@@ -7,6 +7,7 @@ import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import './i18n';
 import { speakText, loadVoices } from './utils/speak';
+import { dispatchVoiceCommand, buildContext } from './utils/VoiceCommandRouter';
 
 // ─── LAZY LOADED COMPONENTS (Code Splitting) ───
 const KioskUI = lazy(() => import('./components/KioskUI'));
@@ -441,60 +442,44 @@ const App: React.FC = () => {
   };
 
   const handleVoiceCommand = useCallback((command: string) => {
-    console.log('App received voice command:', command);
-    switch (command) {
-      case 'login':
-        setView(ViewState.SELECTION);
-        break;
-      case 'home':
-        setDashboardInitialTab('home');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'assistant':
+    console.log('[App] Voice input received:', command);
+
+    // Strip the "ai_query:" prefix if the speech hook pre-routed it
+    // (legacy compatibility — the hook may still use this prefix)
+    const rawText = command.startsWith('ai_query:')
+      ? command.replace('ai_query:', '').trim()
+      : command;
+
+    // Build context from current view + tab so the router can apply
+    // context-aware rules (e.g., "gas" inside billing vs. global)
+    const context = buildContext(view, dashboardInitialTab);
+
+    dispatchVoiceCommand(
+      rawText,
+      context,
+      // ── Matched a navigation command ──────────────────────────────
+      (action) => {
+        console.log(`[App] Navigating → view=${action.view} tab=${action.tab} (command=${action.command})`);
+        if (action.command === 'exit') {
+          // Exit has special handling — call the full logout flow
+          handleBackToLanding();
+          return;
+        }
+        if (action.tab) {
+          setDashboardInitialTab(action.tab);
+        }
+        setView(action.view);
+      },
+      // ── No command matched — route to AI assistant ─────────────────
+      (query) => {
+        console.log('[App] Routing to AI assistant with query:', query);
+        setDashboardInitialAiQuery(query);
         setDashboardInitialTab('ai');
         setView(ViewState.DASHBOARD);
-        break;
-      case 'paybill':
-        setDashboardInitialTab('billing');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'history':
-        setDashboardInitialTab('status');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'service':
-        setDashboardInitialTab('services');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'complaints':
-        setDashboardInitialTab('complaints');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'trackapp':
-        setDashboardInitialTab('tracker');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'gas':
-        setDashboardInitialTab('gas');
-        setView(ViewState.DASHBOARD);
-        break;
-      case 'exit':
-        handleBackToLanding();
-        break;
-      default:
-        // Automatically inject unmatched conversational speech into the AI Assistant Module
-        if (command.startsWith('ai_query:')) {
-          const rawQuery = command.replace('ai_query:', '').trim();
-          if (rawQuery) {
-            setDashboardInitialAiQuery(rawQuery);
-            setDashboardInitialTab('ai');
-            setView(ViewState.DASHBOARD);
-          }
-        } else {
-          console.warn('Unhandled app-level command:', command);
-        }
-    }
-  }, [setView, handleBackToLanding]);
+      }
+    );
+  }, [view, dashboardInitialTab, setView, handleBackToLanding]);
+
 
   // ─────────────────────────────────────────────
   // Render: LANDING (Language Selection)
