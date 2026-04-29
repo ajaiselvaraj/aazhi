@@ -63,16 +63,16 @@ const ApplicationTracker: React.FC = () => {
             'pending': t('pending'),
             'submitted': t('submitted'),
             'assigned': t('assigned'),
-            'officer_assigned': t('assigned'),
+            'officer_assigned': t('officerAssigned') || 'Officer Assigned',
             'in_progress': t('inProgress'),
             'working': t('inProgress'),
             'resolved': t('resolved'),
-            'completed': t('resolved'),
+            'completed': t('completed') || 'Completed',
             'closed': t('closed'),
             'rejected': t('rejected'),
-            'under_review': t('underReview'),
-            'verification': t('verification'),
-            'approval_pending': t('approvalPending')
+            'under_review': t('underReview') || 'Under Review',
+            'verification': t('verification') || 'Verification',
+            'approval_pending': t('approvalPending') || 'Approval Pending'
         };
         return map[key] || stageName;
     };
@@ -131,13 +131,16 @@ const ApplicationTracker: React.FC = () => {
 
     const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
+    const [errorCount, setErrorCount] = useState(0);
+
     useEffect(() => {
         let isMounted = true;
         let pollTimer: any = null;
 
         const fetchLatest = async () => {
-            if (!itemsToDisplay.length) return;
+            if (!itemsToDisplay.length || errorCount > 3) return;
             setIsSyncing(true);
+            
             try {
                 const results = await Promise.all(
                     itemsToDisplay.map(async (item) => {
@@ -147,7 +150,9 @@ const ApplicationTracker: React.FC = () => {
                                 ? await GrievanceService.trackComplaint(item.id)
                                 : await GrievanceService.trackRequest(item.id);
                             return { id: item.id, stages: fresh.stages, status: fresh.status };
-                        } catch {
+                        } catch (err: any) {
+                            // If it's a 500 or 404, we count it as a failure for this item
+                            console.error(`Fetch failed for ${item.id}:`, err.message);
                             return null;
                         }
                     })
@@ -155,19 +160,43 @@ const ApplicationTracker: React.FC = () => {
 
                 if (isMounted) {
                     const newData: Record<string, { stages: any[], status: string }> = {};
-                    results.forEach(res => { if (res) newData[res.id] = { stages: res.stages, status: res.status }; });
-                    setRealTimeData(prev => ({ ...prev, ...newData }));
+                    let successCount = 0;
+                    results.forEach(res => { 
+                        if (res) {
+                            newData[res.id] = { stages: res.stages, status: res.status };
+                            successCount++;
+                        }
+                    });
+
+                    if (successCount > 0) {
+                        setRealTimeData(prev => ({ ...prev, ...newData }));
+                        setErrorCount(0); // Reset on success
+                    } else if (itemsToDisplay.length > 0) {
+                        setErrorCount(prev => prev + 1);
+                    }
+                    
                     setLastSyncTime(new Date().toLocaleTimeString());
                 }
+            } catch (globalErr) {
+                if (isMounted) setErrorCount(prev => prev + 1);
             } finally {
                 if (isMounted) setIsSyncing(false);
             }
         };
         
         fetchLatest();
-        pollTimer = setInterval(fetchLatest, 5000);
-        return () => { isMounted = false; if (pollTimer) clearInterval(pollTimer); };
-    }, [itemsToDisplay.length]);
+        
+        // Dynamic interval: stop if too many errors, or slow down
+        const intervalTime = errorCount > 0 ? 15000 : 5000;
+        if (errorCount <= 5) {
+            pollTimer = setInterval(fetchLatest, intervalTime);
+        }
+
+        return () => {
+            isMounted = false;
+            if (pollTimer) clearInterval(pollTimer);
+        };
+    }, [itemsToDisplay.length, errorCount]); // Added errorCount to re-calculate interval
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;
@@ -320,7 +349,7 @@ const ApplicationTracker: React.FC = () => {
                                 <div className="relative flex justify-between">
                                     <div className="absolute top-[14px] left-0 w-full h-[3px] bg-slate-200 rounded-full"></div>
                                     {(() => {
-                                        const reqStages = ['submitted', 'officer_assigned', 'manager_review', 'gm_approval', 'resolved'];
+                                        const reqStages = ['submitted', 'under_review', 'verification', 'approval_pending', 'completed'];
                                         const compStages = ['pending', 'assigned', 'in_progress', 'resolved', 'closed'];
                                         const stages = item.type === 'Request' ? reqStages : compStages;
                                         
