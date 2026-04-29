@@ -22,33 +22,42 @@ const ApplicationTracker: React.FC = () => {
     // Get current user from storage for filtering
     const userStr = localStorage.getItem('aazhi_user');
     const token = localStorage.getItem('aazhi_token');
-    const currentUser = userStr ? JSON.parse(userStr) : MOCK_USER_PROFILE;
+    
+    // Safety Parse for User
+    let currentUser: any = MOCK_USER_PROFILE;
+    try {
+        if (userStr && userStr !== 'undefined' && userStr !== 'null') {
+            currentUser = JSON.parse(userStr);
+        }
+    } catch (e) {
+        console.error("Failed to parse user profile", e);
+    }
 
     // Kiosk/Offline Mode Detection: If no real token, we treat all local items as visible
-    const isKioskMode = !token || currentUser.id === 'guest_user' || currentUser.id?.startsWith('dev_') || currentUser.id === 'CIT-9921';
+    const isKioskMode = !token || currentUser?.id === 'guest_user' || currentUser?.id?.startsWith('dev_') || currentUser?.id === 'CIT-9921';
 
     // Normalize data for unified view
+    const safeServiceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
+    const safeComplaints = Array.isArray(complaints) ? complaints : [];
+
     const myActivity: ActivityItem[] = [
-        ...serviceRequests
+        ...safeServiceRequests
             .filter(r => {
-                if (isKioskMode) {
-                    // In kiosk/dev mode, show ALL locally stored items to ensure visibility after bypass login
-                    return true; 
-                }
-                return r.phone === currentUser.mobile || r.citizenId === currentUser.id;
+                if (isKioskMode) return true; 
+                return r.phone === currentUser?.mobile || r.citizenId === currentUser?.id;
             })
             .map(r => ({ ...r, type: 'Request' as const })),
-        ...complaints
+        ...safeComplaints
             .filter(c => {
-                if (isKioskMode) {
-                    return true;
-                }
-                return c.phone === currentUser.mobile || c.citizenId === currentUser.id;
+                if (isKioskMode) return true;
+                return c.phone === currentUser?.mobile || c.citizenId === currentUser?.id;
             })
             .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
     ].sort((a, b) => {
         const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
         const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
+        if (isNaN(dateA)) return 1;
+        if (isNaN(dateB)) return -1;
         return dateB - dateA;
     });
 
@@ -59,13 +68,13 @@ const ApplicationTracker: React.FC = () => {
         setSearchResult([]);
 
         // 1. Search locally first
-        const localRequests = serviceRequests.filter(req =>
-            req.id.toLowerCase() === searchId.toLowerCase().trim() ||
+        const localRequests = safeServiceRequests.filter(req =>
+            req.id?.toLowerCase() === searchId.toLowerCase().trim() ||
             (req.phone && req.phone === searchId.trim())
         ).map(r => ({ ...r, type: 'Request' as const }));
 
-        const localComplaints = complaints.filter(c =>
-            c.id.toLowerCase() === searchId.toLowerCase().trim() ||
+        const localComplaints = safeComplaints.filter(c =>
+            c.id?.toLowerCase() === searchId.toLowerCase().trim() ||
             c.phone === searchId.trim()
         ).map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }));
 
@@ -86,20 +95,20 @@ const ApplicationTracker: React.FC = () => {
             let apiResult: ActivityItem[] = [];
             try {
                 const req = await GrievanceService.trackRequest(searchId.trim());
-                if (req) apiResult.push({ ...req, type: 'Request' as const });
+                if (req && typeof req === 'object') apiResult.push({ ...req, type: 'Request' as const });
             } catch (e) {
-                // Ignore failure, try complaint
+                // Ignore failure
             }
 
             if (apiResult.length === 0) {
                 try {
                     const comp = await GrievanceService.trackComplaint(searchId.trim());
-                    if (comp) {
+                    if (comp && typeof comp === 'object') {
                         apiResult.push({ 
                             ...comp, 
                             type: 'Complaint' as const, 
-                            serviceType: comp.request_type || comp.complaintType || comp.category,
-                            category: comp.department || comp.category
+                            serviceType: comp.request_type || comp.complaintType || comp.category || 'General',
+                            category: comp.department || comp.category || 'General'
                         });
                     }
                 } catch (e) {

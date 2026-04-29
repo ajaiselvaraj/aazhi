@@ -474,6 +474,7 @@ const BASE_TRANSLATIONS = {
   err_mobile: "Enter valid 10-digit Mobile Number",
   err_adminPass: "Invalid Admin Password",
   err_otp: "Please enter a valid 6-digit OTP",
+  trackApp: "Track App",
   appTagline: "Accessible. Transparent. Efficient."
 };
 
