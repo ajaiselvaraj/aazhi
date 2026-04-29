@@ -309,9 +309,16 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             const match = successfulReqUpdates.find(u => u.localId === existing.id);
                             if (!match) return existing;
                             const fresh = match.fresh;
+
+                            // Service requests have current_stage column in the DB
                             const newStage = fresh.current_stage || fresh.stage || existing.stage;
-                            const newStatus = fresh.status || existing.status;
+                            // Normalize status: backend stores 'pending','resolved' etc; local uses 'active','resolved','rejected'
+                            const rawStatus = fresh.status || existing.status;
+                            const newStatus = rawStatus === 'pending' || rawStatus === 'submitted' || rawStatus === 'active' || rawStatus === 'working' || rawStatus === 'assigned' || rawStatus === 'officer_assigned' || rawStatus === 'manager_review' || rawStatus === 'gm_approval'
+                                ? (rawStatus === 'resolved' || rawStatus === 'completed' ? 'resolved' : 'active')
+                                : rawStatus;
                             const newStages = fresh.stages || existing.stages;
+
                             if (existing.stage === newStage && existing.status === newStatus) return existing;
                             changed = true;
                             const stageMap: Record<string, string> = {
@@ -321,7 +328,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                 'working': 'Working', 'assigned': 'Assigned', 'completed': 'Resolved'
                             };
                             const normalizedStage = stageMap[newStage] || (newStage.charAt(0).toUpperCase() + newStage.slice(1));
-                            console.log(`🔄 [Sync] Request ${existing.id}: ${existing.stage} → ${newStage} (${existing.status} → ${newStatus})`);
+                            console.log(`🔄 [Sync] Request ${existing.id}: "${existing.stage}" → "${newStage}"`);
                             return { ...existing, stage: newStage, currentStage: normalizedStage, status: newStatus, stages: newStages };
                         });
                         if (!changed) return prev;
@@ -342,10 +349,37 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             const match = successfulCompUpdates.find(u => u.localId === existing.id);
                             if (!match) return existing;
                             const fresh = match.fresh;
-                            const newStage = fresh.current_stage || fresh.stage || existing.stage;
-                            const newStatus = fresh.status || existing.status;
+
+                            // ⚠️ KEY FIX: Complaints table has NO current_stage/stage column.
+                            // The current stage must be extracted from the complaint_stages
+                            // join table, returned as fresh.stages[].  Find the 'current' entry.
+                            const currentStageEntry = Array.isArray(fresh.stages)
+                                ? fresh.stages.find((s: any) =>
+                                    s.status === 'current' || s.status === 'Current'
+                                  )
+                                : null;
+                            const newStage = currentStageEntry?.stage   // e.g. 'assigned', 'in_progress'
+                                || fresh.status                           // fallback: complaint status IS the stage
+                                || existing.stage;
+
+                            // Map backend status to local status enum (active/resolved/rejected)
+                            const rawStatus = fresh.status || existing.status;
+                            let newStatus: 'active' | 'resolved' | 'rejected';
+                            if (rawStatus === 'resolved' || rawStatus === 'closed') {
+                                newStatus = 'resolved';
+                            } else if (rawStatus === 'rejected') {
+                                newStatus = 'rejected';
+                            } else {
+                                newStatus = 'active'; // pending, assigned, in_progress → still active
+                            }
+
                             const newStages = fresh.stages || existing.stages;
-                            if (existing.stage === newStage && existing.status === newStatus) return existing;
+
+                            // Force update if EITHER stage or status changed
+                            const stageChanged = existing.stage !== newStage;
+                            const statusChanged = existing.status !== newStatus;
+                            if (!stageChanged && !statusChanged) return existing;
+
                             changed = true;
                             const stageMap: Record<string, string> = {
                                 'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
@@ -354,7 +388,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                 'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
                             };
                             const normalizedStage = stageMap[newStage] || (newStage.charAt(0).toUpperCase() + newStage.slice(1));
-                            console.log(`🔄 [Sync] Complaint ${existing.id}: ${existing.stage} → ${newStage} (${existing.status} → ${newStatus})`);
+                            console.log(`🔄 [Sync] Complaint ${existing.id}: "${existing.stage}" → "${newStage}" | status: "${existing.status}" → "${newStatus}"`);
                             return { ...existing, stage: newStage, currentStage: normalizedStage, status: newStatus, stages: newStages };
                         });
                         if (!changed) return prev;
