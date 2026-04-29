@@ -1,23 +1,13 @@
 import React, { useState, Suspense, lazy, forwardRef, useEffect } from 'react';
-import { Mic, MicOff, ChevronDown, Languages, Loader2 } from 'lucide-react';
+import { MicOff, ChevronDown, Languages, Loader2 } from 'lucide-react';
 import type { SuvidhaVoiceControlProps, SuvidhaVoiceControlRef } from './SuvidhaVoiceControlImpl';
 
 // Dynamically import the heavy voice logic only when needed
 const SuvidhaVoiceControlImpl = lazy(() => import('./SuvidhaVoiceControlImpl'));
 
-<<<<<<< Updated upstream
 const SuvidhaVoiceControl = forwardRef<SuvidhaVoiceControlRef, SuvidhaVoiceControlProps>((props, ref) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isMounting, setIsMounting] = useState(false);
-=======
-// ─── Types ────────────────────────────────────────────────────────
-export interface SuvidhaVoiceControlProps {
-  /**
-   * Callback fired when a voice command is recognized.
-   * Use this to navigate pages or trigger actions.
-   */
-  onCommand: (command: string) => void;
->>>>>>> Stashed changes
 
   // If programmatic speech is requested via ref, we must load the module immediately
   useEffect(() => {
@@ -25,8 +15,6 @@ export interface SuvidhaVoiceControlProps {
       // It's tricky to intercept ref calls before the component mounts.
       // So if a parent passes a ref, they might want to use it programmatically.
       // We will lazily load it if the parent explicitly passes a ref and we aren't loaded.
-      // But actually, the prompt says "Load voice logic only when user clicks the mic button".
-      // We'll leave it unloaded until clicked, or unless autoStart is used (not in our props though).
     }
   }, [ref, isLoaded]);
 
@@ -37,7 +25,6 @@ export interface SuvidhaVoiceControlProps {
     setIsLoaded(true);
   };
 
-<<<<<<< Updated upstream
   if (isLoaded) {
     return (
       <Suspense fallback={
@@ -50,111 +37,6 @@ export interface SuvidhaVoiceControlProps {
         {/* We pass an extra autoStart prop so it immediately listens once loaded */}
         <SuvidhaVoiceControlImpl {...props} ref={ref} autoStart={true} />
       </Suspense>
-=======
-  /**
-   * Whether to show the STT (microphone) button.
-   * Default: true
-   */
-  showSTT?: boolean;
-
-  /**
-   * BCP-47 language for speech recognition input.
-   * Default: "en-IN"
-   */
-  sttLang?: string;
-
-  /**
-   * Layout variant:
-   *   - "floating" — compact floating widget (default)
-   *   - "inline"   — inline bar for embedding in headers/toolbars
-   *   - "panel"    — expanded panel with all details visible
-   */
-  variant?: 'floating' | 'inline' | 'panel';
-
-  /**
-   * Additional CSS class name for the root container
-   */
-  className?: string;
-}
-
-/**
- * Ref handle exposed via forwardRef so parent components
- * can programmatically trigger TTS from outside.
- */
-export interface SuvidhaVoiceControlRef {
-  /** Speak text programmatically */
-  speakText: (text: string, language?: string) => void;
-  /** Stop all speech */
-  stopSpeaking: () => void;
-  /** Start listening for voice commands */
-  startListening: () => void;
-  /** Stop listening for voice commands */
-  stopListening: () => void;
-}
-
-// ─── Human-readable command labels ────────────────────────────────
-const COMMAND_LABELS: Record<VoiceCommand, string> = {
-  login: '🔐 Login',
-  home: '🏠 Home',
-  service: '🏛️ Services',
-  complaints: '📋 Complaints',
-  trackapp: '🔍 Track Application',
-  assistant: '🤖 AI Assistant',
-  paybill: '💳 Pay Bill',
-  history: '📜 History',
-  exit: '🚪 Exit',
-  submit: '✅ Submit',
-};
-
-// ─── Available TTS Languages (quick-select) ───────────────────────
-const TTS_LANGUAGES = [
-  { label: 'English', value: 'English' },
-  { label: 'தமிழ்', value: 'Tamil' },
-  { label: 'हिन्दी', value: 'Hindi' },
-  { label: 'తెలుగు', value: 'Telugu' },
-  { label: 'ಕನ್ನಡ', value: 'Kannada' },
-  { label: 'മലയാളം', value: 'Malayalam' },
-];
-
-// ─── Component ────────────────────────────────────────────────────
-const SuvidhaVoiceControl = forwardRef<SuvidhaVoiceControlRef, SuvidhaVoiceControlProps>(
-  (
-    {
-      onCommand,
-      ttsLanguage = 'English',
-      showTTS = true,
-      showSTT = true,
-      sttLang = 'en-IN',
-      variant = 'floating',
-      className = '',
-    },
-    ref
-  ) => {
-    // ── Local state ───────────────────────────────────────────────
-    const [isExpanded, setIsExpanded] = useState(variant === 'panel');
-    const [selectedTTSLang, setSelectedTTSLang] = useState(ttsLanguage);
-    const [showLangPicker, setShowLangPicker] = useState(false);
-    const [commandFeedback, setCommandFeedback] = useState<string | null>(null);
-
-    const langPickerRef = useRef<HTMLDivElement>(null);
-
-    // ── Hooks ─────────────────────────────────────────────────────
-    const handleCommand = useCallback(
-      (command: string) => {
-        if (command.startsWith('ai_query:')) {
-          setCommandFeedback('AI Request Received');
-          setTimeout(() => setCommandFeedback(null), 3000);
-          onCommand(command);
-          return;
-        }
-
-        const label = COMMAND_LABELS[command as VoiceCommand];
-        setCommandFeedback(label || 'Command Recognized');
-        setTimeout(() => setCommandFeedback(null), 3000);
-        onCommand(command);
-      },
-      [onCommand]
->>>>>>> Stashed changes
     );
   }
 

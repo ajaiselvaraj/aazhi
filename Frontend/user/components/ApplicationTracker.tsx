@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, ArrowRight, User, RefreshCw } from 'lucide-react';
 import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +36,15 @@ const ApplicationTracker: React.FC = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
     const [realTimeData, setRealTimeData] = useState<Record<string, { stages: any[], status: string }>>({});
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+    const [errorCount, setErrorCount] = useState(0);
+
+    const currentUser = MOCK_USER_PROFILE;
+    const isKioskMode = true;
+
+    const safeServiceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
+    const safeComplaints = Array.isArray(complaints) ? complaints : [];
     
     // --- LOCAL HELPERS ---
     const translateDynamic = (text: string) => {
@@ -58,57 +67,34 @@ const ApplicationTracker: React.FC = () => {
 
     const translateStage = (stageName: string) => {
         if (!stageName) return '';
-        const key = normalizeStatus(stageName);
+        const key = stageName.toLowerCase().replace(/[\s_]+/g, '');
         const map: any = {
             'pending': t('pending'),
             'submitted': t('submitted'),
             'assigned': t('assigned'),
-            'officer_assigned': t('officerAssigned') || 'Officer Assigned',
-            'in_progress': t('inProgress'),
-            'working': t('inProgress'),
+            'officerassigned': t('officerAssigned'),
+            'underreview': t('underReview'),
+            'inprogress': t('inProgress'),
+            'verification': t('verification'),
             'resolved': t('resolved'),
-            'completed': t('completed') || 'Completed',
+            'completed': t('completed'),
             'closed': t('closed'),
-            'rejected': t('rejected'),
-            'under_review': t('underReview') || 'Under Review',
-            'verification': t('verification') || 'Verification',
-            'approval_pending': t('approvalPending') || 'Approval Pending'
+            'rejected': t('rejected')
         };
         return map[key] || stageName;
     };
 
     const getStageColor = (item: ActivityItem) => {
         const liveData = realTimeData[item.id];
-        const status = (liveData?.status || item.status || '').toLowerCase();
+        const status = (liveData?.status || item.status || 'pending').toLowerCase();
         
-        if (status === 'resolved' || status === 'closed' || status === 'completed') return 'bg-green-50 text-green-600 border-green-100';
-        if (status === 'rejected') return 'bg-red-50 text-red-600 border-red-100';
-        if (status === 'active' || status === 'pending' || status === 'submitted') return 'bg-blue-50 text-blue-600 border-blue-100';
-        return 'bg-amber-50 text-amber-600 border-amber-100';
+        if (['resolved', 'completed', 'closed'].includes(status)) return 'bg-green-50 border-green-200 text-green-700';
+        if (['rejected', 'failed', 'cancelled'].includes(status)) return 'bg-red-50 border-red-200 text-red-700';
+        if (['in_progress', 'working', 'under_review'].includes(status)) return 'bg-blue-50 border-blue-200 text-blue-700';
+        return 'bg-slate-50 border-slate-200 text-slate-600';
     };
 
-    // Get current user from storage for filtering
-    const userStr = localStorage.getItem('aazhi_user');
-    const token = localStorage.getItem('aazhi_token');
-    
-    let currentUser: any = MOCK_USER_PROFILE;
-    try {
-        if (userStr && userStr !== 'undefined' && userStr !== 'null') {
-            currentUser = JSON.parse(userStr);
-        }
-    } catch (e) {
-        console.error("Failed to parse user profile", e);
-    }
-
-    const isKioskMode = !token || currentUser?.id === 'guest_user' || currentUser?.id?.startsWith('dev_') || currentUser?.id === 'CIT-9921';
-
-    const [isSyncing, setIsSyncing] = useState(false);
-    const [lastSyncTime, setLastSyncTime] = useState<string>('');
-
-    const safeServiceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
-    const safeComplaints = Array.isArray(complaints) ? complaints : [];
-
-    const myActivity = React.useMemo(() => {
+    const myActivity = useMemo<ActivityItem[]>(() => {
         return [
             ...safeServiceRequests
                 .filter(r => {
@@ -121,15 +107,15 @@ const ApplicationTracker: React.FC = () => {
                     if (isKioskMode) return true;
                     return c.phone === currentUser?.mobile || c.citizenId === currentUser?.id;
                 })
-                .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
+                .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType, category: c.category || 'General' }))
         ].sort((a, b) => {
             const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
             const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
             return dateB - dateA;
-        });
-       const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
+        }) as ActivityItem[];
+    }, [safeServiceRequests, safeComplaints, isKioskMode, currentUser]);
 
-    const [errorCount, setErrorCount] = useState(0);
+    const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     useEffect(() => {
         let isMounted = true;
@@ -150,8 +136,6 @@ const ApplicationTracker: React.FC = () => {
             setIsSyncing(true);
             
             try {
-                // To avoid hitting the 30-per-minute throttle limit, we fetch items sequentially with a small delay
-                // instead of Promise.all which can spam the gateway all at once.
                 const results = [];
                 for (const item of activeItems) {
                     if (!isMounted) break;
@@ -160,45 +144,36 @@ const ApplicationTracker: React.FC = () => {
                             ? await GrievanceService.trackComplaint(item.id)
                             : await GrievanceService.trackRequest(item.id);
                         
-                        console.log(`🌐 [Tracker] API response for ${item.id}:`, fresh);
-                        results.push({ id: item.id, stages: fresh.stages, status: fresh.status });
-                        
-                        // Small 300ms gap between items to be polite to the gateway
-                        await new Promise(r => setTimeout(r, 300));
-                    } catch (err: any) {
-                        console.error(`❌ [Tracker] Fetch failed for ${item.id}:`, err.message);
-                    }
-                }
-
-                if (isMounted) {
-                    const newData: Record<string, { stages: any[], status: string }> = {};
-                    let successCount = 0;
-                    results.forEach(res => { 
-                        if (res) {
-                            newData[res.id] = { stages: res.stages, status: res.status };
-                            successCount++;
+                        if (fresh) {
+                            console.log(`🌐 [Tracker] Sync success for ${item.id}:`, fresh.status);
+                            results.push({ id: item.id, stages: fresh.stages || [], status: fresh.status });
                         }
-                    });
-
-                    if (successCount > 0) {
-                        setRealTimeData(prev => ({ ...prev, ...newData }));
-                        setErrorCount(0);
-                    } else if (activeItems.length > 0) {
-                        setErrorCount(prev => prev + 1);
+                    } catch (err) {
+                        console.warn(`⚠️ [Tracker] Sync failed for ${item.id}`);
                     }
-                    
-                    setLastSyncTime(new Date().toLocaleTimeString());
+                    // Sequential delay
+                    await new Promise(r => setTimeout(r, 300));
                 }
-            } catch (globalErr) {
-                if (isMounted) setErrorCount(prev => prev + 1);
+
+                if (isMounted && results.length > 0) {
+                    setRealTimeData(prev => {
+                        const next = { ...prev };
+                        results.forEach(r => { next[r.id] = { stages: r.stages, status: r.status }; });
+                        return next;
+                    });
+                    setLastSyncTime(new Date().toLocaleTimeString());
+                    setErrorCount(0);
+                }
+            } catch (error) {
+                console.error('❌ [Tracker] Poll cycle failed:', error);
+                setErrorCount(prev => prev + 1);
             } finally {
                 if (isMounted) setIsSyncing(false);
             }
         };
-        
+
         fetchLatest();
         
-        // Increase interval to 20s to stay well within the 30-per-minute limit
         const intervalTime = errorCount > 0 ? 30000 : 20000;
         if (errorCount <= 5) {
             pollTimer = setInterval(fetchLatest, intervalTime);
@@ -208,8 +183,7 @@ const ApplicationTracker: React.FC = () => {
             isMounted = false;
             if (pollTimer) clearInterval(pollTimer);
         };
-    }, [itemsToDisplay.length, errorCount, realTimeData]); 
-
+    }, [itemsToDisplay.length, errorCount, realTimeData, itemsToDisplay]); 
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;
@@ -218,7 +192,7 @@ const ApplicationTracker: React.FC = () => {
         try {
             const data = await GrievanceService.trackComplaint(searchId.trim());
             if (data) {
-                setSearchResult([{ ...data, type: 'Complaint', serviceType: data.complaintType, category: data.category }]);
+                setSearchResult([{ ...data, type: 'Complaint', serviceType: data.complaintType, category: data.category || 'General' }]);
                 setViewMode('search');
             } else {
                 setSearchError(t('ticketNotFound') || 'Ticket not found.');
@@ -316,15 +290,7 @@ const ApplicationTracker: React.FC = () => {
             <div className="space-y-6 flex-1 overflow-y-auto pr-2">
                 {itemsToDisplay.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in zoom-in-95">
-                        <div className="relative inline-block">
-                            {viewMode === 'search' ? <Search className="mx-auto mb-4 text-slate-300" size={48} /> : <FileText className="mx-auto mb-4 text-slate-300" size={48} />}
-                            {viewMode === 'my-activity' && complaints.length > 0 && (
-                                <div className="absolute -top-4 -right-8 bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-full animate-bounce shadow-lg whitespace-nowrap">
-                                    {complaints.length} ITEMS FOUND BUT HIDDEN
-                                </div>
-                            )}
-                        </div>
-                        
+                        <Search className="mx-auto mb-4 text-slate-300" size={48} />
                         <p className="text-xl font-black text-slate-800 mb-2">{viewMode === 'search' ? t('noResultsFound') : t('noActivityYet')}</p>
                         <p className="text-slate-400 font-medium mb-8 max-w-xs mx-auto">{viewMode === 'search' ? t('tryDifferentId') : t('activityWillAppear')}</p>
                     </div>
@@ -333,10 +299,9 @@ const ApplicationTracker: React.FC = () => {
                     const activeStages = liveData?.stages || item.stages;
                     const activeStatus = liveData?.status || item.status;
                     
-                    // Find the currently active stage, or fallback to the last completed one, or just the last one
                     const latestUpdate = activeStages && activeStages.length > 0 
-                        ? (activeStages.find(s => s.status?.toLowerCase() === 'current') 
-                           || [...activeStages].reverse().find(s => s.status?.toLowerCase() === 'completed')
+                        ? (activeStages.find((s: any) => s.status?.toLowerCase() === 'current') 
+                           || [...activeStages].reverse().find((s: any) => s.status?.toLowerCase() === 'completed')
                            || [...activeStages].reverse()[0])
                         : null;
 
@@ -401,7 +366,7 @@ const ApplicationTracker: React.FC = () => {
                                 <div className="px-8 py-6 border-t border-slate-100">
                                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">{t('latestUpdates')}</p>
                                     <div className="space-y-4">
-                                        {[...activeStages].filter(s => s.status?.toLowerCase() !== 'pending').reverse().slice(0, 3).map((stage, idx) => (
+                                        {[...activeStages].filter((s: any) => s.status?.toLowerCase() !== 'pending').reverse().slice(0, 3).map((stage: any, idx) => (
                                             <div key={idx} className="flex gap-4 items-start">
                                                 <div className="w-2 h-2 rounded-full mt-1.5 bg-blue-500"></div>
                                                 <div>
