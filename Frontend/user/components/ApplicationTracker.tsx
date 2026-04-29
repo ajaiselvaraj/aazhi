@@ -127,9 +127,7 @@ const ApplicationTracker: React.FC = () => {
             const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
             return dateB - dateA;
         });
-    }, [safeServiceRequests, safeComplaints, isKioskMode, currentUser?.mobile, currentUser?.id]);
-
-    const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
+       const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     const [errorCount, setErrorCount] = useState(0);
 
@@ -138,25 +136,39 @@ const ApplicationTracker: React.FC = () => {
         let pollTimer: any = null;
 
         const fetchLatest = async () => {
-            if (!itemsToDisplay.length || errorCount > 3) return;
+            // Only poll for items that aren't already in a final/terminal state
+            const activeItems = itemsToDisplay.filter(item => {
+                const status = (realTimeData[item.id]?.status || item.status || '').toLowerCase();
+                return !['resolved', 'closed', 'completed', 'rejected'].includes(status);
+            });
+
+            if (!activeItems.length || errorCount > 3) {
+                if (isMounted) setIsSyncing(false);
+                return;
+            }
+
             setIsSyncing(true);
             
             try {
-                const results = await Promise.all(
-                    itemsToDisplay.map(async (item) => {
-                        if (!item.id) return null;
-                        try {
-                            const fresh = item.type === 'Complaint' 
-                                ? await GrievanceService.trackComplaint(item.id)
-                                : await GrievanceService.trackRequest(item.id);
-                            return { id: item.id, stages: fresh.stages, status: fresh.status };
-                        } catch (err: any) {
-                            // If it's a 500 or 404, we count it as a failure for this item
-                            console.error(`Fetch failed for ${item.id}:`, err.message);
-                            return null;
-                        }
-                    })
-                );
+                // To avoid hitting the 30-per-minute throttle limit, we fetch items sequentially with a small delay
+                // instead of Promise.all which can spam the gateway all at once.
+                const results = [];
+                for (const item of activeItems) {
+                    if (!isMounted) break;
+                    try {
+                        const fresh = item.type === 'Complaint' 
+                            ? await GrievanceService.trackComplaint(item.id)
+                            : await GrievanceService.trackRequest(item.id);
+                        
+                        console.log(`🌐 [Tracker] API response for ${item.id}:`, fresh);
+                        results.push({ id: item.id, stages: fresh.stages, status: fresh.status });
+                        
+                        // Small 300ms gap between items to be polite to the gateway
+                        await new Promise(r => setTimeout(r, 300));
+                    } catch (err: any) {
+                        console.error(`❌ [Tracker] Fetch failed for ${item.id}:`, err.message);
+                    }
+                }
 
                 if (isMounted) {
                     const newData: Record<string, { stages: any[], status: string }> = {};
@@ -170,8 +182,8 @@ const ApplicationTracker: React.FC = () => {
 
                     if (successCount > 0) {
                         setRealTimeData(prev => ({ ...prev, ...newData }));
-                        setErrorCount(0); // Reset on success
-                    } else if (itemsToDisplay.length > 0) {
+                        setErrorCount(0);
+                    } else if (activeItems.length > 0) {
                         setErrorCount(prev => prev + 1);
                     }
                     
@@ -186,8 +198,8 @@ const ApplicationTracker: React.FC = () => {
         
         fetchLatest();
         
-        // Dynamic interval: stop if too many errors, or slow down
-        const intervalTime = errorCount > 0 ? 15000 : 5000;
+        // Increase interval to 20s to stay well within the 30-per-minute limit
+        const intervalTime = errorCount > 0 ? 30000 : 20000;
         if (errorCount <= 5) {
             pollTimer = setInterval(fetchLatest, intervalTime);
         }
@@ -196,7 +208,8 @@ const ApplicationTracker: React.FC = () => {
             isMounted = false;
             if (pollTimer) clearInterval(pollTimer);
         };
-    }, [itemsToDisplay.length, errorCount]); // Added errorCount to re-calculate interval
+    }, [itemsToDisplay.length, errorCount, realTimeData]); 
+
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;

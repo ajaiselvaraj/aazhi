@@ -269,10 +269,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     return;
                 }
 
-                // ── PATH B: Citizen/Kiosk — Per-ticket track polling ─────────
-                // Read locally stored tickets and refresh their status from the
-                // public /track endpoints so admin hierarchy updates appear in real-time.
-                const storedServicesRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.SERVICES);
+                // --- Citizen/Kiosk Background Polling Disabled ---
+                // We now handle real-time sync within individual components (like ApplicationTracker)
+                // only when they are actually visible, rather than polling for everything in the background.
+                return;
                 const storedComplaintsRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.COMPLAINTS);
                 const storedServices: ServiceRequest[] = storedServicesRaw ? JSON.parse(storedServicesRaw) : [];
                 const storedComplaints: Complaint[] = storedComplaintsRaw ? JSON.parse(storedComplaintsRaw) : [];
