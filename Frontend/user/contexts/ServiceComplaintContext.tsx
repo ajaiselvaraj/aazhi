@@ -164,13 +164,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         loadDataFromStorage();
 
-        // Poll every 5 seconds: sync localStorage AND pull new records from the backend API
+        // Poll every 10 seconds: sync localStorage AND pull status updates from the backend API
         const pollInterval = setInterval(async () => {
             loadDataFromStorage(); // Keep localStorage in sync (same-browser tab)
 
-            // Fetch backend records and merge any new ones into state (cross-device sync)
             try {
-                // Only poll admin endpoints if user is staff/admin
                 const userStr = localStorage.getItem('aazhi_user');
                 let user: any = null;
                 try {
@@ -178,67 +176,72 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         user = JSON.parse(userStr);
                     }
                 } catch (e) {
-                    // Corrupted user data — skip this poll cycle safely
-                    return;
+                    return; // Corrupted user data — skip safely
                 }
+
                 const isStaff = user?.role === 'staff' || user?.role === 'admin';
 
-                if (!isStaff) return;
+                // ── PATH A: Staff/Admin — Pull full admin lists ──────────────
+                if (isStaff) {
+                    const apiRequests = await GrievanceService.getAllRequestsAdmin();
+                    const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
 
-                const apiRequests = await GrievanceService.getAllRequestsAdmin();
-                const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
-                
-                if (Array.isArray(apiRequests) && apiRequests.length > 0) {
-                    const incomingServiceReqsData = apiRequests;
+                    const mapApiRequest = (r: any): ServiceRequest => {
+                        let rawStage = r.stage || r.current_stage || r.status || 'submitted';
+                        const stageMap: Record<string, string> = {
+                            'created': 'Submitted', 'submitted': 'Submitted',
+                            'officer_assigned': 'Officer Assigned', 'manager_review': 'Manager Review',
+                            'gm_approval': 'GM Approval', 'resolved': 'Resolved'
+                        };
+                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                        return {
+                            id: r.ticket_number || r.id, token: r.ticket_number || r.id,
+                            name: r.citizen_name || r.name, phone: r.citizen_mobile || r.phone || r.citizen_phone,
+                            category: r.department || r.category || '', serviceType: r.request_type || r.serviceType || '',
+                            address: r.metadata?.address || r.address || '', description: r.description || '',
+                            status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
+                            rejection_reason: r.rejection_reason,
+                            stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                            createdAt: r.created_at || new Date().toISOString(),
+                        };
+                    };
 
-                    if (incomingServiceReqsData.length > 0) {
-                        setServiceRequests(prev => {
-                            const newFromApi: ServiceRequest[] = incomingServiceReqsData
-                                .map((r: any): ServiceRequest => {
-                                    // Normalize stage for TitleCase matching in Admin Dashboard
-                                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
-                                    const stageMap: Record<string, string> = {
-                                        'created': 'Submitted',
-                                        'submitted': 'Submitted',
-                                        'officer_assigned': 'Officer Assigned',
-                                        'manager_review': 'Manager Review',
-                                        'gm_approval': 'GM Approval',
-                                        'resolved': 'Resolved'
-                                    };
-                                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                    const mapApiComplaint = (r: any): Complaint => {
+                        let rawStage = r.stage || r.current_stage || r.status || 'submitted';
+                        const stageMap: Record<string, string> = {
+                            'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
+                            'assigned': 'Assigned', 'in_progress': 'In Progress',
+                            'officer_assigned': 'Assigned', 'manager_review': 'In Progress',
+                            'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
+                        };
+                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                        return {
+                            id: r.ticket_number || r.id, name: r.citizen_name || r.name,
+                            phone: r.citizen_mobile || r.phone || r.citizen_phone,
+                            category: r.department || r.category || '',
+                            complaintType: r.request_type || r.complaintType || '',
+                            location: r.metadata?.location || r.address || '', area: r.ward || 'Unknown',
+                            description: r.description || '', priority: r.priority || 'Medium',
+                            status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
+                            rejection_reason: r.rejection_reason,
+                            stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                            createdAt: r.created_at || new Date().toISOString(),
+                        };
+                    };
 
-                                    return {
-                                        id: r.ticket_number || r.id,
-                                        token: r.ticket_number || r.id,
-                                        name: r.citizen_name || r.name,
-                                        phone: r.citizen_mobile || r.phone || r.citizen_phone,
-                                        category: r.department || r.category || '',
-                                        serviceType: r.request_type || r.serviceType || '',
-                                        address: r.metadata?.address || r.address || '',
-                                        description: r.description || '',
-                                        status: r.status || 'active',
-                                        currentStage: normalizedStage,
-                                        stage: rawStage,
-                                        rejection_reason: r.rejection_reason,
-                                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                                        createdAt: r.created_at || new Date().toISOString(),
-                                    };
-                                });
-
-                            if (newFromApi.length === 0) return prev;
-                            
-                            const mergedMap = new Map();
+                    const mergeIntoState = <T extends { id: string; currentStage: string; status: string; stage: string; stages: any[] }>(
+                        newFromApi: T[], setFn: React.Dispatch<React.SetStateAction<T[]>>, storageKey: string
+                    ) => {
+                        if (!newFromApi.length) return;
+                        setFn(prev => {
+                            const mergedMap = new Map<string, T>();
                             prev.forEach(p => mergedMap.set(p.id, p));
                             let updated = false;
-
                             newFromApi.forEach(n => {
                                 if (mergedMap.has(n.id)) {
-                                    const existing = mergedMap.get(n.id);
+                                    const existing = mergedMap.get(n.id)!;
                                     if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
-                                        existing.currentStage = n.currentStage;
-                                        existing.status = n.status;
-                                        existing.stage = n.stage;
-                                        existing.stages = n.stages;
+                                        mergedMap.set(n.id, { ...existing, currentStage: n.currentStage, status: n.status, stage: n.stage, stages: n.stages });
                                         updated = true;
                                     }
                                 } else {
@@ -246,93 +249,124 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                                     updated = true;
                                 }
                             });
-
                             if (!updated) return prev;
-
-                            const merged = Array.from(mergedMap.values());
-                            merged.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                            persistData(LOCAL_STORAGE_KEYS.SERVICES, merged);
+                            const merged = Array.from(mergedMap.values()).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                            persistData(storageKey, merged);
                             return merged;
                         });
+                    };
+
+                    if (Array.isArray(apiRequests) && apiRequests.length > 0) {
+                        mergeIntoState(apiRequests.map(mapApiRequest), setServiceRequests, LOCAL_STORAGE_KEYS.SERVICES);
                     }
+                    if (Array.isArray(apiComplaints) && apiComplaints.length > 0) {
+                        mergeIntoState(apiComplaints.map(mapApiComplaint), setComplaints, LOCAL_STORAGE_KEYS.COMPLAINTS);
+                    }
+                    return;
                 }
 
-                if (Array.isArray(apiComplaints) && apiComplaints.length > 0) {
-                    const incomingComplaintsData = apiComplaints;
-                    if (incomingComplaintsData.length > 0) {
-                        setComplaints(prev => {
-                            const newFromApi: Complaint[] = incomingComplaintsData
-                                .map((r: any): Complaint => {
-                                    // Normalize stage
-                                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
-                                    const stageMap: Record<string, string> = {
-                                        'created': 'Pending',
-                                        'submitted': 'Pending',
-                                        'pending': 'Pending',
-                                        'assigned': 'Assigned',
-                                        'in_progress': 'In Progress',
-                                        'officer_assigned': 'Assigned',
-                                        'manager_review': 'In Progress',
-                                        'gm_approval': 'In Progress',
-                                        'resolved': 'Resolved',
-                                        'closed': 'Closed'
-                                    };
-                                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                // ── PATH B: Citizen/Kiosk — Per-ticket track polling ─────────
+                // Read locally stored tickets and refresh their status from the
+                // public /track endpoints so admin hierarchy updates appear in real-time.
+                const storedServicesRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.SERVICES);
+                const storedComplaintsRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.COMPLAINTS);
+                const storedServices: ServiceRequest[] = storedServicesRaw ? JSON.parse(storedServicesRaw) : [];
+                const storedComplaints: Complaint[] = storedComplaintsRaw ? JSON.parse(storedComplaintsRaw) : [];
 
-                                    return {
-                                        id: r.ticket_number || r.id,
-                                        name: r.citizen_name || r.name,
-                                        phone: r.citizen_mobile || r.phone || r.citizen_phone,
-                                        category: r.department || r.category || '',
-                                        complaintType: r.request_type || r.complaintType || '',
-                                        location: r.metadata?.location || r.address || '',
-                                        area: r.ward || 'Unknown',
-                                        description: r.description || '',
-                                        priority: r.priority || 'Medium',
-                                        status: r.status || 'active',
-                                        currentStage: normalizedStage,
-                                        stage: rawStage,
-                                        rejection_reason: r.rejection_reason,
-                                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                                        createdAt: r.created_at || new Date().toISOString(),
-                                    };
-                                });
+                // Only track tickets with real backend IDs (SRQ-*, TKT-*, CMP-*)
+                const realRequestTickets = storedServices.filter(r =>
+                    r.id && (r.id.startsWith('SRQ-') || r.id.startsWith('TKT-'))
+                );
+                const realComplaintTickets = storedComplaints.filter(c =>
+                    c.id && c.id.startsWith('CMP-')
+                );
 
-                            if (newFromApi.length === 0) return prev;
-                            
-                            const mergedMap = new Map();
-                            prev.forEach(p => mergedMap.set(p.id, p));
-                            let updated = false;
+                if (realRequestTickets.length === 0 && realComplaintTickets.length === 0) return;
 
-                            newFromApi.forEach(n => {
-                                if (mergedMap.has(n.id)) {
-                                    const existing = mergedMap.get(n.id);
-                                    if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
-                                        existing.currentStage = n.currentStage;
-                                        existing.status = n.status;
-                                        existing.stage = n.stage;
-                                        existing.stages = n.stages;
-                                        updated = true;
-                                    }
-                                } else {
-                                    mergedMap.set(n.id, n);
-                                    updated = true;
-                                }
-                            });
+                // Fetch updates in parallel (max 5 at a time to avoid flooding)
+                const reqUpdates = await Promise.allSettled(
+                    realRequestTickets.slice(0, 5).map(async (r) => {
+                        const fresh = await GrievanceService.trackRequest(r.id);
+                        return { localId: r.id, fresh };
+                    })
+                );
+                const compUpdates = await Promise.allSettled(
+                    realComplaintTickets.slice(0, 5).map(async (c) => {
+                        const fresh = await GrievanceService.trackComplaint(c.id);
+                        return { localId: c.id, fresh };
+                    })
+                );
 
-                            if (!updated) return prev;
+                // Apply service request updates
+                const successfulReqUpdates = reqUpdates
+                    .filter(r => r.status === 'fulfilled' && r.value?.fresh)
+                    .map(r => (r as PromiseFulfilledResult<any>).value);
 
-                            const merged = Array.from(mergedMap.values());
-                            merged.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                            persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, merged);
-                            return merged;
+                if (successfulReqUpdates.length > 0) {
+                    setServiceRequests(prev => {
+                        let changed = false;
+                        const updated = prev.map(existing => {
+                            const match = successfulReqUpdates.find(u => u.localId === existing.id);
+                            if (!match) return existing;
+                            const fresh = match.fresh;
+                            const newStage = fresh.current_stage || fresh.stage || existing.stage;
+                            const newStatus = fresh.status || existing.status;
+                            const newStages = fresh.stages || existing.stages;
+                            if (existing.stage === newStage && existing.status === newStatus) return existing;
+                            changed = true;
+                            const stageMap: Record<string, string> = {
+                                'created': 'Submitted', 'submitted': 'Submitted',
+                                'officer_assigned': 'Officer Assigned', 'manager_review': 'Manager Review',
+                                'gm_approval': 'GM Approval', 'resolved': 'Resolved',
+                                'working': 'Working', 'assigned': 'Assigned', 'completed': 'Resolved'
+                            };
+                            const normalizedStage = stageMap[newStage] || (newStage.charAt(0).toUpperCase() + newStage.slice(1));
+                            console.log(`🔄 [Sync] Request ${existing.id}: ${existing.stage} → ${newStage} (${existing.status} → ${newStatus})`);
+                            return { ...existing, stage: newStage, currentStage: normalizedStage, status: newStatus, stages: newStages };
                         });
-                    }
+                        if (!changed) return prev;
+                        persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
+                        return updated;
+                    });
                 }
+
+                // Apply complaint updates
+                const successfulCompUpdates = compUpdates
+                    .filter(r => r.status === 'fulfilled' && r.value?.fresh)
+                    .map(r => (r as PromiseFulfilledResult<any>).value);
+
+                if (successfulCompUpdates.length > 0) {
+                    setComplaints(prev => {
+                        let changed = false;
+                        const updated = prev.map(existing => {
+                            const match = successfulCompUpdates.find(u => u.localId === existing.id);
+                            if (!match) return existing;
+                            const fresh = match.fresh;
+                            const newStage = fresh.current_stage || fresh.stage || existing.stage;
+                            const newStatus = fresh.status || existing.status;
+                            const newStages = fresh.stages || existing.stages;
+                            if (existing.stage === newStage && existing.status === newStatus) return existing;
+                            changed = true;
+                            const stageMap: Record<string, string> = {
+                                'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
+                                'assigned': 'Assigned', 'in_progress': 'In Progress',
+                                'officer_assigned': 'Assigned', 'manager_review': 'In Progress',
+                                'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
+                            };
+                            const normalizedStage = stageMap[newStage] || (newStage.charAt(0).toUpperCase() + newStage.slice(1));
+                            console.log(`🔄 [Sync] Complaint ${existing.id}: ${existing.stage} → ${newStage} (${existing.status} → ${newStatus})`);
+                            return { ...existing, stage: newStage, currentStage: normalizedStage, status: newStatus, stages: newStages };
+                        });
+                        if (!changed) return prev;
+                        persistData(LOCAL_STORAGE_KEYS.COMPLAINTS, updated);
+                        return updated;
+                    });
+                }
+
             } catch {
-                // API unavailable — localStorage data is shown as fallback
+                // API unavailable — localStorage data shown as fallback
             }
-        }, 60000);
+        }, 10000); // Poll every 10 seconds
 
         const handleStorageChange = (e: StorageEvent) => {
             if (!e.key) return;
