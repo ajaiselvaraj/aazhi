@@ -31,6 +31,7 @@ import { VendorLicenseFlow } from './municipal/VendorLicenseFlow';
 import { PropertyServices } from './municipal/PropertyServices';
 import { CitizenParticipation } from './municipal/CitizenParticipation';
 import HistoryReceipt from './kiosk/HistoryReceipt';
+import HistoryPage from './HistoryPage';
 
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
@@ -1235,55 +1236,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
           <ApplicationTracker />
         )}
 
-        {/* VIEW 5: STATUS/HISTORY */}
+        {/* VIEW 5: STATUS/HISTORY — Full Production-Grade Archive Module */}
         {activeTab === 'status' && (
-          <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in">
-            <h2 className="text-3xl font-black text-slate-900 mb-8 flex items-center gap-3"><History className="text-blue-600" /> {t('history') || 'History'}</h2>
-            {isLoadingRequests ? (
-              <div className="text-center p-10 text-slate-500 font-medium">
-                <RefreshCw className="animate-spin mx-auto mb-4" />
-                Loading your history...
-              </div>
-            ) : userRequests.length > 0 ? (
-              <div className="grid gap-4">
-                {userRequests.map((req) => {
-                  const serviceLabel = t(req.type) || req.type;
-                  const deptLabel = t(req.department) || req.department;
-                  const statusKey = req.status === 'Completed' ? 'completed'
-                    : req.status === 'Resolved' ? 'resolved'
-                      : req.status === 'Pending' ? 'pending'
-                        : req.status === 'In Progress' ? 'inProgress'
-                          : req.status; // fallback: key is already lowercase camelCase
-                  const statusLabel = t(statusKey) || req.status;
-                  const isResolved = req.status === 'resolved' || req.status === 'Resolved' || req.status === 'Completed' || req.status === 'completed';
-                  return (
-                    <div key={req.id} className="bg-white p-8 rounded-[2rem] border shadow-sm flex justify-between items-center group hover:border-blue-500 transition">
-                      <div className="flex gap-6 items-start">
-                        <div className="p-4 rounded-2xl bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition"><FileText size={24} /></div>
-                        <div>
-                          <p className="text-[10px] font-black text-blue-600 tracking-widest mb-1">{req.id}</p>
-                          <h4 className="font-black text-slate-900 text-xl">{serviceLabel}</h4>
-                          <p className="text-sm text-slate-500 font-medium">{deptLabel} • {new Date(req.timestamp).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`px-5 py-2 rounded-full text-[10px] font-black uppercase ${isResolved ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{statusLabel}</span>
-                        <button onClick={() => setSelectedHistoryItem(req)} className="p-4 bg-slate-100 rounded-2xl text-slate-400 hover:bg-slate-900 hover:text-white transition" title="Download Document as PDF"><Download size={20} /></button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center p-10 bg-slate-50 rounded-2xl text-slate-500 font-medium">
-                You have no past service requests or complaints.
-              </div>
-            )}
+          <div className="h-full">
+            <HistoryPage />
           </div>
-        )}
-
-        {activeTab === 'tracker' && (
-          <ApplicationTracker />
         )}
 
         {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
