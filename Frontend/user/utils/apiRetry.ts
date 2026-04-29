@@ -5,7 +5,7 @@
  */
 
 const MAX_RETRIES = parseInt(
-  (import.meta as any).env?.VITE_API_RETRY_MAX || '5',
+  (import.meta as any).env?.VITE_API_RETRY_MAX || '2',
   10
 );
 const BASE_DELAY_MS = 2000;

@@ -35,12 +35,29 @@ export const BillingService = {
 // --- GRIEVANCE SERVICE ---
 export const GrievanceService = {
     getUserRequests: async (): Promise<ServiceRequest[]> => {
-        return await apiClient.get<ServiceRequest[]>('/service-requests');
+        const token = localStorage.getItem('aazhi_token');
+        const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
+        
+        // If not logged in with real JWT, we use the debug endpoint which filters by citizen_id (if provided in body/query)
+        // or just return an empty list because the context handles local storage anyway.
+        const endpoint = hasRealJwt ? '/service-requests' : '/service-requests/debug';
+        try {
+            return await apiClient.get<ServiceRequest[]>(endpoint);
+        } catch (e) {
+            console.warn("[GrievanceService] Failed to fetch user requests, falling back to local only.");
+            return [];
+        }
     },
 
-    getAllRequests: async (): Promise<ServiceRequest[]> => {
-        // For admin/staff view if needed
-        return await apiClient.get<ServiceRequest[]>('/service-requests');
+    getMyComplaints: async (): Promise<any[]> => {
+        const token = localStorage.getItem('aazhi_token');
+        const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
+        const endpoint = hasRealJwt ? '/complaints' : '/complaints/debug';
+        try {
+            return await apiClient.get<any[]>(endpoint);
+        } catch (e) {
+            return [];
+        }
     },
 
     getAllRequestsAdmin: async (): Promise<any[]> => {

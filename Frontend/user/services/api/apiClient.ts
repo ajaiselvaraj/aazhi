@@ -44,23 +44,12 @@ axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('aazhi_token');
 
-    if (token) {
-      // Improved JWT detection: must have 3 segments and each segment should be base64-like
-      const segments = token.split('.');
-      const isRealJwt = segments.length === 3 && segments.every(s => s.length > 0);
+    if (token && token !== 'null' && token !== 'undefined') {
+      config.headers.set('Authorization', `Bearer ${token}`);
       
-      if (isRealJwt) {
-        config.headers.set('Authorization', `Bearer ${token}`);
-        // Log only once per minute to avoid spamming the console
-        const now = Date.now();
-        if (!config.params?._silent) {
-           console.log(`🔑 [apiClient] Token attached for ${config.method?.toUpperCase()} ${config.url}`);
-        }
-      } else {
-        // It's a dev mock token or malformed — don't send it to the real backend
-        if (token !== 'null' && token !== 'undefined') {
-          console.warn(`⚠️ [apiClient] Skipping mock/dev token for ${config.method?.toUpperCase()} ${config.url} — not a real JWT`);
-        }
+      // Log only once per minute to avoid spamming the console
+      if (!config.params?._silent) {
+          console.log(`🔑 [apiClient] Token attached for ${config.method?.toUpperCase()} ${config.url}`);
       }
     }
     // No warning when token is absent — many routes are public or use optional auth
