@@ -19,6 +19,8 @@ const ApplicationTracker: React.FC = () => {
     const [searchResult, setSearchResult] = useState<ActivityItem[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState('');
+    const [realTimeData, setRealTimeData] = useState<Record<string, { stages: any[], status: string }>>({});
+    
     // Get current user from storage for filtering
     const userStr = localStorage.getItem('aazhi_user');
     const token = localStorage.getItem('aazhi_token');
@@ -60,6 +62,40 @@ const ApplicationTracker: React.FC = () => {
         if (isNaN(dateB)) return -1;
         return dateB - dateA;
     });
+
+    const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchLatest = async () => {
+            for (const item of itemsToDisplay) {
+                if (!item.id) continue;
+                try {
+                    const fresh = item.type === 'Complaint' 
+                        ? await GrievanceService.trackComplaint(item.id)
+                        : await GrievanceService.trackRequest(item.id);
+                    
+                    if (isMounted && fresh && (fresh.stages || (fresh as any).status)) {
+                        setRealTimeData(prev => {
+                            const strPrev = JSON.stringify(prev[item.id]);
+                            const strNew = JSON.stringify({ stages: fresh.stages, status: fresh.status });
+                            if (strPrev === strNew) return prev;
+                            return { ...prev, [item.id]: { stages: fresh.stages, status: fresh.status } };
+                        });
+                    }
+                } catch (e) {
+                    // Silently ignore 404s for offline tickets not yet synced
+                }
+            }
+        };
+        
+        fetchLatest();
+        const interval = setInterval(fetchLatest, 5000);
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
+    }, [itemsToDisplay]);
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;
@@ -169,8 +205,6 @@ const ApplicationTracker: React.FC = () => {
         if (daysLeft === 0) return { expired: false, warning: true, text: `Due Today` };
         return { expired: false, text: `${daysLeft} Days Left` };
     };
-
-    const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     const translateStage = (stage: string): string => {
         if (!stage) return '';
@@ -336,12 +370,17 @@ const ApplicationTracker: React.FC = () => {
                     </div>
                 ) : (
                     itemsToDisplay.map((item) => {
+                        // Inject Real-Time Data Override if available
+                        const liveData = realTimeData[item.id];
+                        const activeStages = liveData?.stages || item.stages;
+                        const activeStatus = liveData?.status || item.status;
+
                         let latestUpdate = null;
-                        if (item.stages && item.stages.length > 0) {
+                        if (activeStages && activeStages.length > 0) {
                             // Find the currently active stage, or fallback to the last completed one, or just the last one
-                            latestUpdate = item.stages.find(s => s.status?.toLowerCase() === 'current') 
-                                        || [...item.stages].reverse().find(s => s.status?.toLowerCase() === 'completed')
-                                        || item.stages[item.stages.length - 1];
+                            latestUpdate = activeStages.find(s => s.status?.toLowerCase() === 'current') 
+                                        || [...activeStages].reverse().find(s => s.status?.toLowerCase() === 'completed')
+                                        || activeStages[activeStages.length - 1];
                         }
                         // 1. Implementation of Normalization Function
                         const normalizeStatus = (s: string): string => {
@@ -352,7 +391,7 @@ const ApplicationTracker: React.FC = () => {
                                     .replace(/inprogress/g, 'in_progress'); // Handle 'inprogress' case
                         };
 
-                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || item.status || 'pending');
+                        const rawStage = (latestUpdate?.stage || item.stage || item.currentStage || activeStatus || 'pending');
                         const derivedStage = normalizeStatus(rawStage);
                         
                         const badgeIsRejected = derivedStage === 'rejected' || item.status === 'rejected';
@@ -493,11 +532,11 @@ const ApplicationTracker: React.FC = () => {
                             </div>
 
                             {/* Detailed History Log (Collapsible if needed, but showing recent for now) */}
-                            {item.stages && item.stages.length > 0 && (
+                            {activeStages && activeStages.length > 0 && (
                                 <div className="px-8 py-6 border-t border-slate-100">
                                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">{t('latestUpdates')}</p>
                                     <div className="space-y-4">
-                                        {[...item.stages].filter(s => s.status?.toLowerCase() !== 'pending').reverse().slice(0, 3).map((stage, idx, arr) => (
+                                        {[...activeStages].filter(s => s.status?.toLowerCase() !== 'pending').reverse().slice(0, 3).map((stage, idx, arr) => (
                                             <div key={idx} className="flex gap-4 items-start">
                                                 <div className="flex flex-col items-center">
                                                     <div className={`w-2 h-2 rounded-full mt-1.5 ${(stage.status?.toLowerCase() === 'current') ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
