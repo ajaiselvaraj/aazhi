@@ -411,6 +411,7 @@ const ApplicationTracker: React.FC = () => {
                                 {t('refresh') || 'REFRESH'}
                             </button>
                         </div>
+                        </div>
                     </div>
                 ) : (
                     itemsToDisplay.map((item) => {
