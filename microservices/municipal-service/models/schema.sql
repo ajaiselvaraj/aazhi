@@ -135,8 +135,10 @@ CREATE TABLE IF NOT EXISTS complaints (
                     )),
     assigned_to     UUID REFERENCES citizens(id),
     resolution_note TEXT,
+    rejection_reason TEXT,
     resolved_at     TIMESTAMP,
     closed_at       TIMESTAMP,
+    metadata        JSONB DEFAULT '{}',
     created_at      TIMESTAMP DEFAULT NOW(),
     updated_at      TIMESTAMP DEFAULT NOW()
 );
