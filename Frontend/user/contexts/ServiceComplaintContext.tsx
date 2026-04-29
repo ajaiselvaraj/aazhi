@@ -293,15 +293,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     return envUrl || 'https://aazhi-9gj2.onrender.com/api';
                 })();
 
+                // Use apiClient but with a silent flag to avoid loading spinners
                 const directTrack = async (endpoint: string): Promise<any> => {
-                    const res = await fetch(`${API_URL}${endpoint}?_t=${Date.now()}`, {
-                        method: 'GET',
-                        headers: { 'Content-Type': 'application/json' },
-                        signal: AbortSignal.timeout(8000),
-                    });
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const json = await res.json();
-                    return json?.data ?? json;
+                    const { apiClient } = await import('../services/api/apiClient');
+                    return await apiClient.get(endpoint, { params: { _silent: true } });
                 };
 
                 // Fetch updates in parallel (max 5 at a time to avoid flooding)

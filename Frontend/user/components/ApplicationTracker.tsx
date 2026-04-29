@@ -336,8 +336,13 @@ const ApplicationTracker: React.FC = () => {
                     </div>
                 ) : (
                     itemsToDisplay.map((item) => {
-                        const latestUpdate = item.stages && item.stages.length > 0 ? item.stages[item.stages.length - 1] : null;
-                        
+                        let latestUpdate = null;
+                        if (item.stages && item.stages.length > 0) {
+                            // Find the currently active stage, or fallback to the last completed one, or just the last one
+                            latestUpdate = item.stages.find(s => s.status?.toLowerCase() === 'current') 
+                                        || [...item.stages].reverse().find(s => s.status?.toLowerCase() === 'completed')
+                                        || item.stages[item.stages.length - 1];
+                        }
                         // 1. Implementation of Normalization Function
                         const normalizeStatus = (s: string): string => {
                             if (!s) return 'pending';
@@ -492,11 +497,11 @@ const ApplicationTracker: React.FC = () => {
                                 <div className="px-8 py-6 border-t border-slate-100">
                                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-4">{t('latestUpdates')}</p>
                                     <div className="space-y-4">
-                                        {[...item.stages].reverse().slice(0, 3).map((stage, idx) => (
+                                        {[...item.stages].filter(s => s.status?.toLowerCase() !== 'pending').reverse().slice(0, 3).map((stage, idx, arr) => (
                                             <div key={idx} className="flex gap-4 items-start">
                                                 <div className="flex flex-col items-center">
                                                     <div className={`w-2 h-2 rounded-full mt-1.5 ${(stage.status?.toLowerCase() === 'current') ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
-                                                    {idx !== item.stages.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1"></div>}
+                                                    {idx !== arr.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1"></div>}
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-slate-700">{translateStage(stage.stage)}</p>
