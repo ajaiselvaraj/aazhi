@@ -383,7 +383,7 @@ export const getAllComplaintsAdminDebug = async (req, res, next) => {
         const result = await pool.query(`
             SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile
             FROM complaints c
-            JOIN citizens ci ON c.citizen_id = ci.id
+            LEFT JOIN citizens ci ON c.citizen_id = ci.id
             ORDER BY c.created_at DESC
         `);
         return success(res, "All complaints retrieved", result.rows);

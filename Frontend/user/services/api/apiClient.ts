@@ -9,7 +9,19 @@ import { enqueue } from '../../utils/apiThrottle';
  */
 
 const getBaseUrl = () => {
-  let url = (import.meta as any).env.VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api';
+  const envUrl = (import.meta as any).env.VITE_API_URL;
+  const isProdSite = typeof window !== 'undefined' && 
+                     window.location.hostname !== 'localhost' && 
+                     window.location.hostname !== '127.0.0.1';
+
+  // If we are on production but the env var points to localhost (often due to committed .env),
+  // fallback to the production API URL.
+  if (isProdSite && envUrl?.includes('localhost')) {
+    console.info('🌐 [apiClient] Production environment detected with localhost API URL — falling back to Render API.');
+    return 'https://aazhi-9gj2.onrender.com/api';
+  }
+
+  let url = envUrl || 'https://aazhi-9gj2.onrender.com/api';
   if (url.endsWith('/')) {
     url = url.slice(0, -1);
   }
