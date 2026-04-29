@@ -212,9 +212,11 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                             'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
                             'assigned': 'Assigned', 'in_progress': 'In Progress',
                             'officer_assigned': 'Assigned', 'manager_review': 'In Progress',
-                            'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
+                            'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed',
+                            'under_review': 'Assigned', 'verification': 'In Progress',
+                            'approval_pending': 'In Progress', 'completed': 'Resolved'
                         };
-                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1).replace(/_/g, ' '));
                         return {
                             id: r.ticket_number || r.id, name: r.citizen_name || r.name,
                             phone: r.citizen_mobile || r.phone || r.citizen_phone,

@@ -38,64 +38,94 @@ const ApplicationTracker: React.FC = () => {
     // Kiosk/Offline Mode Detection: If no real token, we treat all local items as visible
     const isKioskMode = !token || currentUser?.id === 'guest_user' || currentUser?.id?.startsWith('dev_') || currentUser?.id === 'CIT-9921';
 
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState<string>('');
+
     // Normalize data for unified view
     const safeServiceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
     const safeComplaints = Array.isArray(complaints) ? complaints : [];
 
-    const myActivity: ActivityItem[] = [
-        ...safeServiceRequests
-            .filter(r => {
-                if (isKioskMode) return true; 
-                return r.phone === currentUser?.mobile || r.citizenId === currentUser?.id;
-            })
-            .map(r => ({ ...r, type: 'Request' as const })),
-        ...safeComplaints
-            .filter(c => {
-                if (isKioskMode) return true;
-                return c.phone === currentUser?.mobile || c.citizenId === currentUser?.id;
-            })
-            .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
-    ].sort((a, b) => {
-        const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
-        const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
-        if (isNaN(dateA)) return 1;
-        if (isNaN(dateB)) return -1;
-        return dateB - dateA;
-    });
+    // Memoize the base activity list to prevent effect loops
+    const myActivity = React.useMemo(() => {
+        return [
+            ...safeServiceRequests
+                .filter(r => {
+                    if (isKioskMode) return true; 
+                    return r.phone === currentUser?.mobile || r.citizenId === currentUser?.id;
+                })
+                .map(r => ({ ...r, type: 'Request' as const })),
+            ...safeComplaints
+                .filter(c => {
+                    if (isKioskMode) return true;
+                    return c.phone === currentUser?.mobile || c.citizenId === currentUser?.id;
+                })
+                .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType }))
+        ].sort((a, b) => {
+            const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
+            const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
+            if (isNaN(dateA)) return 1;
+            if (isNaN(dateB)) return -1;
+            return dateB - dateA;
+        });
+    }, [safeServiceRequests, safeComplaints, isKioskMode, currentUser?.mobile, currentUser?.id]);
 
     const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
     useEffect(() => {
         let isMounted = true;
+        let pollTimer: any = null;
+
         const fetchLatest = async () => {
-            for (const item of itemsToDisplay) {
-                if (!item.id) continue;
-                try {
-                    const fresh = item.type === 'Complaint' 
-                        ? await GrievanceService.trackComplaint(item.id)
-                        : await GrievanceService.trackRequest(item.id);
-                    
-                    if (isMounted && fresh && (fresh.stages || (fresh as any).status)) {
-                        setRealTimeData(prev => {
-                            const strPrev = JSON.stringify(prev[item.id]);
-                            const strNew = JSON.stringify({ stages: fresh.stages, status: fresh.status });
-                            if (strPrev === strNew) return prev;
-                            return { ...prev, [item.id]: { stages: fresh.stages, status: fresh.status } };
-                        });
+            if (!itemsToDisplay.length) return;
+            setIsSyncing(true);
+            
+            try {
+                // Fetch in parallel for speed
+                const results = await Promise.all(
+                    itemsToDisplay.map(async (item) => {
+                        if (!item.id) return null;
+                        try {
+                            const fresh = item.type === 'Complaint' 
+                                ? await GrievanceService.trackComplaint(item.id)
+                                : await GrievanceService.trackRequest(item.id);
+                            return { id: item.id, stages: fresh.stages, status: fresh.status };
+                        } catch {
+                            return null;
+                        }
+                    })
+                );
+
+                if (isMounted) {
+                    const newData: Record<string, { stages: any[], status: string }> = {};
+                    let hasChanged = false;
+
+                    results.forEach(res => {
+                        if (res) {
+                            newData[res.id] = { stages: res.stages, status: res.status };
+                            if (JSON.stringify(realTimeData[res.id]) !== JSON.stringify(newData[res.id])) {
+                                hasChanged = true;
+                            }
+                        }
+                    });
+
+                    if (hasChanged) {
+                        setRealTimeData(prev => ({ ...prev, ...newData }));
                     }
-                } catch (e) {
-                    // Silently ignore 404s for offline tickets not yet synced
+                    setLastSyncTime(new Date().toLocaleTimeString());
                 }
+            } finally {
+                if (isMounted) setIsSyncing(false);
             }
         };
         
         fetchLatest();
-        const interval = setInterval(fetchLatest, 5000);
+        pollTimer = setInterval(fetchLatest, 5000);
+
         return () => {
             isMounted = false;
-            clearInterval(interval);
+            if (pollTimer) clearInterval(pollTimer);
         };
-    }, [itemsToDisplay]);
+    }, [itemsToDisplay.length]); // Only re-run if the number of items changes
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;
@@ -347,25 +377,39 @@ const ApplicationTracker: React.FC = () => {
                         <p className="text-xl font-black text-slate-800 mb-2">{viewMode === 'search' ? t('noResultsFound') : t('noActivityYet')}</p>
                         <p className="text-slate-400 font-medium mb-8 max-w-xs mx-auto">{viewMode === 'search' ? t('tryDifferentId') : t('activityWillAppear')}</p>
                         
-                        <div className="flex gap-4 justify-center">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="p-4 bg-slate-800 text-white rounded-3xl shadow-lg shadow-slate-200">
+                                <Search size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">{t('trackTitle')}</h2>
+                                <p className="text-slate-500 font-bold">{t('trackSubtitle')}</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 items-center">
+                            {/* Live Sync Status Indicator */}
+                            <div className={`px-4 py-2 rounded-2xl border transition-all duration-500 flex items-center gap-3 shadow-sm
+                                ${isSyncing ? 'bg-blue-50 border-blue-100 text-blue-600' : 'bg-green-50 border-green-100 text-green-600'}
+                            `}>
+                                <div className="relative flex h-2.5 w-2.5">
+                                    <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${isSyncing ? 'animate-ping bg-blue-400' : 'bg-green-400'}`}></span>
+                                    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isSyncing ? 'bg-blue-600' : 'bg-green-600'}`}></span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{isSyncing ? 'Syncing...' : 'Live Sync'}</span>
+                                    {lastSyncTime && <span className="text-[9px] font-bold opacity-70">Updated {lastSyncTime}</span>}
+                                </div>
+                            </div>
+
                             <button 
                                 onClick={() => window.location.reload()}
-                                className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center gap-2 shadow-xl shadow-slate-200 hover:scale-105 active:scale-95 transition-all"
+                                className="px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
                             >
-                                <RefreshCw size={18} />
-                                REFRESH SYNC
+                                <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+                                {t('refresh') || 'REFRESH'}
                             </button>
-                            {(viewMode === 'my-activity' && complaints.length > 0) && (
-                                <button 
-                                    onClick={() => {
-                                        localStorage.removeItem('aazhi_token'); 
-                                        window.location.reload();
-                                    }}
-                                    className="px-6 py-3 bg-amber-100 text-amber-700 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-amber-200 transition-all"
-                                >
-                                    FORCE GUEST SYNC
-                                </button>
-                            )}
                         </div>
                     </div>
                 ) : (
@@ -463,9 +507,9 @@ const ApplicationTracker: React.FC = () => {
                                         // 2. Implementation of Robust Status Mapping (Safe replacement for indexOf)
                                         const STAGE_INDEX_MAP: Record<string, number> = {
                                             'pending': 0, 'submitted': 0, 'active': 0, 'created': 0,
-                                            'assigned': 1, 'officer_assigned': 1,
-                                            'in_progress': 2, 'working': 2, 'manager_review': 2,
-                                            'resolved': 3, 'completed': 3, 'gm_approval': 3,
+                                            'assigned': 1, 'officer_assigned': 1, 'under_review': 1,
+                                            'in_progress': 2, 'working': 2, 'manager_review': 2, 'verification': 2,
+                                            'resolved': 3, 'completed': 3, 'gm_approval': 3, 'approval_pending': 3,
                                             'closed': 4
                                         };
 
