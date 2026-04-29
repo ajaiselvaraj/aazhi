@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GasLanding from './GasLanding'; // Import GasLanding
 import GasConnectionForm from './GasConnectionForm';
 import GasComplaints from './GasComplaints';
@@ -17,13 +17,22 @@ interface Props {
   onBack: () => void;
   language: Language;
   onGlobalNavigate?: (tab: string) => void;
+  /** Optional: voice-command deep-link into a specific sub-view */
+  initialSubView?: GasView;
 }
 
 type GasView = 'HOME' | 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'BRAND_SELECTION';
 
-const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
-  const [view, setView] = useState<GasView>('HOME');
+const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initialSubView }) => {
+  const [view, setView] = useState<GasView>(initialSubView ?? 'HOME');
   const [pendingView, setPendingView] = useState<GasView | null>(null);
+
+  // Apply initialSubView changes driven by voice commands
+  useEffect(() => {
+    if (initialSubView && initialSubView !== view) {
+      setView(initialSubView);
+    }
+  }, [initialSubView]);
 
   const handleNavigate = (target: GasView) => {
     if (target === 'TRACKER' && onGlobalNavigate) {

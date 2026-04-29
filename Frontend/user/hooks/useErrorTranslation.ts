@@ -33,7 +33,7 @@ export const useErrorTranslation = (): UseErrorTranslationReturn => {
     );
 
     const formatErrorResponse = useCallback(
-        (errorCode: string, fallback?: string) => ({
+        (errorCode: string, fallback?: string): { success: false; error: string } => ({
             success: false,
             error: translateError(errorCode) || fallback || t('err_generic'),
         }),

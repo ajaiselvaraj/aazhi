@@ -25,6 +25,12 @@ import {
   LogIn,
   Volume2,
   Sparkles,
+  User,
+  MessageSquare,
+  CreditCard,
+  FileCheck,
+  Info,
+  Send,
 } from 'lucide-react';
 
 // ─── Mock Data ────────────────────────────────────────────────────
@@ -53,13 +59,23 @@ const NOTIFICATIONS = [
 
 // ─── Page mapping for voice commands ──────────────────────────────
 const PAGE_MAP: Record<VoiceCommand, { label: string; icon: React.ReactNode; color: string }> = {
-  login: { label: 'Login Page', icon: <LogIn size={20} />, color: '#3b82f6' },
-  home: { label: 'Home Page', icon: <Home size={20} />, color: '#22c55e' },
-  service: { label: 'Services Page', icon: <LayoutGrid size={20} />, color: '#8b5cf6' },
-  complaints: { label: 'Complaints Page', icon: <AlertTriangle size={20} />, color: '#f59e0b' },
-  trackapp: { label: 'Track Application', icon: <Search size={20} />, color: '#06b6d4' },
-  assistant: { label: 'AI Assistant', icon: <HelpCircle size={20} />, color: '#ec4899' },
-  submit: { label: 'Form Submitted', icon: <CheckCircle size={20} />, color: '#10b981' },
+  login: { label: 'Login', icon: <User size={16} />, color: 'bg-indigo-100 text-indigo-700' },
+  home: { label: 'Home', icon: <Home size={16} />, color: 'bg-slate-100 text-slate-700' },
+  service: { label: 'Services', icon: <LayoutGrid size={16} />, color: 'bg-emerald-100 text-emerald-700' },
+  complaints: { label: 'Complaints', icon: <AlertTriangle size={16} />, color: 'bg-rose-100 text-rose-700' },
+  trackapp: { label: 'Track App', icon: <Search size={16} />, color: 'bg-amber-100 text-amber-700' },
+  assistant: { label: 'Assistant', icon: <MessageSquare size={16} />, color: 'bg-blue-100 text-blue-700' },
+  paybill: { label: 'Pay Bill', icon: <CreditCard size={16} />, color: 'bg-cyan-100 text-cyan-700' },
+  history: { label: 'History', icon: <FileCheck size={16} />, color: 'bg-slate-100 text-slate-700' },
+  gas: { label: 'Gas', icon: <Info size={16} />, color: 'bg-orange-100 text-orange-700' },
+  exit: { label: 'Exit', icon: <Info size={16} />, color: 'bg-slate-100 text-slate-700' },
+  submit: { label: 'Submit', icon: <Send size={16} />, color: 'bg-indigo-100 text-indigo-700' },
+  electricity_bill: { label: 'Electricity Bill', icon: <Info size={16} />, color: 'bg-yellow-100 text-yellow-700' },
+  water_bill: { label: 'Water Bill', icon: <Info size={16} />, color: 'bg-blue-100 text-blue-700' },
+  aadhaar: { label: 'Aadhaar', icon: <Info size={16} />, color: 'bg-green-100 text-green-700' },
+  back: { label: 'Back', icon: <Info size={16} />, color: 'bg-gray-100 text-gray-700' },
+  repeat: { label: 'Repeat', icon: <Info size={16} />, color: 'bg-purple-100 text-purple-700' },
+  municipal: { label: 'Municipal', icon: <Info size={16} />, color: 'bg-indigo-100 text-indigo-700' },
 };
 
 // ─── Component ────────────────────────────────────────────────────

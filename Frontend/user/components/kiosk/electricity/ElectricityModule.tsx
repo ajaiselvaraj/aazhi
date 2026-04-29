@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ElectricityLanding from './ElectricityLanding';
 import QuickPay from './QuickPay';
 import BillCalculator from './BillCalculator';
@@ -13,19 +13,32 @@ import TariffDetails from './TariffDetails';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { resolveSubAction } from '../../../utils/VoiceHierarchyRouter';
+import type { ElectricityView } from '../../../utils/VoiceHierarchyRouter';
 
 interface Props {
     onBack: () => void;
     language: Language;
     onGlobalNavigate?: (tab: string) => void;
+    /** Voice command passthrough from global handler */
+    onVoiceCommand?: (command: string) => void;
+    /** Optional: pre-navigate to a specific sub-view on mount */
+    initialSubView?: ElectricityView;
 }
 
 // Wrapper component to manage state between sub-modules
-const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
-    const [view, setView] = useState<'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST'>('HOME');
+const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initialSubView }) => {
+    const [view, setView] = useState<ElectricityView>(initialSubView ?? 'HOME');
     const { t } = useTranslation();
 
-    const handleNavigate = (target: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => {
+    // Apply initialSubView changes (e.g. voice command sets it from outside)
+    useEffect(() => {
+        if (initialSubView && initialSubView !== view) {
+            setView(initialSubView);
+        }
+    }, [initialSubView]);
+
+    const handleNavigate = (target: ElectricityView) => {
         if (target === 'TRACK_REQUEST' && onGlobalNavigate) {
             onGlobalNavigate('tracker');
             return;
