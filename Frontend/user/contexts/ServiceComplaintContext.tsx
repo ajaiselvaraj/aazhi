@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { TrackingStage, Kiosk } from '../types';
 import { GrievanceService } from '../services/civicService';
 import { MOCK_USER_PROFILE } from '../constants';
-
+import { apiClient } from '../services/api/apiClient';
 // --- TYPE DEFINITIONS ---
 export interface ServiceRequest {
     id: string; // Token used as ID
@@ -295,7 +295,6 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                 // Use apiClient but with a silent flag to avoid loading spinners
                 const directTrack = async (endpoint: string): Promise<any> => {
-                    const { apiClient } = await import('../services/api/apiClient');
                     return await apiClient.get(endpoint, { params: { _silent: true } });
                 };
 
