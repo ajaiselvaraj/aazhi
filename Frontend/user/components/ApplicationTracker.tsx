@@ -95,7 +95,20 @@ const ApplicationTracker: React.FC = () => {
             let apiResult: ActivityItem[] = [];
             try {
                 const req = await GrievanceService.trackRequest(searchId.trim());
-                if (req && typeof req === 'object') apiResult.push({ ...req, type: 'Request' as const });
+                if (req && typeof req === 'object') {
+                    apiResult.push({ 
+                        ...req, 
+                        type: 'Request' as const,
+                        id: (req as any).ticket_number || req.id,
+                        name: (req as any).citizen_name || (req as any).name || 'Citizen',
+                        phone: req.phone || (req as any).citizen_mobile || '',
+                        category: (req as any).department || (req as any).category || 'General',
+                        serviceType: (req as any).request_type || (req as any).serviceType || 'General',
+                        address: (req as any).metadata?.address || (req as any).address || '',
+                        description: (req as any).description || '',
+                        createdAt: (req as any).created_at || (req as any).createdAt || req.timestamp
+                    } as unknown as ActivityItem);
+                }
             } catch (e) {
                 // Ignore failure
             }
@@ -106,10 +119,11 @@ const ApplicationTracker: React.FC = () => {
                     if (comp && typeof comp === 'object') {
                         apiResult.push({ 
                             ...comp, 
-                            type: 'Complaint' as const, 
-                            serviceType: comp.request_type || comp.complaintType || comp.category || 'General',
-                            category: comp.department || comp.category || 'General'
-                        });
+                            type: 'Complaint' as const,
+                            id: (comp as any).ticket_number || comp.id,
+                            serviceType: (comp as any).request_type || comp.complaintType || comp.category || 'General',
+                            category: (comp as any).department || comp.category || 'General'
+                        } as unknown as ActivityItem);
                     }
                 } catch (e) {
                    // Ignore
@@ -481,13 +495,13 @@ const ApplicationTracker: React.FC = () => {
                                         {[...item.stages].reverse().slice(0, 3).map((stage, idx) => (
                                             <div key={idx} className="flex gap-4 items-start">
                                                 <div className="flex flex-col items-center">
-                                                    <div className={`w-2 h-2 rounded-full mt-1.5 ${stage.status === 'Current' ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
+                                                    <div className={`w-2 h-2 rounded-full mt-1.5 ${(stage.status?.toLowerCase() === 'current') ? 'bg-blue-500 animate-pulse' : 'bg-slate-300'}`}></div>
                                                     {idx !== item.stages.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1"></div>}
                                                 </div>
                                                 <div>
                                                     <p className="text-xs font-bold text-slate-700">{translateStage(stage.stage)}</p>
                                                     <p className="text-[10px] font-medium text-slate-400">
-                                                        {stage.updatedAt ? new Date(stage.updatedAt).toLocaleString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN') : t('pending')} • {translateStage(stage.status)}
+                                                        {(() => { const dt = stage.updatedAt || (stage as any).updated_at || (stage as any).created_at || (stage as any).createdAt; return dt ? new Date(dt).toLocaleString(language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-IN') : t('pending'); })()} • {translateStage(stage.status)}
                                                     </p>
                                                 </div>
                                             </div>
