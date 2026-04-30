@@ -17,6 +17,11 @@ export const registerComplaint = async (req, res, next) => {
         const citizenId = req.user.id;
         let { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
 
+        // Validation for mandatory fields
+        if (!subject || subject.trim() === '') {
+            subject = category || issue_category || "Civic Complaint";
+        }
+
         if (!description || description.trim().length < 10) {
             return fail(res, "Description is too short. Please provide more details.", 400);
         }
@@ -409,7 +414,13 @@ export const createComplaintDebug = async (req, res, next) => {
             return fail(res, "No citizen found in DB to attribute this complaint to.", 422);
         }
 
-        const { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
+        
+        // Fallback for subject if missing in debug route
+        if (!subject || subject.trim() === '') {
+            subject = category || issue_category || "Debug Complaint";
+        }
+
         const ticketNumber = generateTicketNumber("CMP");
 
         // Use provided name/phone for offline attribution, else look up from DB

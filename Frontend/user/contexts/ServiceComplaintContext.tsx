@@ -370,6 +370,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         let finalId: string | null = null;
         try {
             const apiRes = await GrievanceService.createComplaint({
+                subject: data.complaintType || 'Civic Complaint', // FIXED: Added subject to satisfy DB constraint
                 category: data.complaintType || 'General',
                 department: data.category || 'General',
                 description: data.description || `Complaint regarding ${data.complaintType}`,
