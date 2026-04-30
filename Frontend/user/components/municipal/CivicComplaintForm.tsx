@@ -114,7 +114,8 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             else if (departmentId === 'gas') deptCat = 'Gas';
 
             console.log(`🚀 [Civic] Calling addComplaint for department: ${deptCat}`);
-            const ticketId = await addComplaint({
+            
+            const payload = {
                 name: sessionUser?.name || null,
                 phone: sessionUser?.mobile || null,
                 category: deptCat,
@@ -122,7 +123,11 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 description: desc || 'Filed via Aazhi Kiosk.',
                 location: location.address,
                 area: sessionUser?.ward || 'Unknown'
-            });
+            };
+
+            console.log("📦 [Civic] Submission Payload:", payload);
+
+            const ticketId = await addComplaint(payload);
 
             console.log("✅ [Civic] Submission success. Ticket received:", ticketId);
             setSubmittedTicket(ticketId);
