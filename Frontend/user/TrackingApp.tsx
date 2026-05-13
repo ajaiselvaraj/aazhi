@@ -12,10 +12,23 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Routes, Route, useParams } from "react-router-dom";
 import { io as socketIO, Socket } from "socket.io-client";
 
-// ── Dynamic backend URL (works on kiosk + mobile phones) ──────
-const _host = window.location.hostname;
-const API_BASE = `http://${_host}:8000`;
-const SOCKET_URL = `http://${_host}:8000`;
+// ── Dynamic backend URL detection ─────────────────────────────
+const getBackendUrl = () => {
+  const host = window.location.hostname;
+  const isProd = host !== 'localhost' && !host.startsWith('192.168.') && !host.startsWith('10.');
+  
+  if (isProd) {
+    // In production, fallback to your real Render backend
+    return 'https://aazhi-9gj2.onrender.com';
+  }
+  
+  // In kiosk/local demo, use the current machine's IP on port 8000
+  return `http://${host}:8000`;
+};
+
+const BACKEND_URL = getBackendUrl();
+const API_BASE    = `${BACKEND_URL}`; // Note: your tracking route is /api/track but fetchData adds /api
+const SOCKET_URL  = BACKEND_URL;
 
 // ── Types ─────────────────────────────────────────────────────
 interface Stage {
