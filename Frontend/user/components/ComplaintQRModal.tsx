@@ -15,17 +15,10 @@ interface Props {
 }
 
 const ComplaintQRModal: React.FC<Props> = ({ ticketNumber, complaintId, onClose }) => {
-    // Determine tracking URL — works on localhost and real domain
-    let baseUrl = window.location.origin;
-    
-    // ⭐ FIX: If kiosk is opened via localhost, replace with actual network IP so phones can scan the QR
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // @ts-ignore
-        const localIp = process.env.VITE_LOCAL_IP || '192.168.31.161';
-        baseUrl = `http://${localIp}:${window.location.port || '3000'}`;
-    }
-    
-    const trackingUrl = `${baseUrl}/track/${encodeURIComponent(ticketNumber || complaintId)}`;
+    // ⭐ FIX: Use VITE_APP_URL env var — set to production domain in Vercel, localhost in dev.
+    // This ensures QR codes ALWAYS contain the correct domain, never a local IP.
+    const BASE_URL = import.meta.env.VITE_APP_URL || window.location.origin;
+    const trackingUrl = `${BASE_URL}/track/${encodeURIComponent(ticketNumber || complaintId)}`;
 
     const handleCopy = useCallback(async () => {
         try {
