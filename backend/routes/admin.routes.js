@@ -22,6 +22,7 @@ import {
     getAllServiceRequests, getAllCitizens,
     getComplaintAnalytics, getDuplicateClusters, getFraudSignals,
     getMLComplaintClusters, getMLForecast, getMLSentimentPulse, getMLDiagnostics,
+    getWorkflowDefinitions, updateWorkflowDefinition,
 } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { adminOnly } from "../middleware/role.middleware.js";
@@ -52,6 +53,12 @@ router.get("/ml/complaint-clusters", getMLComplaintClusters);
 router.get("/ml/forecast", getMLForecast);
 router.get("/ml/sentiment-pulse", getMLSentimentPulse);
 router.get("/ml/diagnostics", getMLDiagnostics);
+
+// ─── Workflow / Process Hierarchy Management ─────────────
+// GET  /api/admin/workflow             - List all workflow definitions
+// PUT  /api/admin/workflow/:type       - Upsert workflow for type ('complaint'|'service_request')
+router.get("/workflow", getWorkflowDefinitions);
+router.put("/workflow/:type", updateWorkflowDefinition);
 
 export default router;
 

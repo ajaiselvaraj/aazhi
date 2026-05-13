@@ -1,6 +1,9 @@
-import React, { useState } from 'react'
-import { User, ShieldAlert, Cpu, BellRing, Settings as SettingsIcon, Lock, Database } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { User, ShieldAlert, Cpu, BellRing, Settings as SettingsIcon, Lock, Database, GitBranch, Plus, Trash2, GripVertical, CheckCircle, AlertCircle } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
+
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000/api';
+const getAdminToken = () => localStorage.getItem('aazhi_token') || localStorage.getItem('aazhi_admin_token') || '';
 
 function ToggleSwitch({ checked, onChange, label }: { checked: boolean, onChange: (c: boolean) => void, label?: string }) {
   return (
@@ -32,6 +35,127 @@ function SectionHeader({ title, icon: Icon }: { title: string, icon: any }) {
       </span>
     </div>
   )
+}
+
+// ─── Workflow Manager Component ───────────────────────────
+interface WFStage { key: string; label: string; color?: string }
+
+function WorkflowManager() {
+  const [wfType, setWfType] = useState<'complaint' | 'service_request'>('complaint');
+  const [stages, setStages] = useState<WFStage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+  const fetchWorkflow = useCallback(async (type: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/complaints/workflow/${type}`);
+      const json = await res.json();
+      if (json.data && Array.isArray(json.data)) setStages(json.data);
+    } catch {
+      setStages([]);
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchWorkflow(wfType); }, [wfType, fetchWorkflow]);
+
+  const addStage = () => setStages(s => [...s, { key: `stage_${Date.now()}`, label: 'New Stage', color: 'slate' }]);
+  const removeStage = (i: number) => setStages(s => s.filter((_, idx) => idx !== i));
+  const updateStage = (i: number, field: keyof WFStage, val: string) =>
+    setStages(s => s.map((st, idx) => idx === i ? { ...st, [field]: val } : st));
+  const moveStage = (i: number, dir: -1 | 1) => {
+    const ni = i + dir;
+    if (ni < 0 || ni >= stages.length) return;
+    const next = [...stages];
+    [next[i], next[ni]] = [next[ni], next[i]];
+    setStages(next);
+  };
+
+  const saveWorkflow = async () => {
+    if (stages.length < 2) return;
+    setSaveState('saving');
+    try {
+      const res = await fetch(`${API_BASE}/admin/workflow/${wfType}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAdminToken()}` },
+        body: JSON.stringify({ stages })
+      });
+      setSaveState(res.ok ? 'saved' : 'error');
+    } catch { setSaveState('error'); }
+    setTimeout(() => setSaveState('idle'), 2500);
+  };
+
+  return (
+    <div className="card section-gap">
+      <div className="section-title" style={{ marginBottom: '1.25rem' }}>
+        <div className="icon-dot" style={{ background: 'var(--primary)' }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+          <GitBranch size={18} color="var(--primary)" />
+          Process Hierarchy Manager
+        </span>
+      </div>
+      <p style={{ fontSize: '.8rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+        Define the workflow stages for complaints and service requests. Changes take effect platform-wide within 60 seconds.
+      </p>
+
+      {/* Type Selector */}
+      <div className="form-group">
+        <label className="form-label">Workflow Type</label>
+        <select className="form-select" value={wfType} onChange={e => setWfType(e.target.value as any)}>
+          <option value="complaint">Complaint Workflow</option>
+          <option value="service_request">Service Request Workflow</option>
+        </select>
+      </div>
+
+      {/* Stage List */}
+      {loading ? (
+        <p style={{ color: 'var(--text-muted)', fontSize: '.85rem' }}>Loading stages...</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', margin: '1rem 0' }}>
+          {stages.map((st, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '.5rem', padding: '.5rem .75rem', background: 'var(--bg)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', cursor: 'ns-resize', color: 'var(--text-muted)' }}>
+                <button onClick={() => moveStage(i, -1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, color: 'var(--text-muted)' }}>▲</button>
+                <button onClick={() => moveStage(i, 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 1, color: 'var(--text-muted)' }}>▼</button>
+              </div>
+              <span style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--text-muted)', minWidth: 20, textAlign: 'center' }}>{i + 1}</span>
+              <input
+                style={{ flex: 1, fontSize: '.8rem', padding: '.3rem .5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--surface)', color: 'var(--text-primary)' }}
+                placeholder="Stage key (e.g. in_progress)"
+                value={st.key}
+                onChange={e => updateStage(i, 'key', e.target.value.toLowerCase().replace(/\s+/g, '_'))}
+              />
+              <input
+                style={{ flex: 1.5, fontSize: '.8rem', padding: '.3rem .5rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', background: 'var(--surface)', color: 'var(--text-primary)' }}
+                placeholder="Display label (e.g. In Progress)"
+                value={st.label}
+                onChange={e => updateStage(i, 'label', e.target.value)}
+              />
+              <button onClick={() => removeStage(i)} disabled={stages.length <= 2} style={{ background: 'none', border: 'none', cursor: stages.length <= 2 ? 'not-allowed' : 'pointer', color: stages.length <= 2 ? 'var(--text-muted)' : '#ef4444', padding: '4px' }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="btn btn-ghost" onClick={addStage} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+          <Plus size={14} /> Add Stage
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={saveWorkflow}
+          disabled={saveState === 'saving' || stages.length < 2}
+          style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}
+        >
+          {saveState === 'saving' ? 'Saving...' : saveState === 'saved' ? <><CheckCircle size={14} /> Saved!</> : saveState === 'error' ? <><AlertCircle size={14} /> Error</> : 'Save Workflow'}
+        </button>
+        {saveState === 'saved' && <span style={{ fontSize: '.8rem', color: 'green', fontWeight: 600 }}>✓ Changes will reflect on user side within 60 seconds.</span>}
+        {saveState === 'error' && <span style={{ fontSize: '.8rem', color: '#ef4444', fontWeight: 600 }}>Save failed. Check your connection.</span>}
+      </div>
+    </div>
+  );
 }
 
 export default function SettingsPanel() {
@@ -261,6 +385,11 @@ export default function SettingsPanel() {
             <button className="btn btn-danger" style={{ justifyContent: 'center' }}>{t('settings.clear_cache') || 'Clear System Cache'}</button>
           </div>
         </div>
+      </div>
+
+      {/* ── PROCESS HIERARCHY MANAGER ── */}
+      <div style={{ marginTop: '2rem' }}>
+        <WorkflowManager />
       </div>
     </div>
   )

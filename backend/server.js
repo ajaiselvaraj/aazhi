@@ -11,6 +11,8 @@ import logger from "./utils/logger.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http";                              // ⭐ PLUG-IN: needed for Socket.IO
+import { initSocketIO } from "./socket.js";            // ⭐ PLUG-IN: QR Tracking real-time layer
 import cron from "node-cron";
 import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
@@ -50,7 +52,14 @@ async function startServer() {
         }
     });
 
-    app.listen(PORT, () => {
+    // ⭐ PLUG-IN: Create an explicit HTTP server so Socket.IO can share the port
+    const httpServer = http.createServer(app);
+    const allowedOrigins = (process.env.FRONTEND_URL ||
+        "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173"
+    ).split(",").map(o => o.trim());
+    initSocketIO(httpServer, allowedOrigins);
+
+    httpServer.listen(PORT, '0.0.0.0', () => {
         logger.info(`
 ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════        ═╗
 ║                                                                                                                           ║

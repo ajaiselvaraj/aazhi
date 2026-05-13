@@ -11,8 +11,10 @@ import express from "express";
 import {
     registerComplaint, trackComplaint,
     getMyComplaints, updateComplaintStatus, addMessage, getAllComplaintsAdmin,
-    getAllComplaintsAdminDebug, createComplaintDebug, updateComplaintStatusDebug
+    getAllComplaintsAdminDebug, createComplaintDebug, updateComplaintStatusDebug,
+    getMyComplaintsDebug
 } from "../controllers/complaint.controller.js";
+import { getPublicWorkflow } from "../controllers/admin.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
 import { staffOnly } from "../middleware/role.middleware.js";
@@ -25,9 +27,16 @@ router.use(checkServiceEnabled("complaints"));
 
 // --- DEBUG ROUTES ---
 router.get("/admin/debug", getAllComplaintsAdminDebug);
+router.get("/debug", getMyComplaintsDebug);
 router.post("/debug", createComplaintDebug);
 router.put("/debug/:id/status", updateComplaintStatusDebug);
 // --------------------
+
+// --- PUBLIC: Workflow Definition (no auth — used by user-side hook) ---
+// GET /api/complaints/workflow/complaint        - complaint stages
+// GET /api/complaints/workflow/service_request  - service request stages
+router.get("/workflow/:type", getPublicWorkflow);
+// -------------------------------------------------------------------
 
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);

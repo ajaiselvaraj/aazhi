@@ -8,6 +8,7 @@ import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
+import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
@@ -93,19 +94,40 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status, metadata)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
+             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, JSON.stringify(finalMetadata)]
+            [ticketNumber, citizenId, citizenName, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority]
         );
 
-        // Create complaint lifecycle stages
-        const stages = [
-            { stage: "pending", status: "current" },
-            { stage: "assigned", status: "pending" },
-            { stage: "in_progress", status: "pending" },
-            { stage: "resolved", status: "pending" },
+        // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
+        let workflowStages = null;
+        try {
+            const wfResult = await pool.query(
+                `SELECT stages FROM workflow_definitions 
+                 WHERE workflow_type = 'complaint' AND is_active = true
+                 ORDER BY updated_at DESC LIMIT 1`
+            );
+            if (wfResult.rows.length > 0) {
+                workflowStages = wfResult.rows[0].stages;
+            }
+        } catch (wfErr) {
+            // workflow_definitions table may not exist yet (pre-migration) — use fallback
+            logger.warn("workflow_definitions lookup failed, using hardcoded fallback.", { error: wfErr.message });
+        }
+
+        const stageDefs = workflowStages || [
+            { key: "pending",     label: "Submitted" },
+            { key: "assigned",    label: "Assigned" },
+            { key: "in_progress", label: "In Progress" },
+            { key: "resolved",    label: "Resolved" },
         ];
+
+        const stages = stageDefs.map((s, i) => ({
+            stage: s.key,
+            status: i === 0 ? "current" : "pending"
+        }));
+        // ──────────────────────────────────────────────────────────────────────────
 
         for (const s of stages) {
             await pool.query(
@@ -215,6 +237,26 @@ export const getMyComplaints = async (req, res, next) => {
     }
 };
 
+// ─── DEBUG: Get My Complaints (Bypass Auth) ────────────────
+export const getMyComplaintsDebug = async (req, res, next) => {
+    try {
+        const { citizen_id, phone } = req.query;
+        if (!citizen_id && !phone) {
+            return fail(res, "citizen_id or phone is required for debug fetching.", 400);
+        }
+
+        let query = `SELECT * FROM complaints WHERE (citizen_id = $1 OR phone = $2)`;
+        const params = [citizen_id || null, phone || null];
+
+        query += ` ORDER BY created_at DESC LIMIT 50`;
+        const result = await pool.query(query, params);
+
+        return success(res, "Complaints retrieved (DEBUG)", result.rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ─── Update Complaint Status (Admin/Staff) ───────────────
 export const updateComplaintStatus = async (req, res, next) => {
     try {
@@ -302,6 +344,25 @@ export const updateComplaintStatus = async (req, res, next) => {
         }
 
         logger.info("Complaint status updated", { complaintId: actualId, oldStatus: current.rows[0].status, newStatus: finalStatus, updatedBy });
+
+        // ⭐ PLUG-IN: Emit real-time Socket.IO event (wrapped in try-catch — will NEVER break existing flow)
+        try {
+            emitComplaintStatusUpdate(actualId, {
+                ticketNumber: result.rows[0].ticket_number,
+                oldStatus: current.rows[0].status,
+                newStatus: finalStatus,
+                notes: notes || null,
+                resolutionNote: resolution_note || null,
+                updatedAt: result.rows[0].updated_at,
+            });
+            emitComplaintTimelineUpdate(actualId, {
+                stage: finalStatus,
+                notes: notes || rejection_reason || resolution_note || null,
+                updatedAt: new Date().toISOString(),
+            });
+        } catch (socketErr) {
+            logger.warn("[Socket.IO] Failed to emit status update (non-critical):", socketErr.message);
+        }
 
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {

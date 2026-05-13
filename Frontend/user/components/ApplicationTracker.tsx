@@ -4,6 +4,7 @@ import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/Serv
 import { useTranslation } from 'react-i18next';
 import { GrievanceService } from '../services/civicService';
 import { MOCK_USER_PROFILE } from '../constants';
+import { useWorkflow } from '../hooks/useWorkflow';
 
 type ActivityItem =
     | (ServiceRequest & { type: 'Request' })
@@ -13,12 +14,14 @@ type ActivityItem =
 const normalizeStatus = (s: string): string => {
     if (!s) return 'pending';
     return s.toLowerCase()
-            .trim()
-            .replace(/[\s-]+/g, '_')  // Replace spaces/dashes with underscores
-            .replace(/inprogress/g, 'in_progress'); // Handle 'inprogress' case
+        .trim()
+        .replace(/[\s-]+/g, '_')
+        .replace(/inprogress/g, 'in_progress');
 };
 
-const STAGE_INDEX_MAP: Record<string, number> = {
+// NOTE: STAGE_INDEX_MAP is now built dynamically from the fetched workflow.
+// This block is kept only as a legacy fallback for older renders.
+const LEGACY_STAGE_INDEX_MAP: Record<string, number> = {
     'pending': 0, 'submitted': 0, 'active': 0, 'created': 0,
     'assigned': 1, 'officer_assigned': 1, 'under_review': 1,
     'in_progress': 2, 'working': 2, 'manager_review': 2, 'verification': 2,
@@ -40,12 +43,17 @@ const ApplicationTracker: React.FC = () => {
     const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
     const [errorCount, setErrorCount] = useState(0);
 
+    // ─── Dynamic Workflow from DB (Single Source of Truth) ───
+    const { stages: requestWorkflow, stageIndexMap: requestIndexMap } = useWorkflow('service_request');
+    const { stages: complaintWorkflow, stageIndexMap: complaintIndexMap } = useWorkflow('complaint');
+    // ─────────────────────────────────────────────────────────
+
     const currentUser = MOCK_USER_PROFILE;
     const isKioskMode = true;
 
     const safeServiceRequests = Array.isArray(serviceRequests) ? serviceRequests : [];
     const safeComplaints = Array.isArray(complaints) ? complaints : [];
-    
+
     // --- LOCAL HELPERS ---
     const translateDynamic = (text: string) => {
         if (!text) return text;
@@ -87,7 +95,7 @@ const ApplicationTracker: React.FC = () => {
     const getStageColor = (item: ActivityItem) => {
         const liveData = realTimeData[item.id];
         const status = (liveData?.status || item.status || 'pending').toLowerCase();
-        
+
         if (['resolved', 'completed', 'closed'].includes(status)) return 'bg-green-50 border-green-200 text-green-700';
         if (['rejected', 'failed', 'cancelled'].includes(status)) return 'bg-red-50 border-red-200 text-red-700';
         if (['in_progress', 'working', 'under_review'].includes(status)) return 'bg-blue-50 border-blue-200 text-blue-700';
@@ -98,7 +106,7 @@ const ApplicationTracker: React.FC = () => {
         return [
             ...safeServiceRequests
                 .filter(r => {
-                    if (isKioskMode) return true; 
+                    if (isKioskMode) return true;
                     return r.phone === currentUser?.mobile || r.citizenId === currentUser?.id;
                 })
                 .map(r => ({ ...r, type: 'Request' as const })),
@@ -134,19 +142,23 @@ const ApplicationTracker: React.FC = () => {
             }
 
             setIsSyncing(true);
-            
+
             try {
                 const results = [];
                 for (const item of activeItems) {
                     if (!isMounted) break;
                     try {
-                        const fresh = item.type === 'Complaint' 
+                        const fresh = item.type === 'Complaint'
                             ? await GrievanceService.trackComplaint(item.id)
                             : await GrievanceService.trackRequest(item.id);
-                        
+
                         if (fresh) {
-                            console.log(`🌐 [Tracker] Sync success for ${item.id}:`, fresh.status);
-                            results.push({ id: item.id, stages: fresh.stages || [], status: fresh.status });
+                            console.log(`🌐 [Tracker] Sync success for ${item.id}:`, fresh.current_stage || fresh.status);
+                            results.push({
+                                id: item.id,
+                                stages: fresh.stages || [],
+                                status: fresh.current_stage || fresh.status
+                            });
                         }
                     } catch (err) {
                         console.warn(`⚠️ [Tracker] Sync failed for ${item.id}`);
@@ -173,7 +185,7 @@ const ApplicationTracker: React.FC = () => {
         };
 
         fetchLatest();
-        
+
         const intervalTime = errorCount > 0 ? 30000 : 20000;
         if (errorCount <= 5) {
             pollTimer = setInterval(fetchLatest, intervalTime);
@@ -183,7 +195,7 @@ const ApplicationTracker: React.FC = () => {
             isMounted = false;
             if (pollTimer) clearInterval(pollTimer);
         };
-    }, [itemsToDisplay.length, errorCount, realTimeData, itemsToDisplay]); 
+    }, [itemsToDisplay.length, errorCount, realTimeData, itemsToDisplay]);
 
     const handleSearch = async () => {
         if (!searchId.trim()) return;
@@ -298,16 +310,16 @@ const ApplicationTracker: React.FC = () => {
                     const liveData = realTimeData[item.id];
                     const activeStages = liveData?.stages || item.stages;
                     const activeStatus = liveData?.status || item.status;
-                    
-                    const latestUpdate = activeStages && activeStages.length > 0 
-                        ? (activeStages.find((s: any) => s.status?.toLowerCase() === 'current') 
-                           || [...activeStages].reverse().find((s: any) => s.status?.toLowerCase() === 'completed')
-                           || [...activeStages].reverse()[0])
+
+                    const latestUpdate = activeStages && activeStages.length > 0
+                        ? (activeStages.find((s: any) => s.status?.toLowerCase() === 'current')
+                            || [...activeStages].reverse().find((s: any) => s.status?.toLowerCase() === 'completed')
+                            || [...activeStages].reverse()[0])
                         : null;
 
                     const rawStage = (activeStatus || latestUpdate?.stage || item.stage || 'pending');
                     const derivedStage = normalizeStatus(rawStage);
-                    
+
                     return (
                         <div key={item.id} className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition animate-in slide-in-from-bottom-6 duration-500">
                             <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-start gap-6">
@@ -339,22 +351,22 @@ const ApplicationTracker: React.FC = () => {
                                 <div className="relative flex justify-between">
                                     <div className="absolute top-[14px] left-0 w-full h-[3px] bg-slate-200 rounded-full"></div>
                                     {(() => {
-                                        const reqStages = ['submitted', 'under_review', 'verification', 'approval_pending', 'completed'];
-                                        const compStages = ['pending', 'assigned', 'in_progress', 'resolved', 'closed'];
-                                        const stages = item.type === 'Request' ? reqStages : compStages;
-                                        
-                                        let currentIndex = STAGE_INDEX_MAP[derivedStage] || 0;
-                                        const isResolved = derivedStage === 'resolved' || derivedStage === 'completed' || derivedStage === 'closed';
-                                        if (isResolved) currentIndex = stages.length - 1;
+                                        // ─── DYNAMIC WORKFLOW (fetched from DB via useWorkflow hook) ───
+                                        const workflow = item.type === 'Request' ? requestWorkflow : complaintWorkflow;
+                                        const indexMap = item.type === 'Request' ? requestIndexMap : complaintIndexMap;
 
-                                        return stages.map((step, idx) => (
+                                        let currentIndex = indexMap[derivedStage] ?? LEGACY_STAGE_INDEX_MAP[derivedStage] ?? 0;
+                                        const isResolved = ['resolved', 'completed', 'closed'].includes(derivedStage);
+                                        if (isResolved) currentIndex = workflow.length - 1;
+
+                                        return workflow.map((step, idx) => (
                                             <div key={idx} className="relative z-10 flex flex-col items-center">
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all 
                                                     ${idx <= currentIndex ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white border-slate-200 text-slate-300'}`}>
                                                     {idx < currentIndex ? <CheckCircle size={16} /> : <span className="text-xs font-black">{idx + 1}</span>}
                                                 </div>
                                                 <span className={`absolute -bottom-6 whitespace-nowrap text-[9px] font-black uppercase tracking-tighter ${idx <= currentIndex ? 'text-slate-900' : 'text-slate-300'}`}>
-                                                    {translateStage(step)}
+                                                    {translateStage(step.key)}
                                                 </span>
                                             </div>
                                         ));

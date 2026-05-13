@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ElectricityService } from '../../../services/electricityService';
 import DocumentScannerOverlay from '../DocumentScannerOverlay';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
+import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
 
 interface Props {
   onBack: () => void;
@@ -40,6 +41,7 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [showQR, setShowQR] = useState(false); // ⭐ PLUG-IN: QR modal state
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -85,6 +87,8 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
         priority: formData.priority as any
       });
       setTicketNumber(result.ticket_number || result.id || 'EB-CMP-' + Date.now());
+      // ⭐ PLUG-IN: Show QR after successful submission
+      setShowQR(true);
 
       // ✅ Write to ServiceComplaintContext so this record appears in History
       const userStr = localStorage.getItem('aazhi_user');
@@ -141,6 +145,13 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
             </p>
             <p className="text-3xl font-black text-slate-800">{ticketNumber}</p>
           </div>
+          {/* ⭐ PLUG-IN: QR tracking button */}
+          <button
+            onClick={() => setShowQR(true)}
+            className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-blue-700 transition flex items-center justify-center gap-2"
+          >
+            📱 Scan QR to Track on Mobile
+          </button>
           <button
             onClick={onBack}
             className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
@@ -148,6 +159,8 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
             {t('returnHomeBtn') || 'Back to Electricity Dashboard'}
           </button>
         </div>
+        {/* ⭐ PLUG-IN: QR Modal */}
+        {showQR && <ComplaintQRModal ticketNumber={ticketNumber} complaintId={ticketNumber} onClose={() => setShowQR(false)} />}
       </div>
     );
   }

@@ -855,7 +855,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {[
                     { id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' },
-                    { id: 'water', name: t('water') || 'Water', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' },
+                    { id: 'water', name: 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' },
                     { id: 'gas', name: t('gas') || 'Gas', icon: Flame, color: 'orange', consumerLabel: t('customerId') || 'Customer ID', providerLabel: t('deptGas') || 'Gas Provider / PNG' }
                   ].map((item) => (
                     <button

@@ -177,83 +177,93 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                 const isStaff = user?.role === 'staff' || user?.role === 'admin';
 
-                // ONLY Staff/Admin pull full lists. 
-                // Citizen/Kiosk sync is handled at the component level in ApplicationTracker.
+                const mapApiRequest = (r: any): ServiceRequest => {
+                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
+                    const stageMap: Record<string, string> = {
+                        'created': 'Submitted', 'submitted': 'Submitted',
+                        'under_review': 'Under Review', 'officer_assigned': 'Under Review',
+                        'verification': 'Verification', 'manager_review': 'Verification',
+                        'approval_pending': 'Approval Pending', 'gm_approval': 'Approval Pending',
+                        'completed': 'Completed', 'resolved': 'Completed'
+                    };
+                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
+                    return {
+                        id: r.ticket_number || r.id, token: r.ticket_number || r.id,
+                        name: r.citizen_name || r.name, phone: r.citizen_mobile || r.phone || r.citizen_phone,
+                        category: r.department || r.category || '', serviceType: r.request_type || r.serviceType || '',
+                        address: r.metadata?.address || r.address || '', description: r.description || '',
+                        status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
+                        rejection_reason: r.rejection_reason,
+                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                        createdAt: r.created_at || new Date().toISOString(),
+                    };
+                };
+
+                const mapApiComplaint = (r: any): Complaint => {
+                    let rawStage = r.stage || r.current_stage || r.status || 'submitted';
+                    const stageMap: Record<string, string> = {
+                        'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
+                        'assigned': 'Assigned', 'in_progress': 'In Progress',
+                        'officer_assigned': 'Assigned', 'manager_review': 'In Progress',
+                        'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
+                    };
+                    const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1).replace(/_/g, ' '));
+                    return {
+                        id: r.ticket_number || r.id, name: r.citizen_name || r.name,
+                        phone: r.citizen_mobile || r.phone || r.citizen_phone,
+                        category: r.department || r.category || '',
+                        complaintType: r.request_type || r.complaintType || '',
+                        location: r.metadata?.location || r.address || '', area: r.ward || 'Unknown',
+                        description: r.description || '', priority: r.priority || 'Medium',
+                        status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
+                        rejection_reason: r.rejection_reason,
+                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
+                        createdAt: r.created_at || new Date().toISOString(),
+                    };
+                };
+
+                const mergeIntoState = <T extends { id: string; currentStage: string; status: string; stage: string; stages: any[] }>(
+                    newFromApi: T[], setFn: React.Dispatch<React.SetStateAction<T[]>>, storageKey: string
+                ) => {
+                    if (!newFromApi.length) return;
+                    setFn(prev => {
+                        const mergedMap = new Map<string, T>();
+                        prev.forEach(p => mergedMap.set(p.id, p));
+                        let updated = false;
+                        newFromApi.forEach(n => {
+                            if (mergedMap.has(n.id)) {
+                                const existing = mergedMap.get(n.id)!;
+                                if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
+                                    mergedMap.set(n.id, { ...existing, currentStage: n.currentStage, status: n.status, stage: n.stage, stages: n.stages });
+                                    updated = true;
+                                }
+                            } else {
+                                mergedMap.set(n.id, n);
+                                updated = true;
+                            }
+                        });
+                        if (!updated) return prev;
+                        const merged = Array.from(mergedMap.values()).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                        persistData(storageKey, merged);
+                        return merged;
+                    });
+                };
+
+                // Citizen/Kiosk sync: Fetch only THEIR data
                 if (isStaff) {
                     const apiRequests = await GrievanceService.getAllRequestsAdmin();
                     const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
 
-                    const mapApiRequest = (r: any): ServiceRequest => {
-                        let rawStage = r.stage || r.current_stage || r.status || 'submitted';
-                        const stageMap: Record<string, string> = {
-                            'created': 'Submitted', 'submitted': 'Submitted',
-                            'under_review': 'Under Review', 'officer_assigned': 'Under Review',
-                            'verification': 'Verification', 'manager_review': 'Verification',
-                            'approval_pending': 'Approval Pending', 'gm_approval': 'Approval Pending',
-                            'completed': 'Completed', 'resolved': 'Completed'
-                        };
-                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1));
-                        return {
-                            id: r.ticket_number || r.id, token: r.ticket_number || r.id,
-                            name: r.citizen_name || r.name, phone: r.citizen_mobile || r.phone || r.citizen_phone,
-                            category: r.department || r.category || '', serviceType: r.request_type || r.serviceType || '',
-                            address: r.metadata?.address || r.address || '', description: r.description || '',
-                            status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
-                            rejection_reason: r.rejection_reason,
-                            stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                            createdAt: r.created_at || new Date().toISOString(),
-                        };
-                    };
-
-                    const mapApiComplaint = (r: any): Complaint => {
-                        let rawStage = r.stage || r.current_stage || r.status || 'submitted';
-                        const stageMap: Record<string, string> = {
-                            'created': 'Pending', 'submitted': 'Pending', 'pending': 'Pending',
-                            'assigned': 'Assigned', 'in_progress': 'In Progress',
-                            'officer_assigned': 'Assigned', 'manager_review': 'In Progress',
-                            'gm_approval': 'In Progress', 'resolved': 'Resolved', 'closed': 'Closed'
-                        };
-                        const normalizedStage = stageMap[rawStage] || (rawStage.charAt(0).toUpperCase() + rawStage.slice(1).replace(/_/g, ' '));
-                        return {
-                            id: r.ticket_number || r.id, name: r.citizen_name || r.name,
-                            phone: r.citizen_mobile || r.phone || r.citizen_phone,
-                            category: r.department || r.category || '',
-                            complaintType: r.request_type || r.complaintType || '',
-                            location: r.metadata?.location || r.address || '', area: r.ward || 'Unknown',
-                            description: r.description || '', priority: r.priority || 'Medium',
-                            status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
-                            rejection_reason: r.rejection_reason,
-                            stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                            createdAt: r.created_at || new Date().toISOString(),
-                        };
-                    };
-
-                    const mergeIntoState = <T extends { id: string; currentStage: string; status: string; stage: string; stages: any[] }>(
-                        newFromApi: T[], setFn: React.Dispatch<React.SetStateAction<T[]>>, storageKey: string
-                    ) => {
-                        if (!newFromApi.length) return;
-                        setFn(prev => {
-                            const mergedMap = new Map<string, T>();
-                            prev.forEach(p => mergedMap.set(p.id, p));
-                            let updated = false;
-                            newFromApi.forEach(n => {
-                                if (mergedMap.has(n.id)) {
-                                    const existing = mergedMap.get(n.id)!;
-                                    if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
-                                        mergedMap.set(n.id, { ...existing, currentStage: n.currentStage, status: n.status, stage: n.stage, stages: n.stages });
-                                        updated = true;
-                                    }
-                                } else {
-                                    mergedMap.set(n.id, n);
-                                    updated = true;
-                                }
-                            });
-                            if (!updated) return prev;
-                            const merged = Array.from(mergedMap.values()).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                            persistData(storageKey, merged);
-                            return merged;
-                        });
-                    };
+                    if (Array.isArray(apiRequests)) {
+                        mergeIntoState(apiRequests.map(mapApiRequest), setServiceRequests, LOCAL_STORAGE_KEYS.SERVICES);
+                    }
+                    if (Array.isArray(apiComplaints)) {
+                        mergeIntoState(apiComplaints.map(mapApiComplaint), setComplaints, LOCAL_STORAGE_KEYS.COMPLAINTS);
+                    }
+                } else if (user) {
+                    // Citizen/Kiosk mode - Fetch by ID or Phone
+                    const apiRequests = await GrievanceService.getUserRequests(user.id, user.mobile || user.phone);
+                    const apiComplaints = await GrievanceService.getMyComplaints(user.id, user.mobile || user.phone);
 
                     if (Array.isArray(apiRequests)) {
                         mergeIntoState(apiRequests.map(mapApiRequest), setServiceRequests, LOCAL_STORAGE_KEYS.SERVICES);

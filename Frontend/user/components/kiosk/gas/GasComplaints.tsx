@@ -4,6 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { GasService } from '../../../services/gasService';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
+import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
 
 interface Props {
   onBack: () => void;
@@ -30,6 +31,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [showQR, setShowQR] = useState(false); // ⭐ PLUG-IN
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -86,6 +88,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
         priority: formData.category === 'gas_leak' ? 'critical' : 'medium'
       });
       setTicketNumber(result.ticket_number || result.id || 'GAS-CMP-' + Date.now());
+      setShowQR(true); // ⭐ PLUG-IN
 
       // ✅ Write to ServiceComplaintContext so this record appears in History
       const userStr = localStorage.getItem('aazhi_user');
@@ -143,15 +146,18 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
             <p className="text-3xl font-black text-red-700">{ticketNumber}</p>
           </div>
           <p className="text-sm text-slate-400 font-medium mb-4">
-            {t('gas_slaInfo') || 'Our team will respond within the SLA timeline. You can track your complaint in the Application Tracker.'}
+            {t('gas_slaInfo') || 'Our team will respond within the SLA timeline.'}
           </p>
-          <button
-            onClick={onBack}
-            className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
-          >
+          {/* ⭐ PLUG-IN: QR scan button */}
+          <button onClick={() => setShowQR(true)} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-blue-700 transition">
+            📱 Scan QR to Track on Mobile
+          </button>
+          <button onClick={onBack} className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition">
             {t('returnHomeBtn') || 'Back to Gas Services'}
           </button>
         </div>
+        {/* ⭐ PLUG-IN: QR Modal */}
+        {showQR && <ComplaintQRModal ticketNumber={ticketNumber} complaintId={ticketNumber} onClose={() => setShowQR(false)} />}
       </div>
     );
   }

@@ -18,6 +18,7 @@ import serviceRequestRoutes from "./routes/serviceRequest.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
+import trackingRoutes from "./routes/tracking.routes.js"; // ⭐ PLUG-IN: QR Tracking Layer
 
 import { pool, getPoolStatus } from "./config/db.js";
 
@@ -164,6 +165,7 @@ app.use("/api/service-requests", serviceRequestRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/track", trackingRoutes); // ⭐ PLUG-IN: Public QR Tracking (no auth)
 
 
 // ─── 404 ───────────────────────────────────────────────
