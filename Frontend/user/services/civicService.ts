@@ -160,3 +160,15 @@ export const LocalityService = {
     }
 };
 
+// --- ALERT SERVICE ---
+export const CivicAlertService = {
+    getLiveAlerts: async (): Promise<any[]> => {
+        try {
+            return await apiClient.get<any[]>('/municipal/alerts');
+        } catch (e) {
+            console.error("[CivicAlertService] Failed to fetch live alerts", e);
+            return [];
+        }
+    }
+};
+
