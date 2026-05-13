@@ -12,7 +12,7 @@ import {
     createServiceRequest, trackServiceRequest,
     getMyServiceRequests, getAllServiceRequestsAdmin, updateServiceRequestStatus, searchRequests,
     getAllRequestsAdminDebug, createRequestDebug, updateRequestStatusDebug,
-    addMessageToRequest
+    addMessageToRequest, getMyServiceRequestsDebug
 } from "../controllers/serviceRequest.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
@@ -23,6 +23,7 @@ const router = express.Router();
 
 // --- DEBUG ROUTES ---
 router.get("/admin/debug", getAllRequestsAdminDebug);
+router.get("/debug", getMyServiceRequestsDebug);
 router.post("/debug", createRequestDebug);
 router.put("/debug/:id/status", updateRequestStatusDebug);
 // --------------------

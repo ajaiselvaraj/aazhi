@@ -104,6 +104,30 @@ export const createServiceRequest = async (req, res, next) => {
         const ticketNumber = generateTicketNumber("SRQ");
         let requestRecord;
 
+        // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
+        let workflowStages = null;
+        try {
+            const wfResult = await pool.query(
+                `SELECT stages FROM workflow_definitions
+                 WHERE workflow_type = 'service_request' AND is_active = true
+                 ORDER BY updated_at DESC LIMIT 1`
+            );
+            if (wfResult.rows.length > 0) {
+                workflowStages = wfResult.rows[0].stages;
+            }
+        } catch (wfErr) {
+            // workflow_definitions table not yet created — use hardcoded fallback
+            logger.warn("workflow_definitions lookup failed for service_request, using fallback.", { error: wfErr.message });
+        }
+
+        const srStageDefs = workflowStages || [
+            { key: "created",   label: "Submitted" },
+            { key: "assigned",  label: "Assigned" },
+            { key: "working",   label: "In Progress" },
+            { key: "completed", label: "Completed" },
+        ];
+        // ─────────────────────────────────────────────────────────────────────────
+
         if (useSupabaseRest) {
             // ─── SUPABASE REST API MODE ───
             let citizenName = 'Unknown';
@@ -147,10 +171,10 @@ export const createServiceRequest = async (req, res, next) => {
 
             requestRecord = insertedData[0];
 
-            const stages = ["created", "assigned", "working", "completed"];
-            const stagesToInsert = stages.map((stage, i) => ({
+            // Use dynamic stages from workflow_definitions
+            const stagesToInsert = srStageDefs.map((s, i) => ({
                 service_request_id: requestRecord.id,
-                stage: stage,
+                stage: s.key,
                 status: i === 0 ? "current" : "pending"
             }));
 
@@ -168,11 +192,11 @@ export const createServiceRequest = async (req, res, next) => {
 
             requestRecord = result.rows[0];
 
-            const stages = ["created", "assigned", "working", "completed"];
-            for (let i = 0; i < stages.length; i++) {
+            // Use dynamic stages from workflow_definitions
+            for (let i = 0; i < srStageDefs.length; i++) {
                 await pool.query(
                     `INSERT INTO service_request_stages (service_request_id, stage, status) VALUES ($1, $2, $3)`,
-                    [requestRecord.id, stages[i], i === 0 ? "current" : "pending"]
+                    [requestRecord.id, srStageDefs[i].key, i === 0 ? "current" : "pending"]
                 );
             }
         }
@@ -268,6 +292,26 @@ export const getMyServiceRequests = async (req, res, next) => {
             page: parseInt(page),
             limit: parseInt(limit),
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── DEBUG: Get My Service Requests (Bypass Auth) ─────────
+export const getMyServiceRequestsDebug = async (req, res, next) => {
+    try {
+        const { citizen_id, phone } = req.query;
+        if (!citizen_id && !phone) {
+            return fail(res, "citizen_id or phone is required for debug fetching.", 400);
+        }
+
+        let query = `SELECT * FROM service_requests WHERE (citizen_id = $1 OR phone = $2)`;
+        const params = [citizen_id || null, phone || null];
+
+        query += ` ORDER BY created_at DESC LIMIT 50`;
+        const result = await pool.query(query, params);
+
+        return success(res, "Service requests retrieved (DEBUG)", result.rows);
     } catch (err) {
         next(err);
     }

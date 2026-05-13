@@ -20,6 +20,109 @@ const cache = {
 };
 const CACHE_TTL = 30000; // 30 seconds
 
+// ═══════════════════════════════════════════════════════════════
+// WORKFLOW DEFINITIONS — Single Source of Truth for Process Hierarchy
+// ═══════════════════════════════════════════════════════════════
+
+// Cache entry for workflow (separate from 30s dashboard cache — workflow changes rarely)
+const workflowCache = {};
+const WORKFLOW_CACHE_TTL = 60000; // 60 seconds
+
+// ─── Admin: Get All Workflow Definitions ─────────────────
+export const getWorkflowDefinitions = async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM workflow_definitions WHERE is_active = true ORDER BY workflow_type, department NULLS FIRST, updated_at DESC`
+        );
+        return success(res, "Workflow definitions", result.rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Admin: Create / Update Workflow Definition ──────────
+export const updateWorkflowDefinition = async (req, res, next) => {
+    try {
+        const { type } = req.params;
+        const { stages, department } = req.body;
+        const updatedBy = req.user.id;
+
+        const validTypes = ['complaint', 'service_request'];
+        if (!validTypes.includes(type)) {
+            return fail(res, `Invalid workflow type. Must be one of: ${validTypes.join(', ')}`, 400);
+        }
+        if (!Array.isArray(stages) || stages.length < 2) {
+            return fail(res, "stages must be an array with at least 2 entries.", 400);
+        }
+        for (const s of stages) {
+            if (!s.key || typeof s.key !== 'string' || !s.label || typeof s.label !== 'string') {
+                return fail(res, "Each stage must have a string 'key' and 'label'.", 400);
+            }
+        }
+
+        const result = await pool.query(
+            `INSERT INTO workflow_definitions (workflow_type, department, stages, updated_by, updated_at)
+             VALUES ($1, $2, $3::jsonb, $4, NOW())
+             ON CONFLICT (workflow_type, COALESCE(department, ''))
+             DO UPDATE SET
+                stages     = EXCLUDED.stages,
+                version    = workflow_definitions.version + 1,
+                updated_by = EXCLUDED.updated_by,
+                updated_at = NOW()
+             RETURNING *`,
+            [type, department || null, JSON.stringify(stages), updatedBy]
+        );
+
+        // Invalidate cache so next public fetch is fresh
+        const cacheKey = `${type}_${department || 'all'}`;
+        delete workflowCache[cacheKey];
+
+        logger.info("Workflow definition updated", { type, department, stageCount: stages.length, updatedBy });
+        return success(res, `Workflow for '${type}' updated successfully`, result.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// ─── Public: Get Workflow (User Side — no auth required) ─
+export const getPublicWorkflow = async (req, res, next) => {
+    try {
+        const { type } = req.params;
+        const { department } = req.query;
+
+        const validTypes = ['complaint', 'service_request'];
+        if (!validTypes.includes(type)) {
+            return fail(res, `Invalid workflow type.`, 400);
+        }
+
+        const cacheKey = `${type}_${department || 'all'}`;
+        const cached = workflowCache[cacheKey];
+        if (cached && (Date.now() - cached.timestamp < WORKFLOW_CACHE_TTL)) {
+            return success(res, "Workflow definition (cached)", cached.data);
+        }
+
+        // Department-specific workflow takes priority over global (NULL department)
+        const result = await pool.query(
+            `SELECT stages FROM workflow_definitions
+             WHERE workflow_type = $1 AND is_active = true
+             ORDER BY CASE WHEN department = $2 THEN 0 ELSE 1 END, updated_at DESC
+             LIMIT 1`,
+            [type, department || null]
+        );
+
+        if (result.rows.length === 0) {
+            return fail(res, `No active workflow defined for type '${type}'.`, 404);
+        }
+
+        const data = result.rows[0].stages;
+        workflowCache[cacheKey] = { data, timestamp: Date.now() };
+
+        return success(res, "Workflow definition", data);
+    } catch (err) {
+        next(err);
+    }
+};
+
 // ─── Timestamp-Based Update Check ─────────────────────────
 export const getDashboardUpdates = async (req, res, next) => {
     try {
@@ -324,7 +427,7 @@ export const getAllComplaints = async (req, res, next) => {
                     ci.mobile as citizen_mobile,
                     staff.name as assigned_to_name
                 FROM complaints c
-                JOIN citizens ci ON c.citizen_id = ci.id
+                LEFT JOIN citizens ci ON c.citizen_id = ci.id
                 LEFT JOIN citizens staff ON c.assigned_to = staff.id
                 WHERE 1=1`;
             const params = [];

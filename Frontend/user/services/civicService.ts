@@ -34,27 +34,30 @@ export const BillingService = {
 
 // --- GRIEVANCE SERVICE ---
 export const GrievanceService = {
-    getUserRequests: async (): Promise<ServiceRequest[]> => {
+    getUserRequests: async (citizenId?: string, phone?: string): Promise<ServiceRequest[]> => {
         const token = localStorage.getItem('aazhi_token');
         const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
         
-        // If not logged in with real JWT, we use the debug endpoint which filters by citizen_id (if provided in body/query)
-        // or just return an empty list because the context handles local storage anyway.
         const endpoint = hasRealJwt ? '/service-requests' : '/service-requests/debug';
+        const config = !hasRealJwt ? { params: { citizen_id: citizenId, phone: phone } } : {};
+        
         try {
-            return await apiClient.get<ServiceRequest[]>(endpoint);
+            return await apiClient.get<ServiceRequest[]>(endpoint, config);
         } catch (e) {
             console.warn("[GrievanceService] Failed to fetch user requests, falling back to local only.");
             return [];
         }
     },
 
-    getMyComplaints: async (): Promise<any[]> => {
+    getMyComplaints: async (citizenId?: string, phone?: string): Promise<any[]> => {
         const token = localStorage.getItem('aazhi_token');
         const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
+        
         const endpoint = hasRealJwt ? '/complaints' : '/complaints/debug';
+        const config = !hasRealJwt ? { params: { citizen_id: citizenId, phone: phone } } : {};
+        
         try {
-            return await apiClient.get<any[]>(endpoint);
+            return await apiClient.get<any[]>(endpoint, config);
         } catch (e) {
             return [];
         }
@@ -135,8 +138,18 @@ export const GrievanceService = {
     },
 
     addMessageToRequest: async (requestId: string, text: string) => {
-        // This endpoint might need to be added to backend or matched with existing
         return await apiClient.post(`/service-requests/${requestId}/messages`, { text });
+    },
+
+    // \u2500\u2500\u2500 Workflow / Process Hierarchy \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    // Fetches the ordered stage definitions for the given workflow type.
+    // No auth required \u2014 public endpoint, used by useWorkflow() hook.
+    getWorkflow: async (type: 'complaint' | 'service_request'): Promise<any[]> => {
+        try {
+            return await apiClient.get<any[]>(`/complaints/workflow/${type}`);
+        } catch {
+            return []; // hook will use its hardcoded fallback
+        }
     }
 };
 

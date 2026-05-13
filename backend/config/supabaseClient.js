@@ -22,4 +22,4 @@ if (supabaseUrl && supabaseKey && supabaseUrl.startsWith('http')) {
     console.warn(`⚠️ [SUPABASE] Client not initialized. MISSING VARS: ${missing.join(" / ")}.`);
 }
 
-export const supabase = supabaseClient;
+export const supabase = null;
