@@ -61,17 +61,22 @@ const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH })
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <div>
                     <h3 className="text-xl font-black text-slate-800">{t('liveMap') || 'Live Disruption Map'}</h3>
-
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {alerts.length > 0 ? `${alerts.length} ${t('activeDisruptions') || 'Active Disruptions'}` : t('allSystemsNormal') || 'All Systems Normal'}
+                    </p>
                 </div>
-                <span className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest animate-pulse">
-                    <ZapOff size={12} /> {t('live') || 'Live'}
+                <span className="flex items-center gap-1.5 bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-200">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> {t('live') || 'Realtime'}
                 </span>
             </div>
 
             <div className="flex items-center gap-6 h-64">
                 {/* Map Visualization */}
-                <div className="flex-1 h-full bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <div className="flex-1 h-full bg-slate-50 rounded-2xl p-4 border border-slate-100 relative group/map">
                     <CityMapSvg alerts={alerts} />
+                    <div className="absolute bottom-4 left-4 text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] pointer-events-none">
+                        IoT Sensor Network Active
+                    </div>
                 </div>
 
                 {/* Legend / List */}
@@ -86,10 +91,16 @@ const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH })
                         <span className="w-3 h-3 bg-slate-200 border border-slate-400 rounded-full"></span> {t('normal') || 'Normal'}
                     </div>
 
-                    <div className="mt-auto bg-slate-900 text-white p-3 rounded-xl text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50">{t('estRestore') || 'Est. Restore'}</p>
-                        <p className="text-lg font-black text-green-400 flex items-center justify-center gap-1">
-                            <CheckCircle2 size={14} /> 2h 15m
+                    <div className="mt-auto bg-slate-900 text-white p-3 rounded-xl text-center border border-slate-800">
+                        <p className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-1">{t('estRestore') || 'Est. Restore'}</p>
+                        <p className="text-lg font-black text-emerald-400 flex items-center justify-center gap-1">
+                            {alerts.some(a => a.severity === 'Critical') ? (
+                                <> <AlertTriangle size={14} className="text-amber-500" /> 4h 30m </>
+                            ) : alerts.length > 0 ? (
+                                <> <CheckCircle2 size={14} className="text-emerald-500" /> 1h 45m </>
+                            ) : (
+                                <> <CheckCircle2 size={14} className="text-emerald-500" /> -- </>
+                            )}
                         </p>
                     </div>
                 </div>

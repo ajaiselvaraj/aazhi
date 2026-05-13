@@ -201,6 +201,7 @@ const ServiceFormWizard: React.FC<Props> = ({ serviceName, mode, onCancel, onSub
                     requestId={dlReqId}
                     onSuccess={handleDigiLockerSuccess}
                     onCancel={() => setShowDigiLocker(false)}
+                    language={language}
                 />
             )}
 

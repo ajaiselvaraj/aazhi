@@ -9,7 +9,7 @@ import {
 import { ViewState, Language, ServiceRequest } from '../types';
 import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
 import { getAssistantResponse, generateCitizenImage, AIResponse, AIMenu } from '../services/geminiService';
-import { BillingService, GrievanceService } from '../services/civicService';
+import { BillingService, GrievanceService, CivicAlertService } from '../services/civicService';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import html2pdf from 'html2pdf.js';
 
@@ -140,6 +140,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ServiceRequest | null>(null);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
+  const [liveAlerts, setLiveAlerts] = useState<any[]>(MOCK_ALERTS);
 
   // ─── PERSISTENCE: Restore Tab & Steps ───
   useEffect(() => {
@@ -272,6 +273,20 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       }
     };
     fetchRequests();
+
+    const fetchAlerts = async () => {
+      try {
+        const alerts = await CivicAlertService.getLiveAlerts();
+        if (alerts && alerts.length > 0) {
+          setLiveAlerts(alerts);
+        }
+      } catch (error) {
+        console.error("Failed to fetch live alerts", error);
+      }
+    };
+    fetchAlerts();
+    const alertInterval = setInterval(fetchAlerts, 60000); // Live update every 60s
+    return () => clearInterval(alertInterval);
   }, []);
 
   // Scroll to bottom of chat
@@ -671,7 +686,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
         {activeTab === 'home' && (
           <DashboardHome
-            alerts={MOCK_ALERTS}
+            alerts={liveAlerts}
             onNavigate={(tab) => {
               setActiveTab(tab as any);
               if (tab === 'services') setSubmissionStep('select');
