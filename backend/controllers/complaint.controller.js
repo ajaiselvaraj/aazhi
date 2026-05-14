@@ -347,19 +347,23 @@ export const updateComplaintStatus = async (req, res, next) => {
 
         // ⭐ PLUG-IN: Emit real-time Socket.IO event (wrapped in try-catch — will NEVER break existing flow)
         try {
-            emitComplaintStatusUpdate(actualId, {
-                ticketNumber: result.rows[0].ticket_number,
+            const ticketNumber = result.rows[0].ticket_number;
+            const socketPayload = {
+                complaintId: actualId,
+                ticketNumber: ticketNumber,
                 oldStatus: current.rows[0].status,
                 newStatus: finalStatus,
                 notes: notes || null,
                 resolutionNote: resolution_note || null,
                 updatedAt: result.rows[0].updated_at,
-            });
-            emitComplaintTimelineUpdate(actualId, {
-                stage: finalStatus,
-                notes: notes || rejection_reason || resolution_note || null,
-                updatedAt: new Date().toISOString(),
-            });
+            };
+
+            // Emit to both UUID room and Ticket Number room to be 100% sure mobile phone receives it
+            emitComplaintStatusUpdate(actualId, socketPayload);
+            emitComplaintStatusUpdate(ticketNumber, socketPayload);
+            
+            emitComplaintTimelineUpdate(actualId, { stage: finalStatus, updatedAt: new Date().toISOString() });
+            emitComplaintTimelineUpdate(ticketNumber, { stage: finalStatus, updatedAt: new Date().toISOString() });
         } catch (socketErr) {
             logger.warn("[Socket.IO] Failed to emit status update (non-critical):", socketErr.message);
         }

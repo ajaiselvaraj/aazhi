@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController, updateProfileController } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController, updateProfileController, kioskLoginController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -29,6 +29,13 @@ router.post("/verify-otp", authLimiter, verifyOtpController);
  * @access  Public
  */
 router.post("/mock-aadhaar", mockAadhaarLogin);
+
+/**
+ * @desc    Kiosk Citizen Login via Consumer ID
+ * @route   POST /api/auth/kiosk/login
+ * @access  Public
+ */
+router.post("/kiosk/login", authLimiter, kioskLoginController);
 
 /**
  * @desc    Admin login

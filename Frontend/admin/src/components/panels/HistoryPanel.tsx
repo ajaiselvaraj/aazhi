@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Search, RefreshCw, Calendar, Clock, Inbox, Archive } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useLanguage } from '../../context/LanguageContext'
+import { formatTimestamp } from '../../utils/formatTimestamp'
 
 /* ── Badge Components ────────────────────────────────────────── */
 function StatusBadge({ s, type }: { s: string, type: 'complaint' | 'service' }) {
@@ -185,7 +186,7 @@ export default function HistoryPanel() {
                   </span>
                 </div>
                 <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '.25rem' }}>
-                  <Calendar size={12} /> {new Date(item.created_at).toLocaleDateString()}
+                  <Calendar size={12} /> {formatTimestamp(item.created_at || item.createdAt)}
                 </div>
               </div>
             </div>

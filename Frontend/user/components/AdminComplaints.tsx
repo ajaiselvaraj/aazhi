@@ -187,6 +187,14 @@ const AdminComplaints: React.FC<Props> = ({
           filteredComplaints.map((complaint) => {
             const isBreachingSLA = complaint.priority === 'Critical' && complaint.status === 'Pending';
             
+            let dateStr = 'Date unavailable';
+            if (complaint.createdAt || complaint.timestamp) {
+                const d = new Date(complaint.createdAt || complaint.timestamp);
+                if (!isNaN(d.getTime())) {
+                    dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/am|pm/i, m => m.toUpperCase());
+                }
+            }
+            
             return (
             <div key={complaint.id} className={`bg-white p-6 rounded-3xl shadow-sm border transition hover:shadow-md outline outline-2 outline-transparent focus-within:outline-blue-500
                 ${complaint.priority === 'Critical' ? 'border-l-4 border-l-red-500' :
@@ -239,7 +247,7 @@ const AdminComplaints: React.FC<Props> = ({
                       </span>
 
                       <span className="text-xs font-bold text-slate-400 ml-2">{complaint.id}</span>
-                      <span className="text-xs font-bold text-slate-400">• {new Date(complaint.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs font-bold text-slate-400">• {dateStr}</span>
                       
                       {complaint.areaAlert && (
                         <span className="flex items-center gap-1 bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider animate-pulse ml-2 border border-red-200">

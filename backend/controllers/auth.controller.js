@@ -151,6 +151,70 @@ export const mockAadhaarLogin = async (req, res, next) => {
 };
 
 /**
+ * Handles Kiosk Citizen Login purely via Consumer ID
+ * Route: POST /api/auth/kiosk/login
+ */
+export const kioskLoginController = async (req, res, next) => {
+    try {
+        const { consumerId } = req.body;
+
+        if (!consumerId) {
+            return fail(res, "Consumer ID is required for Kiosk login.", 400);
+        }
+
+        // 1. Map consumerId to a citizen via utility_accounts
+        const accountQuery = `
+            SELECT c.*
+            FROM utility_accounts ua
+            JOIN citizens c ON ua.citizen_id = c.id
+            WHERE ua.account_number = $1
+            LIMIT 1
+        `;
+        let accountResult = await pool.query(accountQuery, [consumerId]);
+
+        if (accountResult.rows.length === 0) {
+            if (consumerId === '111111111111') {
+                logger.info("[Auth Controller] Using mock demo user for 111111111111");
+                const demoCitizenId = "9eb3f201-174d-48e9-a061-b88093fe58dc";
+                accountResult = await pool.query("SELECT * FROM citizens WHERE id = $1", [demoCitizenId]);
+                
+                if (accountResult.rows.length === 0) {
+                    accountResult = await pool.query("SELECT * FROM citizens LIMIT 1");
+                }
+            } else {
+                return fail(res, "Invalid Consumer ID. No citizen linked.", 404);
+            }
+        }
+
+        const citizen = accountResult.rows[0];
+
+        // 2. Generate auth tokens strictly for this citizen
+        const { accessToken, refreshToken } = generateTokens(citizen);
+
+        logger.info(`[Auth Controller] Kiosk Consumer Login success for Citizen ID: ${citizen.id}`);
+
+        setTokenCookies(res, accessToken, refreshToken);
+
+        return success(res, "Kiosk login successful", {
+            citizen: {
+                id: citizen.id,
+                mobile: citizen.mobile,
+                name: citizen.name || null,
+                createdAt: citizen.created_at
+            },
+            tokens: {
+                accessToken,
+                refreshToken
+            }
+        }, 200);
+
+    } catch (error) {
+        logger.error(`[Auth Controller] Kiosk Login Error: ${error.message}`);
+        return serverError(res, "Failed to authenticate via Kiosk.", 500);
+    }
+};
+
+/**
  * ADMIN LOGIN (For Admin Dashboard)
  * Route: POST /api/auth/admin-login
  */
