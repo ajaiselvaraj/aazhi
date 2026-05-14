@@ -4,6 +4,7 @@ import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { useLanguage } from '../../context/LanguageContext'
 import { deptKey } from '../../utils/deptFilter'
+import { formatTimestamp } from '../../utils/formatTimestamp'
 
 /* ── Status Badge ────────────────────────────────────────────── */
 function StatusBadge({ s }: { s: string }) {
@@ -359,12 +360,9 @@ export default function TriagePanel() {
                       </td>
                       <td>
                         <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                            <Calendar size={12} /> {new Date(c.created_at).toLocaleDateString()}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
-                            <Clock size={12} /> {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                             <Calendar size={12} /> {formatTimestamp(c.created_at || c.createdAt)}
+                           </div>
                         </div>
                       </td>
                       <td>

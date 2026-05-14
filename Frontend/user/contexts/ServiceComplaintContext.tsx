@@ -63,7 +63,7 @@ interface ServiceComplaintContextType {
     serviceRequests: ServiceRequest[];
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
-    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => string;
+    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
     addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
     updateServiceStatus: (id: string, status: ServiceRequest['status']) => void;
     updateServiceStage: (id: string, stage: string) => void;
@@ -194,8 +194,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         address: r.metadata?.address || r.address || '', description: r.description || '',
                         status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
                         rejection_reason: r.rejection_reason,
-                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                        createdAt: r.created_at || new Date().toISOString(),
+                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at }],
+                        createdAt: r.created_at || r.createdAt,
                     };
                 };
 
@@ -217,8 +217,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         description: r.description || '', priority: r.priority || 'Medium',
                         status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
                         rejection_reason: r.rejection_reason,
-                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at || new Date().toISOString() }],
-                        createdAt: r.created_at || new Date().toISOString(),
+                        stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at }],
+                        createdAt: r.created_at || r.createdAt,
                     };
                 };
 
@@ -233,10 +233,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         newFromApi.forEach(n => {
                             if (mergedMap.has(n.id)) {
                                 const existing = mergedMap.get(n.id)!;
-                                if (existing.currentStage !== n.currentStage || existing.status !== n.status || existing.stage !== n.stage) {
-                                    mergedMap.set(n.id, { ...existing, currentStage: n.currentStage, status: n.status, stage: n.stage, stages: n.stages });
-                                    updated = true;
-                                }
+                                // DB is the source of truth, completely overwrite local cache with DB properties
+                                // except we keep any local-only properties if they exist
+                                mergedMap.set(n.id, { ...existing, ...n });
+                                updated = true;
                             } else {
                                 mergedMap.set(n.id, n);
                                 updated = true;
@@ -309,10 +309,12 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
     };
 
-    const addServiceRequest = (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): string => {
+    const addServiceRequest = async (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): Promise<string> => {
         const token = `TKT-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
         const userStr = localStorage.getItem('aazhi_user');
         const user = userStr ? JSON.parse(userStr) : null;
+        // Use client time as initial placeholder — will be patched with server time below
+        const clientTime = new Date().toISOString();
         
         const newReq: ServiceRequest = { 
             ...data, 
@@ -324,8 +326,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             status: "active", 
             currentStage: "Submitted", 
             stage: "submitted", 
-            stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], 
-            createdAt: new Date().toISOString() 
+            stages: [{ stage: "Submitted", status: "Current", updatedAt: clientTime }], 
+            createdAt: clientTime 
         };
         
         setServiceRequests(prev => {
@@ -336,21 +338,31 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         
         logActivity("Request Submitted", `New service request ${token} submitted for ${data.category}.`);
 
-        // Mirror to backend
-        (async () => {
-            try {
-                await GrievanceService.createRequest({
-                    request_type: data.serviceType,
-                    department: data.category,
-                    description: data.description || `Service request for ${data.serviceType}`,
-                    phone: data.phone || user?.mobile,
-                    name: data.name || user?.name,
-                    metadata: { token, name: data.name || user?.name, address: data.address }
+        // Mirror to backend and patch server timestamp into local state
+        try {
+            const apiRes: any = await GrievanceService.createRequest({
+                request_type: data.serviceType,
+                department: data.category,
+                description: data.description || `Service request for ${data.serviceType}`,
+                phone: data.phone || user?.mobile,
+                name: data.name || user?.name,
+                metadata: { token, name: data.name || user?.name, address: data.address }
+            });
+            // Patch real server timestamp into local state so display matches DB
+            const serverCreatedAt = apiRes?.created_at || apiRes?.createdAt;
+            const serverTicket = apiRes?.ticket_number || apiRes?.id || token;
+            if (serverCreatedAt) {
+                setServiceRequests(prev => {
+                    const updated = prev.map(r =>
+                        r.id === token ? { ...r, id: serverTicket, token: serverTicket, createdAt: serverCreatedAt } : r
+                    );
+                    persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
+                    return updated;
                 });
-            } catch (err) {
-                console.error("❌ [API] Failed to mirror request to backend:", err);
             }
-        })();
+        } catch (err) {
+            console.error("❌ [API] Failed to mirror request to backend:", err);
+        }
 
         return token;
     };
@@ -377,6 +389,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             });
         }
 
+        let serverCreatedAt: string | null = null;
         let finalId: string | null = null;
         try {
             const apiRes = await GrievanceService.createComplaint({
@@ -390,6 +403,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 phone: data.phone
             });
             finalId = (apiRes as any).ticket_number || apiRes.id;
+            // ✅ Use the server-returned created_at as the definitive timestamp
+            serverCreatedAt = (apiRes as any).created_at || (apiRes as any).createdAt || null;
         } catch (error) {
             console.warn("API submission failed, falling back to offline mode", error);
         }
@@ -410,8 +425,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             areaAlert, 
             currentStage: "Submitted", 
             stage: "submitted", 
-            stages: [{ stage: "Submitted", status: "Current", updatedAt: new Date().toISOString() }], 
-            createdAt: new Date().toISOString() 
+            stages: [{ stage: "Submitted", status: "Current", updatedAt: serverCreatedAt || new Date().toISOString() }], 
+            createdAt: serverCreatedAt || new Date().toISOString() 
         };
         
         setComplaints(prev => {

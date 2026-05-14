@@ -182,7 +182,14 @@ const AdminRequests: React.FC<Props> = ({ requests = [], updateStage }) => {
             ) : (
               filteredRequests.map((req, idx) => {
                 const isOverdue = idx === 0 && (req.currentStage === 'Submitted' || req.currentStage === 'created');
-                const createdAt = req.createdAt || new Date().toISOString();
+                const rawDate = req.createdAt || req.timestamp;
+                let dateStr = 'Date unavailable';
+                if (rawDate) {
+                    const d = new Date(rawDate);
+                    if (!isNaN(d.getTime())) {
+                        dateStr = d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/am|pm/i, m => m.toUpperCase());
+                    }
+                }
                 
                 return (
                 <tr key={req.id || idx} className={`group hover:bg-blue-50/30 transition-colors ${isOverdue ? 'bg-red-50/10' : ''}`}>
@@ -214,7 +221,19 @@ const AdminRequests: React.FC<Props> = ({ requests = [], updateStage }) => {
                   </td>
                   <td className="px-4 py-6">
                     {(() => {
-                       const ageMs = Date.now() - new Date(createdAt).getTime();
+                       if (!rawDate || isNaN(new Date(rawDate).getTime())) {
+                           return (
+                             <div>
+                               <div className="text-[10px] font-bold px-2 py-0.5 mt-1 rounded inline-block whitespace-nowrap bg-slate-100 text-slate-500">
+                                  Unknown Age
+                               </div>
+                               <p className="text-[9px] text-slate-400 font-bold mt-1.5 flex items-center gap-1 uppercase tracking-tighter">
+                                 <Clock size={10} /> {dateStr}
+                               </p>
+                             </div>
+                           );
+                       }
+                       const ageMs = Date.now() - new Date(rawDate).getTime();
                        const days = Math.floor(ageMs / (1000 * 60 * 60 * 24));
                        const hours = Math.floor((ageMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                        
@@ -230,7 +249,7 @@ const AdminRequests: React.FC<Props> = ({ requests = [], updateStage }) => {
                               {isOld ? `Age: ${agingStr}` : `${agingStr}`}
                            </div>
                            <p className="text-[9px] text-slate-400 font-bold mt-1.5 flex items-center gap-1 uppercase tracking-tighter">
-                             <Clock size={10} /> {new Date(createdAt).toLocaleDateString()}
+                             <Clock size={10} /> {dateStr}
                            </p>
                          </div>
                        );

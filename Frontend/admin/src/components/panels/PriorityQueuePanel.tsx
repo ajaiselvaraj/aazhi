@@ -4,6 +4,7 @@ import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
 import { useLanguage } from '../../context/LanguageContext'
+import { formatTimestamp } from '../../utils/formatTimestamp'
 
 const PRIORITY_STYLES = {
   'P0 — Emergency': { border: '#FF4D4F', badge: 'badge-danger' },
@@ -57,7 +58,7 @@ export default function PriorityQueuePanel() {
         priority: 'P1 — Critical',
         icon: '🚨',
         officer: c.assigned_to_name || null,
-        reportedAt: new Date(c.created_at).toLocaleString(),
+        reportedAt: formatTimestamp(c.created_at || c.createdAt),
         raw: c
       }))
       setIssues(mapped)

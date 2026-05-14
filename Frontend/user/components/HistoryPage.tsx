@@ -43,13 +43,19 @@ const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem)
   const title = isComplaint ? (item as Complaint).complaintType : (item as ServiceRequest).serviceType;
   const description = item.description || (item as any).details || 'No description provided';
   
-  let dateStr = 'Unknown Date';
-  try {
-      const d = new Date(item.createdAt || (item as any).timestamp || Date.now());
-      if (!isNaN(d.getTime())) {
-          dateStr = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-      }
-  } catch (e) {}
+  const formatTimestamp = (val: any) => {
+    if (!val) return 'Date unavailable';
+    // Normalise: replace space separator with T, and append Z if no timezone info present.
+    // This ensures strings like "2026-05-14 17:43:35" (returned by pg without tz) are
+    // always parsed as UTC — preventing a 5.5h IST shift on the client.
+    const raw = String(val);
+    const normalised = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    const utcStr = /[+\-Z]/.test(normalised.slice(10)) ? normalised : normalised + 'Z';
+    const d = new Date(utcStr);
+    if (isNaN(d.getTime())) return 'Date unavailable';
+    return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/am|pm/i, m => m.toUpperCase());
+  };
+  const dateStr = formatTimestamp(item.createdAt || (item as any).timestamp);
 
   const department = item.category || (item as any).department || (isComplaint ? 'Complaint' : 'Service');
   const displayStatus = item.currentStage || item.stage || item.status || 'Submitted';

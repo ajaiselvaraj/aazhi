@@ -44,15 +44,15 @@ const MunicipalTracker: React.FC<Props> = ({ onBack, language }) => {
       const isWater = query.toUpperCase().includes('WTR');
       const isTax = query.toUpperCase().includes('TAX');
       
-      let typeDesc = 'Municipal Grievance';
+      let typeDesc = 'Municipal Complaint';
       let dept = 'Civic Maintenance Dept';
       let tatDuration = '48 Hours';
       let timelineNodes: TimelineStep[] = [
-        { id: 1, title: 'Grievance Registered', desc: 'Ticket successfully logged.', date: '17-Apr-2026 09:30 AM', status: 'completed' },
+        { id: 1, title: 'Complaint Registered', desc: 'Ticket successfully logged.', date: '17-Apr-2026 09:30 AM', status: 'completed' },
         { id: 2, title: 'Department Assigned', desc: 'Routed to Ward Supervisor.', date: '17-Apr-2026 11:15 AM', status: 'completed' },
         { id: 3, title: 'Resolution In Progress', desc: 'Field staff dispatched to location.', date: '18-Apr-2026 10:00 AM', status: 'current' },
         { id: 4, title: 'Resolved', desc: 'Awaiting citizen closure confirmation.', date: 'Pending', status: 'pending' },
-        { id: 5, title: 'Closed', desc: 'Grievance ticket formally closed.', date: 'Pending', status: 'pending' }
+        { id: 5, title: 'Closed', desc: 'Complaint ticket formally closed.', date: 'Pending', status: 'pending' }
       ];
 
       if (isWater) {
@@ -104,7 +104,7 @@ const MunicipalTracker: React.FC<Props> = ({ onBack, language }) => {
             </div>
             <h2 className="text-3xl font-black text-slate-900 leading-tight mb-2">Track Application</h2>
             <p className="text-slate-500 font-medium text-sm mb-8">
-              Monitor the status of your municipal requests, water applications, and civic grievances.
+              Monitor the status of your municipal requests, water applications, and civic complaints.
             </p>
 
             <div className="space-y-4">
@@ -226,7 +226,7 @@ const MunicipalTracker: React.FC<Props> = ({ onBack, language }) => {
                 </div>
                 <h3 className="text-2xl font-black text-slate-400 mb-2">Awaiting Inquiry</h3>
                 <p className="text-slate-400 font-medium max-w-sm">
-                    Enter your application or grievance ticket ID in the search box to monitor its real-time progress.
+                    Enter your application or complaint ticket ID in the search box to monitor its real-time progress.
                 </p>
             </div>
           )}

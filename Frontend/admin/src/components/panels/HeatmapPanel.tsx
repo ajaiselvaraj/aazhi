@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { adminApi } from '../../services/adminApi'
 import { useLanguage } from '../../context/LanguageContext'
 import { RefreshCw, Inbox, MapPin } from 'lucide-react'
+import { formatTimestamp } from '../../utils/formatTimestamp'
 
 const getPriorityIcon = (priority: string) => {
   if (priority === 'critical') {
@@ -73,7 +74,7 @@ export default function HeatmapPanel() {
             ward: c.ward || 'N/A',
             priority: c.priority || 'medium',
             ticket: c.ticket_number,
-            reportedAt: new Date(c.created_at).toLocaleDateString(),
+            reportedAt: formatTimestamp(c.created_at || c.createdAt),
             lat: coords[0],
             lng: coords[1],
             status: c.status,

@@ -3,8 +3,18 @@
 // PostgreSQL via Supabase · Connection Pooling · SSL · Retry Logic
 // ═══════════════════════════════════════════════════════════════
 
-import { Pool } from "pg";
+import { Pool, types } from "pg";
 import dotenv from "dotenv";
+
+// ─── Force UTC output for ALL timestamp columns ──────────────────
+// pg's default behaviour: TIMESTAMP (no tz) is parsed as LOCAL server time.
+// This causes a 5.5-hour shift when server=UTC and client=IST (+05:30).
+// Fix: return raw ISO string with 'Z' suffix so JS Date always treats it as UTC.
+const TIMESTAMP_OID    = 1114;  // TIMESTAMP without time zone
+const TIMESTAMPTZ_OID  = 1184;  // TIMESTAMP with time zone
+types.setTypeParser(TIMESTAMP_OID,   (val) => val ? val.replace(' ', 'T') + 'Z' : null);
+types.setTypeParser(TIMESTAMPTZ_OID, (val) => val ? new Date(val).toISOString()  : null);
+// ────────────────────────────────────────────────────────────────
 
 // Load environment variables if not already loaded by server.js
 if (!process.env.DATABASE_URL) {

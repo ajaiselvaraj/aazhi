@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
 
 import { useLanguage } from '../../context/LanguageContext'
+import { formatTimestamp } from '../../utils/formatTimestamp'
 
 /* ── Status Badge ────────────────────────────────────────────── */
 function RequestStatusBadge({ s }: { s: string }) {
@@ -305,12 +306,9 @@ export default function ServiceRequestsPanel() {
                       </td>
                       <td>
                         <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                            <Calendar size={12} /> {new Date(r.created_at).toLocaleDateString()}
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem', marginTop: '.1rem' }}>
-                            <Clock size={12} /> {new Date(r.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
+                             <Calendar size={12} /> {formatTimestamp(r.created_at || r.createdAt)}
+                           </div>
                         </div>
                       </td>
                       <td>
