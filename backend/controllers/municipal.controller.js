@@ -271,3 +271,54 @@ export const getPaymentHistory = async (req, res, next) => {
         next(err);
     }
 };
+
+// ─── Get Live City Alerts ─────────────────────────────────
+export const getLiveAlerts = async (req, res, next) => {
+    try {
+        // In a real system, this might come from a separate 'alerts' table 
+        // or a real-time IoT integration. For now, we fetch recent critical 
+        // issues from complaints and service requests, and merge with some
+        // system-generated alerts.
+        
+        const { rows: criticalComplaints } = await pool.query(
+            `SELECT id, department as type, ward, subject as message, priority as severity
+             FROM complaints 
+             WHERE status = 'active' AND (priority = 'high' OR priority = 'critical')
+             LIMIT 5`
+        );
+
+        // Map internal types to frontend alert types
+        const typeMap = {
+            'Electricity Board': 'Power',
+            'Water Supply & Sewage': 'Water',
+            'Municipal Corp': 'Civic',
+            'Waste Management': 'Civic'
+        };
+
+        const severityMap = {
+            'critical': 'Critical',
+            'high': 'Warning',
+            'medium': 'Warning',
+            'low': 'Info'
+        };
+
+        const realTimeAlerts = criticalComplaints.map(c => ({
+            id: c.id.toString(),
+            type: typeMap[c.type] || 'Civic',
+            severity: severityMap[c.severity] || 'Warning',
+            ward: c.ward || 'Global',
+            message: c.message
+        }));
+
+        // Default alerts if none found
+        if (realTimeAlerts.length === 0) {
+            realTimeAlerts.push(
+                { id: 'AL-SYS-01', type: 'Power', severity: 'Info', ward: 'Global', message: 'All systems normal' }
+            );
+        }
+
+        return success(res, "Live alerts retrieved", realTimeAlerts);
+    } catch (err) {
+        next(err);
+    }
+};

@@ -64,6 +64,7 @@ export interface ElectricityComplaintRequest {
   description: string;
   consumer_number?: string;
   ward?: string;
+  name?: string;
   phone?: string;
   priority?: 'low' | 'medium' | 'high' | 'critical';
 }
@@ -132,6 +133,7 @@ export const ElectricityService = {
       subject: data.subject,
       description: data.description,
       ward: data.ward || '',
+      name: data.name || '',
       phone: data.phone || '',
       priority: data.priority || 'medium',
       metadata: {

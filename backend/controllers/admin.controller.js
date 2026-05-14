@@ -409,7 +409,7 @@ export const getAllComplaints = async (req, res, next) => {
                 // Prioritize the name/mobile stored ON the complaint (entered at submission time)
                 // Fall back to the linked citizens table only if the ticket field is empty
                 citizen_name: c.citizen_name || c.citizen?.name || null,
-                citizen_mobile: c.citizen?.mobile || null
+                citizen_mobile: c.citizen_mobile || c.citizen?.mobile || null
             }));
 
             return paginated(res, "All complaints", mapped, {
@@ -424,7 +424,7 @@ export const getAllComplaints = async (req, res, next) => {
                 SELECT 
                     c.*,
                     COALESCE(c.citizen_name, ci.name) as citizen_name,
-                    ci.mobile as citizen_mobile,
+                    COALESCE(c.citizen_mobile, ci.mobile) as citizen_mobile,
                     staff.name as assigned_to_name
                 FROM complaints c
                 LEFT JOIN citizens ci ON c.citizen_id = ci.id

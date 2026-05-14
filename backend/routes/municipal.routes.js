@@ -11,7 +11,8 @@
 import express from "express";
 import {
     getWaterBills, getPropertyTax, payPropertyTax,
-    addressChange, wasteServiceRequest, getMyServiceRequests, getWaterQuickPayBill, getPaymentHistory
+    addressChange, wasteServiceRequest, getMyServiceRequests, getWaterQuickPayBill, getPaymentHistory,
+    getLiveAlerts
 } from "../controllers/municipal.controller.js";
 import authMiddleware, { optionalAuth } from "../middleware/auth.middleware.js";
 
@@ -25,5 +26,6 @@ router.post("/property-tax/pay", authMiddleware, payPropertyTax);
 router.post("/address-change", authMiddleware, addressChange);
 router.post("/waste", authMiddleware, wasteServiceRequest);
 router.get("/requests", authMiddleware, getMyServiceRequests);
+router.get("/alerts", getLiveAlerts); // Public endpoint for live map
 
 export default router;

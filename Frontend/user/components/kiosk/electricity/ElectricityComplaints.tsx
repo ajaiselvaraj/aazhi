@@ -62,9 +62,9 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
+    if (!formData.name?.trim()) errs.name = t('fieldRequired') || 'Required';
     if (!formData.category) errs.category = t('fieldRequired') || 'Required';
     if (!formData.subject?.trim()) errs.subject = t('fieldRequired') || 'Required';
-    if (!formData.description?.trim()) errs.description = t('fieldRequired') || 'Required';
     if (!formData.mobile?.trim() || !/^\d{10}$/.test(formData.mobile)) errs.mobile = t('validMobile') || 'Enter valid 10-digit mobile';
     
     setErrors(errs);
@@ -83,6 +83,7 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
         description: formData.description,
         consumer_number: formData.consumer_number,
         ward: formData.ward,
+        name: formData.name,
         phone: formData.mobile,
         priority: formData.priority as any
       });
@@ -94,7 +95,7 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
       const userStr = localStorage.getItem('aazhi_user');
       const user = userStr ? JSON.parse(userStr) : null;
       await addComplaint({
-        name: user?.name || 'Guest',
+        name: formData.name || user?.name || 'Guest',
         phone: formData.mobile || user?.mobile || '',
         category: 'Electricity',
         complaintType: formData.subject || formData.category || 'Electricity Complaint',
@@ -113,7 +114,7 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
       const userStr = localStorage.getItem('aazhi_user');
       const user = userStr ? JSON.parse(userStr) : null;
       await addComplaint({
-        name: user?.name || 'Guest',
+        name: formData.name || user?.name || 'Guest',
         phone: formData.mobile || user?.mobile || '',
         category: 'Electricity',
         complaintType: formData.subject || formData.category || 'Electricity Complaint',
@@ -213,15 +214,16 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
-                {t('elec_consumerNumber') || 'Consumer Number'} ({t('optional') || 'Optional'})
+                {t('comp_name') || 'Name'} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={formData.consumer_number || ''}
-                onChange={(e) => handleInputChange('consumer_number', e.target.value)}
-                placeholder="069-123-4567"
-                className="w-full bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 focus:bg-white transition"
+                value={formData.name || ''}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="e.g. John Doe"
+                className={`w-full bg-slate-50 border-2 ${errors.name ? 'border-red-400' : 'border-slate-200'} p-4 rounded-2xl font-bold outline-none focus:border-blue-500 focus:bg-white transition`}
               />
+              {errors.name && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.name}</p>}
             </div>
             <div className="space-y-3">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
@@ -237,6 +239,19 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
               />
               {errors.mobile && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.mobile}</p>}
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
+              {t('elec_consumerNumber') || 'Consumer Number'} ({t('optional') || 'Optional'})
+            </label>
+            <input
+              type="text"
+              value={formData.consumer_number || ''}
+              onChange={(e) => handleInputChange('consumer_number', e.target.value)}
+              placeholder="069-123-4567"
+              className="w-full bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-blue-500 focus:bg-white transition"
+            />
           </div>
 
           <div className="space-y-3">
