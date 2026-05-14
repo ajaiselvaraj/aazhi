@@ -94,10 +94,10 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority]
+            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority]
         );
 
         // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
@@ -406,7 +406,7 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
             SELECT 
                 c.*, 
                 COALESCE(c.citizen_name, ci.name) AS citizen_name, 
-                ci.mobile AS citizen_mobile
+                COALESCE(c.citizen_mobile, ci.mobile) AS citizen_mobile
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
         `;
@@ -447,7 +447,10 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
 export const getAllComplaintsAdminDebug = async (req, res, next) => {
     try {
         const result = await pool.query(`
-            SELECT c.*, ci.name as citizen_name, ci.mobile as citizen_mobile
+            SELECT 
+                c.*, 
+                COALESCE(c.citizen_name, ci.name) as citizen_name, 
+                COALESCE(c.citizen_mobile, ci.mobile) as citizen_mobile
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
             ORDER BY c.created_at DESC
@@ -489,10 +492,10 @@ export const createComplaintDebug = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, 'submitted')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, citizenName, phone || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         const stages = [

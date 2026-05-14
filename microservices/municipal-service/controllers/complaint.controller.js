@@ -90,7 +90,7 @@ const checkDuplicate = async (text, citizenId) => {
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+        const { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
 
         // 🤖 AI Spam Filter — check before persisting
         const complaintText = `${subject || ""} ${description || ""}`.trim();
@@ -113,10 +113,10 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
              RETURNING *`,
-            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, name || null, phone || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         // Create complaint lifecycle stages
@@ -549,15 +549,15 @@ export const createComplaintDebug = async (req, res, next) => {
             else citizenId = 1;
         }
 
-        const { category, issue_category, department, subject, description, ward, priority } = req.body;
+        const { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
         const ticketNumber = generateTicketNumber("CMP");
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, $9, 'submitted')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
              RETURNING *`,
-            [ticketNumber, citizenId, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, name || null, phone || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         const stages = [
