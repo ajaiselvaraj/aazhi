@@ -2,28 +2,176 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────
+   AAZHI KIOSK — Global Design Tokens & Orientation System
+   Supports:
+     [data-orientation="horizontal"] — standard landscape kiosk / desktop
+     [data-orientation="vertical"]   — 55" 4K portrait touch kiosk
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ── Base typography ── */
 body {
   font-family: 'Inter', sans-serif;
   background-color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar for Kiosk */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 10px;
+/* ─── Smooth Orientation Transition ─────────────────────────────────── */
+.kiosk-main-layout,
+.kiosk-main-layout * {
+  transition-property: width, height, flex-direction, padding, margin, font-size;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 10px;
+/* ─── Custom Scrollbars ──────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 10px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 3px solid #f1f5f9; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Vertical / Portrait Kiosk Mode ────────────────────────────────── */
+/* Applied when [data-orientation="vertical"] is on <body> */
+
+[data-orientation="vertical"] {
+  /* Scale up for 4K — base font grows proportionally */
+  font-size: 18px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-  border: 3px solid #f1f5f9;
+/* Make the root full-height viewport with no overflow */
+[data-orientation="vertical"] #root {
+  height: 100dvh;
+  overflow: hidden;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+/* ─── Touch-friendly sizing in vertical mode ─── */
+[data-orientation="vertical"] button,
+[data-orientation="vertical"] [role="button"] {
+  min-height: 56px;
+  /* do NOT forcefully override width — let layout own it */
 }
 
+/* ─── Card & Panel scaling in vertical mode ─── */
+[data-orientation="vertical"] .rounded-\[2\.5rem\],
+[data-orientation="vertical"] .rounded-\[3rem\] {
+  border-radius: 2rem;
+}
+
+/* ─── Larger interactive targets ─── */
+[data-orientation="vertical"] input,
+[data-orientation="vertical"] select,
+[data-orientation="vertical"] textarea {
+  min-height: 60px;
+  font-size: 1.1rem;
+}
+
+/* ─── Vertical navigation bottom bar ─── */
+[data-orientation="vertical"] .vertical-mode nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 7rem;   /* ~112px — comfortably fingertip-tappable */
+  z-index: 100;
+  border-top: 2px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Vertical mode content area — offset by bottom nav ─── */
+[data-orientation="vertical"] .vertical-mode main {
+  padding-bottom: 7rem;
+}
+
+/* ─── Kiosk 4K scaling helpers ─────────────────────────────────────── */
+/* For 4K (3840px wide) screens, scale up text and spacing */
+@media (min-width: 3000px) {
+  [data-orientation="vertical"] { font-size: 28px; }
+  [data-orientation="vertical"] button,
+  [data-orientation="vertical"] [role="button"] { min-height: 96px; }
+  [data-orientation="vertical"] nav { height: 10rem !important; }
+  [data-orientation="vertical"] .vertical-mode main { padding-bottom: 10rem; }
+}
+
+/* ─── Portrait canvas — natural stacking ─── */
+[data-orientation="vertical"] .grid {
+  /* On portrait kiosks, prefer 1-column or 2-column grids max */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+/* ─── Landing language grid — bigger tiles in vertical mode ─── */
+[data-orientation="vertical"] #root .min-h-screen {
+  min-height: 100dvh;
+}
+
+/* ─── Prevent horizontal scroll in vertical mode ─── */
+[data-orientation="vertical"] body,
+[data-orientation="vertical"] #root {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* ─── Active indicator pill inside vertical nav ─── */
+[data-orientation="vertical"] .vertical-mode [data-active-pill] {
+  bottom: 2px;
+  left: 25%;
+  right: 25%;
+  height: 4px;
+  border-radius: 9999px;
+}
+
+/* ─── Kiosk idle pulse (subtle background heartbeat) ─── */
+@keyframes kiosk-idle-pulse {
+  0%, 100% { background-color: #f8fafc; }
+  50%       { background-color: #f0f4ff; }
+}
+
+[data-orientation="vertical"] .kiosk-idle {
+  animation: kiosk-idle-pulse 6s ease-in-out infinite;
+}
+
+/* ─── Print: always use horizontal layout ─── */
+@media print {
+  .kiosk-main-layout { flex-direction: row !important; }
+  nav { display: none !important; }
+}
+
+/* ─── Marquee ticker ─── */
+@keyframes marquee {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-marquee { display: inline-block; animation: marquee 20s linear infinite; }
+
+/* ─── Orientation toggle button — visible everywhere ─── */
+.orientation-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.9);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 200ms ease;
+  backdrop-filter: blur(8px);
+  color: #1e293b;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.orientation-toggle:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.15);
+}
+.orientation-toggle:active { transform: scale(0.97); }
+
+/* ─── Safe-area inset for modern touch devices ─── */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
