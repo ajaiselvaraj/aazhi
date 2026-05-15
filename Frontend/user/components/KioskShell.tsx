@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, LayoutGrid, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Volume2, Type, Wifi, WifiOff, Battery, BatteryCharging, Clock, Shield, EyeOff, Search } from 'lucide-react';
+import { Home, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Wifi, WifiOff, Battery, BatteryCharging, Clock, Search } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
 import cdacLogo from '../assets/cdac_logo.png';
 
@@ -9,6 +9,8 @@ import SuvidhaVoiceControl from './SuvidhaVoiceControl';
 import KioskErrorBoundary from './KioskErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemService } from '../services/systemService';
+import { useOrientation } from '../contexts/OrientationContext';
+import OrientationToggle from './OrientationToggle';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -90,6 +92,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
     const [isCharging, setIsCharging] = useState(false);
+    const { isVertical, toggleOrientation } = useOrientation();
     const { t } = useTranslation();
 
     const translateAlertMessage = (alert: any) => {
@@ -220,31 +223,31 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
     return (
         <div 
-            className="kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none"
+            className={`kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none ${isVertical ? 'flex-col-reverse vertical-mode' : 'flex-row horizontal-mode'}`}
             onContextMenu={(e) => { if (process.env.NODE_ENV === 'production') e.preventDefault(); }}
             onDragStart={(e) => e.preventDefault()}
             style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
         >
 
             {/* 
-        REGION 1: PERMANENT SIDEBAR 
+        REGION 1: PERMANENT SIDEBAR / BOTTOM BAR 
         - Always visible
         - Large touch targets (min 80px)
         - High contrast active states
-        - Anchored to left (closest to user entry point)
+        - Anchored to left (horizontal) or bottom (vertical)
       */}
-            <nav className="w-28 md:w-32 bg-white flex flex-col border-r border-slate-200 shadow-2xl z-50 shrink-0 print:hidden">
+            <nav className={`${isVertical ? 'h-28 w-full border-t flex-row overflow-x-auto pb-safe' : 'w-28 md:w-32 flex-col border-r'} bg-white flex border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 print:hidden`}>
 
-                {/* Brand Trigger - Top Left */}
-                <div className="h-28 flex flex-col items-center justify-center border-b border-slate-100 p-2">
-                    <div className="w-14 h-14 bg-white border-2 border-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-2">
-                        <span className="text-blue-600 font-black text-2xl">A</span>
+                {/* Brand Trigger */}
+                <div className={`${isVertical ? 'w-28 border-r h-full' : 'h-28 border-b'} flex flex-col items-center justify-center border-slate-100 p-2 shrink-0`}>
+                    <div className="w-12 h-12 bg-white border-2 border-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-1">
+                        <span className="text-blue-600 font-black text-xl">A</span>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AAZHI</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">AAZHI</span>
                 </div>
 
-                {/* Primary Navigation - Centered Vertical Stack */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-6 py-4 overflow-y-auto no-scrollbar">
+                {/* Primary Navigation */}
+                <div className={`flex-1 flex ${isVertical ? 'flex-row overflow-x-auto px-4 py-2 gap-4' : 'flex-col overflow-y-auto py-4 gap-6'} items-center justify-center no-scrollbar`}>
                     {NAV_ITEMS.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
@@ -254,7 +257,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`
-                  relative group flex flex-col items-center justify-center w-24 h-24 rounded-2xl transition-colors duration-300
+                  relative group flex flex-col items-center justify-center ${isVertical ? 'w-20 h-20 min-w-[5rem]' : 'w-24 h-24'} rounded-2xl transition-colors duration-300
                   ${isActive
                                         ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
                                         : 'text-slate-400 hover:bg-slate-50 border-2 border-transparent'
@@ -262,33 +265,33 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 `}
                             >
                                 <div className={`
-                    mb-2 transition-transform duration-300
+                    mb-1 transition-transform duration-300
                     ${isActive ? 'scale-110' : 'group-hover:scale-110'}
                 `}>
-                                    <item.icon size={isActive ? 32 : 28} strokeWidth={isActive ? 2.5 : 2} />
+                                    <item.icon size={isActive ? (isVertical ? 28 : 32) : (isVertical ? 24 : 28)} strokeWidth={isActive ? 2.5 : 2} />
                                 </div>
                                 <span className={`
-                  text-[10px] font-black uppercase tracking-wider
+                  text-[9px] font-black uppercase tracking-wider text-center
                   ${isActive ? 'opacity-100' : 'opacity-70'}
                 `}>
                                     {item.label}
                                 </span>
 
                                 {isActive && (
-                                    <motion.div layoutId="activeTabIndicator" className="absolute left-[3px] top-2 bottom-2 w-1 bg-blue-600 rounded-full"></motion.div>
+                                    <motion.div layoutId="activeTabIndicator" className={`absolute ${isVertical ? 'bottom-[2px] left-4 right-4 h-1' : 'left-[3px] top-2 bottom-2 w-1'} bg-blue-600 rounded-full`}></motion.div>
                                 )}
                             </motion.button>
                         )
                     })}
                 </div>
 
-                {/* Emergency / Logout - Bottom */}
-                <div className="p-4 border-t border-slate-100">
+                {/* Emergency / Logout - Bottom or Right */}
+                <div className={`p-3 ${isVertical ? 'border-l w-28 h-full flex items-center justify-center' : 'border-t'} border-slate-100 shrink-0`}>
                     <button
                         onClick={handleSecureLogout}
-                        className="w-full aspect-square rounded-2xl bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 hover:bg-red-500 hover:text-white transition-colors duration-300"
+                        className={`w-full ${isVertical ? 'h-full aspect-auto' : 'aspect-square'} rounded-2xl bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 hover:bg-red-500 hover:text-white transition-colors duration-300`}
                     >
-                        <LogOut size={24} />
+                        <LogOut size={isVertical ? 20 : 24} />
                         <span className="text-[9px] font-black uppercase">{t('navExit') || 'Exit'}</span>
                     </button>
                 </div>
@@ -301,19 +304,21 @@ const KioskShell: React.FC<KioskShellProps> = ({
       */}
             <main className="flex-1 flex-col h-full bg-[#f8f9fc] relative overflow-hidden flex">
 
-                {/* Kiosk Header Board - Information Only (Not Nav) */}
-                <header className="h-24 px-8 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden">
+                {/* Kiosk Header Board */}
+                <header className={`${isVertical ? 'h-16 px-4' : 'h-24 px-8'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden transition-all duration-300`}>
                     <div>
-                        <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                        <h1 className={`${isVertical ? 'text-lg' : 'text-2xl'} font-black text-slate-800 tracking-tight flex items-center gap-3 transition-all duration-300`}>
                             {activeTab === 'home' ? `${t('welcomeCitizen') || 'Welcome, Citizen'} ${userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
                         </h1>
-                        <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
-                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
-                                {t('terminalId') || 'Terminal ID'}: CBE-02
-                            </span>
-                            <span>•</span>
-                            <span>{t('loginSubtitle')}</span>
-                        </div>
+                        {!isVertical && (
+                            <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
+                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
+                                    {t('terminalId') || 'Terminal ID'}: CBE-02
+                                </span>
+                                <span>•</span>
+                                <span>{t('loginSubtitle')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-6">
@@ -353,6 +358,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                     {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
                                 </span>
                             </div>
+
+                            {/* Orientation Toggle */}
+                            <OrientationToggle variant="icon" />
 
                             {/* CDAC Logo Section */}
                             <div className="flex items-center pl-6 border-l border-slate-200">

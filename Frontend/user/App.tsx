@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
-import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language, ViewState } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import './i18n';
 import { speakText, loadVoices } from './utils/speak';
 import { dispatchVoiceCommand, buildContext } from './utils/VoiceCommandRouter';
+import { useOrientation } from './contexts/OrientationContext';
 
 // ─── LAZY LOADED COMPONENTS (Code Splitting) ───
 const KioskUI = lazy(() => import('./components/KioskUI'));
@@ -192,6 +193,7 @@ const App: React.FC = () => {
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
+  const { isVertical, toggleOrientation } = useOrientation();
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const timerRef = useRef<number | null>(null);
@@ -485,7 +487,7 @@ const App: React.FC = () => {
 // Render: LANDING (Language Selection)
 // ─────────────────────────────────────────────
 const renderLanding = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#F8F9FB] text-slate-900 relative overflow-hidden font-sans">
+  <div className={`min-h-screen flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-[#F8F9FB] text-slate-900 relative overflow-hidden font-sans`}>
     {/* Background Watermark: Indian Emblem */}
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-10 pointer-events-none z-0">
       <img
@@ -500,43 +502,71 @@ const renderLanding = () => (
       position: 'absolute', top: '24px', right: '32px', zIndex: 40,
       display: 'flex', alignItems: 'center', gap: '1.5rem'
     }}>
-      <img src={cdacLogo} alt="CDAC Logo" className="h-12 w-auto object-contain" />
-      <LocationSelector
-        locationInfo={locationInfo}
-      />
+      {!isVertical && <img src={cdacLogo} alt="CDAC Logo" className="h-12 w-auto object-contain" />}
+      <LocationSelector locationInfo={locationInfo} />
     </div>
 
-
-    {/* Top-left Voice Navigation */}
-    <div style={{
-      position: 'absolute', top: '24px', left: '32px', zIndex: 40,
-    }}>
-      <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} showTTS={false} />
+    {/* Top-left: Voice + Orientation toggle */}
+    <div style={{ position: 'absolute', top: '24px', left: '32px', zIndex: 40, display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Suspense fallback={null}>
+        <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} showTTS={false} />
+      </Suspense>
     </div>
-
-
 
     {/* Compact Header */}
-    <header className="text-center mb-6 z-10 w-full max-w-7xl mx-auto flex flex-col items-center justify-center pt-8">
-      <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-2 text-blue-950 drop-shadow-sm leading-tight">
+    <header className={`text-center ${isVertical ? 'mb-4 pt-20' : 'mb-6 pt-8'} z-10 w-full max-w-7xl mx-auto flex flex-col items-center justify-center`}>
+      {isVertical && (
+        <img src={cdacLogo} alt="CDAC Logo" className="h-12 w-auto object-contain mb-4" />
+      )}
+      <h1 className={`${isVertical ? 'text-5xl' : 'text-4xl md:text-5xl'} font-black tracking-tighter mb-2 text-blue-950 drop-shadow-sm leading-tight`}>
         {APP_CONFIG.TITLE}
       </h1>
-      <div className="flex items-center gap-3">
-        <p className="text-lg text-slate-600 font-medium tracking-tight">
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        <p className={`${isVertical ? 'text-xl' : 'text-lg'} text-slate-600 font-medium tracking-tight`}>
           {t('loginSubtitle')}
         </p>
-        <div className="hidden md:inline-flex items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">
+        <div className={`${isVertical ? 'flex' : 'hidden md:inline-flex'} items-center gap-2 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm`}>
           <ShieldCheck size={14} className="text-blue-600" />
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-900">
             {t('appTagline')}
           </span>
         </div>
       </div>
+
     </header>
 
-    {/* Main Grid: Clean Language Selection Area */}
-    <div className="flex-1 w-full overflow-y-auto pb-4 px-4 md:px-8 flex items-center justify-center">
-      <div className="grid gap-6 md:gap-8 w-full max-w-[1600px] auto-rows-fr py-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+    {/* Main Grid: Language Selection */}
+    <div className="flex-1 w-full overflow-y-auto px-4 md:px-8 flex flex-col items-center justify-center">
+
+      {/* ── Orientation Toggle Banner (inside the panel) ── */}
+      <div className={`w-full max-w-[1600px] ${isVertical ? 'mb-4' : 'mb-3'} flex items-center justify-between gap-3`}>
+        <p className={`${isVertical ? 'text-base' : 'text-xs'} font-black text-slate-500 uppercase tracking-widest`}>
+          {isVertical ? '📱 Kiosk Mode  ·  Select Language' : 'Select Language'}
+        </p>
+        <button
+          onClick={toggleOrientation}
+          className={`
+            flex items-center gap-2 font-black uppercase tracking-wider transition-all duration-200
+            ${isVertical
+              ? 'px-5 py-3 rounded-2xl text-sm bg-slate-900 text-white hover:bg-blue-700 shadow-lg'
+              : 'px-4 py-2 rounded-xl text-[11px] bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white border border-slate-200'
+            }
+          `}
+          title={isVertical ? 'Switch to Landscape/Desktop Mode' : 'Switch to Kiosk/Portrait Mode'}
+        >
+          {isVertical ? <Monitor size={isVertical ? 18 : 12} /> : <Smartphone size={12} />}
+          {isVertical ? 'Landscape Mode' : 'Kiosk Mode'}
+        </button>
+      </div>
+
+      <div
+        className="grid gap-4 w-full max-w-[1600px] auto-rows-fr pb-4"
+        style={{
+          gridTemplateColumns: isVertical
+            ? 'repeat(2, 1fr)'
+            : 'repeat(auto-fit, minmax(220px, 1fr))'
+        }}
+      >
         {LANGUAGES_CONFIG.map((item) => (
           <button
             key={item.code}
@@ -545,18 +575,22 @@ const renderLanding = () => (
             className={`
                 group relative bg-white transition-all duration-200
                 flex flex-col items-center justify-center gap-3
-                h-full p-6 w-full rounded-2xl border-2
+                ${isVertical ? 'py-8 px-4 min-h-[110px]' : 'h-full p-6'} w-full rounded-2xl border-2
                 ${language === item.code
-                ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-105'
+                ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-[1.03]'
                 : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
               }
               `}
             dir={item.rtl ? 'rtl' : 'ltr'}
           >
-            <span className={`text-2xl sm:text-3xl font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif text-3xl sm:text-4xl' : ''}`}>
+            <span className={`${
+              isVertical ? 'text-3xl' : 'text-2xl sm:text-3xl'
+            } font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif' : ''}`}>
               {item.label}
             </span>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full">
+            <span className={`${
+              isVertical ? 'text-[11px]' : 'text-xs'
+            } font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full`}>
               {item.name}
             </span>
 
@@ -569,7 +603,7 @@ const renderLanding = () => (
           </button>
         ))}
       </div>
-    </div >
+    </div>
 
     <footer className="mb-2 z-10 text-center opacity-70 flex flex-col items-center gap-1 text-slate-500 text-[10px] font-medium tracking-wide">
       <div className="flex items-center gap-4 uppercase tracking-[0.2em]">
@@ -594,57 +628,61 @@ const renderLanding = () => (
     <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 50 }}>
       <ScrollingAlertBanner language={alertLanguage} location={locationInfo} />
     </div>
-  </div >
+  </div>
 );
+
 
 // ─────────────────────────────────────────────
 // Render: SELECTION
 // ─────────────────────────────────────────────
 const renderSelection = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 relative overflow-hidden font-sans">
-    <header className="px-8 py-6 flex items-center justify-between bg-white/80 backdrop-blur-md fixed top-0 w-full z-20 border-b border-slate-200/50">
+  <div className={`min-h-screen flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-slate-50 relative overflow-hidden font-sans`}>
+    <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md fixed top-0 w-full z-20 border-b border-slate-200/50`}>
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200">
+        <div className={`${isVertical ? 'w-10 h-10' : 'w-10 h-10'} bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200`}>
           <span className="text-xl">A</span>
         </div>
         <div>
-          <h1 className="text-xl font-black text-slate-900 tracking-tight leading-none">{APP_CONFIG.TITLE}</h1>
+          <h1 className={`${isVertical ? 'text-lg' : 'text-xl'} font-black text-slate-900 tracking-tight leading-none`}>{APP_CONFIG.TITLE}</h1>
           <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-0.5">{t('sel_welcomeUser')}</p>
         </div>
       </div>
-      <div>
-        <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain" />
+      <div className="flex items-center gap-3">
+        <img src={cdacLogo} alt="CDAC Logo" className={`${isVertical ? 'h-8' : 'h-10'} w-auto object-contain`} />
       </div>
     </header>
 
-
-    <div className="w-full max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 z-10 animate-in zoom-in-95 duration-500">
-      <button onClick={() => handleSelection('ai')} className="group relative bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center overflow-hidden">
+    <div className={`w-full ${isVertical ? 'max-w-2xl' : 'max-w-4xl'} mx-auto grid ${isVertical ? 'grid-cols-1 gap-5 mt-20' : 'grid-cols-1 md:grid-cols-2 gap-8'} z-10 animate-in zoom-in-95 duration-500`}>
+      <button onClick={() => handleSelection('ai')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-        <div className="w-32 h-32 bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner relative z-10 group-hover:scale-110 transition duration-300">
-          <Mic size={64} />
+        <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
+          <Mic size={isVertical ? 40 : 64} />
         </div>
-        <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-indigo-900">{t('sel_aiTitle')}</h2>
-        <p className="text-slate-500 font-medium relative z-10">{t('sel_aiDesc')}</p>
-        <div className="mt-8 px-6 py-2 bg-indigo-600 text-white rounded-full font-bold uppercase text-xs tracking-widest relative z-10 group-hover:bg-indigo-700 shadow-lg shadow-indigo-200">
-          {t('sel_aiBtn')}
+        <div className="relative z-10 flex-1">
+          <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 group-hover:text-indigo-900`}>{t('sel_aiTitle')}</h2>
+          <p className="text-slate-500 font-medium text-sm mb-4">{t('sel_aiDesc')}</p>
+          <div className={`${isVertical ? 'w-full text-center py-4 text-sm rounded-2xl' : 'px-6 py-2 rounded-full text-xs w-fit'} bg-indigo-600 text-white font-bold uppercase tracking-widest group-hover:bg-indigo-700 shadow-lg shadow-indigo-200 inline-block`}>
+            {t('sel_aiBtn')}
+          </div>
         </div>
       </button>
 
-      <button onClick={() => handleSelection('billing')} className="group relative bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-slate-100 flex flex-col items-center text-center overflow-hidden">
+      <button onClick={() => handleSelection('billing')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-        <div className="w-32 h-32 bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center mb-8 shadow-inner relative z-10 group-hover:scale-110 transition duration-300">
-          <RefreshCw size={64} />
+        <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
+          <RefreshCw size={isVertical ? 40 : 64} />
         </div>
-        <h2 className="text-3xl font-black text-slate-800 mb-4 relative z-10 group-hover:text-blue-900">{t('sel_payTitle')}</h2>
-        <p className="text-slate-500 font-medium relative z-10">{t('sel_payDesc')}</p>
-        <div className="mt-8 px-6 py-2 bg-blue-600 text-white rounded-full font-bold uppercase text-xs tracking-widest relative z-10 group-hover:bg-blue-700 shadow-lg shadow-blue-200">
-          {t('sel_payBtn')}
+        <div className="relative z-10 flex-1">
+          <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 group-hover:text-blue-900`}>{t('sel_payTitle')}</h2>
+          <p className="text-slate-500 font-medium text-sm mb-4">{t('sel_payDesc')}</p>
+          <div className={`${isVertical ? 'w-full text-center py-4 text-sm rounded-2xl' : 'px-6 py-2 rounded-full text-xs w-fit'} bg-blue-600 text-white font-bold uppercase tracking-widest group-hover:bg-blue-700 shadow-lg shadow-blue-200 inline-block`}>
+            {t('sel_payBtn')}
+          </div>
         </div>
       </button>
     </div>
 
-    <button onClick={handleBackToLanding} className="mt-12 text-slate-400 font-bold uppercase tracking-widest hover:text-red-500 transition z-10 text-xs flex items-center gap-2">
+    <button onClick={handleBackToLanding} className="mt-10 text-slate-400 font-bold uppercase tracking-widest hover:text-red-500 transition z-10 text-xs flex items-center gap-2">
       <ArrowLeft size={16} /> {t('sel_cancel')}
     </button>
   </div>
@@ -655,10 +693,9 @@ const renderSelection = () => (
 // ─────────────────────────────────────────────
 const renderLogin = () => (
   <div className="min-h-screen flex flex-col bg-white relative overflow-hidden font-sans">
-    {/* Login State Logic will trigger popup */}
 
     {/* Header */}
-    <header className="px-8 py-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200/50">
+    <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200/50`}>
       <div className="flex items-center gap-4">
         <button onClick={() => setView(ViewState.LANDING)} className="p-2 hover:bg-slate-100 rounded-full transition">
           <ArrowLeft className="text-slate-500" size={20} />
@@ -687,35 +724,34 @@ const renderLogin = () => (
     </header>
 
     {/* Main Content */}
-    <div className="flex-1 flex items-center justify-center p-6 relative">
-      <div className="relative w-full max-w-2xl"> {/* Positioning wrapper */}
-        <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 p-12 text-center animate-in zoom-in-95 duration-300 relative overflow-hidden">
+    <div className={`flex-1 flex items-center ${isVertical ? 'items-start pt-6' : 'items-center'} justify-center p-6 relative`}>
+      <div className={`relative w-full ${isVertical ? 'max-w-xl' : 'max-w-2xl'}`}>
+        <div className={`bg-white w-full rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 ${isVertical ? 'p-8' : 'p-12'} text-center animate-in zoom-in-95 duration-300 relative overflow-hidden`}>
 
           {/* Decoration */}
           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500"></div>
 
-          {/* Shield Icon */}
-          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <ShieldCheck size={40} />
+          <div className={`${isVertical ? 'w-16 h-16' : 'w-20 h-20'} bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner`}>
+            <ShieldCheck size={isVertical ? 32 : 40} />
           </div>
 
-          <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">{t('secureAuth')}</h2>
-          <p className="text-slate-500 font-medium mb-10">{t('useDigitalID')}</p>
+          <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 tracking-tight`}>{t('secureAuth')}</h2>
+          <p className="text-slate-500 font-medium mb-6">{t('useDigitalID')}</p>
 
-          {/* Tabs - Only show in INPUT stage and NOT in Password Mode */}
+          {/* Tabs — Only show in INPUT stage */}
           {authStage === 'INPUT' && (
-            <div className="flex p-1.5 bg-slate-100 rounded-2xl mb-10 mx-auto max-w-md shadow-inner">
+            <div className={`flex p-1.5 bg-slate-100 rounded-2xl ${isVertical ? 'mb-6' : 'mb-10'} mx-auto max-w-md shadow-inner`}>
               <button
                 id="login-tab-aadhaar"
                 onClick={() => { setLoginMethod('AADHAAR'); resetLoginState(); }}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'AADHAAR' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 '}`}
+                className={`flex-1 ${isVertical ? 'py-4' : 'py-3'} px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'AADHAAR' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700 '}`}
               >
                 <User size={16} /> {t('aadhaar')}
               </button>
               <button
                 id="login-tab-mobile"
                 onClick={() => { setLoginMethod('MOBILE'); resetLoginState(); }}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'MOBILE' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`flex-1 ${isVertical ? 'py-4' : 'py-3'} px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${loginMethod === 'MOBILE' ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 <Smartphone size={16} /> {t('mobileOTP')}
               </button>
