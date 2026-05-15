@@ -163,10 +163,9 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 <h2 className="text-4xl font-black text-slate-800 tracking-tight">{t("civic_title")}</h2>
             </div>
 
-            <div className="flex-1 max-w-5xl mx-auto w-full">
-
+            <div className="flex-1 max-w-5xl mx-auto w-full overflow-y-auto pr-2 custom-scrollbar">
                 {step === 1 && (
-                    <div className="animate-in slide-in-from-right-8 duration-500">
+                    <div className="animate-in slide-in-from-right-8 duration-500 pb-20">
                         <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("civic_whatIssue")}</h3>
                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
                             {CIVIC_CATEGORIES_KEYS.map(catKey => (
@@ -180,7 +179,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                         speakText({ text: t(catKey), language: getLanguageName() });
                                     }}
                                     className={`
-                    min-h-[120px] text-left !justify-start p-6 text-2xl
+                    min-h-[100px] text-left !justify-start p-6 text-xl
                     ${category === catKey ? 'ring-4 ring-blue-500 bg-blue-50' : 'bg-white'}
                   `}
                                 />
