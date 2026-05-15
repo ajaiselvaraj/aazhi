@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, Upload, AlertCircle, X, AlertTriangle, Send, Camera, Mic } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
-import { GasService } from '../../../services/gasService';
+import { GrievanceService } from '../../../services/civicService';
 import DocumentScannerOverlay from '../DocumentScannerOverlay';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
@@ -13,12 +13,12 @@ interface Props {
 }
 
 const COMPLAINT_CATEGORIES = [
-  'Gas Leakage / Smell',
-  'Delay in New Connection',
-  'Meter / Pipeline Issue',
-  'Disconnection Without Prior Notice',
-  'Low Pressure',
-  'Billing Issue',
+  'Garbage Not Collected',
+  'Street Light Not Working',
+  'Road Potholes / Damage',
+  'Drainage Blockage / Overflow',
+  'Water Stagnation',
+  'Public Toilet Maintenance',
   'Other'
 ];
 
@@ -29,7 +29,7 @@ const PRIORITY_LEVELS = [
   { id: 'critical', label: 'Critical', desc: 'Sparking, broken live wires, immediate danger' }
 ];
 
-const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
+const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
   const { addComplaint } = useServiceComplaint();
   const [step, setStep] = useState<'form' | 'submitting' | 'success'>('form');
@@ -77,7 +77,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
     setSubmitError('');
 
     try {
-      const result = await GasService.submitComplaint({
+      const result = await GrievanceService.createComplaint({
         category: formData.category,
         subject: formData.subject,
         description: formData.description,
@@ -86,8 +86,8 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
         name: formData.name,
         phone: formData.mobile,
         priority: formData.priority as any
-      } as any);
-      setTicketNumber(result.ticket_number || result.id || 'GAS-CMP-' + Date.now());
+      });
+      setTicketNumber(result.ticket_number || result.id || 'MUNI-CMP-' + Date.now());
       // ⭐ PLUG-IN: Show QR after successful submission
       setShowQR(true);
 
@@ -97,8 +97,8 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
       await addComplaint({
         name: formData.name || user?.name || 'Guest',
         phone: formData.mobile || user?.mobile || '',
-        category: 'Gas',
-        complaintType: formData.subject || formData.category || 'Gas Complaint',
+        category: 'Municipal',
+        complaintType: formData.subject || formData.category || 'Municipal Complaint',
         location: '',
         description: formData.description,
         citizenId: user?.id,
@@ -107,19 +107,19 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
 
       setStep('success');
     } catch (err: any) {
-      console.error('Gas complaint submission failed (offline fallback):', err);
+      console.error('Municipal complaint submission failed (offline fallback):', err);
       // ✅ Offline fallback: generate local ticket and still write to History
-      const offlineTicket = 'GAS-CMP-' + Date.now();
+      const offlineTicket = 'MUNI-CMP-' + Date.now();
       setTicketNumber(offlineTicket);
       const userStr = localStorage.getItem('aazhi_user');
       const user = userStr ? JSON.parse(userStr) : null;
       await addComplaint({
         name: formData.name || user?.name || 'Guest',
         phone: formData.mobile || user?.mobile || '',
-        category: 'Gas',
-        complaintType: formData.subject || formData.category || 'Gas Complaint',
+        category: 'Municipal',
+        complaintType: formData.subject || formData.category || 'Municipal Complaint',
         location: '',
-        description: formData.description || 'Gas complaint submitted offline',
+        description: formData.description || 'Municipal complaint submitted offline',
         citizenId: user?.id,
         area: formData.ward || user?.ward || 'Unknown',
       });
@@ -135,10 +135,10 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
             <CheckCircle size={56} />
           </div>
           <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tighter">
-            {t('gas_complaintRegistered') || 'Complaint Registered!'}
+            {t('muni_complaintRegistered') || 'Complaint Registered!'}
           </h2>
           <p className="text-slate-500 font-medium mb-6">
-            {t('gas_complaintDesc') || 'Your gas grievance has been recorded and assigned to the concerned engineer.'}
+            {t('muni_complaintDesc') || 'Your municipal grievance has been recorded and assigned to the concerned engineer.'}
           </p>
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 mb-8">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">
@@ -157,7 +157,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
             onClick={onBack}
             className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
           >
-            {t('returnHomeBtn') || 'Back to Gas Dashboard'}
+            {t('returnHomeBtn') || 'Back to Municipal Dashboard'}
           </button>
         </div>
         {/* ⭐ PLUG-IN: QR Modal */}
@@ -176,9 +176,9 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
           <ArrowLeft size={24} />
         </button>
         <div>
-          <h2 className="text-3xl font-black text-slate-900">{t('gas_registerComplaint') || 'Register Gas Grievance'}</h2>
+          <h2 className="text-3xl font-black text-slate-900">{t('muni_registerComplaint') || 'Register Municipal Grievance'}</h2>
           <p className="text-slate-500 font-medium tracking-wide">
-            {t('gas_complaintSubtitle') || 'Report billing errors, outages, or service delays'}
+            {t('muni_complaintSubtitle') || 'Report civic issues, garbage, or road damage'}
           </p>
         </div>
       </div>
@@ -198,7 +198,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
           {/* Category */}
           <div className="space-y-3">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
-              {t('gas_complaintCategory') || 'Category'} <span className="text-red-500">*</span>
+              {t('muni_complaintCategory') || 'Category'} <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.category || ''}
@@ -243,7 +243,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
 
           <div className="space-y-3">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
-              {t('gas_consumerNumber') || 'Gas Connection Number'} ({t('optional') || 'Optional'})
+              {t('muni_consumerNumber') || 'Property or Municipality ID'} ({t('optional') || 'Optional'})
             </label>
             <input
               type="text"
@@ -256,7 +256,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
 
           <div className="space-y-3">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
-              {t('gas_priority') || 'Priority Level'} <span className="text-red-500">*</span>
+              {t('muni_priority') || 'Priority Level'} <span className="text-red-500">*</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {PRIORITY_LEVELS.map(p => (
@@ -281,13 +281,13 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
 
           <div className="space-y-3">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">
-              {t('gas_subject') || 'Complaint Subject'} <span className="text-red-500">*</span>
+              {t('muni_subject') || 'Complaint Subject'} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={formData.subject || ''}
               onChange={(e) => handleInputChange('subject', e.target.value)}
-              placeholder="e.g. Pipeline leakage"
+              placeholder="e.g. Garbage not collected for 3 days"
               className={`w-full bg-slate-50 border-2 ${errors.subject ? 'border-red-400' : 'border-slate-200'} p-4 rounded-2xl font-bold outline-none focus:border-blue-500 focus:bg-white transition`}
             />
             {errors.subject && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.subject}</p>}
@@ -367,4 +367,4 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
   );
 };
 
-export default GasComplaints;
+export default MunicipalComplaints;
