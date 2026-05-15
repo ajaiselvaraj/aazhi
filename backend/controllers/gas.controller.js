@@ -88,11 +88,12 @@ export const getPaymentHistory = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT t.*, b.bill_number, b.amount as bill_amount, b.billing_month, b.billing_year,
-                    ua.account_number
+            SELECT t.*, b.bill_number, b.amount as bill_amount, b.billing_month, b.billing_year, b.status as bill_status,
+                    ua.account_number, c.name as consumer_name
              FROM transactions t
              JOIN bills b ON t.bill_id = b.id
              JOIN utility_accounts ua ON b.account_id = ua.id
+             JOIN citizens c ON t.citizen_id = c.id
              WHERE b.service_type = 'gas'`;
         
         const params = [];
@@ -103,8 +104,6 @@ export const getPaymentHistory = async (req, res, next) => {
         } else if (req.user) {
             query += ` AND t.citizen_id = $${params.length + 1}`;
             params.push(req.user.id);
-        } else {
-            return fail(res, "Customer ID or authentication required", 401);
         }
 
         query += ` ORDER BY t.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
