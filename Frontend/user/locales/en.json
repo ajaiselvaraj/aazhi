@@ -516,6 +516,8 @@
   "civic_pollution": "Pollution reporting",
   "civic_mosquito": "Mosquito complaint",
   "civic_commercialWaste": "Commercial waste request",
+  "civic_propertyTax": "Property tax issue",
+  "civic_waterQuality": "Water quality report",
   "cert_title": "E-Certificates",
   "cert_selectType": "Select Document Type",
   "cert_retrieval": "Retrieval",
