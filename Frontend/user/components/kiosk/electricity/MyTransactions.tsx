@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, RefreshCw, AlertCircle, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Language } from '../../../types';
 import { BillingService } from '../../../services/civicService';
 
@@ -10,22 +10,17 @@ interface Props {
 }
 
 const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
-    const [consumerNo, setConsumerNo] = useState('');
     const [transactions, setTransactions] = useState<any[]>([]);
-    const [hasSearched, setHasSearched] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = async () => {
-        if (!consumerNo) return;
+    const fetchTransactions = async () => {
         setIsLoading(true);
         setError(null);
-        setHasSearched(true);
-
         try {
-            // Using a real service call instead of mock data
-            const pastTransactions = await BillingService.getTransactionHistory('electricity', consumerNo);
-            setTransactions(pastTransactions);
+            // Fetch all transactions automatically without requiring a consumer number
+            const pastTransactions = await BillingService.getTransactionHistory('electricity', '');
+            setTransactions(pastTransactions || []);
         } catch (e: any) {
             console.error("Failed to fetch transactions:", e);
             setError("Could not retrieve transaction history. Please try again later.");
@@ -35,109 +30,137 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
         }
     };
 
+    useEffect(() => {
+        fetchTransactions();
+    }, []);
+
     return (
-        <div className="w-full h-full bg-white flex flex-col">
-            {/* Top Navigation Bar - Tab Style */}
-            <div className="flex items-center gap-6 px-10 py-4 border-b border-indigo-100 bg-white">
-                <button
-                    className="text-blue-600 font-bold text-base hover:text-blue-800 transition"
-                >
-                    My Transactions
+        <div className="max-w-7xl mx-auto py-10 animate-in fade-in slide-in-from-bottom-6 pb-10">
+            <div className="flex justify-between items-center mb-6 px-4">
+                <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest hover:text-slate-900 transition">
+                    <ArrowLeft size={16} /> Back
                 </button>
-                <button
-                    onClick={() => onNavigate('QUICK_PAY')}
-                    className="text-blue-400 font-medium text-base hover:text-blue-600 transition"
+                <button 
+                    onClick={fetchTransactions} 
+                    disabled={isLoading}
+                    className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest hover:text-blue-800 transition disabled:opacity-50"
                 >
-                    Quick Pay
-                </button>
-                <button
-                    onClick={onBack}
-                    className="text-blue-400 font-medium text-base hover:text-blue-600 transition"
-                >
-                    Home
+                    <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} /> Refresh
                 </button>
             </div>
 
-            <div className="p-8 max-w-6xl mx-auto w-full animate-in slide-in-from-bottom-4">
-
-                {/* Search Section */}
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-8 flex items-end gap-4 max-w-2xl">
-                    <div className="flex-1">
-                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Enter Service No</label>
-                        <input
-                            inputMode="numeric"
-                            type="text"
-                            value={consumerNo}
-                            onChange={(e) => setConsumerNo(e.target.value.toUpperCase())}
-                            className="w-full p-3 border border-slate-300 rounded-lg outline-none focus:border-blue-500 font-bold text-slate-700"
-                            placeholder="e.g. 04-202-6789"
-                        />
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
+                        <FileText size={32} />
                     </div>
-                    <button
-                        onClick={handleSearch}
-                        disabled={isLoading || !consumerNo}
-                        className="px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {isLoading ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-                        Search
-                    </button>
+                    <div>
+                        <h2 className="text-3xl font-black text-slate-900">Live Transaction History</h2>
+                        <p className="text-slate-500 font-bold mt-1">Real-time overview of all electricity bill payments.</p>
+                    </div>
                 </div>
 
-                {/* Legacy Style Header Bar */}
-                <div className="bg-gradient-to-r from-orange-400 to-amber-500 p-3 rounded-t-lg shadow-sm">
-                    <h2 className="text-white font-bold text-lg px-2">My Transactions</h2>
-                </div>
+                {error && (
+                    <div className="p-4 bg-red-50 text-red-600 font-bold rounded-2xl mb-8 border border-red-100 flex items-center gap-2">
+                        <AlertCircle size={20} /> {error}
+                    </div>
+                )}
 
-                {/* Data Table Container */}
-                <div className="border border-slate-200 border-t-0 bg-slate-50/50 rounded-b-lg shadow-sm min-h-[200px]">
-                    <table className="w-full text-left border-collapse">
+                <div className="border border-slate-200 rounded-3xl overflow-x-auto bg-slate-50">
+                    <table className="w-full text-left border-collapse min-w-[1200px]">
                         <thead>
                             <tr className="bg-slate-100 border-b border-slate-200">
-                                <th className="p-4 text-xs font-bold text-blue-600 uppercase tracking-wider border-r border-slate-200">Service No</th>
-                                <th className="p-4 text-xs font-bold text-blue-600 uppercase tracking-wider border-r border-slate-200">Transaction Date</th>
-                                <th className="p-4 text-xs font-bold text-blue-600 uppercase tracking-wider border-r border-slate-200">Bill Amount</th>
-                                <th className="p-4 text-xs font-bold text-blue-600 uppercase tracking-wider border-r border-slate-200">Bank Transaction No</th>
-                                <th className="p-4 text-xs font-bold text-blue-600 uppercase tracking-wider">Status</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Date & Time</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Consumer Details</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Bill Info</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Transaction ID & Ref</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Amounts</th>
+                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500">Loading records...</td>
+                                    <td colSpan={6} className="p-12 text-center">
+                                        <div className="flex flex-col items-center justify-center text-slate-400">
+                                            <RefreshCw className="animate-spin mb-4 text-blue-500" size={32} />
+                                            <span className="font-bold">Loading live transactions...</span>
+                                        </div>
+                                    </td>
                                 </tr>
-                            ) : hasSearched && transactions.length > 0 ? (
-                                // Assuming the service returns a similar structure
-                                // txnId -> transactionId, serviceNo -> consumerId
-                                transactions.map((txn, idx) => (
-                                    <tr key={idx} className="border-b border-slate-100 bg-white hover:bg-slate-50 transition">
-                                        <td className="p-4 text-sm font-bold text-slate-700 border-r border-slate-100">{txn.account_number || txn.consumerId || txn.serviceNo}</td>
-                                        <td className="p-4 text-sm text-slate-600 border-r border-slate-100">{txn.created_at ? new Date(txn.created_at).toLocaleDateString() : txn.date}</td>
-                                        <td className="p-4 text-sm font-bold text-slate-900 border-r border-slate-100">₹{txn.amount}</td>
-                                        <td className="p-4 text-sm font-mono text-slate-500 border-r border-slate-100">{txn.transaction_id || txn.transactionId || txn.txnId}</td>
-                                        <td className="p-4">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                {txn.status}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))
+                            ) : transactions.length > 0 ? (
+                                transactions.map((txn, idx) => {
+                                    const isPaid = txn.status === 'SUCCESS' || txn.status === 'PAID' || txn.payment_status === 'captured';
+                                    const billAmount = parseFloat(txn.bill_amount || txn.amount || '0');
+                                    const amountPaid = parseFloat(txn.amount || '0');
+                                    const pendingAmount = Math.max(0, billAmount - amountPaid);
+                                    
+                                    return (
+                                        <tr key={idx} className="border-b border-slate-100 bg-white hover:bg-slate-50 transition">
+                                            <td className="p-4">
+                                                <div className="text-sm font-bold text-slate-800">
+                                                    {txn.created_at ? new Date(txn.created_at).toLocaleDateString() : txn.date}
+                                                </div>
+                                                <div className="text-xs font-bold text-slate-400">
+                                                    {txn.created_at ? new Date(txn.created_at).toLocaleTimeString() : '--:--'}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm font-black text-slate-900">{txn.consumer_name || 'Consumer'}</div>
+                                                <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                                                    <span className="uppercase tracking-widest">NO:</span> {txn.account_number || txn.consumerId || txn.serviceNo}
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm font-bold text-slate-700">{txn.bill_number || 'N/A'}</div>
+                                                <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 inline-block px-2 py-0.5 rounded mt-1">
+                                                    {txn.service_type || 'ELECTRICITY'} BILL
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="text-sm font-mono font-bold text-slate-700">{txn.transaction_id || txn.transactionId || txn.txnId}</div>
+                                                <div className="text-xs font-mono text-slate-400 mt-0.5">REF: {txn.receipt_number || txn.razorpay_payment_id || 'N/A'}</div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">Via: {txn.payment_method || 'Online'}</div>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <div className="text-sm font-black text-slate-900">Paid: ₹{amountPaid.toFixed(2)}</div>
+                                                {pendingAmount > 0 ? (
+                                                    <div className="text-xs font-bold text-red-500">Pending: ₹{pendingAmount.toFixed(2)}</div>
+                                                ) : (
+                                                    <div className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest">No Dues</div>
+                                                )}
+                                                {txn.bill_status === 'overdue' && (
+                                                    <div className="text-[10px] font-bold text-amber-500 mt-0.5">Was Overdue</div>
+                                                )}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                {isPaid ? (
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-100 text-green-700 border border-green-200">
+                                                        <CheckCircle size={14} className="text-green-600" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">SUCCESS</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 border border-amber-200">
+                                                        <Clock size={14} className="text-amber-600" />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">{txn.status || txn.payment_status || 'PENDING'}</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="p-8 text-center text-slate-500 font-medium">
-                                        {error ? (
-                                            <div className="text-red-500 flex items-center justify-center gap-2">
-                                                <AlertCircle size={16} /> {error}
-                                            </div>
-                                        ) : hasSearched ? "No records found for this Service No." : "Enter Service No to view transactions."}
+                                    <td colSpan={6} className="p-12 text-center">
+                                        <div className="flex flex-col items-center justify-center text-slate-400">
+                                            <FileText size={32} className="mb-4 opacity-50" />
+                                            <span className="font-bold">No transaction records found.</span>
+                                        </div>
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
-                </div>
-
-                <div className="mt-4 text-right">
-                    <p className="text-[10px] text-blue-600 font-bold">Copyright @ 2026 TNPDCL</p>
                 </div>
             </div>
         </div>
