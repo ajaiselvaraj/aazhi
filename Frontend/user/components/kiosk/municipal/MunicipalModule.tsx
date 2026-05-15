@@ -4,7 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import WaterConnectionForm from './WaterConnectionForm';
 import MunicipalProfile from './MunicipalProfile';
-import WaterComplaints from './WaterComplaints';
+import MunicipalComplaints from './MunicipalComplaints';
 import MunicipalTracker from './MunicipalTracker';
 import MunicipalQuickPay from './MunicipalQuickPay';
 import WaterLogin from './WaterLogin';
@@ -38,7 +38,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
 
   if (view === 'WATER') return <WaterConnectionForm onBack={handleInternalBack} language={language} />;
   if (view === 'PROFILE') return <MunicipalProfile onBack={handleInternalBack} language={language} />;
-  if (view === 'COMPLAINTS') return <WaterComplaints onBack={handleInternalBack} language={language} />;
+  if (view === 'COMPLAINTS') return <MunicipalComplaints onBack={handleInternalBack} language={language} />;
   if (view === 'TRACKER') return <MunicipalTracker onBack={handleInternalBack} language={language} />;
   if (view === 'QUICK_PAY') return <MunicipalQuickPay onBack={handleInternalBack} language={language} />;
   if (view === 'TRANSACTIONS') return <MunicipalTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />;
