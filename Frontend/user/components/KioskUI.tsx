@@ -32,7 +32,7 @@ import { PropertyServices } from './municipal/PropertyServices';
 import { CitizenParticipation } from './municipal/CitizenParticipation';
 import HistoryReceipt from './kiosk/HistoryReceipt';
 import HistoryPage from './HistoryPage';
-
+import { Toast } from './RazorpayCheckout';
 import ApplicationTracker from './ApplicationTracker';
 import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
@@ -66,6 +66,7 @@ interface ChatMessage {
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', onVoiceCommand }) => {
   const { isVertical } = useOrientation();
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const isConversationalRef = useRef(false);
   const [aiSubTab, setAiSubTab] = useState<'chat' | 'imagine'>('chat');
@@ -510,7 +511,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       recognition.start();
     } else {
-      alert("Voice input is not supported in this browser.");
+      setToast({ message: "Voice input is not supported in this browser.", type: 'error' });
     }
   };
 
@@ -522,7 +523,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       const url = await generateCitizenImage(imagePrompt, selectedRatio);
       setGeneratedImage(url);
     } catch (e) {
-      alert("Failed to generate image.");
+      setToast({ message: "Failed to generate image.", type: 'error' });
     } finally { setIsImageLoading(false); }
   };
 
@@ -582,7 +583,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       const bill = unpaidBills.find(b => b.consumerId === consumerNumber) || unpaidBills[0];
 
       if (!bill) {
-        alert("No pending bills found for this consumer number.");
+        setToast({ message: "No pending bills found for this consumer number.", type: 'info' });
         setIsFetchingBill(false);
         return;
       }
@@ -591,7 +592,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       setBillingStep('details');
     } catch (error) {
       console.error("Failed to fetch bill", error);
-      alert("Error connecting to billing server. Please try again.");
+      setToast({ message: "Error connecting to billing server. Please try again.", type: 'error' });
     } finally {
       setIsFetchingBill(false);
     }
@@ -630,7 +631,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       setShowReceiptPreview(true);
     } catch (error) {
       console.error("Payment failed", error);
-      alert("Payment initiation failed.");
+      setToast({ message: "Payment initiation failed.", type: 'error' });
     } finally {
       setIsFetchingBill(false);
     }
@@ -1298,6 +1299,13 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       {showReceiptPreview && <PaymentReceipt data={receiptDetails} onClose={() => setShowReceiptPreview(false)} />}
       {assistantStep === 'paymentSuccess' && <PaymentReceipt data={receiptDetails} isBackground={true} onClose={() => { }} />}
       {selectedHistoryItem && <HistoryReceipt data={selectedHistoryItem} onClose={() => setSelectedHistoryItem(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </KioskShell >
   );
 };

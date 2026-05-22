@@ -25,10 +25,29 @@ export const BillingService = {
         return await apiClient.post<any>('/payment/verify', paymentData);
     },
 
-    getTransactionHistory: async (serviceType: string, consumerId: string): Promise<any[]> => {
-        // We use the service-specific history endpoint
-        // If consumerId is provided, we might need a specific query param or public endpoint
-        return await apiClient.get<any[]>(`/${serviceType}/history?consumerId=${consumerId}`);
+    getTransactionHistory: async (serviceType: string, consumerId?: string): Promise<any[]> => {
+        // --- Auth-aware history fetch ---
+        // Priority 1: Use JWT token — backend extracts the user from it (no query params needed)
+        // Priority 2: Fall back to consumerId query param only if it's a valid non-empty string
+        // This prevents the "GET /history?consumerId=" 400 Bad Request error.
+        const token = localStorage.getItem('aazhi_token');
+        const hasValidJwt = !!(token && token.split('.').length === 3 && token.length > 50);
+
+        console.log('[BillingService] getTransactionHistory — hasValidJwt:', hasValidJwt, '| consumerId:', consumerId);
+
+        if (hasValidJwt) {
+            // Authenticated path — backend resolves user from JWT, no query param needed
+            return await apiClient.get<any[]>(`/${serviceType}/history`);
+        }
+
+        if (consumerId && consumerId.trim().length > 0) {
+            // Guest/kiosk path — explicit consumer number provided
+            return await apiClient.get<any[]>(`/${serviceType}/history?consumerId=${encodeURIComponent(consumerId.trim())}`);
+        }
+
+        // No auth and no consumerId — abort cleanly instead of making a doomed request
+        console.warn('[BillingService] getTransactionHistory aborted: no JWT and no consumerId provided.');
+        return [];
     }
 };
 

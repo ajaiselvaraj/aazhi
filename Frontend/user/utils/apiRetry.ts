@@ -74,6 +74,13 @@ export async function callWithRetry<T>(
         error?.message?.includes('RESOURCE_EXHAUSTED') ||
         error?.message?.includes('quota');
 
+      // Never retry client errors — they won't resolve on their own
+      const isClientError = status && status >= 400 && status < 500 && status !== 429;
+      if (isClientError) {
+        console.warn(`[${label}] Client error ${status} — not retrying.`);
+        break;
+      }
+
       if ((isRateLimit || isResourceExhausted) && attempt < maxRetries) {
         // Exponential backoff with jitter: baseDelay * 2^attempt ± 20 %
         const exponentialDelay = baseDelay * Math.pow(2, attempt);

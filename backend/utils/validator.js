@@ -50,7 +50,12 @@ export const createBillSchema = Joi.object({
 
 // ─── Payment Schemas ──────────────────────────────────────
 export const createOrderSchema = Joi.object({
-    bill_id: Joi.string().uuid().required(),
+    bill_id: Joi.string().uuid().allow(null, "").optional(),
+    amount: Joi.number().positive().required(),
+});
+
+export const createGuestOrderSchema = Joi.object({
+    bill_id: Joi.string().uuid().allow(null, "").optional(),
     amount: Joi.number().positive().required(),
 });
 

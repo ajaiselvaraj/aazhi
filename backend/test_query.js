@@ -3,29 +3,26 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const pool = new pg.Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/aazhi'
+    connectionString: process.env.DATABASE_URL
 });
 
 async function testQuery() {
     try {
         const query = `
-            SELECT t.*, b.bill_number, b.service_type, b.billing_month, b.billing_year, b.amount as bill_amount, b.status as bill_status,
-                    ua.account_number, c.name as consumer_name
-             FROM transactions t
-             JOIN bills b ON t.bill_id = b.id
-             JOIN utility_accounts ua ON b.account_id = ua.id
-             JOIN citizens c ON t.citizen_id = c.id
-             WHERE b.service_type = 'electricity'
-             ORDER BY t.created_at DESC LIMIT 10 OFFSET 0
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'complaints'
+            ORDER BY column_name;
         `;
         const res = await pool.query(query);
-        console.log("Success! rows:", res.rows.length);
+        console.log("Complaints Columns:");
+        res.rows.forEach(r => console.log(`  ${r.column_name}: ${r.data_type}`));
     } catch (e) {
-        console.error("Error executing query:");
-        console.error(e.message);
+        console.error("Error executing query:", e.message);
     } finally {
         pool.end();
     }
 }
 
 testQuery();
+

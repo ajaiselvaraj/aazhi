@@ -133,6 +133,7 @@ const ElectricityQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     amount={bill.amount} 
                     name="Electricity Bill" 
                     description={`Payment for consumer: ${consumerId}`}
+                    billId={bill.id}
                     onSuccess={handlePaySuccess}
                     onFailure={handlePayFailure}
                 />

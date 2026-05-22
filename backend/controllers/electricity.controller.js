@@ -76,13 +76,18 @@ export const getPaymentHistory = async (req, res, next) => {
         const { consumerId, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
 
+        if (!consumerId && (!req.user || !req.user.id)) {
+            console.warn('[electricity] /history called without auth token or consumerId');
+            return fail(res, "Authentication required to view transaction history. Please log in.", 401);
+        }
+
         let query = `
             SELECT t.*, b.bill_number, b.service_type, b.billing_month, b.billing_year, b.amount as bill_amount, b.status as bill_status,
                     ua.account_number, c.name as consumer_name
              FROM transactions t
-             JOIN bills b ON t.bill_id = b.id
-             JOIN utility_accounts ua ON b.account_id = ua.id
-             JOIN citizens c ON t.citizen_id = c.id
+             LEFT JOIN bills b ON t.bill_id = b.id
+             LEFT JOIN utility_accounts ua ON b.account_id = ua.id
+             LEFT JOIN citizens c ON COALESCE(t.citizen_id, b.citizen_id) = c.id
              WHERE b.service_type = 'electricity'`;
         
         const params = [];
@@ -91,7 +96,7 @@ export const getPaymentHistory = async (req, res, next) => {
             query += ` AND ua.account_number = $${params.length + 1}`;
             params.push(consumerId);
         } else if (req.user) {
-            query += ` AND t.citizen_id = $${params.length + 1}`;
+            query += ` AND (t.citizen_id = $${params.length + 1} OR b.citizen_id = $${params.length + 1})`;
             params.push(req.user.id);
         }
 
@@ -193,13 +198,48 @@ export const getQuickPayBill = async (req, res, next) => {
         if (result.rows.length === 0) {
             // For Demo Purposes: If the characteristic "04-123-456" is used, return a mock bill if not found in DB
             if (consumerNumber === '04-123-456' || consumerNumber === '123456789' || /^\d{12}$/.test(consumerNumber)) {
+                // Ensure a demo citizen exists
+                const citizenRes = await pool.query(
+                    `INSERT INTO citizens (name, mobile, role, ward, zone)
+                     VALUES ('Ram Kumar', '9999999999', 'citizen', 'Ward 12', 'South Zone')
+                     ON CONFLICT (mobile) DO UPDATE SET name = 'Ram Kumar'
+                     RETURNING id`
+                );
+                const citizenId = citizenRes.rows[0].id;
+
+                // Create Utility Account
+                const accountRes = await pool.query(
+                    `INSERT INTO utility_accounts (citizen_id, service_type, account_number, meter_number, status)
+                     VALUES ($1, 'electricity', $2, 'MTR-882299', 'active')
+                     ON CONFLICT (account_number) DO UPDATE SET status = 'active'
+                     RETURNING id`,
+                    [citizenId, consumerNumber]
+                );
+                const accountId = accountRes.rows[0].id;
+
+                // Create a Pending Bill
+                const billNumber = `ELE-DEMO-${consumerNumber.replace(/[^A-Z0-9]/ig, '')}`;
+                const billRes = await pool.query(
+                    `INSERT INTO bills (
+                        account_id, citizen_id, service_type, bill_number, 
+                        amount, tax_amount, total_amount, 
+                        billing_month, billing_year, due_date, status
+                     )
+                     VALUES ($1, $2, 'electricity', $3, 1450.50, 145.05, 1450.50, 'April', '2026', '2026-05-15', 'pending')
+                     ON CONFLICT (bill_number) DO UPDATE SET status = 'pending'
+                     RETURNING *`,
+                    [accountId, citizenId, billNumber]
+                );
+
+                const dbBill = billRes.rows[0];
+
                 return success(res, "Demo bill retrieved", {
-                    id: "demo-bill-id",
+                    id: dbBill.id,
                     account_number: consumerNumber,
                     amount: 1450.50,
                     billing_month: "April",
                     billing_year: "2026",
-                    bill_number: "ELE-DEMO-99",
+                    bill_number: dbBill.bill_number,
                     due_date: "2026-05-15",
                     status: "pending",
                     metadata: {

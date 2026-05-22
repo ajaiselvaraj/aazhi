@@ -6,7 +6,7 @@
 import { pool } from "../config/db.js";
 import { supabase } from "../config/supabaseClient.js";
 import { success, fail, paginated } from "../utils/response.js";
-import { generateTicketNumber } from "../utils/helpers.js";
+import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 
@@ -305,8 +305,9 @@ export const getMyServiceRequestsDebug = async (req, res, next) => {
             return fail(res, "citizen_id or phone is required for debug fetching.", 400);
         }
 
+        const validCitizenId = isValidUuid(citizen_id) ? citizen_id : null;
         let query = `SELECT * FROM service_requests WHERE (citizen_id = $1 OR phone = $2)`;
-        const params = [citizen_id || null, phone || null];
+        const params = [validCitizenId, phone || null];
 
         query += ` ORDER BY created_at DESC LIMIT 50`;
         const result = await pool.query(query, params);
@@ -371,7 +372,12 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         const { current_stage, status, notes, rejection_reason } = req.body;
         const updatedBy = req.user.id;
 
-        const idCheckQuery = id.startsWith('TKT-') || id.startsWith('SRQ-')
+        const isTicket = id.startsWith('TKT-') || id.startsWith('SRQ-');
+        if (!isTicket && !isValidUuid(id)) {
+            return fail(res, "Invalid service request identifier format.", 400);
+        }
+
+        const idCheckQuery = isTicket
             ? "SELECT * FROM service_requests WHERE ticket_number = $1"
             : "SELECT * FROM service_requests WHERE id = $1";
 
@@ -490,10 +496,12 @@ export const getAllRequestsAdminDebug = async (req, res, next) => {
 export const createRequestDebug = async (req, res, next) => {
     try {
         let citizenId = req.body.citizen_id;
-        if (!citizenId) {
+        if (!citizenId || !isValidUuid(citizenId)) {
             const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
             if (cit.rows.length > 0) citizenId = cit.rows[0].id;
-            else citizenId = 1;
+            else {
+                return fail(res, "No citizen found in DB to attribute this request to.", 422);
+            }
         }
 
         let { request_type, department, description, ward, phone, metadata } = req.body;
@@ -533,8 +541,13 @@ export const updateRequestStatusDebug = async (req, res, next) => {
         const { status, current_stage, notes, rejection_reason } = req.body;
         const updatedBy = 1;
 
+        const isTicket = id.startsWith('TKT-') || id.startsWith('SRQ-');
+        if (!isTicket && !isValidUuid(id)) {
+            return fail(res, "Invalid service request identifier format.", 400);
+        }
+
         const current = await pool.query(
-            id.startsWith('TKT-') || id.startsWith('SRQ-')
+            isTicket
                 ? "SELECT * FROM service_requests WHERE ticket_number = $1"
                 : "SELECT * FROM service_requests WHERE id = $1",
             [id]
@@ -602,10 +615,15 @@ export const addMessageToRequest = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { text } = req.body;
-        const senderId = req.user ? req.user.id : null; // Can be null if optionalAuth doesn't enforce user
+        const senderId = (req.user && isValidUuid(req.user.id)) ? req.user.id : null;
+
+        const isTicket = id.startsWith('TKT-') || id.startsWith('SRQ-');
+        if (!isTicket && !isValidUuid(id)) {
+            return fail(res, "Invalid service request identifier format.", 400);
+        }
 
         const current = await pool.query(
-            id.startsWith('TKT-') || id.startsWith('SRQ-')
+            isTicket
                 ? "SELECT * FROM service_requests WHERE ticket_number = $1"
                 : "SELECT * FROM service_requests WHERE id = $1",
             [id]

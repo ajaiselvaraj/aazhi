@@ -32,6 +32,49 @@ export const initializeAuthTables = async () => {
             // Ignore if columns don't exist or already nullable, this is a best-effort migration
         });
 
+        // 🚀 TRANSACTION MODULE REDESIGN MIGRATIONS
+        logger.info("📡 Applying migrations to transactions table for guest support & failure tracking...");
+        
+        // 1. Allow guest checkout transactions without citizen account
+        await pool.query(`
+            ALTER TABLE transactions 
+            ALTER COLUMN citizen_id DROP NOT NULL;
+        `).catch(e => {
+            logger.warn(`Migration transactions.citizen_id DROP NOT NULL failed or already applied: ${e.message}`);
+        });
+
+        // 2. Add columns for failure reason and user details
+        await pool.query(`
+            ALTER TABLE transactions 
+            ADD COLUMN IF NOT EXISTS failure_reason TEXT;
+        `).catch(e => {
+            logger.warn(`Migration transactions.failure_reason failed or already applied: ${e.message}`);
+        });
+
+        await pool.query(`
+            ALTER TABLE transactions 
+            ADD COLUMN IF NOT EXISTS user_details JSONB;
+        `).catch(e => {
+            logger.warn(`Migration transactions.user_details failed or already applied: ${e.message}`);
+        });
+
+        // 3. Drop constraint if it exists to allow cancelled status
+        await pool.query(`
+            ALTER TABLE transactions 
+            DROP CONSTRAINT IF EXISTS transactions_payment_status_check;
+        `).catch(e => {
+            logger.warn(`Could not drop transactions_payment_status_check constraint: ${e.message}`);
+        });
+
+        // 4. Add constraint supporting new status values (created, authorized, captured, failed, refunded, cancelled)
+        await pool.query(`
+            ALTER TABLE transactions 
+            ADD CONSTRAINT transactions_payment_status_check 
+            CHECK (payment_status IN ('created', 'authorized', 'captured', 'failed', 'refunded', 'cancelled'));
+        `).catch(e => {
+            logger.warn(`Could not add updated transactions_payment_status_check constraint (might already exist): ${e.message}`);
+        });
+
         // 🚀 CRITICAL PERFORMANCE INDEXES (Resolves 10s Admin Dashboard lag)
         logger.info("📡 Applying Performance Optimization Indexes to primary tables...");
         const performanceIndexes = `

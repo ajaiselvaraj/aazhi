@@ -40,3 +40,22 @@ export const maskAadhaar = (aadhaar) => {
     const clean = aadhaar.replace(/\s/g, "");
     return `XXXX XXXX ${clean.slice(-4)}`;
 };
+
+export const isValidUuid = (uuid) => {
+    if (typeof uuid !== "string") return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+};
+
+export const generateDeterministicUuid = (seed) => {
+    if (!seed) return crypto.randomUUID();
+    const hash = crypto.createHash("md5").update(String(seed)).digest("hex");
+    return [
+        hash.slice(0, 8),
+        hash.slice(8, 12),
+        "3" + hash.slice(12, 16),
+        "a" + hash.slice(16, 20),
+        hash.slice(20, 32)
+    ].join("-");
+};
+

@@ -87,13 +87,17 @@ export const getPaymentHistory = async (req, res, next) => {
         const { consumerId, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
 
+        if (!consumerId && (!req.user || !req.user.id)) {
+            return fail(res, "Consumer ID or user authentication required.", 400);
+        }
+
         let query = `
             SELECT t.*, b.bill_number, b.amount as bill_amount, b.billing_month, b.billing_year, b.status as bill_status,
                     ua.account_number, c.name as consumer_name
              FROM transactions t
-             JOIN bills b ON t.bill_id = b.id
-             JOIN utility_accounts ua ON b.account_id = ua.id
-             JOIN citizens c ON t.citizen_id = c.id
+             LEFT JOIN bills b ON t.bill_id = b.id
+             LEFT JOIN utility_accounts ua ON b.account_id = ua.id
+             LEFT JOIN citizens c ON COALESCE(t.citizen_id, b.citizen_id) = c.id
              WHERE b.service_type = 'gas'`;
         
         const params = [];
@@ -102,7 +106,7 @@ export const getPaymentHistory = async (req, res, next) => {
             query += ` AND ua.account_number = $${params.length + 1}`;
             params.push(consumerId);
         } else if (req.user) {
-            query += ` AND t.citizen_id = $${params.length + 1}`;
+            query += ` AND (t.citizen_id = $${params.length + 1} OR b.citizen_id = $${params.length + 1})`;
             params.push(req.user.id);
         }
 
@@ -178,13 +182,49 @@ export const getQuickPayBill = async (req, res, next) => {
             // For Demo Purposes: Return mock bill for any input for now to ensure it works
             if (true) {
                 console.log(`✨ [Gas QuickPay] Returning demo bill for ANY input: ${id}`);
+                
+                // Ensure a demo citizen exists
+                const citizenRes = await pool.query(
+                    `INSERT INTO citizens (name, mobile, role, ward, zone)
+                     VALUES ('Arun Kumar', '9999999999', 'citizen', 'Ward 12', 'South Zone')
+                     ON CONFLICT (mobile) DO UPDATE SET name = 'Arun Kumar'
+                     RETURNING id`
+                );
+                const citizenId = citizenRes.rows[0].id;
+
+                // Create Utility Account
+                const accountRes = await pool.query(
+                    `INSERT INTO utility_accounts (citizen_id, service_type, account_number, meter_number, status)
+                     VALUES ($1, 'gas', $2, 'MTR-GAS-99', 'active')
+                     ON CONFLICT (account_number) DO UPDATE SET status = 'active'
+                     RETURNING id`,
+                    [citizenId, id]
+                );
+                const accountId = accountRes.rows[0].id;
+
+                // Create a Pending Bill
+                const billNumber = `GAS-DEMO-${id.replace(/[^A-Z0-9]/ig, '')}`;
+                const billRes = await pool.query(
+                    `INSERT INTO bills (
+                        account_id, citizen_id, service_type, bill_number, 
+                        amount, tax_amount, total_amount, 
+                        billing_month, billing_year, due_date, status
+                     )
+                     VALUES ($1, $2, 'gas', $3, 140.00, 14.00, 140.00, 'April', '2026', '2026-05-15', 'pending')
+                     ON CONFLICT (bill_number) DO UPDATE SET status = 'pending'
+                     RETURNING *`,
+                    [accountId, citizenId, billNumber]
+                );
+
+                const dbBill = billRes.rows[0];
+
                 return success(res, "Demo bill retrieved", {
-                    id: "demo-gas-bill-id",
+                    id: dbBill.id,
                     account_number: id,
                     amount: 140.00,
                     billing_month: "April",
                     billing_year: "2026",
-                    bill_number: "GAS-DEMO-99",
+                    bill_number: dbBill.bill_number,
                     due_date: "2026-05-15",
                     status: "pending",
                     metadata: {

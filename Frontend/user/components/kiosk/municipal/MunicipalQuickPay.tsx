@@ -173,6 +173,7 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 amount={billData.amount} 
                                 name="Municipal Bill" 
                                 description={`Payment for assessment: ${billData.account_number}`}
+                                billId={billData.id}
                                 onSuccess={handlePaymentSuccess}
                                 onFailure={handlePaymentFailure}
                                 onCancel={() => setStep('DETAILS')}

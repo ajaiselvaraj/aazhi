@@ -5,7 +5,7 @@
 
 import { pool } from "../config/db.js";
 import { success, fail, paginated } from "../utils/response.js";
-import { generateTicketNumber } from "../utils/helpers.js";
+import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
@@ -245,8 +245,9 @@ export const getMyComplaintsDebug = async (req, res, next) => {
             return fail(res, "citizen_id or phone is required for debug fetching.", 400);
         }
 
-        let query = `SELECT * FROM complaints WHERE (citizen_id = $1 OR phone = $2)`;
-        const params = [citizen_id || null, phone || null];
+        const validCitizenId = isValidUuid(citizen_id) ? citizen_id : null;
+        let query = `SELECT * FROM complaints WHERE (citizen_id = $1 OR citizen_mobile = $2)`;
+        const params = [validCitizenId, phone || null];
 
         query += ` ORDER BY created_at DESC LIMIT 50`;
         const result = await pool.query(query, params);
@@ -265,7 +266,12 @@ export const updateComplaintStatus = async (req, res, next) => {
         const updatedBy = req.user.id;
 
         // Get current complaint bypass UUID cast error by checking ticket_number or id
-        const idCheckQuery = id.startsWith('CMP-') || id.startsWith('TKT-')
+        const isTicket = id.startsWith('CMP-') || id.startsWith('TKT-');
+        if (!isTicket && !isValidUuid(id)) {
+            return fail(res, "Invalid complaint identifier format.", 400);
+        }
+
+        const idCheckQuery = isTicket
             ? "SELECT * FROM complaints WHERE ticket_number = $1"
             : "SELECT * FROM complaints WHERE id = $1";
 
@@ -378,6 +384,9 @@ export const updateComplaintStatus = async (req, res, next) => {
 export const addMessage = async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (!isValidUuid(id)) {
+            return fail(res, "Invalid complaint identifier format.", 400);
+        }
         const { text } = req.body;
         const senderId = req.user.id;
         const senderType = req.user.role === "citizen" ? "citizen" : "authority";
@@ -469,11 +478,10 @@ export const getAllComplaintsAdminDebug = async (req, res, next) => {
 export const createComplaintDebug = async (req, res, next) => {
     try {
         // Validate citizen_id — it must be a real UUID or we fall back to the first citizen in the DB
-        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         let citizenId = req.body.citizen_id;
-        const isValidUuid = citizenId && UUID_REGEX.test(citizenId);
+        const isCitizenUuidValid = citizenId && isValidUuid(citizenId);
 
-        if (!isValidUuid) {
+        if (!isCitizenUuidValid) {
             const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
             citizenId = cit.rows.length > 0 ? cit.rows[0].id : null;
         }
@@ -531,6 +539,9 @@ export const createComplaintDebug = async (req, res, next) => {
 export const updateComplaintStatusDebug = async (req, res, next) => {
     try {
         const { id } = req.params;
+        if (!isValidUuid(id)) {
+            return fail(res, "Invalid complaint identifier format.", 400);
+        }
         const { status, notes, assigned_to, resolution_note } = req.body;
         const updatedBy = 1; // dummy admin ID
 

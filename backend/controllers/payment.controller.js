@@ -7,7 +7,7 @@ import crypto from "crypto";
 import { pool } from "../config/db.js";
 import razorpay from "../config/razorpay.js";
 import { success, fail } from "../utils/response.js";
-import { generateReceiptNumber } from "../utils/helpers.js";
+import { generateReceiptNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 
 // ─── Create Payment Order ────────────────────────────────
@@ -30,6 +30,15 @@ export const createOrder = async (req, res, next) => {
             return fail(res, "Bill already paid.", 400);
         }
 
+        // Fetch citizen details for user_details tracking
+        const citizen = await pool.query("SELECT name, mobile, email FROM citizens WHERE id = $1", [citizenId]);
+        const userDetails = citizen.rows.length > 0 ? {
+            citizen_id: citizenId,
+            name: citizen.rows[0].name,
+            mobile: citizen.rows[0].mobile,
+            email: citizen.rows[0].email
+        } : { citizen_id: citizenId };
+
         // Create Razorpay order
         const receiptNumber = generateReceiptNumber();
         const order = await razorpay.orders.create({
@@ -46,10 +55,10 @@ export const createOrder = async (req, res, next) => {
         // Create transaction record
         const txn = await pool.query(
             `INSERT INTO transactions 
-             (bill_id, citizen_id, amount, razorpay_order_id, receipt_number, payment_status)
-             VALUES ($1, $2, $3, $4, $5, 'created')
+             (bill_id, citizen_id, amount, razorpay_order_id, receipt_number, payment_status, user_details)
+             VALUES ($1, $2, $3, $4, $5, 'created', $6)
              RETURNING *`,
-            [bill_id, citizenId, amount, order.id, receiptNumber]
+            [bill_id, citizenId, amount, order.id, receiptNumber, JSON.stringify(userDetails)]
         );
 
         logger.info("Payment order created", {
@@ -75,7 +84,7 @@ export const createOrder = async (req, res, next) => {
 // ─── Verify Payment ──────────────────────────────────────
 export const verifyPayment = async (req, res, next) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, user_details } = req.body;
 
         // Verify signature
         const expectedSignature = crypto
@@ -86,7 +95,10 @@ export const verifyPayment = async (req, res, next) => {
         if (expectedSignature !== razorpay_signature) {
             // Update transaction as failed
             await pool.query(
-                `UPDATE transactions SET payment_status = 'failed', updated_at = NOW()
+                `UPDATE transactions SET 
+                    payment_status = 'failed', 
+                    failure_reason = 'Signature verification failed',
+                    updated_at = NOW()
                  WHERE razorpay_order_id = $1`,
                 [razorpay_order_id]
             );
@@ -95,17 +107,32 @@ export const verifyPayment = async (req, res, next) => {
             return fail(res, "Payment verification failed. Invalid signature.", 400);
         }
 
+        // Get current user_details if not provided
+        let details = user_details;
+        if (!details && req.user) {
+            const citizen = await pool.query("SELECT name, mobile, email FROM citizens WHERE id = $1", [req.user.id]);
+            if (citizen.rows.length > 0) {
+                details = {
+                    citizen_id: req.user.id,
+                    name: citizen.rows[0].name,
+                    mobile: citizen.rows[0].mobile,
+                    email: citizen.rows[0].email
+                };
+            }
+        }
+
         // Update transaction
         const txn = await pool.query(
             `UPDATE transactions SET 
                 razorpay_payment_id = $1,
                 razorpay_signature = $2,
                 payment_status = 'captured',
+                user_details = COALESCE(user_details, $3),
                 paid_at = NOW(),
                 updated_at = NOW()
-             WHERE razorpay_order_id = $3
+             WHERE razorpay_order_id = $4
              RETURNING *`,
-            [razorpay_payment_id, razorpay_signature, razorpay_order_id]
+            [razorpay_payment_id, razorpay_signature, details ? JSON.stringify(details) : null, razorpay_order_id]
         );
 
         if (txn.rows.length === 0) {
@@ -142,10 +169,26 @@ export const verifyPayment = async (req, res, next) => {
 // ─── Create Guest Payment Order ──────────────────────────
 export const createGuestOrder = async (req, res, next) => {
     try {
-        const { amount } = req.body; // Amount in INR
+        const { amount, bill_id } = req.body; // Amount in INR
 
         if (!amount || amount <= 0) {
             return fail(res, "Invalid amount", 400);
+        }
+
+        // Check if bill exists
+        let billCitizenId = null;
+        let billServiceType = null;
+        let billExists = false;
+        if (bill_id && isValidUuid(bill_id)) {
+            const billRes = await pool.query(
+                "SELECT citizen_id, service_type FROM bills WHERE id = $1",
+                [bill_id]
+            );
+            if (billRes.rows.length > 0) {
+                billCitizenId = billRes.rows[0].citizen_id;
+                billServiceType = billRes.rows[0].service_type;
+                billExists = true;
+            }
         }
 
         const receiptNumber = generateReceiptNumber();
@@ -153,15 +196,31 @@ export const createGuestOrder = async (req, res, next) => {
             amount: Math.round(amount * 100), // paise
             currency: "INR",
             receipt: receiptNumber,
+            notes: {
+                bill_id: billExists ? bill_id : null,
+                citizen_id: billCitizenId || null,
+                service_type: billServiceType || null,
+                is_guest: "true"
+            }
         });
 
-        logger.info("Guest payment order created", { orderId: order.id, amount });
+        // Insert guest transaction record (citizen_id can be NULL)
+        const txn = await pool.query(
+            `INSERT INTO transactions 
+             (bill_id, citizen_id, amount, razorpay_order_id, receipt_number, payment_status, payment_method)
+             VALUES ($1, $2, $3, $4, $5, 'created', 'razorpay')
+             RETURNING *`,
+            [billExists ? bill_id : null, billCitizenId, amount, order.id, receiptNumber]
+        );
+
+        logger.info("Guest payment order created", { orderId: order.id, amount, txnId: txn.rows[0].id });
 
         return success(res, "Guest payment order created", {
             order_id: order.id,
             amount: order.amount,
             currency: order.currency,
             receipt: receiptNumber,
+            transaction_id: txn.rows[0].id,
             key_id: process.env.RAZORPAY_KEY,
         }, 201);
     } catch (err) {
@@ -172,7 +231,7 @@ export const createGuestOrder = async (req, res, next) => {
 // ─── Verify Guest Payment ────────────────────────────────
 export const verifyGuestPayment = async (req, res, next) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, user_details } = req.body;
 
         const expectedSignature = crypto
             .createHmac("sha256", process.env.RAZORPAY_SECRET)
@@ -180,8 +239,47 @@ export const verifyGuestPayment = async (req, res, next) => {
             .digest("hex");
 
         if (expectedSignature !== razorpay_signature) {
+            // Update transaction as failed
+            await pool.query(
+                `UPDATE transactions SET 
+                    payment_status = 'failed', 
+                    failure_reason = 'Signature verification failed',
+                    updated_at = NOW()
+                 WHERE razorpay_order_id = $1`,
+                [razorpay_order_id]
+            );
+
             logger.warn("Guest payment signature mismatch", { razorpay_order_id });
             return fail(res, "Payment verification failed. Invalid signature.", 400);
+        }
+
+        // Update transaction
+        const txn = await pool.query(
+            `UPDATE transactions SET 
+                razorpay_payment_id = $1,
+                razorpay_signature = $2,
+                payment_status = 'captured',
+                user_details = $3,
+                paid_at = NOW(),
+                updated_at = NOW()
+             WHERE razorpay_order_id = $4
+             RETURNING *`,
+            [razorpay_payment_id, razorpay_signature, user_details ? JSON.stringify(user_details) : null, razorpay_order_id]
+        );
+
+        if (txn.rows.length === 0) {
+            return fail(res, "Transaction not found.", 404);
+        }
+
+        const transaction = txn.rows[0];
+
+        // Update bill status if bill_id exists
+        if (transaction.bill_id) {
+            await pool.query(
+                `UPDATE bills SET status = 'paid', paid_at = NOW(), updated_at = NOW()
+                 WHERE id = $1`,
+                [transaction.bill_id]
+            );
         }
 
         logger.info("Guest payment verified", {
@@ -190,13 +288,104 @@ export const verifyGuestPayment = async (req, res, next) => {
         });
 
         return success(res, "Payment verified successfully", {
+            transaction_id: transaction.id,
+            receipt_number: transaction.receipt_number,
+            amount: transaction.amount,
             payment_status: "captured",
-            razorpay_payment_id
+            paid_at: transaction.paid_at,
         });
     } catch (err) {
         next(err);
     }
 };
+
+// ─── Record Payment Failure / Cancel ──────────────────────
+export const recordFailure = async (req, res, next) => {
+    try {
+        const { razorpay_order_id, failure_reason, gateway_response, user_details, bill_id, amount } = req.body;
+        const citizenId = req.user ? req.user.id : null;
+
+        if (!razorpay_order_id) {
+            return fail(res, "Razorpay Order ID is required", 400);
+        }
+
+        // Determine if it was cancelled or failed
+        let status = 'failed';
+        if (failure_reason && (failure_reason.toLowerCase().includes('dismiss') || failure_reason.toLowerCase().includes('cancel') || failure_reason.toLowerCase().includes('close'))) {
+            status = 'cancelled';
+        }
+
+        // Validate UUID structure and database existence of bill_id
+        let billExists = false;
+        const validBillId = (bill_id && isValidUuid(bill_id)) ? bill_id : null;
+        if (validBillId) {
+            const checkBill = await pool.query("SELECT id FROM bills WHERE id = $1", [validBillId]);
+            if (checkBill.rows.length > 0) {
+                billExists = true;
+            }
+        }
+        const finalBillId = billExists ? validBillId : null;
+
+        // Check if transaction exists
+        const checkTxn = await pool.query(
+            "SELECT * FROM transactions WHERE razorpay_order_id = $1",
+            [razorpay_order_id]
+        );
+
+        let txn;
+        if (checkTxn.rows.length === 0) {
+            // Create a failed/cancelled transaction record if it wasn't tracked yet
+            const receiptNumber = generateReceiptNumber();
+            txn = await pool.query(
+                `INSERT INTO transactions 
+                 (bill_id, citizen_id, amount, razorpay_order_id, receipt_number, payment_status, failure_reason, gateway_response, user_details)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                 RETURNING *`,
+                [
+                    finalBillId,
+                    citizenId,
+                    amount || 0.00,
+                    razorpay_order_id,
+                    receiptNumber,
+                    status,
+                    failure_reason || 'Payment failed',
+                    gateway_response ? JSON.stringify(gateway_response) : '{}',
+                    user_details ? JSON.stringify(user_details) : null
+                ]
+            );
+        } else {
+            // Update existing transaction status
+            txn = await pool.query(
+                `UPDATE transactions SET 
+                    payment_status = $1,
+                    failure_reason = $2,
+                    gateway_response = $3,
+                    user_details = COALESCE(user_details, $4),
+                    updated_at = NOW()
+                 WHERE razorpay_order_id = $5
+                 RETURNING *`,
+                [
+                    status,
+                    failure_reason || 'Payment failed',
+                    gateway_response ? JSON.stringify(gateway_response) : '{}',
+                    user_details ? JSON.stringify(user_details) : null,
+                    razorpay_order_id
+                ]
+            );
+        }
+
+        logger.info("Payment failure recorded in database", {
+            orderId: razorpay_order_id,
+            status,
+            reason: failure_reason
+        });
+
+        return success(res, "Failure recorded successfully", txn.rows[0]);
+    } catch (err) {
+        next(err);
+    }
+};
+
 
 
 // ─── Razorpay Webhook ────────────────────────────────────
@@ -297,15 +486,20 @@ export const getReceipt = async (req, res, next) => {
     try {
         const { id } = req.params;
 
+        if (!isValidUuid(id)) {
+            return fail(res, "Invalid receipt identifier format.", 400);
+        }
+
         const result = await pool.query(
             `SELECT t.*, b.bill_number, b.service_type, b.amount as bill_amount,
                     b.billing_month, b.billing_year, b.billing_cycle,
-                    c.name as citizen_name, c.mobile as citizen_mobile,
+                    COALESCE(c.name, t.user_details->>'name', 'Guest Citizen') as citizen_name,
+                    COALESCE(c.mobile, t.user_details->>'mobile', '0000000000') as citizen_mobile,
                     ua.account_number
              FROM transactions t
-             JOIN bills b ON t.bill_id = b.id
-             JOIN citizens c ON t.citizen_id = c.id
-             JOIN utility_accounts ua ON b.account_id = ua.id
+             LEFT JOIN bills b ON t.bill_id = b.id
+             LEFT JOIN citizens c ON t.citizen_id = c.id
+             LEFT JOIN utility_accounts ua ON b.account_id = ua.id
              WHERE t.id = $1`,
             [id]
         );
@@ -324,8 +518,8 @@ export const getReceipt = async (req, res, next) => {
             account_number: receipt.account_number,
             service_type: receipt.service_type,
             bill_number: receipt.bill_number,
-            billing_period: `${receipt.billing_month}-${receipt.billing_year}`,
-            bill_amount: receipt.bill_amount,
+            billing_period: receipt.billing_month ? `${receipt.billing_month}-${receipt.billing_year}` : 'N/A',
+            bill_amount: receipt.bill_amount || receipt.amount,
             amount_paid: receipt.amount,
             payment_status: receipt.payment_status,
             payment_method: receipt.payment_method,

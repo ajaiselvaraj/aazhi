@@ -177,6 +177,7 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 amount={billData.amount} 
                                 name="Electricity Bill" 
                                 description={`Payment for consumer: ${billData.account_number}`}
+                                billId={billData.id}
                                 onSuccess={handlePaymentSuccess}
                                 onFailure={handlePaymentFailure}
                                 onCancel={() => setStep('DETAILS')}

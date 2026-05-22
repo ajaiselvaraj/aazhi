@@ -169,6 +169,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 amount={billData.amount || billData.total_amount} 
                                 name="Gas Bill" 
                                 description={`Payment for consumer: ${billData.account_number}`}
+                                billId={billData.id}
                                 onSuccess={handlePaymentSuccess}
                                 onFailure={handlePaymentFailure}
                                 onCancel={() => setStep('DETAILS')}
