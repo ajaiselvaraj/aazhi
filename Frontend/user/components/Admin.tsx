@@ -515,7 +515,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                   <h3 className="text-lg font-bold mb-8 flex items-center gap-2">
                     <MessageSquare className="text-blue-500" /> Feedback Sentiment
                   </h3>
-                  <div className="flex-1 min-h-[300px]">
+                  <div className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -534,6 +534,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
+
                 </div>
               </div>
 

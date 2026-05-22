@@ -3,10 +3,34 @@ import { AREA_SUPPORT_CONTACTS } from '../constants';
 import { apiClient } from './api/apiClient';
 
 // --- BILLING SERVICE ---
+
+/**
+ * Maps service type → correct backend path.
+ * Water bills live under /municipal/water/bills (different router prefix).
+ * All other services follow the /{service}/bills pattern.
+ */
+const SERVICE_BILLS_ENDPOINT: Record<string, string> = {
+    electricity: '/electricity/bills',
+    gas:         '/gas/bills',
+    water:       '/municipal/water/bills',  // ← NOT /water/bills — lives under municipal router
+    property:    '/municipal/property-tax',
+};
+
 export const BillingService = {
-    // Get all bills for the authenticated user
+    // Get all bills for the authenticated user (JWT required)
     getBillsForUser: async (serviceType?: 'electricity' | 'gas' | 'water' | 'property'): Promise<Bill[]> => {
-        const endpoint = serviceType ? `/${serviceType}/bills` : '/electricity/bills'; // Default to electricity for now
+        // Guard: never fire this endpoint without a valid JWT — it requires auth
+        const token = localStorage.getItem('aazhi_token');
+        const hasValidJwt = !!(token && token.split('.').length === 3 && token.length > 50);
+        if (!hasValidJwt) {
+            // Return empty silently — callers should use fallback data
+            return [];
+        }
+
+        const endpoint = serviceType
+            ? (SERVICE_BILLS_ENDPOINT[serviceType] ?? `/${serviceType}/bills`)
+            : SERVICE_BILLS_ENDPOINT.electricity;
+
         return await apiClient.get<Bill[]>(endpoint);
     },
 
