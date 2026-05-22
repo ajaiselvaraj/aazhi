@@ -70,8 +70,10 @@ const ComplaintQRModal: React.FC<Props> = ({ ticketNumber, complaintId, onClose 
                 background: '#fff',
                 borderRadius: 28,
                 padding: 36,
-                maxWidth: 420,
+                maxWidth: '32rem', // max-w-lg roughly
                 width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
                 position: 'relative',
                 boxShadow: '0 32px 80px rgba(0,0,0,0.35)',
                 animation: 'slideUp 0.3s ease',

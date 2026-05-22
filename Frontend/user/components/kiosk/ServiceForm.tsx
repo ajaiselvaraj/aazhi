@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, CheckCircle, AlertCircle, X, FileText } from 'lucide
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { Persistence, debounceSaveForm } from '../../utils/persistence';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface FormField {
     name: string;
@@ -24,6 +25,7 @@ interface ServiceFormProps {
 
 const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, onBack, onSubmit, language }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
@@ -309,13 +311,13 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                     <span className="text-lg">{t('backToServices')}</span>
                 </button>
 
-                <div className="bg-white rounded-[2.5rem] border-2 border-blue-200 p-8 shadow-lg">
+                <div className={`bg-white rounded-[2.5rem] border-2 border-blue-200 ${isVertical ? 'p-6' : 'p-8'} shadow-lg`}>
                     <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border-2 border-blue-200">
+                        <div className="w-16 h-16 shrink-0 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center border-2 border-blue-200">
                             <FileText size={32} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <h2 className="text-3xl font-black text-slate-900 leading-tight">{serviceName}</h2>
+                            <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-900 leading-tight`}>{serviceName}</h2>
                             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">
                                 {t('fillDetailsBelow')}
                             </p>
@@ -411,20 +413,20 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ serviceName, departmentId, on
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-6 mt-12 pt-8 border-t-2 border-slate-100">
+                <div className={`flex ${isVertical ? 'flex-col-reverse' : ''} gap-6 mt-12 pt-8 border-t-2 border-slate-100`}>
                     <button
                         type="button"
                         onClick={handleReset}
-                        className="flex-1 bg-slate-100 text-slate-700 px-8 py-6 rounded-2xl font-black text-xl hover:bg-slate-200 transition border-2 border-slate-200 flex items-center justify-center gap-3"
+                        className={`flex-1 bg-slate-100 text-slate-700 ${isVertical ? 'px-6 py-5 text-lg' : 'px-8 py-6 text-xl'} rounded-2xl font-black hover:bg-slate-200 transition border-2 border-slate-200 flex items-center justify-center gap-3`}
                     >
-                        <X size={24} />
+                        <X size={isVertical ? 20 : 24} />
                         {t('resetForm')}
                     </button>
                     <button
                         type="submit"
-                        className="flex-[2] bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-6 rounded-2xl font-black text-xl hover:from-blue-700 hover:to-blue-800 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-3"
+                        className={`flex-[2] bg-gradient-to-r from-blue-600 to-blue-700 text-white ${isVertical ? 'px-6 py-5 text-lg' : 'px-8 py-6 text-xl'} rounded-2xl font-black hover:from-blue-700 hover:to-blue-800 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-3`}
                     >
-                        <CheckCircle size={24} />
+                        <CheckCircle size={isVertical ? 20 : 24} />
                         {t('submitReq')}
                     </button>
                 </div>

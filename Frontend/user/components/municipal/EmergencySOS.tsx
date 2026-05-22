@@ -5,6 +5,7 @@ import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
+import { useOrientation } from '../../contexts/OrientationContext';
 import { EmergencyReport } from '../../types/municipal';
 
 const EMERGENCY_TYPES_KEYS = [
@@ -17,6 +18,7 @@ const EMERGENCY_TYPES_KEYS = [
 export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
@@ -80,8 +82,8 @@ export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }
             <div className="flex-1 max-w-5xl mx-auto w-full">
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500">
-                        <h3 className="text-3xl font-black mb-8 text-red-800 text-center uppercase tracking-widest">{t("emer_selectType")}</h3>
-                        <div className="grid grid-cols-2 gap-8">
+                        <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("emer_selectService")}</h3>
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-8'}`}>
                             {EMERGENCY_TYPES_KEYS.map(em => (
                                 <AccessibleButton
                                     key={em.id}

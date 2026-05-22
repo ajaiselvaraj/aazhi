@@ -487,7 +487,7 @@ const App: React.FC = () => {
 // Render: LANDING (Language Selection)
 // ─────────────────────────────────────────────
 const renderLanding = () => (
-  <div className={`min-h-screen flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-[#F8F9FB] text-slate-900 relative overflow-hidden font-sans`}>
+  <div className={`h-screen max-h-screen w-full flex flex-col items-center justify-between ${isVertical ? 'pt-4 px-4 pb-[52px]' : 'pt-6 px-6 pb-[60px]'} bg-[#F8F9FB] text-slate-900 relative overflow-hidden font-sans`}>
     {/* Background Watermark: Indian Emblem */}
     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-10 pointer-events-none z-0">
       <img
@@ -536,72 +536,73 @@ const renderLanding = () => (
     </header>
 
     {/* Main Grid: Language Selection */}
-    <div className="flex-1 w-full overflow-y-auto px-4 md:px-8 flex flex-col items-center justify-center">
-
-      {/* ── Orientation Toggle Banner (inside the panel) ── */}
-      <div className={`w-full max-w-[1600px] ${isVertical ? 'mb-4' : 'mb-3'} flex items-center justify-between gap-3`}>
-        <p className={`${isVertical ? 'text-base' : 'text-xs'} font-black text-slate-500 uppercase tracking-widest`}>
-          {isVertical ? '📱 Kiosk Mode  ·  Select Language' : 'Select Language'}
-        </p>
-        <button
-          onClick={toggleOrientation}
-          className={`
-            flex items-center gap-2 font-black uppercase tracking-wider transition-all duration-200
-            ${isVertical
-              ? 'px-5 py-3 rounded-2xl text-sm bg-slate-900 text-white hover:bg-blue-700 shadow-lg'
-              : 'px-4 py-2 rounded-xl text-[11px] bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white border border-slate-200'
-            }
-          `}
-          title={isVertical ? 'Switch to Landscape/Desktop Mode' : 'Switch to Kiosk/Portrait Mode'}
-        >
-          {isVertical ? <Monitor size={isVertical ? 18 : 12} /> : <Smartphone size={12} />}
-          {isVertical ? 'Landscape Mode' : 'Kiosk Mode'}
-        </button>
-      </div>
-
-      <div
-        className="grid gap-4 w-full max-w-[1600px] auto-rows-fr pb-4"
-        style={{
-          gridTemplateColumns: isVertical
-            ? 'repeat(2, 1fr)'
-            : 'repeat(auto-fit, minmax(220px, 1fr))'
-        }}
-      >
-        {LANGUAGES_CONFIG.map((item) => (
+    <div className="flex-1 min-h-0 w-full overflow-y-auto px-4 md:px-8 flex flex-col items-center justify-start custom-scrollbar">
+      <div className="w-full max-w-[1600px] my-auto py-6 flex flex-col items-center">
+        {/* ── Orientation Toggle Banner (inside the panel) ── */}
+        <div className={`w-full ${isVertical ? 'mb-4' : 'mb-3'} flex items-center justify-between gap-3`}>
+          <p className={`${isVertical ? 'text-base' : 'text-xs'} font-black text-slate-500 uppercase tracking-widest`}>
+            {isVertical ? '📱 Kiosk Mode  ·  Select Language' : 'Select Language'}
+          </p>
           <button
-            key={item.code}
-            id={`lang-btn-${item.code}`}
-            onClick={() => handleLanguageSelect(item.code)}
+            onClick={toggleOrientation}
             className={`
-                group relative bg-white transition-all duration-200
-                flex flex-col items-center justify-center gap-3
-                ${isVertical ? 'py-8 px-4 min-h-[110px]' : 'h-full p-6'} w-full rounded-2xl border-2
-                ${language === item.code
-                ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-[1.03]'
-                : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
+              flex items-center gap-2 font-black uppercase tracking-wider transition-all duration-200
+              ${isVertical
+                ? 'px-5 py-3 rounded-2xl text-sm bg-slate-900 text-white hover:bg-blue-700 shadow-lg'
+                : 'px-4 py-2 rounded-xl text-[11px] bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white border border-slate-200'
               }
-              `}
-            dir={item.rtl ? 'rtl' : 'ltr'}
+            `}
+            title={isVertical ? 'Switch to Landscape/Desktop Mode' : 'Switch to Kiosk/Portrait Mode'}
           >
-            <span className={`${
-              isVertical ? 'text-3xl' : 'text-2xl sm:text-3xl'
-            } font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif' : ''}`}>
-              {item.label}
-            </span>
-            <span className={`${
-              isVertical ? 'text-[11px]' : 'text-xs'
-            } font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full`}>
-              {item.name}
-            </span>
-
-            {/* Selection Checkmark */}
-            {language === item.code && (
-              <div className="absolute top-2 right-2 text-blue-600 bg-blue-50 rounded-full p-1">
-                <ShieldCheck size={16} fill="currentColor" stroke="white" />
-              </div>
-            )}
+            {isVertical ? <Monitor size={isVertical ? 18 : 12} /> : <Smartphone size={12} />}
+            {isVertical ? 'Landscape Mode' : 'Kiosk Mode'}
           </button>
-        ))}
+        </div>
+
+        <div
+          className="grid gap-4 w-full auto-rows-fr pb-4"
+          style={{
+            gridTemplateColumns: isVertical
+              ? 'repeat(2, 1fr)'
+              : 'repeat(auto-fit, minmax(220px, 1fr))'
+          }}
+        >
+          {LANGUAGES_CONFIG.map((item) => (
+            <button
+              key={item.code}
+              id={`lang-btn-${item.code}`}
+              onClick={() => handleLanguageSelect(item.code)}
+              className={`
+                  group relative bg-white transition-all duration-200
+                  flex flex-col items-center justify-center gap-3
+                  ${isVertical ? 'py-8 px-4 min-h-[110px]' : 'h-full p-6'} w-full rounded-2xl border-2
+                  ${language === item.code
+                  ? 'border-blue-600 ring-4 ring-blue-600/20 shadow-xl z-20 scale-[1.03]'
+                  : 'border-slate-200 hover:border-blue-500 hover:shadow-lg hover:-translate-y-1'
+                }
+                `}
+              dir={item.rtl ? 'rtl' : 'ltr'}
+            >
+              <span className={`${
+                isVertical ? 'text-3xl' : 'text-2xl sm:text-3xl'
+              } font-bold text-slate-800 group-hover:scale-105 transition-transform duration-200 text-center flex-shrink-0 ${item.rtl ? 'font-serif' : ''}`}>
+                {item.label}
+              </span>
+              <span className={`${
+                isVertical ? 'text-[11px]' : 'text-xs'
+              } font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors mt-1 text-center break-words leading-tight max-w-full`}>
+                {item.name}
+              </span>
+
+              {/* Selection Checkmark */}
+              {language === item.code && (
+                <div className="absolute top-2 right-2 text-blue-600 bg-blue-50 rounded-full p-1">
+                  <ShieldCheck size={16} fill="currentColor" stroke="white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
 
@@ -636,7 +637,7 @@ const renderLanding = () => (
 // Render: SELECTION
 // ─────────────────────────────────────────────
 const renderSelection = () => (
-  <div className={`min-h-screen flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-slate-50 relative overflow-hidden font-sans`}>
+  <div className={`min-h-full flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-slate-50 relative overflow-hidden font-sans`}>
     <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md fixed top-0 w-full z-20 border-b border-slate-200/50`}>
       <div className="flex items-center gap-4">
         <div className={`${isVertical ? 'w-10 h-10' : 'w-10 h-10'} bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200`}>
@@ -692,7 +693,7 @@ const renderSelection = () => (
 // Render: LOGIN
 // ─────────────────────────────────────────────
 const renderLogin = () => (
-  <div className="min-h-screen flex flex-col bg-white relative overflow-hidden font-sans">
+  <div className="min-h-full flex flex-col bg-white relative overflow-hidden font-sans">
 
     {/* Header */}
     <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200/50`}>

@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertCircle, Zap, Droplets, Info } from 'lucide-react';
 import { CityAlert, Language } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface Props {
     alerts: CityAlert[];
@@ -10,6 +11,7 @@ interface Props {
 
 const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
 
     const translateAlertMessage = (alert: CityAlert) => {
         return t(alert.message) || alert.message;
@@ -25,7 +27,7 @@ const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) =
                 <span className="text-[10px] bg-red-600 px-2 py-0.5 rounded text-white font-bold animate-pulse">{t('live') || "LIVE"}</span>
             </div>
 
-            <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            <div className={`space-y-3 overflow-y-auto pr-2 custom-scrollbar ${isVertical ? 'max-h-[320px]' : 'max-h-48'}`}>
                 {alerts.map((alert) => (
                     <div key={alert.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 items-start gap-3 hover:bg-slate-700 transition flex">
                         <div className={`mt-1 p-2 rounded-full shrink-0 ${alert.type === 'Power' ? 'bg-amber-900 text-amber-500' :

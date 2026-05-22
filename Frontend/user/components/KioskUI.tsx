@@ -40,6 +40,7 @@ import { useInactivityTimer } from '../hooks/useInactivityTimer';
 import { Persistence } from '../utils/persistence';
 import { routeHierarchy, detectActiveModule } from '../utils/VoiceHierarchyRouter';
 import type { ElectricityView, GasView } from '../utils/VoiceHierarchyRouter';
+import { useOrientation } from '../contexts/OrientationContext';
 
 interface Props {
   language: Language;
@@ -63,6 +64,7 @@ interface ChatMessage {
 }
 
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', onVoiceCommand }) => {
+  const { isVertical } = useOrientation();
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
 
   const isConversationalRef = useRef(false);
@@ -540,9 +542,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setSubmissionStep('auth');
   };
 
-  const handleServiceSubmit = (data: any) => {
+  const handleServiceSubmit = async (data: any) => {
     if (selectedService && selectedDepartment) {
-      const tokenStr = addServiceRequest({
+      const tokenStr = await addServiceRequest({
         name: data.name || MOCK_USER_PROFILE.name,
         phone: data.mobile || data.contact || MOCK_USER_PROFILE.mobile,
         category: DEPARTMENTS.find(d => d.id === selectedDepartment)?.name || selectedDepartment,
@@ -712,7 +714,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 </div>
 
                 {/* Service Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className={`grid ${isVertical ? 'grid-cols-1 gap-6 max-w-3xl mx-auto w-full' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'}`}>
                   {DEPARTMENTS.map((dept) => {
                     const deptName = t(dept.name) || dept.name;
 

@@ -236,10 +236,10 @@ const KioskShell: React.FC<KioskShellProps> = ({
         - High contrast active states
         - Anchored to left (horizontal) or bottom (vertical)
       */}
-            <nav className={`${isVertical ? 'h-28 w-full border-t flex-row overflow-x-auto pb-safe' : 'w-28 md:w-32 flex-col border-r'} bg-white flex border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 print:hidden`}>
+            <nav className={`${isVertical ? 'h-32 w-full border-t flex-row overflow-x-auto pb-safe' : 'w-28 md:w-32 flex-col border-r'} bg-white flex border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 print:hidden`}>
 
                 {/* Brand Trigger */}
-                <div className={`${isVertical ? 'w-28 border-r h-full' : 'h-28 border-b'} flex flex-col items-center justify-center border-slate-100 p-2 shrink-0`}>
+                <div className={`${isVertical ? 'w-32 border-r h-full' : 'h-28 border-b'} flex flex-col items-center justify-center border-slate-100 p-2 shrink-0`}>
                     <div className="w-12 h-12 bg-white border-2 border-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-1">
                         <span className="text-blue-600 font-black text-xl">A</span>
                     </div>
@@ -257,7 +257,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`
-                  relative group flex flex-col items-center justify-center ${isVertical ? 'w-20 h-20 min-w-[5rem]' : 'w-24 h-24'} rounded-2xl transition-colors duration-300
+                  relative group flex flex-col items-center justify-center ${isVertical ? 'w-24 h-24 min-w-[6rem]' : 'w-24 h-24'} rounded-2xl transition-colors duration-300
                   ${isActive
                                         ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
                                         : 'text-slate-400 hover:bg-slate-50 border-2 border-transparent'
@@ -286,13 +286,13 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 </div>
 
                 {/* Emergency / Logout - Bottom or Right */}
-                <div className={`p-3 ${isVertical ? 'border-l w-28 h-full flex items-center justify-center' : 'border-t'} border-slate-100 shrink-0`}>
+                <div className={`p-3 ${isVertical ? 'border-l w-32 h-full flex items-center justify-center' : 'border-t'} border-slate-100 shrink-0`}>
                     <button
                         onClick={handleSecureLogout}
                         className={`w-full ${isVertical ? 'h-full aspect-auto' : 'aspect-square'} rounded-2xl bg-red-50 text-red-500 flex flex-col items-center justify-center gap-1 hover:bg-red-500 hover:text-white transition-colors duration-300`}
                     >
-                        <LogOut size={isVertical ? 20 : 24} />
-                        <span className="text-[9px] font-black uppercase">{t('navExit') || 'Exit'}</span>
+                        <LogOut size={isVertical ? 24 : 24} />
+                        <span className="text-[10px] font-black uppercase">{t('navExit') || 'Exit'}</span>
                     </button>
                 </div>
             </nav>
@@ -305,67 +305,78 @@ const KioskShell: React.FC<KioskShellProps> = ({
             <main className="flex-1 flex-col h-full bg-[#f8f9fc] relative overflow-hidden flex">
 
                 {/* Kiosk Header Board */}
-                <header className={`${isVertical ? 'h-16 px-4' : 'h-24 px-8'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden transition-all duration-300`}>
-                    <div>
-                        <h1 className={`${isVertical ? 'text-lg' : 'text-2xl'} font-black text-slate-800 tracking-tight flex items-center gap-3 transition-all duration-300`}>
-                            {activeTab === 'home' ? `${t('welcomeCitizen') || 'Welcome, Citizen'} ${userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
-                        </h1>
-                        {!isVertical && (
-                            <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-1">
+                <header className={`${isVertical ? 'h-auto py-5 px-6 flex-col gap-5' : 'h-24 px-8 flex-row'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-200/50 shrink-0 print:hidden transition-all duration-300`}>
+                    <div className={`${isVertical ? 'w-full flex justify-between items-start' : ''}`}>
+                        <div>
+                            <h1 className={`${isVertical ? 'text-3xl' : 'text-2xl'} font-black text-slate-800 tracking-tight flex items-center gap-3 transition-all duration-300`}>
+                                {activeTab === 'home' ? `${t('welcomeCitizen') || 'Welcome, Citizen'} ${userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
+                            </h1>
+                            <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-2">
                                 <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
                                     {t('terminalId') || 'Terminal ID'}: CBE-02
                                 </span>
                                 <span>•</span>
                                 <span>{t('loginSubtitle')}</span>
                             </div>
+                        </div>
+
+                        {isVertical && (
+                            <div className="flex items-center">
+                                <img src={cdacLogo} alt="CDAC Logo" style={{ height: '48px' }} className="w-auto object-contain" />
+                            </div>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-6">
+                    <div className={`flex items-center ${isVertical ? 'w-full justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200' : 'gap-6'}`}>
                         {onVoiceCommand && (
-                            <SuvidhaVoiceControl onCommand={onVoiceCommand as any} ttsLanguage={language} variant="inline" />
+                            <div className={`${isVertical ? 'scale-110 origin-left' : ''}`}>
+                                <SuvidhaVoiceControl onCommand={onVoiceCommand as any} ttsLanguage={language} variant="inline" />
+                            </div>
                         )}
 
-
-                        {/* System Status Indicators - Time Moved Left */}
-                        <div className="flex items-center gap-4 pl-6 border-l border-slate-200">
+                        {/* System Status Indicators */}
+                        <div className={`flex items-center gap-4 ${isVertical ? '' : 'pl-6 border-l border-slate-200'}`}>
                             <div className="text-right">
-                                <p className="text-xl font-black text-slate-900 leading-none">
+                                <p className={`${isVertical ? 'text-2xl' : 'text-xl'} font-black text-slate-900 leading-none`}>
                                     {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                                     {time.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
                                 </p>
                             </div>
-                            <div className="flex gap-2 text-slate-300">
+                            <div className="flex gap-2 text-slate-300 items-center">
                                 {isOnline ? (
-                                    <Wifi size={18} className="text-green-500" />
+                                    <Wifi size={isVertical ? 24 : 18} className="text-green-500" />
                                 ) : (
-                                    <WifiOff size={18} className="text-red-500" />
+                                    <WifiOff size={isVertical ? 24 : 18} className="text-red-500" />
                                 )}
-                                <div className="flex items-center">
+                                <div className="flex items-center transform scale-125">
                                     <DynamicBatteryIcon level={batteryLevel} isCharging={isCharging} />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Session Timer & Privacy Shield - Moved to Right Corner */}
-                        <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+                        {/* Session Timer & Privacy Shield */}
+                        <div className={`flex items-center gap-4 ${isVertical ? '' : 'pl-6 border-l border-slate-200'}`}>
                             {/* Timer */}
-                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl">
-                                <Clock size={16} className={timer < 30 ? 'text-red-500 animate-pulse' : 'text-slate-500'} />
-                                <span className={`text-sm font-black ${timer < 30 ? 'text-red-600' : 'text-slate-900'}`}>
+                            <div className={`flex items-center gap-2 px-4 py-3 bg-white shadow-sm border border-slate-200 rounded-xl`}>
+                                <Clock size={isVertical ? 20 : 16} className={timer < 30 ? 'text-red-500 animate-pulse' : 'text-slate-500'} />
+                                <span className={`${isVertical ? 'text-lg' : 'text-sm'} font-black ${timer < 30 ? 'text-red-600' : 'text-slate-900'}`}>
                                     {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
                                 </span>
                             </div>
 
                             {/* Orientation Toggle */}
-                            <OrientationToggle variant="icon" />
-
-                            {/* CDAC Logo Section */}
-                            <div className="flex items-center pl-6 border-l border-slate-200">
-                                <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                            <div className={`${isVertical ? 'scale-110 origin-right' : ''}`}>
+                                <OrientationToggle variant="icon" />
                             </div>
+
+                            {/* CDAC Logo Section (Horizontal Only) */}
+                            {!isVertical && (
+                                <div className="flex items-center pl-6 border-l border-slate-200">
+                                    <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </header>

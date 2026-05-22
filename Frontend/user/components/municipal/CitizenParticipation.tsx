@@ -4,6 +4,7 @@ import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 const CIVIC_ACTIONS_KEYS = [
     { id: 'ward', labelKey: 'citizen_wardCalendar', icon: Calendar },
@@ -17,6 +18,7 @@ const CIVIC_ACTIONS_KEYS = [
 export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const [step, setStep] = useState(1);
     const [view, setView] = useState('');
 
@@ -43,7 +45,7 @@ export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: b
             <div className="flex-1 max-w-6xl mx-auto w-full">
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500">
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 lg:grid-cols-3 gap-6'}`}>
                             {CIVIC_ACTIONS_KEYS.map(act => (
                                 <AccessibleButton
                                     key={act.id}

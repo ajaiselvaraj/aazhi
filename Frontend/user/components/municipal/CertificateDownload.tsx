@@ -5,6 +5,7 @@ import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Certificate } from '../../types/municipal';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 const CERT_TYPES_KEYS = [
     'cert_birth',
@@ -18,6 +19,7 @@ const CERT_TYPES_KEYS = [
 export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [certData, setCertData] = useState<Certificate | null>(null);
@@ -76,7 +78,7 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500">
                         <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("cert_selectType")}</h3>
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-6'}`}>
                             {CERT_TYPES_KEYS.map(ctKey => (
                                 <AccessibleButton
                                     key={ctKey}
@@ -151,14 +153,14 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
                         <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-slate-100 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-full h-4 bg-green-500"></div>
 
-                            <div className="flex justify-between items-start mb-12">
-                                <div className="text-left">
+                            <div className={`flex ${isVertical ? 'flex-col items-center gap-6 text-center' : 'justify-between items-start'} mb-12`}>
+                                <div className={isVertical ? 'text-center' : 'text-left'}>
                                     <h3 className="text-gray-400 font-black text-xs uppercase tracking-widest mb-1">{t("cert_stateGovt")}</h3>
                                     <h2 className="text-3xl font-black text-slate-900 mb-4">{certData.type}</h2>
                                     <p className="text-slate-500 font-medium">{t("cert_issuedOn")}: {certData.issueDate}</p>
                                     <p className="text-slate-500 font-medium tracking-wider mt-1">ID: {certData.id}</p>
                                 </div>
-                                <div className="w-28 h-28 bg-slate-100 rounded-2xl border-4 border-white shadow flex items-center justify-center text-slate-400">
+                                <div className={`w-28 h-28 bg-slate-100 rounded-2xl border-4 border-white shadow flex items-center justify-center text-slate-400 ${isVertical ? 'mx-auto' : ''}`}>
                                     <QrCode size={64} />
                                 </div>
                             </div>

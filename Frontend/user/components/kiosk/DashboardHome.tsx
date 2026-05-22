@@ -7,10 +7,10 @@ import { CityAlert, Language } from '../../types';
 import { LocalityService } from '../../services/civicService';
 import { MOCK_USER_PROFILE } from '../../constants';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import { useOrientation } from '../../contexts/OrientationContext';
 
-const containerVariants = {
+const containerVariants: Variants = {
     hidden: { opacity: 0 },
     show: {
         opacity: 1,
@@ -18,7 +18,7 @@ const containerVariants = {
     }
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
 };
@@ -74,27 +74,34 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                     <AlertsPanel alerts={alerts} language={language} />
                 </div>
 
-                <div className={`${isVertical ? 'grid grid-cols-2 gap-4' : 'lg:col-span-2 grid grid-cols-3 gap-4'}`}>
+                <div className={`${isVertical ? 'flex flex-col gap-4' : 'lg:col-span-2 grid grid-cols-3 gap-4'}`}>
                     <motion.button
                         whileHover={{ scale: 1.02, y: -4 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => onNavigate('services')}
-                        className={`group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left ${isVertical ? 'min-h-[140px]' : 'h-full'}`}
+                        className={`group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition duration-500">
-                            <LayoutGrid size={isVertical ? 80 : 100} />
+                            <LayoutGrid size={isVertical ? 140 : 100} />
                         </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div className={`w-12 h-12 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center ${isVertical ? 'mb-2' : 'mb-4'}`}>
-                                <LayoutGrid size={24} />
+                        <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-6 h-full' : 'flex-col h-full justify-between'}`}>
+                            <div className={`w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center ${isVertical ? 'shrink-0' : 'mb-4'}`}>
+                                <LayoutGrid size={32} />
                             </div>
-                            <div>
-                                <h3 className={`${isVertical ? 'text-xl' : 'text-2xl'} font-black mb-1`}>{t('newRequest')}</h3>
-                                <p className="opacity-80 text-xs font-medium mb-3">{t('newRequestDesc')}</p>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 w-fit px-3 py-2 rounded-lg">
-                                    {t('start')} <ArrowRight size={12} />
+                            <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
+                                <h3 className="text-2xl font-black mb-1">{t('newRequest')}</h3>
+                                <p className={`opacity-80 font-medium ${isVertical ? 'text-base mb-0' : 'text-xs mb-3'}`}>{t('newRequestDesc')}</p>
+                                {!isVertical && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 w-fit px-3 py-2 rounded-lg mt-3">
+                                        {t('start')} <ArrowRight size={12} />
+                                    </div>
+                                )}
+                            </div>
+                            {isVertical && (
+                                <div className="shrink-0 w-12 h-12 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-blue-600 transition-colors">
+                                    <ArrowRight size={24} />
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </motion.button>
 
@@ -102,22 +109,29 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         whileHover={{ scale: 1.02, y: -5 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('billing')}
-                        className="group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left h-full"
+                        className={`group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 text-slate-100 group-hover:text-slate-50 transition duration-500">
-                            <CreditCard size={100} />
+                            <CreditCard size={isVertical ? 140 : 100} />
                         </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center mb-4 text-slate-900">
-                                <CreditCard size={24} />
+                        <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-6 h-full' : 'flex-col h-full justify-between'}`}>
+                            <div className={`w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 ${isVertical ? 'shrink-0' : 'mb-4'}`}>
+                                <CreditCard size={32} />
                             </div>
-                            <div>
-                                <h3 className="text-xl font-black mb-1">{t('payBills') || "Pay Bills"}</h3>
-                                <p className="text-slate-500 text-[10px] font-medium mb-4">{t('payBillsDesc') || "Utility bills"}</p>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-3 py-2 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition">
-                                    {t('pay') || "Pay"} <ArrowRight size={12} />
+                            <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
+                                <h3 className="text-2xl font-black mb-1">{t('payBills') || "Pay Bills"}</h3>
+                                <p className={`text-slate-500 font-medium ${isVertical ? 'text-base mb-0' : 'text-[10px] mb-4'}`}>{t('payBillsDesc') || "Utility bills"}</p>
+                                {!isVertical && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-3 py-2 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition mt-3">
+                                        {t('pay') || "Pay"} <ArrowRight size={12} />
+                                    </div>
+                                )}
+                            </div>
+                            {isVertical && (
+                                <div className="shrink-0 w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <ArrowRight size={24} />
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </motion.button>
 
@@ -125,22 +139,29 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         whileHover={{ scale: 1.02, y: -5 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('complaints')}
-                        className="group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left h-full"
+                        className={`group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 text-red-100 group-hover:text-red-500 transition duration-500">
-                            <AlertCircle size={100} />
+                            <AlertCircle size={isVertical ? 140 : 100} />
                         </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-4 text-red-600 shadow-sm">
-                                <AlertCircle size={24} />
+                        <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-6 h-full' : 'flex-col h-full justify-between'}`}>
+                            <div className={`w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-sm ${isVertical ? 'shrink-0' : 'mb-4'}`}>
+                                <AlertCircle size={32} />
                             </div>
-                            <div>
-                                <h3 className="text-xl font-black mb-1">{t('reportIssue') || "Report Issue"}</h3>
-                                <p className="opacity-80 text-[10px] font-medium mb-4">{t('reportIssueDesc')}</p>
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/50 text-red-700 w-fit px-3 py-2 rounded-lg group-hover:bg-red-800 group-hover:text-white transition">
-                                    {t('reportIssue')} <ArrowRight size={12} />
+                            <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
+                                <h3 className="text-2xl font-black mb-1">{t('reportIssue') || "Report Issue"}</h3>
+                                <p className={`opacity-80 font-medium ${isVertical ? 'text-base mb-0' : 'text-[10px] mb-4'}`}>{t('reportIssueDesc')}</p>
+                                {!isVertical && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/50 text-red-700 w-fit px-3 py-2 rounded-lg group-hover:bg-red-800 group-hover:text-white transition mt-3">
+                                        {t('reportIssue')} <ArrowRight size={12} />
+                                    </div>
+                                )}
+                            </div>
+                            {isVertical && (
+                                <div className="shrink-0 w-12 h-12 bg-white rounded-full flex items-center justify-center text-red-600 group-hover:text-red-600 transition-colors">
+                                    <ArrowRight size={24} />
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </motion.button>
                 </div>
@@ -177,45 +198,45 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                 <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-100 to-transparent"></div>
             </motion.div>
 
-            {/* Extra Kiosk Links Row — 2-column in portrait */}
-            <motion.div variants={itemVariants} className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-3'} gap-6 mt-6`}>
-                <button onClick={() => onNavigate('emergency')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-red-200 transition group">
+            {/* Extra Kiosk Links Row — 1-column in portrait */}
+            <motion.div variants={itemVariants} className={`grid ${isVertical ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-6 mt-6`}>
+                <button onClick={() => onNavigate('emergency')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-red-200 transition group ${isVertical ? 'h-[100px]' : ''}`}>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition shadow-sm">
-                            <AlertCircle size={24} />
+                        <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition shadow-sm">
+                            <AlertCircle size={32} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1 flex items-center gap-2">{t('sosHelp')} <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('fireRescue')}</p>
+                            <h4 className="font-black text-slate-800 text-2xl mb-1 flex items-center gap-2">{t('sosHelp')} <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
+                            <p className="opacity-80 text-sm font-bold text-slate-500 uppercase tracking-widest text-left">{t('fireRescue')}</p>
                         </div>
                     </div>
-                    <ArrowRight size={20} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition" />
+                    <ArrowRight size={28} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition" />
                 </button>
 
-                <button onClick={() => onNavigate('participation')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-indigo-200 transition group">
+                <button onClick={() => onNavigate('participation')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-indigo-200 transition group ${isVertical ? 'h-[100px]' : ''}`}>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm">
-                            <Users size={24} />
+                        <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm">
+                            <Users size={32} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1">{t('governance')}</h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('voteMeetings')}</p>
+                            <h4 className="font-black text-slate-800 text-2xl mb-1">{t('governance')}</h4>
+                            <p className="opacity-80 text-sm font-bold text-slate-500 uppercase tracking-widest text-left">{t('voteMeetings')}</p>
                         </div>
                     </div>
-                    <ArrowRight size={20} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
+                    <ArrowRight size={28} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
                 </button>
 
-                <button onClick={() => onNavigate('business')} className="bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-blue-200 transition group">
+                <button onClick={() => onNavigate('business')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-blue-200 transition group ${isVertical ? 'h-[100px]' : ''}`}>
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition shadow-sm">
-                            <Briefcase size={24} />
+                        <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition shadow-sm">
+                            <Briefcase size={32} />
                         </div>
                         <div className="text-left">
-                            <h4 className="font-black text-slate-800 text-xl mb-1">{t('vendorLicenses')}</h4>
-                            <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('shopsCommerce')}</p>
+                            <h4 className="font-black text-slate-800 text-2xl mb-1">{t('vendorLicenses')}</h4>
+                            <p className="opacity-80 text-sm font-bold text-slate-500 uppercase tracking-widest text-left">{t('shopsCommerce')}</p>
                         </div>
                     </div>
-                    <ArrowRight size={20} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
+                    <ArrowRight size={28} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
                 </button>
             </motion.div>
         </motion.div>

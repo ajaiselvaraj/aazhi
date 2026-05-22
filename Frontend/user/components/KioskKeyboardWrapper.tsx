@@ -15,6 +15,7 @@ import React, { useState, useRef } from 'react';
 import VirtualKeyboard, { KeyboardType } from './kiosk/VirtualKeyboard';
 import { Language } from '../types';
 import type { KioskInputHandle } from './kiosk/KioskInput';
+import { useOrientation } from '../contexts/OrientationContext';
 
 interface Props {
     children: React.ReactNode;
@@ -22,6 +23,7 @@ interface Props {
 }
 
 const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
+    const { isVertical } = useOrientation();
     const [isOpen, setIsOpen] = useState(false);
     const [keyboardType, setKeyboardType] = useState<KeyboardType>('TEXT');
 
@@ -61,6 +63,17 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
 
         setKeyboardType(kType);
         setIsOpen(true);
+
+        // ── Scroll focused input into view after keyboard animation ──────────
+        // In vertical (portrait) mode the viewport shrinks by 420px when the
+        // keyboard slides up. Wait for the 300ms CSS transition to complete, then
+        // ask the browser to scroll the focused element into the visible area so
+        // it is never hidden behind the keyboard panel or pushed out of view.
+        if (isVertical) {
+            setTimeout(() => {
+                input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 350);
+        }
     };
 
     // ── Fallback: plain DOM mutation for non-KioskInput elements ─────────────
@@ -143,15 +156,23 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
 
     return (
         <div
-            className="flex h-screen w-screen overflow-hidden bg-slate-50"
+            className="relative h-screen w-screen overflow-hidden bg-slate-50"
             onFocusCapture={handleFocusCapture}
         >
-            {/* Main content area */}
+            {/* Main content area — shrinks vertically (portrait) or horizontally (landscape) when keyboard is open */}
             <div
-                className={`
-                    transition-all duration-300 ease-in-out h-full overflow-hidden
-                    ${isOpen ? 'w-[calc(100vw-350px)] md:w-[calc(100vw-600px)]' : 'w-full'}
-                `}
+                className="overflow-y-auto custom-scrollbar transition-all duration-300 ease-in-out"
+                style={
+                    isVertical
+                        ? {
+                            width: '100%',
+                            height: isOpen ? 'calc(100vh - 450px)' : '100vh',
+                          }
+                        : {
+                            height: '100vh',
+                            width: isOpen ? 'calc(100vw - 350px)' : '100vw',
+                          }
+                }
             >
                 {children}
             </div>
@@ -159,10 +180,12 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
             {/* Virtual keyboard panel */}
             <div
                 className={`
-                    fixed right-0 top-0 h-full bg-white z-[9999] shadow-2xl
+                    fixed z-[9999] bg-white shadow-2xl
                     transition-transform duration-300 ease-in-out
-                    ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-                    w-[350px] md:w-[600px]
+                    ${isVertical 
+                        ? `bottom-0 left-0 w-full h-[450px] ${isOpen ? 'translate-y-0' : 'translate-y-full'}` 
+                        : `right-0 top-0 h-full w-[350px] md:w-[600px] ${isOpen ? 'translate-x-0' : 'translate-x-full'}`
+                    }
                 `}
             >
                 <VirtualKeyboard

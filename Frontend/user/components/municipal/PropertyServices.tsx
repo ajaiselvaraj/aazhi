@@ -4,6 +4,7 @@ import { AccessibleButton } from '../AccessibleButton';
 import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
+import { useOrientation } from '../../contexts/OrientationContext';
 import { Application } from '../../types/municipal';
 
 const PROPERTY_SERVICES_KEYS = [
@@ -18,6 +19,7 @@ const PROPERTY_SERVICES_KEYS = [
 export const PropertyServices: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const [step, setStep] = useState(1);
     const [service, setService] = useState('');
 
@@ -42,7 +44,8 @@ export const PropertyServices: React.FC<{ onBack: () => void; isPrivacyOn: boole
             <div className="flex-1 max-w-6xl mx-auto w-full">
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500">
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                        <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("property_selectService")}</h3>
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 lg:grid-cols-3 gap-6'}`}>
                             {PROPERTY_SERVICES_KEYS.map(svc => (
                                 <AccessibleButton
                                     key={svc.id}

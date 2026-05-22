@@ -5,6 +5,7 @@ import { speakText } from '../../utils/speak';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Application } from '../../types/municipal';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 const BUSINESS_CATEGORIES_KEYS = [
     { id: 'hawker', labelKey: 'vendor_streetVendor', icon: UserCircle },
@@ -17,6 +18,7 @@ const BUSINESS_CATEGORIES_KEYS = [
 export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const [step, setStep] = useState(1);
     const [type, setType] = useState('');
     const [applicantName, setApplicantName] = useState('');
@@ -57,7 +59,7 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500">
                         <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("vendor_selectService")}</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 md:grid-cols-3 gap-6'}`}>
                             {BUSINESS_CATEGORIES_KEYS.map(cat => (
                                 <AccessibleButton
                                     key={cat.id}

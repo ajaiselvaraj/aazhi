@@ -4,6 +4,7 @@ import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import html2pdf from 'html2pdf.js';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface Props {
     data: {
@@ -21,6 +22,7 @@ interface Props {
 }
 
 const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }) => {
+    const { isVertical } = useOrientation();
     if (!data) return null;
     const { t } = useTranslation();
 
@@ -211,7 +213,7 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
                                 <CheckCircle2 size={16} /> {shareStatus}
                             </div>
                         )}
-                        <div className="flex gap-4">
+                        <div className={`flex ${isVertical ? 'flex-col' : ''} gap-4`}>
                             <button 
                                 onClick={handlePrint}
                                 className="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black uppercase text-sm hover:bg-blue-700 transition flex flex-col items-center justify-center gap-2 shadow-xl shadow-blue-100"

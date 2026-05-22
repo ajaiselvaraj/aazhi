@@ -7,6 +7,7 @@ import { LANGUAGES_CONFIG } from '../../constants';
 import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import DocumentScannerOverlay from '../kiosk/DocumentScannerOverlay';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 const CIVIC_CATEGORIES_KEYS = [
     'civic_garbage',
@@ -39,6 +40,7 @@ const PRIORITY_KEYS: { key: string; value: Priority }[] = [
 export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean; language?: any; departmentId?: string }> = ({ onBack, isPrivacyOn, departmentId }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
+    const { isVertical } = useOrientation();
     const { addComplaint } = useServiceComplaint();
     const [step, setStep] = useState(1);
     const [category, setCategory] = useState('');
@@ -167,7 +169,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-8 duration-500 pb-20">
                         <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("civic_whatIssue")}</h3>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 lg:grid-cols-3 gap-6'}`}>
                             {CIVIC_CATEGORIES_KEYS.map(catKey => (
                                 <AccessibleButton
                                     key={catKey}
@@ -208,7 +210,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             )}
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 mb-8">
+                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-3 gap-4'} mb-8`}>
                             {PRIORITY_KEYS.map((p) => (
                                 <AccessibleButton
                                     key={p.value}
