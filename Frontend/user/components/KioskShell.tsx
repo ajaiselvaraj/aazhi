@@ -236,7 +236,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         - High contrast active states
         - Anchored to left (horizontal) or bottom (vertical)
       */}
-            <nav className={`${isVertical ? 'h-32 w-full border-t flex-row overflow-x-auto pb-safe' : 'w-28 md:w-32 flex-col border-r'} bg-white flex border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 print:hidden`}>
+            <nav className={`${isVertical ? 'h-32 w-full border-t flex-row overflow-hidden pb-safe' : 'w-28 md:w-32 flex-col border-r'} bg-white flex border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-50 shrink-0 print:hidden`}>
 
                 {/* Brand Trigger */}
                 <div className={`${isVertical ? 'w-32 border-r h-full' : 'h-28 border-b'} flex flex-col items-center justify-center border-slate-100 p-2 shrink-0`}>
@@ -247,7 +247,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 </div>
 
                 {/* Primary Navigation */}
-                <div className={`flex-1 flex ${isVertical ? 'flex-row overflow-x-auto px-4 py-2 gap-4' : 'flex-col overflow-y-auto py-4 gap-6'} items-center justify-center no-scrollbar`}>
+                <div className={`flex-1 flex ${isVertical ? 'flex-row overflow-x-auto px-4 py-2 gap-4 justify-start lg:justify-center' : 'flex-col overflow-y-auto py-4 gap-6 justify-center'} items-center no-scrollbar`}>
                     {NAV_ITEMS.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
@@ -257,7 +257,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 className={`
-                  relative group flex flex-col items-center justify-center ${isVertical ? 'w-24 h-24 min-w-[6rem]' : 'w-24 h-24'} rounded-2xl transition-colors duration-300
+                  relative group flex flex-col items-center justify-center ${isVertical ? 'w-24 h-24 min-w-[6rem] shrink-0' : 'w-24 h-24'} rounded-2xl transition-colors duration-300
                   ${isActive
                                         ? 'bg-white text-blue-600 border-2 border-blue-600 shadow-xl shadow-blue-200 z-10'
                                         : 'text-slate-400 hover:bg-slate-50 border-2 border-transparent'
