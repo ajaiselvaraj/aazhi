@@ -204,8 +204,8 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
 
   // Calculate new dashboard metrics
   const totalCount = serviceRequests.length + complaints.length;
-  const resolvedCount = serviceRequests.filter(r => r.status === 'Completed').length + 
-                        complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+  const resolvedCount = serviceRequests.filter(r => r.status === 'resolved').length + 
+                        complaints.filter(c => c.status === 'resolved').length;
   const pendingRequests = totalCount - resolvedCount;
   const pendingColor = pendingRequests < 10 ? 'green' : pendingRequests < 40 ? 'orange' : 'red';
 
@@ -213,7 +213,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
   const todaysRequests = serviceRequests.filter(r => new Date(r.createdAt).toDateString() === todayStr).length +
                          complaints.filter(c => new Date(c.createdAt).toDateString() === todayStr).length;
 
-  const resolvedItems = [...serviceRequests.filter(r => r.status === 'Completed'), ...complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed')];
+  const resolvedItems = [...serviceRequests.filter(r => r.status === 'resolved'), ...complaints.filter(c => c.status === 'resolved')];
   
   let avgResText = "Not enough data";
   if (resolvedItems.length > 0) {
@@ -257,7 +257,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               )}
               {item.id === 'complaints' && (
                 <span className="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">
-                  {complaints.filter(c => c.status === 'Pending').length}
+                  {complaints.filter(c => c.status === 'active').length}
                 </span>
               )}
             </button>
@@ -405,7 +405,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                       <div className="p-3 bg-red-100 rounded-2xl text-red-600"><AlertCircle size={24}/></div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-50 px-3 py-1 rounded-full">ACTION REQ</span>
                    </div>
-                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{complaints.filter(c => c.status === 'Pending').length}</h3>
+                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{complaints.filter(c => c.status === 'active').length}</h3>
                    <p className="font-bold text-slate-500 mt-1 relative z-10">{t('pendingComplaints')}</p>
                    <div className="mt-4 flex items-center text-xs font-bold text-red-500 group-hover:gap-2 transition-all">Manage Now <ArrowRight size={14} className="ml-1"/></div>
                 </div>
@@ -418,7 +418,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
                    <div className="flex justify-between items-start relative z-10 mb-2">
                       <div className="p-3 bg-blue-100 rounded-2xl text-blue-600"><FileText size={24}/></div>
                    </div>
-                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{serviceRequests.filter(r => r.status === 'Submitted' || r.status === 'Under Review').length}</h3>
+                   <h3 className="text-3xl font-black text-slate-800 relative z-10">{serviceRequests.filter(r => r.status === 'active').length}</h3>
                    <p className="font-bold text-slate-500 mt-1 relative z-10">{t('activeRequests') || 'Active Requests'}</p>
                    <div className="mt-4 flex items-center text-xs font-bold text-blue-500 group-hover:gap-2 transition-all">Review Pipeline <ArrowRight size={14} className="ml-1"/></div>
                 </div>
@@ -443,7 +443,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
                   { label: translateDynamic("Total Complaints") || "Total Complaints", val: complaints.length, icon: AlertCircle, color: 'red' },
-                  { label: translateDynamic("Resolved") || "Resolved", val: complaints.filter(c => c.status === 'Resolved').length, icon: CheckCircle, color: 'green' },
+                  { label: translateDynamic("Resolved") || "Resolved", val: complaints.filter(c => c.status === 'resolved').length, icon: CheckCircle, color: 'green' },
                   { label: translateDynamic("Pending Requests") || "Pending Requests", val: pendingRequests, icon: Clock, color: pendingColor },
                   { label: translateDynamic("Today's Requests") || "Today's Requests", val: todaysRequests, icon: Calendar, color: 'blue' },
                   { label: translateDynamic("Average Resolution Time") || "Average Resolution Time", val: avgResText, icon: Clock, color: 'purple' },

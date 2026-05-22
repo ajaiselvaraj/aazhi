@@ -31,7 +31,8 @@
     "forecast": "कार्यभार पूर्वानुमान",
     "grp_mon": "निगरानी",
     "sys_alerts": "सिस्टम अलर्ट",
-    "risk_det": "जोखिम डिटेक्टर"
+    "risk_det": "जोखिम डिटेक्टर",
+    "civic_alerts": "अलर्ट"
   },
   "dashboard": {
     "total_complaints": "कुल शिकायतें",

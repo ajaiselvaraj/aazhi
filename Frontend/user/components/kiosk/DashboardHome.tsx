@@ -1,6 +1,7 @@
 import React from 'react';
 import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, MapPin, AlertCircle, Users, Briefcase } from 'lucide-react';
 import AlertsPanel from './AlertsPanel';
+import LiveAlertsPanel from './LiveAlertsPanel'; // ⭐ ADD-ON: live backend feed with fallback
 import ConsumptionAnalytics from './ConsumptionAnalytics';
 import DisruptionMap from './DisruptionMap';
 import { CityAlert, Language } from '../../types';
@@ -71,7 +72,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
             {/* Top Row: Alerts and Quick Actions */}
             <motion.div variants={itemVariants} className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-3 gap-6'}`}>
                 <div className={`${isVertical ? '' : 'lg:col-span-1'} h-full`}>
-                    <AlertsPanel alerts={alerts} language={language} />
+                    <LiveAlertsPanel staticAlerts={alerts} language={language} />
                 </div>
 
                 <div className={`${isVertical ? 'flex flex-col gap-4' : 'lg:col-span-2 grid grid-cols-3 gap-4'}`}>

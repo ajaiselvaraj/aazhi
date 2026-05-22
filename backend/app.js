@@ -19,6 +19,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js"; // ⭐ PLUG-IN: QR Tracking Layer
+import { adminAlertRouter, publicAlertRouter } from "./routes/alert.routes.js"; // ⭐ ADD-ON: Civic Alert Management
 
 import { pool, getPoolStatus } from "./config/db.js";
 
@@ -166,6 +167,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/track", trackingRoutes); // ⭐ PLUG-IN: Public QR Tracking (no auth)
+app.use("/api/admin/alerts", adminAlertRouter); // ⭐ ADD-ON: Admin Civic Alert CRUD
+app.use("/api/alerts", publicAlertRouter);       // ⭐ ADD-ON: Public active-alert feed
 
 
 // ─── 404 ───────────────────────────────────────────────

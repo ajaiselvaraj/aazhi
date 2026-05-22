@@ -15,6 +15,7 @@ import SettingsPanel from '../components/panels/SettingsPanel'
 import ServiceRequestsPanel from '../components/panels/ServiceRequestsPanel'
 import ComplaintSummarizerPanel from '../components/panels/ComplaintSummarizerPanel'
 import SentimentPulsePanel from '../components/panels/SentimentPulsePanel'
+import CivicAlertPanel from '../components/panels/CivicAlertPanel' // ⭐ ADD-ON: Civic Alert Management
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -33,6 +34,7 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   settings:   SettingsPanel,
   'ml-summarizer':  ComplaintSummarizerPanel,
   'ml-sentiment':   SentimentPulsePanel,
+  'civic-alerts':   CivicAlertPanel,  // ⭐ ADD-ON: Admin Civic Alert Management
 }
 
 export default function DashboardPage() {

@@ -34,7 +34,8 @@
     "forecast": "Workload Forecast",
     "grp_mon": "Monitoring",
     "sys_alerts": "System Alerts",
-    "risk_det": "Risk Detector"
+    "risk_det": "Risk Detector",
+    "civic_alerts": "Alerts"
   },
   "dashboard": {
     "total_complaints": "Total Complaints",

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Map, MessageSquare, Cpu, Copy,
   AlertTriangle, ListOrdered, BarChart2, TrendingUp,
   BellRing, ShieldAlert, Settings, LogOut, Zap, Brain, History,
-  Layers, Heart
+  Layers, Heart, Megaphone
 } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 
@@ -48,8 +48,9 @@ const navGroups = [
     label_key: 'nav.grp_mon',
     label_default: 'Monitoring',
     items: [
-      { id: 'alerts',    icon: BellRing,        trans_key: 'nav.sys_alerts', default_label: 'System Alerts' },
-      { id: 'risk',      icon: AlertTriangle,   trans_key: 'nav.risk_det', default_label: 'Risk Detector' },
+      { id: 'alerts',        icon: BellRing,      trans_key: 'nav.sys_alerts',   default_label: 'System Alerts' },
+      { id: 'risk',          icon: AlertTriangle,  trans_key: 'nav.risk_det',     default_label: 'Risk Detector' },
+      { id: 'civic-alerts',  icon: Megaphone,      trans_key: 'nav.civic_alerts', default_label: 'Alerts' }, // ⭐ ADD-ON
     ],
   },
 ]
