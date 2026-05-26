@@ -4,6 +4,7 @@ import { Zap, Droplets, Lightbulb, TrendingUp } from 'lucide-react';
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { BillingService } from '../../services/civicService';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 // ── Static demo data (always visible, even without auth) ──────────────────
 const DEMO_DATA = [
@@ -91,6 +92,7 @@ interface Props {
 
 const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
     const [billData, setBillData] = useState<BillDataMap>(FALLBACK_BILL_DATA);
     const [isDataFromApi, setIsDataFromApi] = useState(false);
 
@@ -209,7 +211,7 @@ const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH }) 
             <div
                 ref={containerRef}
                 className="w-full mb-6 shrink-0"
-                style={{ minHeight: '192px', height: '192px' }}
+                style={{ minHeight: isVertical ? '320px' : '192px', height: isVertical ? '320px' : '192px' }}
             >
                 {chartReady ? (
                     <ResponsiveContainer width="100%" height="100%">

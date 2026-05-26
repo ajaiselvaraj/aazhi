@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Language } from '../../types';
 import { authService } from '../../services/authService';
 import KioskInput from './KioskInput';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface SecureAuthProps {
   onSuccess: () => void;
@@ -13,6 +14,7 @@ interface SecureAuthProps {
 
 const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) => {
   const { t } = useTranslation();
+  const { isVertical } = useOrientation();
   const [authMethod, setAuthMethod] = useState<'AADHAAR' | 'MOBILE'>('AADHAAR');
   const [inputValue, setInputValue] = useState('');
   const [authStage, setAuthStage] = useState<'INPUT' | 'OTP'>('INPUT');
@@ -79,8 +81,8 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10">
-      <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-12 relative overflow-hidden flex flex-col items-center animate-in slide-in-from-bottom-8">
+    <div className={`w-full ${isVertical ? 'max-w-xl px-4 mt-6' : 'max-w-2xl mt-10'} mx-auto`}>
+      <div className={`bg-white rounded-[3rem] shadow-sm border border-slate-100 ${isVertical ? 'p-8' : 'p-12'} relative overflow-hidden flex flex-col items-center animate-in slide-in-from-bottom-8`}>
         
         {/* Back Button */}
         {onBack && (
@@ -98,7 +100,7 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
         </div>
         
         {/* Title */}
-        <h2 className="text-4xl font-black text-slate-900 mb-2 text-center tracking-tight">
+        <h2 className={`${isVertical ? 'text-3xl' : 'text-4xl'} font-black text-slate-900 mb-2 text-center tracking-tight`}>
           {t('secureAuth') || "Secure Authentication"}
         </h2>
         <p className="text-slate-500 font-medium text-base mb-10 text-center">

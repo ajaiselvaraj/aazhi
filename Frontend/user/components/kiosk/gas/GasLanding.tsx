@@ -2,6 +2,7 @@ import React from 'react';
 import { Flame, ShieldCheck, CreditCard, AlertTriangle, ArrowRight, ArrowLeft, FileText, User, UserCog, Calculator, Smartphone, Lock, SearchCode } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../../contexts/OrientationContext';
 
 interface Props {
   onNavigate: (view: 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
@@ -9,8 +10,9 @@ interface Props {
   language: Language;
 }
 
-const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
+const GasLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
   const { t } = useTranslation();
+  const { isVertical } = useOrientation();
 
 
 
@@ -121,7 +123,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
 
       {/* Consumer Services Grid */}
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+      <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
           { id: 'NEW_CONNECTION', icon: Flame, label: 'Gas Services', desc: 'New connection / meter' },
           { id: 'BILLS', icon: FileText, label: 'Manage Bills', desc: 'Check / View bills' },
@@ -144,7 +146,7 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit }) => {
 
       {/* Secondary Tools */}
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+      <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
           { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace status' },
           { id: 'CALCULATOR', icon: Calculator, label: 'Bill Calculator', desc: 'Estimate usage' },

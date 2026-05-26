@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle, SearchCode, Building2 } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../../contexts/OrientationContext';
 import WaterConnectionForm from './WaterConnectionForm';
 import MunicipalProfile from './MunicipalProfile';
 import MunicipalComplaints from './MunicipalComplaints';
@@ -22,6 +23,7 @@ interface Props {
 
 const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
   const { t } = useTranslation();
+  const { isVertical } = useOrientation();
   const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR'>('HOME');
 
   const handleInternalBack = () => {
@@ -64,7 +66,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className={`grid ${isVertical ? 'grid-cols-1 max-w-xl mx-auto' : 'grid-cols-1 md:grid-cols-3'} gap-8`}>
                 <button
                     onClick={() => handleNavigate('QUICK_PAY')}
                     className="group bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 hover:border-blue-500 transition text-left"
@@ -121,7 +123,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       </div>
 
       {/* Main Mode Selection - Dual Access */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <div className={`grid ${isVertical ? 'grid-cols-1 max-w-xl mx-auto' : 'grid-cols-1 md:grid-cols-2'} gap-8 max-w-4xl mx-auto`}>
           {/* Quick Pay */}
           <button
               onClick={() => handleNavigate('QUICK_PAY')}
@@ -185,7 +187,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
 
       {/* Consumer Services Grid */}
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+      <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
           { id: 'WATER', icon: Droplet, label: 'Water Services', desc: 'New connection / Upgrade' },
           { id: 'TAXES', icon: FileText, label: 'Property Tax', desc: 'Pay property tax' },
@@ -208,7 +210,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
 
       {/* Secondary Tools */}
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+      <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
           { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace application status' },
           { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },

@@ -247,7 +247,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 </div>
 
                 {/* Primary Navigation */}
-                <div className={`flex-1 flex ${isVertical ? 'flex-row overflow-x-auto px-4 py-2 gap-4 justify-start lg:justify-center' : 'flex-col overflow-y-auto py-4 gap-6 justify-center'} items-center no-scrollbar`}>
+                <div className={`flex-1 flex ${isVertical ? 'flex-row justify-around w-full px-2' : 'flex-col overflow-y-auto py-4 gap-6 justify-center'} items-center no-scrollbar`}>
                     {NAV_ITEMS.map((item) => {
                         const isActive = activeTab === item.id;
                         return (

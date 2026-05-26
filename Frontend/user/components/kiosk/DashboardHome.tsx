@@ -80,7 +80,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         whileHover={{ scale: 1.02, y: -4 }}
                         whileTap={{ scale: 0.97 }}
                         onClick={() => onNavigate('services')}
-                        className={`group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
+                        className={`group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left ${isVertical ? 'h-[200px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition duration-500">
                             <LayoutGrid size={isVertical ? 140 : 100} />
@@ -110,7 +110,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         whileHover={{ scale: 1.02, y: -5 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('billing')}
-                        className={`group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
+                        className={`group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left ${isVertical ? 'h-[200px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 text-slate-100 group-hover:text-slate-50 transition duration-500">
                             <CreditCard size={isVertical ? 140 : 100} />
@@ -140,7 +140,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         whileHover={{ scale: 1.02, y: -5 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onNavigate('complaints')}
-                        className={`group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left ${isVertical ? 'h-[160px]' : 'h-full'}`}
+                        className={`group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left ${isVertical ? 'h-[200px]' : 'h-full'}`}
                     >
                         <div className="absolute top-0 right-0 p-4 text-red-100 group-hover:text-red-500 transition duration-500">
                             <AlertCircle size={isVertical ? 140 : 100} />

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, RefreshCw, AlertCircle, FileText, CheckCircle, Clock, LogIn, XCircle } from 'lucide-react';
 import { Language } from '../../../types';
 import { BillingService } from '../../../services/civicService';
+import { useOrientation } from '../../../contexts/OrientationContext';
 
 interface Props {
     onBack: () => void;
@@ -53,6 +54,7 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const { isVertical } = useOrientation();
 
     // Prevent duplicate in-flight requests
     const fetchingRef = useRef(false);
@@ -201,116 +203,174 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                     </div>
                 )}
 
-                <div className="border border-slate-200 rounded-3xl overflow-x-auto bg-slate-50">
-                    <table className="w-full text-left border-collapse min-w-[1200px]">
-                        <thead>
-                            <tr className="bg-slate-100 border-b border-slate-200">
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Date &amp; Time</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Consumer Details</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Bill Info</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Transaction ID &amp; Ref</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Amounts</th>
-                                <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center">
-                                        <div className="flex flex-col items-center justify-center text-slate-400">
-                                            <RefreshCw className="animate-spin mb-4 text-blue-500" size={32} />
-                                            <span className="font-bold">Loading transactions...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : transactions.length > 0 ? (
-                                transactions.map((txn, idx) => {
-                                    const isPaid =
-                                        txn.status === 'SUCCESS' ||
-                                        txn.status === 'PAID' ||
-                                        txn.status === 'Success' ||
-                                        txn.payment_status === 'captured';
-                                    const billAmount = parseFloat(String(txn.bill_amount || txn.amount || '0'));
-                                    const amountPaid = parseFloat(String(txn.amount || '0'));
-                                    const pendingAmount = Math.max(0, billAmount - amountPaid);
-
-                                    return (
-                                        <tr key={txn.id ?? idx} className="border-b border-slate-100 bg-white hover:bg-slate-50 transition">
-                                            <td className="p-4">
-                                                <div className="text-sm font-bold text-slate-800">
-                                                    {txn.created_at ? new Date(txn.created_at).toLocaleDateString() : (txn.date ?? '—')}
-                                                </div>
-                                                <div className="text-xs font-bold text-slate-400">
-                                                    {txn.created_at ? new Date(txn.created_at).toLocaleTimeString() : '--:--'}
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="text-sm font-black text-slate-900">{txn.consumer_name || 'Consumer'}</div>
-                                                <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
-                                                    <span className="uppercase tracking-widest">NO:</span>{' '}
-                                                    {txn.account_number || txn.consumerId || txn.serviceNo || '—'}
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="text-sm font-bold text-slate-700">{txn.bill_number || 'N/A'}</div>
-                                                <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 inline-block px-2 py-0.5 rounded mt-1">
-                                                    {txn.service_type || 'ELECTRICITY'} BILL
-                                                </div>
-                                            </td>
-                                            <td className="p-4">
-                                                <div className="text-sm font-mono font-bold text-slate-700">
-                                                    {txn.transaction_id || txn.transactionId || txn.txnId || '—'}
-                                                </div>
-                                                <div className="text-xs font-mono text-slate-400 mt-0.5">
-                                                    REF: {txn.receipt_number || txn.razorpay_payment_id || 'N/A'}
-                                                </div>
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">
-                                                    Via: {txn.payment_method || 'Online'}
-                                                </div>
-                                            </td>
-                                            <td className="p-4 text-right">
-                                                <div className="text-sm font-black text-slate-900">Paid: ₹{amountPaid.toFixed(2)}</div>
-                                                {pendingAmount > 0 ? (
-                                                    <div className="text-xs font-bold text-red-500">Pending: ₹{pendingAmount.toFixed(2)}</div>
-                                                ) : (
-                                                    <div className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest">No Dues</div>
-                                                )}
-                                                {txn.bill_status === 'overdue' && (
-                                                    <div className="text-[10px] font-bold text-amber-500 mt-0.5">Was Overdue</div>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                {isPaid ? (
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-100 text-green-700 border border-green-200">
-                                                        <CheckCircle size={14} className="text-green-600" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">SUCCESS</span>
-                                                    </div>
-                                                ) : (
-                                                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 border border-amber-200">
-                                                        <Clock size={14} className="text-amber-600" />
-                                                        <span className="text-[10px] font-black uppercase tracking-widest">
-                                                            {txn.status || txn.payment_status || 'PENDING'}
+                {isVertical ? (
+                    <div className="space-y-4 max-h-[1200px] overflow-y-auto pr-2 custom-scrollbar">
+                        {isLoading ? (
+                            <div className="p-12 text-center flex flex-col items-center justify-center text-slate-400">
+                                <RefreshCw className="animate-spin mb-4 text-blue-500" size={32} />
+                                <span className="font-bold">Loading transactions...</span>
+                            </div>
+                        ) : transactions.length > 0 ? (
+                            transactions.map((txn, idx) => {
+                                const isPaid =
+                                    txn.status === 'SUCCESS' ||
+                                    txn.status === 'PAID' ||
+                                    txn.status === 'Success' ||
+                                    txn.payment_status === 'captured';
+                                const amountPaid = parseFloat(String(txn.amount || '0'));
+                                return (
+                                    <div key={txn.id ?? idx} className="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm flex flex-col gap-4 text-left">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-black text-slate-900 text-lg">{txn.consumer_name || 'Consumer'}</h3>
+                                                <p className="text-xs font-semibold text-slate-500">No: {txn.account_number || txn.consumerId || txn.serviceNo || '—'}</p>
+                                            </div>
+                                            <div className="text-right flex flex-col items-end gap-1">
+                                                <span className="text-xl font-black text-slate-950">₹{amountPaid.toFixed(2)}</span>
+                                                <div>
+                                                    {isPaid ? (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
+                                                            <CheckCircle size={12} /> SUCCESS
                                                         </span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            ) : !error ? (
-                                <tr>
-                                    <td colSpan={6} className="p-12 text-center">
-                                        <div className="flex flex-col items-center justify-center text-slate-400">
-                                            <FileText size={32} className="mb-4 opacity-50" />
-                                            <span className="font-bold">No transaction records found.</span>
-                                            <span className="text-sm mt-1 text-slate-400">Payments you make will appear here.</span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-black uppercase tracking-wider border border-amber-200">
+                                                            <Clock size={12} /> {txn.status || txn.payment_status || 'PENDING'}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </td>
+                                        <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-xs text-slate-500 font-bold">
+                                            <div>
+                                                <p>Date: {txn.created_at ? new Date(txn.created_at).toLocaleDateString() : (txn.date ?? '—')}</p>
+                                                <p className="font-mono text-[10px] text-slate-400 mt-0.5">TXN: {txn.transaction_id || txn.transactionId || txn.txnId || '—'}</p>
+                                            </div>
+                                            <div className="text-right uppercase text-[9px] tracking-widest bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg">
+                                                {txn.service_type || 'ELECTRICITY'} BILL
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        ) : !error ? (
+                            <div className="p-12 text-center flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-slate-200">
+                                <FileText size={32} className="mb-4 opacity-50 text-slate-300" />
+                                <span className="font-bold">No transaction records found.</span>
+                            </div>
+                        ) : null}
+                    </div>
+                ) : (
+                    <div className="border border-slate-200 rounded-3xl overflow-x-auto bg-slate-50">
+                        <table className="w-full text-left border-collapse min-w-[1200px]">
+                            <thead>
+                                <tr className="bg-slate-100 border-b border-slate-200">
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Date &amp; Time</th>
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Consumer Details</th>
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Bill Info</th>
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider">Transaction ID &amp; Ref</th>
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-right">Amounts</th>
+                                    <th className="p-4 text-xs font-black text-slate-500 uppercase tracking-wider text-center">Status</th>
                                 </tr>
-                            ) : null}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={6} className="p-12 text-center">
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <RefreshCw className="animate-spin mb-4 text-blue-500" size={32} />
+                                                <span className="font-bold">Loading transactions...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : transactions.length > 0 ? (
+                                    transactions.map((txn, idx) => {
+                                        const isPaid =
+                                            txn.status === 'SUCCESS' ||
+                                            txn.status === 'PAID' ||
+                                            txn.status === 'Success' ||
+                                            txn.payment_status === 'captured';
+                                        const billAmount = parseFloat(String(txn.bill_amount || txn.amount || '0'));
+                                        const amountPaid = parseFloat(String(txn.amount || '0'));
+                                        const pendingAmount = Math.max(0, billAmount - amountPaid);
+
+                                        return (
+                                            <tr key={txn.id ?? idx} className="border-b border-slate-100 bg-white hover:bg-slate-50 transition">
+                                                <td className="p-4">
+                                                    <div className="text-sm font-bold text-slate-800">
+                                                        {txn.created_at ? new Date(txn.created_at).toLocaleDateString() : (txn.date ?? '—')}
+                                                    </div>
+                                                    <div className="text-xs font-bold text-slate-400">
+                                                        {txn.created_at ? new Date(txn.created_at).toLocaleTimeString() : '--:--'}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="text-sm font-black text-slate-900">{txn.consumer_name || 'Consumer'}</div>
+                                                    <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                                                        <span className="uppercase tracking-widest">NO:</span>{' '}
+                                                        {txn.account_number || txn.consumerId || txn.serviceNo || '—'}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="text-sm font-bold text-slate-700">{txn.bill_number || 'N/A'}</div>
+                                                    <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest bg-blue-50 inline-block px-2 py-0.5 rounded mt-1">
+                                                        {txn.service_type || 'ELECTRICITY'} BILL
+                                                    </div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="text-sm font-mono font-bold text-slate-700">
+                                                        {txn.transaction_id || txn.transactionId || txn.txnId || '—'}
+                                                    </div>
+                                                    <div className="text-xs font-mono text-slate-400 mt-0.5">
+                                                        REF: {txn.receipt_number || txn.razorpay_payment_id || 'N/A'}
+                                                    </div>
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+                                                        Via: {txn.payment_method || 'Online'}
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-right">
+                                                    <div className="text-sm font-black text-slate-900">Paid: ₹{amountPaid.toFixed(2)}</div>
+                                                    {pendingAmount > 0 ? (
+                                                        <div className="text-xs font-bold text-red-500">Pending: ₹{pendingAmount.toFixed(2)}</div>
+                                                    ) : (
+                                                        <div className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest">No Dues</div>
+                                                    )}
+                                                    {txn.bill_status === 'overdue' && (
+                                                        <div className="text-[10px] font-bold text-amber-500 mt-0.5">Was Overdue</div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    {isPaid ? (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-100 text-green-700 border border-green-200">
+                                                            <CheckCircle size={14} className="text-green-600" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">SUCCESS</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-700 border border-amber-200">
+                                                            <Clock size={14} className="text-amber-600" />
+                                                            <span className="text-[10px] font-black uppercase tracking-widest">
+                                                                {txn.status || txn.payment_status || 'PENDING'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                ) : !error ? (
+                                    <tr>
+                                        <td colSpan={6} className="p-12 text-center">
+                                            <div className="flex flex-col items-center justify-center text-slate-400">
+                                                <FileText size={32} className="mb-4 opacity-50" />
+                                                <span className="font-bold">No transaction records found.</span>
+                                                <span className="text-sm mt-1 text-slate-400">Payments you make will appear here.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : null}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );

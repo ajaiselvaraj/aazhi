@@ -2,6 +2,7 @@ import React from 'react';
 import { LayoutGrid, Users } from 'lucide-react';
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface Props {
     serviceName: string;
@@ -12,6 +13,7 @@ interface Props {
 
 const ServiceModeSelector: React.FC<Props> = ({ serviceName, onSelect, onBack, language = Language.ENGLISH }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
     const svcKey = `serv_${serviceName.replace(/[\s\/]/g, '')}` as keyof typeof t;
     const translatedServiceName = t[svcKey] as string || serviceName;
     return (
@@ -20,7 +22,7 @@ const ServiceModeSelector: React.FC<Props> = ({ serviceName, onSelect, onBack, l
                 <h2 className="text-4xl font-black text-slate-900 mb-4 uppercase tracking-tighter">{t('modeHeading') || "How would you like to proceed?"}</h2>
                 <p className="text-slate-500 font-bold">{t('modeSub') || "Choose a processing mode for"} {translatedServiceName}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className={`grid ${isVertical ? 'grid-cols-1 max-w-xl mx-auto' : 'grid-cols-1 md:grid-cols-2'} gap-8`}>
                 <button
                     onClick={() => onSelect('SELF')}
                     className="bg-white p-12 rounded-[3rem] shadow-xl border-4 border-transparent hover:border-blue-600 transition flex flex-col items-center group text-center relative overflow-hidden text-left"

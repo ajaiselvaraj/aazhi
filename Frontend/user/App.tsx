@@ -563,7 +563,7 @@ const renderLanding = () => (
           className="grid gap-4 w-full auto-rows-fr pb-4"
           style={{
             gridTemplateColumns: isVertical
-              ? 'repeat(2, 1fr)'
+              ? 'repeat(3, 1fr)'
               : 'repeat(auto-fit, minmax(220px, 1fr))'
           }}
         >
@@ -637,7 +637,7 @@ const renderLanding = () => (
 // Render: SELECTION
 // ─────────────────────────────────────────────
 const renderSelection = () => (
-  <div className={`min-h-full flex flex-col items-center justify-center ${isVertical ? 'p-4' : 'p-6'} bg-slate-50 relative overflow-hidden font-sans`}>
+  <div className={`h-full flex flex-col items-center justify-center ${isVertical ? 'pt-[72px] px-4 pb-4' : 'pt-[88px] px-6 pb-6'} bg-slate-50 relative overflow-hidden font-sans`}>
     <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md fixed top-0 w-full z-20 border-b border-slate-200/50`}>
       <div className="flex items-center gap-4">
         <div className={`${isVertical ? 'w-10 h-10' : 'w-10 h-10'} bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200`}>
@@ -653,7 +653,7 @@ const renderSelection = () => (
       </div>
     </header>
 
-    <div className={`w-full ${isVertical ? 'max-w-2xl' : 'max-w-4xl'} mx-auto grid ${isVertical ? 'grid-cols-1 gap-5 mt-20' : 'grid-cols-1 md:grid-cols-2 gap-8'} z-10 animate-in zoom-in-95 duration-500`}>
+    <div className={`w-full ${isVertical ? 'max-w-2xl' : 'max-w-4xl'} mx-auto grid ${isVertical ? 'grid-cols-1 gap-5' : 'grid-cols-1 md:grid-cols-2 gap-8'} z-10 animate-in zoom-in-95 duration-500`}>
       <button onClick={() => handleSelection('ai')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
         <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
@@ -915,6 +915,7 @@ return (
       <KioskKeyboardWrapper language={language}>
         <ServiceComplaintProvider>
           {view === ViewState.LANDING && renderLanding()}
+          {view === ViewState.LOGIN && renderLogin()}
           {view === ViewState.SELECTION && renderSelection()}
           {view === ViewState.DASHBOARD && (
             <KioskUI

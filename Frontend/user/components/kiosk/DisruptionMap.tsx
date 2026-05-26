@@ -2,6 +2,7 @@ import React from 'react';
 import { CloudRain, AlertTriangle, ZapOff, Hammer, CheckCircle2 } from 'lucide-react';
 import { CityAlert, Language } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../contexts/OrientationContext';
 
 interface Props {
     alerts: CityAlert[];
@@ -56,6 +57,7 @@ const CityMapSvg = ({ alerts }: { alerts: CityAlert[] }) => {
 
 const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
     return (
         <div className="bg-white rounded-[2.5rem] p-6 shadow-xl border border-slate-100 h-full relative overflow-hidden">
             <div className="flex justify-between items-start mb-4 relative z-10">
@@ -70,7 +72,7 @@ const DisruptionMap: React.FC<Props> = ({ alerts, language = Language.ENGLISH })
                 </span>
             </div>
 
-            <div className="flex items-center gap-6 h-64">
+            <div className={`flex items-center gap-6 ${isVertical ? 'h-96' : 'h-64'}`}>
                 {/* Map Visualization */}
                 <div className="flex-1 h-full bg-slate-50 rounded-2xl p-4 border border-slate-100 relative group/map">
                     <CityMapSvg alerts={alerts} />

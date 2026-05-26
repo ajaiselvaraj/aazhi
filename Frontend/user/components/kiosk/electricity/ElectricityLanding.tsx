@@ -2,6 +2,7 @@ import React from 'react';
 import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, AlertTriangle, ArrowRight, Lock, ArrowLeft, Bolt, Gauge, AlertCircle, UserCog } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { useOrientation } from '../../../contexts/OrientationContext';
 
 interface Props {
     onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => void;
@@ -11,6 +12,7 @@ interface Props {
 
 const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
     const { t } = useTranslation();
+    const { isVertical } = useOrientation();
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
@@ -97,7 +99,7 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
 
             {/* Consumer Services */}
             <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('Consumer Services')}</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
                 {[
                     { id: 'NEW_CONNECTION', icon: Bolt, label: 'New Connection', desc: 'Apply for connection' },
                     { id: 'METER_SERVICE', icon: Gauge, label: 'Meter Services', desc: 'Replace or shift meter' },
@@ -120,7 +122,7 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
 
             {/* Secondary Tools */}
             <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('Other Tools')}</h3>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
                 {[
                     { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator') || 'Bill Calculator', desc: t('calcSub') || 'Estimate bill' },
                     { id: 'TARIFF', icon: FileText, label: t('tariffDetails') || 'Tariff Details', desc: t('viewRates') || 'View rates & slabs' },
