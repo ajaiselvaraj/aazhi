@@ -57,6 +57,9 @@ export interface UseTextToSpeechReturn {
 // ─── Voice Cache ──────────────────────────────────────────────────
 let cachedVoices: SpeechSynthesisVoice[] = [];
 
+// Female voice name keywords across OS / browsers
+const FEMALE_VOICE_KEYWORDS = /female|woman|girl|zira|hazel|susan|victoria|samantha|karen|moira|tessa|fiona|veena|siri|cortana/i;
+
 function loadVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
   return new Promise((resolve) => {
     const voices = window.speechSynthesis.getVoices();
@@ -77,20 +80,30 @@ function loadVoicesAsync(): Promise<SpeechSynthesisVoice[]> {
 }
 
 /**
- * Find the best matching voice for a given language code.
- * Fallback chain: exact match → prefix match → en-IN → any English → first available
+ * Find the best matching FEMALE voice for a given language code.
+ * Fallback chain: exact+female → exact → prefix+female → prefix → en-IN female → en female → en → first
  */
 function findBestVoice(langCode: string, voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (voices.length === 0) return null;
 
   const prefix = langCode.split('-')[0]; // e.g. "ta" from "ta-IN"
+  const femaleVoices = voices.filter((v) => FEMALE_VOICE_KEYWORDS.test(v.name));
 
+  if (femaleVoices.length > 0) {
+    return (
+      femaleVoices.find((v) => v.lang === langCode) ||
+      femaleVoices.find((v) => v.lang.startsWith(prefix)) ||
+      femaleVoices.find((v) => v.lang === 'en-IN') ||
+      femaleVoices.find((v) => v.lang.startsWith('en')) ||
+      femaleVoices[0]
+    );
+  }
+
+  // Last resort fallback ONLY if absolutely no female voice exists in the system
   return (
-    voices.find((v) => v.lang === langCode) ||           // Exact: "ta-IN"
-    voices.find((v) => v.lang.startsWith(prefix)) ||     // Prefix: "ta-*"
-    voices.find((v) => v.lang === 'en-IN') ||            // Indian English
-    voices.find((v) => v.lang.startsWith('en')) ||       // Any English
-    voices[0]                                             // Last resort
+    voices.find((v) => v.lang === langCode) ||
+    voices.find((v) => v.lang.startsWith(prefix)) ||
+    voices[0]
   );
 }
 
@@ -171,24 +184,29 @@ export function useTextToSpeech(): UseTextToSpeechReturn {
       const voice = findBestVoice(langCode, cachedVoices);
       if (voice) utterance.voice = voice;
 
-      // State tracking callbacks
+      // State tracking callbacks + echo prevention events
       utterance.onstart = () => {
         setIsSpeaking(true);
         setIsPaused(false);
         setCurrentText(text);
         setCurrentLanguage(language);
+        // Echo prevention: mute mic while speaking
+        window.dispatchEvent(new CustomEvent('aazhi-speech-start'));
       };
 
       utterance.onend = () => {
         setIsSpeaking(false);
         setIsPaused(false);
         setCurrentText('');
+        // Echo prevention: unmute mic after speaking
+        window.dispatchEvent(new CustomEvent('aazhi-speech-end'));
       };
 
       utterance.onerror = (event) => {
         console.warn('[TTS] Error:', event.error);
         setIsSpeaking(false);
         setIsPaused(false);
+        window.dispatchEvent(new CustomEvent('aazhi-speech-end'));
       };
 
       utteranceRef.current = utterance;

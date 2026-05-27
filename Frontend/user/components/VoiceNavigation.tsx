@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic, Loader2, Volume2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Language } from '../types';
+import { globalSpeak } from '../utils/globalVoice';
 
 interface VoiceNavigationProps {
     onCommand: (command: string) => void;
@@ -22,12 +23,7 @@ const VoiceNavigation: React.FC<VoiceNavigationProps> = ({ onCommand }) => {
 
     // 🔊 Voice Synthesis (Feedback)
     const speakFeedback = useCallback((text: string) => {
-        if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-IN';
-        utterance.rate = 1.0;
-        window.speechSynthesis.speak(utterance);
+        globalSpeak(text, 'English');
     }, []);
 
     const processTranscript = useCallback((transcript: string) => {

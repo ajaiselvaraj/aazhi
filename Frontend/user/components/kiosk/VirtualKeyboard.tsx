@@ -293,7 +293,7 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
     };
 
     return (
-        <div className={`h-full w-full bg-[#d1d5db] flex flex-col shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)]
+        <div data-keyboard-container="true" className={`h-full w-full bg-[#d1d5db] flex flex-col shadow-[0_-10px_25px_-5px_rgba(0,0,0,0.1)]
             ${isVertical 
                 ? 'animate-in slide-in-from-bottom duration-300' 
                 : 'border-l border-slate-300 animate-in slide-in-from-right duration-300'

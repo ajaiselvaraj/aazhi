@@ -5,6 +5,18 @@
 
 import { Pool, types } from "pg";
 import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Explicitly load back.env from the project root.
+// In ES Modules, import statements are hoisted above synchronous code, so
+// a dotenv.config() call in server.js would run *after* this module evaluates.
+// Loading it here makes the Pool self-contained regardless of import order.
+const envPath = path.resolve(__dirname, "..", "back.env");
+dotenv.config({ path: envPath });
 
 // ─── Force UTC output for ALL timestamp columns ──────────────────
 // pg's default behaviour: TIMESTAMP (no tz) is parsed as LOCAL server time.
@@ -15,11 +27,6 @@ const TIMESTAMPTZ_OID  = 1184;  // TIMESTAMP with time zone
 types.setTypeParser(TIMESTAMP_OID,   (val) => val ? val.replace(' ', 'T') + 'Z' : null);
 types.setTypeParser(TIMESTAMPTZ_OID, (val) => val ? new Date(val).toISOString()  : null);
 // ────────────────────────────────────────────────────────────────
-
-// Load environment variables if not already loaded by server.js
-if (!process.env.DATABASE_URL) {
-    dotenv.config();
-}
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -34,10 +41,11 @@ const poolConfig = {
     connectionTimeoutMillis: 10_000,        // fail fast if DB is unreachable
 };
 
-// Only enable SSL for Supabase or when explicitly requested
-if (process.env.DATABASE_URL?.includes("supabase.co") || process.env.DB_SSL === "true") {
+// Only enable SSL for Supabase (direct or pooler host) or when explicitly requested
+const dbUrl = process.env.DATABASE_URL || "";
+if (dbUrl.includes("supabase.co") || dbUrl.includes("supabase.com") || process.env.DB_SSL === "true") {
     poolConfig.ssl = {
-        rejectUnauthorized: false
+        rejectUnauthorized: false   // Supabase uses a self-signed CA chain; skip verification
     };
 }
 

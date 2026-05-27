@@ -179,6 +179,7 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
 
             {/* Virtual keyboard panel */}
             <div
+                data-keyboard-container="true"
                 className={`
                     fixed z-[9999] bg-white shadow-2xl
                     transition-transform duration-300 ease-in-out

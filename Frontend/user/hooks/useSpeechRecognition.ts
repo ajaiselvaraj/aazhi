@@ -438,26 +438,11 @@ export function useSpeechRecognition({
         setTranscript(latestTopTranscript);
       }
 
-      // Intent matching — ONLY on finalized speech
+      // ONLY on finalized speech
       if (finalAlternatives.length > 0) {
-        console.log('[STT:Intent] 🏁 Final transcript(s):', finalAlternatives);
-        let matched: VoiceCommand | null = null;
-        for (const alt of finalAlternatives) {
-          matched = matchIntent(alt);
-          if (matched) break;
-        }
-
-        if (matched) {
-          console.log(`[STT:Intent] 🚀 Firing command: "${matched}"`);
-          setLastCommand(matched);
-          onCommandRef.current(matched);
-          setTimeout(() => setLastCommand(null), 3000);
-        } else {
-          // Pass unmatched speech to AI assistant
-          const primary = finalAlternatives[0];
-          console.log(`[STT:Intent] 🤖 Routing to AI: "${primary}"`);
-          onCommandRef.current(`ai_query:${primary}`);
-        }
+        const primary = finalAlternatives[0];
+        console.log(`[STT:Event] 🏁 Final transcript: "${primary}"`);
+        onCommandRef.current(primary);
       }
     };
 
@@ -654,6 +639,46 @@ export function useSpeechRecognition({
       }, 300);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Echo Prevention: Mute during TTS ────────────────────────────────
+  // When any component speaks via globalSpeak / useTextToSpeech, it
+  // dispatches aazhi-speech-start. We stop recognition to prevent the
+  // mic from picking up the system's own voice output.
+  // When speech ends (aazhi-speech-end), we restart recognition.
+  useEffect(() => {
+    const wasMutedRef = { current: false };
+
+    const handleSpeechStart = () => {
+      if (isListeningRef.current) {
+        console.log('[STT:Echo] 🔇 TTS started — muting mic to prevent echo.');
+        wasMutedRef.current = true;
+        isManuallyStopped.current = true;
+        destroyActive();
+        isListeningRef.current = false;
+        setIsListening(false);
+      }
+    };
+
+    const handleSpeechEnd = () => {
+      if (wasMutedRef.current) {
+        console.log('[STT:Echo] 🔊 TTS ended — resuming mic.');
+        wasMutedRef.current = false;
+        // Small delay to let audio hardware settle
+        setTimeout(() => {
+          isManuallyStopped.current = false;
+          buildAndStartRef.current();
+        }, 400);
+      }
+    };
+
+    window.addEventListener('aazhi-speech-start', handleSpeechStart);
+    window.addEventListener('aazhi-speech-end', handleSpeechEnd);
+    return () => {
+      window.removeEventListener('aazhi-speech-start', handleSpeechStart);
+      window.removeEventListener('aazhi-speech-end', handleSpeechEnd);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

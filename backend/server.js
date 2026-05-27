@@ -3,22 +3,25 @@
 // ═══════════════════════════════════════════════════════════════
 
 import dotenv from "dotenv";
-dotenv.config();
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, "back.env") });
 
 import app from "./app.js";
 import { testConnection } from "./config/db.js";
 import logger from "./utils/logger.js";
 import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import http from "http";                              // ⭐ PLUG-IN: needed for Socket.IO
 import { initSocketIO } from "./socket.js";            // ⭐ PLUG-IN: QR Tracking real-time layer
 import cron from "node-cron";
 import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 // Create logs directory if it doesn't exist
 const logsDir = path.join(__dirname, "logs");

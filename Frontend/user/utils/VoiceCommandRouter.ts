@@ -147,6 +147,7 @@ const COMMAND_RULES: CommandRule[] = [
       'go to electricity', 'electricity bill', 'electricity payment',
       'open electricity', 'power bill payment', 'pay power bill',
       'current bill payment', 'pay current bill', 'bijli bill', 'bijli ka bill',
+      'electricity services', 'electricity board', 'electricity section',
       // Single keywords last
       'electricity', 'power bill', 'current bill',
       // Hindi
@@ -167,7 +168,7 @@ const COMMAND_RULES: CommandRule[] = [
       'water bill payment', 'pay water bill', 'pay my water bill',
       'go to water', 'water bill', 'water payment', 'water tax',
       'jal bill', 'pani ka bill',
-      'water supply bill', 'water',
+      'water supply bill', 'water services', 'water section', 'water',
       // Hindi
       'पानी का बिल', 'पानी बिल', 'जल बिल', 'पानी',
       // Tamil
@@ -188,11 +189,11 @@ const COMMAND_RULES: CommandRule[] = [
       'go to gas', 'gas bill payment', 'pay gas bill', 'gas booking',
       'gas service', 'gas cylinder', 'gas connection', 'book gas',
       'lpg booking', 'lpg cylinder', 'lpg service', 'lpg',
-      'gas bill', 'gas',
+      'gas services', 'gas section', 'gas bill', 'gas',
       // Hindi
       'गैस बुकिंग', 'गैस', 'सिलेंडर',
       // Tamil
-      'கேஸ்',
+      'கேச்',
       // Bengali
       'গ্যাস', 'গেছ',
     ],
@@ -223,8 +224,8 @@ const COMMAND_RULES: CommandRule[] = [
     weight: 60,
     phrases: [
       'open ai assistant', 'talk to assistant', 'go to assistant',
-      'ai assistant', 'open assistant', 'open ai',
-      'help me', 'chatbot', 'assistant', 'chat', 'help', 'support',
+      'ai assistant', 'open assistant', 'open ai', 'voice assistant',
+      'help me', 'chatbot', 'assistant', 'chat', 'help', 'support', 'assistance',
       // Hindi
       'सहायता', 'मदद',
       // Tamil
@@ -242,7 +243,7 @@ const COMMAND_RULES: CommandRule[] = [
     phrases: [
       'track my application', 'track my request', 'track application status',
       'application status', 'track application', 'track app',
-      'check status', 'track status', 'track',
+      'check status', 'track status', 'track complaint', 'complaint status', 'track',
       // Hindi
       'स्थिति जांचें', 'स्थिति',
       // Tamil
@@ -259,7 +260,7 @@ const COMMAND_RULES: CommandRule[] = [
     weight: 60,
     phrases: [
       'my history', 'past requests', 'my requests', 'view history',
-      'payment history', 'records', 'history',
+      'payment history', 'records', 'open history', 'previous requests', 'history',
       // Hindi
       'इतिहास',
       // Tamil
@@ -276,7 +277,7 @@ const COMMAND_RULES: CommandRule[] = [
     weight: 60,
     phrases: [
       'open services', 'government services', 'all services', 'view services',
-      'go to services', 'services', 'service', 'apply',
+      'go to services', 'services page', 'service section', 'services', 'service', 'apply',
       // Hindi
       'सेवाएं', 'सेवा',
       // Tamil
@@ -293,7 +294,7 @@ const COMMAND_RULES: CommandRule[] = [
     weight: 60,
     phrases: [
       'register complaint', 'file a complaint', 'file complaint',
-      'submit complaint', 'report problem', 'report issue',
+      'submit complaint', 'report problem', 'report issue', 'report an issue',
       'grievance', 'complaints', 'complaint',
       // Hindi
       'शिकायत दर्ज', 'शिकायत',

@@ -63,7 +63,8 @@ import {
   ChevronUp,
   Languages,
 } from 'lucide-react';
-import { useSpeechRecognition, VoiceCommand } from '../hooks/useSpeechRecognition';
+import { VoiceCommand } from '../hooks/useSpeechRecognition';
+import { useVoiceAssistant } from '../contexts/VoiceAssistantContext';
 import { useTextToSpeech, SpeakOptions } from '../hooks/useTextToSpeech';
 
 // ─── Types ────────────────────────────────────────────────────────
@@ -223,14 +224,7 @@ const SuvidhaVoiceControlImpl = forwardRef<SuvidhaVoiceControlRef, SuvidhaVoiceC
       setSelectedTTSLang(ttsLanguage);
     }, [ttsLanguage]);
 
-    // Always derive the STT locale from the selected TTS language so they stay in sync
-    const activeSttLang = getBcp47Locale(selectedTTSLang) || sttLang;
-
-    const stt = useSpeechRecognition({
-      onCommand: handleCommand,
-      lang: activeSttLang,
-      autoStart: autoStart,
-    });
+    const stt = useVoiceAssistant();
 
     const tts = useTextToSpeech();
 
@@ -450,6 +444,7 @@ const SuvidhaVoiceControlImpl = forwardRef<SuvidhaVoiceControlRef, SuvidhaVoiceC
                     aria-selected={selectedTTSLang === lang.value}
                     onClick={() => {
                       setSelectedTTSLang(lang.value);
+                      stt.setLanguage(lang.value);
                       setShowLangPicker(false);
                     }}
                     style={{

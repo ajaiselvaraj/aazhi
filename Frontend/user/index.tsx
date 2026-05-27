@@ -13,7 +13,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <OrientationProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/track/*" element={<TrackingApp />} />
+          <Route path="/track/:complaintId" element={<TrackingApp />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>

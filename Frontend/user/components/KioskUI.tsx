@@ -12,6 +12,7 @@ import { getAssistantResponse, generateCitizenImage, AIResponse, AIMenu } from '
 import { BillingService, GrievanceService, CivicAlertService } from '../services/civicService';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import html2pdf from 'html2pdf.js';
+import { useNavigate } from 'react-router-dom';
 
 // New Components
 import DashboardHome from './kiosk/DashboardHome';
@@ -41,6 +42,7 @@ import { Persistence } from '../utils/persistence';
 import { routeHierarchy, detectActiveModule } from '../utils/VoiceHierarchyRouter';
 import type { ElectricityView, GasView } from '../utils/VoiceHierarchyRouter';
 import { useOrientation } from '../contexts/OrientationContext';
+import { globalSpeak } from '../utils/globalVoice';
 
 interface Props {
   language: Language;
@@ -65,7 +67,24 @@ interface ChatMessage {
 
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', onVoiceCommand }) => {
   const { isVertical } = useOrientation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
+
+  // ── Sync activeTab to browser URL ──
+  useEffect(() => {
+    const tabToPath: Record<string, string> = {
+      home: '/home',
+      services: '/services',
+      billing: '/pay-bills',
+      tracker: '/track',
+      status: '/history',
+      ai: '/assistant',
+    };
+    const targetPath = tabToPath[activeTab];
+    if (targetPath && window.location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
+  }, [activeTab, navigate]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const isConversationalRef = useRef(false);
@@ -174,9 +193,38 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     onLogout();
   });
 
+  // ── Context-aware scroll/highlight for Services page ─────────────
+  // Maps voice commands to department IDs for scrollIntoView
+  const COMMAND_TO_DEPT_ID: Record<string, string> = {
+    electricity_bill: 'eb',
+    water_bill: 'water',
+    gas: 'gas',
+    municipal: 'municipal',
+  };
+
+  const highlightDeptCard = (deptId: string) => {
+    const el = document.getElementById(`dept-card-${deptId}`);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Add a highlight animation class
+    el.classList.add('dept-card-highlight');
+    el.focus();
+    setTimeout(() => el.classList.remove('dept-card-highlight'), 3000);
+    return true;
+  };
+
   // Voice Command Handler — uses VoiceHierarchyRouter for L1+L2 routing
   const handleVoiceCommand = (command: string) => {
     console.log('[KioskUI] Voice input received:', command);
+
+    // ── Context-Aware: If on Services page, try scroll/highlight first ──
+    if (activeTab === 'services' && submissionStep === 'select') {
+      const deptId = COMMAND_TO_DEPT_ID[command];
+      if (deptId && highlightDeptCard(deptId)) {
+        speakText(`Showing ${command.replace('_', ' ')} section.`);
+        return;
+      }
+    }
 
     // Build current module context for context-aware matching
     const ctx = detectActiveModule(activeTab);
@@ -324,26 +372,25 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
   };
 
-  // Handle Voice Speak
+  // Handle Voice Speak — delegates to globalSpeak for consistent female voice
   const speakText = (text: string, onEnd?: () => void) => {
     if (!isVoiceEnabled || !window.speechSynthesis) {
         if (onEnd) onEnd();
         return;
     }
 
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = LANG_LOCALE_MAP[language] || 'en-IN';
-      utterance.rate = 0.9; // Accessibility: Speak slowly
-      if (onEnd) {
-        utterance.onend = onEnd;
-        utterance.onerror = onEnd;
-      }
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      if (onEnd) onEnd();
-    }
+    // Map the Language enum to a language name string for globalSpeak
+    const langNameMap: Record<string, string> = {
+      'en-IN': 'English', 'hi-IN': 'Hindi', 'ta-IN': 'Tamil',
+      'te-IN': 'Telugu', 'kn-IN': 'Kannada', 'ml-IN': 'Malayalam',
+      'mr-IN': 'Marathi', 'gu-IN': 'Gujarati', 'pa-IN': 'Punjabi',
+      'bn-IN': 'Bengali', 'or-IN': 'Odia', 'as-IN': 'Assamese',
+      'ur-IN': 'Urdu',
+    };
+    const locale = LANG_LOCALE_MAP[language] || 'en-IN';
+    const langName = langNameMap[locale] || 'English';
+
+    globalSpeak(text, langName, onEnd);
   };
 
   const handleAiSearch = async (queryOverride?: string) => {
@@ -684,7 +731,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         </div>
       )}
 
-      <div className={`h-full ${isLargeText ? 'text-lg' : ''} print:hidden`}>
+      <div className={`min-h-full ${isLargeText ? 'text-lg' : ''} print:hidden`}>
 
         {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
         {activeTab === 'home' && (
@@ -740,7 +787,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     return (
                       <div
                         key={dept.id}
-                        className={`bg-white rounded-[2.5rem] border-2 ${colors.border} ${colors.hover} transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl group`}
+                        id={`dept-card-${dept.id}`}
+                        tabIndex={0}
+                        className={`bg-white rounded-[2.5rem] border-2 ${colors.border} ${colors.hover} transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl group focus:outline-none focus:ring-4 focus:ring-blue-400/50`}
                       >
                         {/* Department Header */}
                         <div className={`${colors.bg} p-8 border-b-2 ${colors.border}`}>
@@ -1172,14 +1221,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <div ref={chatEndRef} />
                 </div>
 
-                {/* Input Area */}
                 <div className="mt-4 flex gap-3 bg-white p-3 rounded-[2rem] shadow-xl border border-slate-100">
-                  <button
-                    onClick={handleVoiceInput}
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center transition border ${isListening ? 'bg-red-50 text-red-600 border-red-100 animate-pulse' : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-indigo-100'}`}
-                  >
-                    {isListening ? <MicOff size={24} /> : <Mic size={24} />}
-                  </button>
                   <input
                     type="text"
                     placeholder={t('ai_inputPlaceholder')}
@@ -1309,5 +1351,24 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     </KioskShell >
   );
 };
+
+// ─── Styles for Voice-Highlight Effect ────────────────────────────
+const KIOSK_VOICE_STYLES = document.createElement('style');
+KIOSK_VOICE_STYLES.textContent = `
+  @keyframes dept-card-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+    50%      { box-shadow: 0 0 20px 6px rgba(59, 130, 246, 0.6); }
+  }
+  .dept-card-highlight {
+    animation: dept-card-glow 1s ease-in-out 3;
+    border-color: #3b82f6 !important;
+    transform: scale(1.02);
+    transition: all 0.3s ease;
+  }
+`;
+if (typeof document !== 'undefined' && !document.getElementById('kiosk-voice-styles')) {
+  KIOSK_VOICE_STYLES.id = 'kiosk-voice-styles';
+  document.head.appendChild(KIOSK_VOICE_STYLES);
+}
 
 export default KioskUI;

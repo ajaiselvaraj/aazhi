@@ -396,7 +396,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                             exit={{ opacity: 0, y: -15, scale: 0.98, filter: "blur(4px)" }}
                             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="h-full w-full max-w-[1920px] mx-auto"
+                            className="min-h-full w-full max-w-[1920px] mx-auto"
                         >
                             <KioskErrorBoundary>
                                 {children}
