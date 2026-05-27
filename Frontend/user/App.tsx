@@ -938,6 +938,7 @@ const App: React.FC = () => {
   );
 
   return (
+    <VoiceAssistantProvider onCommand={handleVoiceCommand} initialLanguage={language}>
     <Suspense fallback={<LoadingFallback />}>
       <div
         className={`font-sans antialiased text-gray-900 selection:bg-blue-100 h-screen overflow-hidden ${isPrivacyShieldOn ? 'privacy-active' : ''}`}
@@ -946,12 +947,21 @@ const App: React.FC = () => {
           if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(() => { });
           }
+          // First-interaction welcome: when user touches after reaching SELECTION
+          if (view === ViewState.SELECTION || view === ViewState.DASHBOARD) {
+            const alreadyWelcomed = sessionStorage.getItem('aazhi_welcomed');
+            if (!alreadyWelcomed) {
+              sessionStorage.setItem('aazhi_welcomed', 'true');
+              triggerFirstInteractionWelcome(language);
+            }
+          }
         }}
         onKeyDown={resetTimer}
       >
         <KioskKeyboardWrapper language={language}>
           <ServiceComplaintProvider>
             {view === ViewState.LANDING && renderLanding()}
+            {view === ViewState.LOGIN && renderLogin()}
             {view === ViewState.SELECTION && renderSelection()}
             {view === ViewState.DASHBOARD && (
               <KioskUI
@@ -996,7 +1006,7 @@ const App: React.FC = () => {
         `}</style>
       </div>
     </Suspense>
-  </VoiceAssistantProvider >
+    </VoiceAssistantProvider>
 );
 };
 
