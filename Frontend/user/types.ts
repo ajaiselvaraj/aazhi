@@ -126,8 +126,8 @@ export interface ServiceRequest {
   priority?: string;
   scheduled_at?: string;
   resolved_at?: string;
-  closed_at?: string;
   stage?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface Message {

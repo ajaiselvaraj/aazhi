@@ -28,6 +28,7 @@ export interface ServiceRequest {
     closed_at?: string;
     stages: TrackingStage[];
     createdAt: string;
+    metadata?: Record<string, any>;
 }
 
 export interface Complaint {
@@ -360,7 +361,12 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 description: data.description || `Service request for ${data.serviceType}`,
                 phone: data.phone || user?.mobile,
                 name: data.name || user?.name,
-                metadata: { token, name: data.name || user?.name, address: data.address }
+                metadata: { 
+                    ...((data as any).metadata || {}),
+                    token, 
+                    name: data.name || user?.name, 
+                    address: data.address 
+                }
             });
             // Patch real server timestamp into local state so display matches DB
             const serverCreatedAt = apiRes?.created_at || apiRes?.createdAt;

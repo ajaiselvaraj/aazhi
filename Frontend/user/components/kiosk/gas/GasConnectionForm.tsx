@@ -71,43 +71,24 @@ const GasConnectionForm: React.FC<Props> = ({ onBack, language }) => {
     setSubmitError('');
 
     try {
-      const result = await GasService.submitConnectionRequest({
-        request_type: selectedType,
-        name: formData.name,
-        mobile: formData.mobile,
-        address: formData.address,
-        description: formData.description,
-        ward: formData.ward,
-        documents: uploadedFiles
-      });
-      const backendTicket = result.ticket_number || result.id || 'GAS-' + Date.now();
-      setTicketNumber(backendTicket);
-
-      // ✅ Write to ServiceComplaintContext so this record appears in History
-      addServiceRequest({
+      const ticketId = await addServiceRequest({
         name: formData.name,
         phone: formData.mobile,
         category: 'Gas',
         serviceType: selectedType,
         address: formData.address,
         description: formData.description,
+        metadata: {
+          ward: formData.ward,
+          documents: uploadedFiles
+        }
       });
-
+      setTicketNumber(ticketId);
       setStep('success');
     } catch (err: any) {
-      console.error('Gas connection request failed (offline fallback):', err);
-      // ✅ Offline fallback: generate local ticket and still write to History
-      const offlineTicket = 'GAS-' + Date.now();
-      setTicketNumber(offlineTicket);
-      addServiceRequest({
-        name: formData.name,
-        phone: formData.mobile,
-        category: 'Gas',
-        serviceType: selectedType,
-        address: formData.address,
-        description: formData.description,
-      });
-      setStep('success');
+      console.error('Gas connection request failed:', err);
+      setSubmitError(err.message || 'Failed to submit request');
+      setStep('form');
     }
   };
 

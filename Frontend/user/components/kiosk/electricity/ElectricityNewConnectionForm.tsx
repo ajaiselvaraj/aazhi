@@ -77,46 +77,28 @@ const ElectricityNewConnectionForm: React.FC<Props> = ({ onBack, language }) => 
     setSubmitError('');
 
     try {
-      const result = await ElectricityService.submitConnectionRequest({
-        connection_type: selectedType,
-        phase_type: formData.phase_type as any,
-        premises_type: formData.premises_type as any,
-        name: formData.name,
-        mobile: formData.mobile,
-        address: formData.address,
-        pincode: formData.pincode,
-        load_required: formData.load_required,
-        description: formData.description,
-        ward: formData.ward,
-        documents: uploadedFiles
-      });
-      setTicketNumber(result.ticket_number || result.id || 'EB-' + Date.now());
-
-      // ✅ Write to ServiceComplaintContext so this record appears in History
-      addServiceRequest({
+      const ticketId = await addServiceRequest({
         name: formData.name,
         phone: formData.mobile,
         category: 'Electricity',
         serviceType: selectedType,
         address: formData.address,
         description: formData.description,
+        metadata: {
+          phase_type: formData.phase_type,
+          premises_type: formData.premises_type,
+          load_required: formData.load_required,
+          pincode: formData.pincode,
+          ward: formData.ward,
+          documents: uploadedFiles
+        }
       });
-
+      setTicketNumber(ticketId);
       setStep('success');
     } catch (err: any) {
-      console.error('Electricity connection request failed (offline fallback):', err);
-      // ✅ Offline fallback: generate local ticket and still write to History
-      const offlineTicket = 'EB-' + Date.now();
-      setTicketNumber(offlineTicket);
-      addServiceRequest({
-        name: formData.name,
-        phone: formData.mobile,
-        category: 'Electricity',
-        serviceType: selectedType,
-        address: formData.address,
-        description: formData.description,
-      });
-      setStep('success');
+      console.error('Electricity connection request failed:', err);
+      setSubmitError(err.message || 'Failed to submit request');
+      setStep('form');
     }
   };
 

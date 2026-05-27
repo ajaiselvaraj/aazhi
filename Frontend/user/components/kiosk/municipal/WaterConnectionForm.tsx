@@ -56,39 +56,28 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
   const handleSubmit = async () => {
     setStep('submitting');
     try {
-      const result = await MunicipalAPI.submitWaterConnectionRequest({
-        ...formData,
-        documents: uploadedFiles
-      });
-      setTicketNumber(result.ticket_number || result.id || 'MC-WTR-' + Math.floor(100000 + Math.random() * 900000));
-
-      // ✅ Write to ServiceComplaintContext so this record appears in History
-      addServiceRequest({
+      const ticketId = await addServiceRequest({
         name: formData.name,
         phone: formData.mobile,
         category: 'Water',
         serviceType: formData.connectionType || 'Water Connection',
         address: formData.address,
         description: `${formData.propertyType} water connection — Pipe size: ${formData.pipeSize}`,
+        metadata: {
+          propertyType: formData.propertyType,
+          pipeSize: formData.pipeSize,
+          ward: formData.ward,
+          propertyId: formData.propertyId,
+          documents: uploadedFiles
+        }
       });
-
+      setTicketNumber(ticketId);
       setStep('success');
     } catch (err: any) {
       console.error('Failed to submit water connection request:', err);
-      // Fallback for demo if backend isn't up
+      // Fallback for demo if backend fails
       const fallbackTicket = 'MC-WTR-' + Math.floor(100000 + Math.random() * 900000);
       setTicketNumber(fallbackTicket);
-
-      // Still write to History even on API failure (offline fallback)
-      addServiceRequest({
-        name: formData.name,
-        phone: formData.mobile,
-        category: 'Water',
-        serviceType: formData.connectionType || 'Water Connection',
-        address: formData.address,
-        description: `${formData.propertyType} water connection — Pipe size: ${formData.pipeSize}`,
-      });
-
       setStep('success');
     }
   };

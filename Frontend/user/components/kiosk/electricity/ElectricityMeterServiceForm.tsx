@@ -75,45 +75,27 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
     setSubmitError('');
 
     try {
-      const result = await ElectricityService.submitMeterRequest({
-        service_type: selectedType,
-        reason: formData.reason,
-        priority: formData.priority as 'normal' | 'urgent' || 'normal',
-        name: formData.name,
-        mobile: formData.mobile,
-        consumer_number: formData.consumer_number,
-        address: formData.address,
-        description: formData.description,
-        ward: formData.ward,
-        documents: uploadedFiles
-      });
-      setTicketNumber(result.ticket_number || result.id || 'MTR-' + Date.now());
-
-      // ✅ Write to ServiceComplaintContext so this record appears in History
-      addServiceRequest({
+      const ticketId = await addServiceRequest({
         name: formData.name,
         phone: formData.mobile,
         category: 'Electricity',
         serviceType: selectedType || 'Meter Service',
         address: formData.address,
         description: formData.description,
+        metadata: {
+          reason: formData.reason,
+          priority: formData.priority || 'normal',
+          consumer_number: formData.consumer_number,
+          ward: formData.ward,
+          documents: uploadedFiles
+        }
       });
-
+      setTicketNumber(ticketId);
       setStep('success');
     } catch (err: any) {
-      console.error('Meter service request failed (offline fallback):', err);
-      // ✅ Offline fallback: generate local ticket and still write to History
-      const offlineTicket = 'MTR-' + Date.now();
-      setTicketNumber(offlineTicket);
-      addServiceRequest({
-        name: formData.name,
-        phone: formData.mobile,
-        category: 'Electricity',
-        serviceType: selectedType || 'Meter Service',
-        address: formData.address,
-        description: formData.description,
-      });
-      setStep('success');
+      console.error('Meter service request failed:', err);
+      setSubmitError(err.message || 'Failed to submit request');
+      setStep('form');
     }
   };
 

@@ -77,53 +77,28 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
     setSubmitError('');
 
     try {
-      const result = await ElectricityService.submitComplaint({
-        category: formData.category,
-        subject: formData.subject,
+      const userStr = localStorage.getItem('aazhi_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      const ticketId = await addComplaint({
+        name: formData.name || user?.name || 'Guest',
+        phone: formData.mobile || user?.mobile || '',
+        category: 'Electricity',
+        complaintType: formData.subject || formData.category || 'Electricity Complaint',
+        location: '',
         description: formData.description,
-        consumer_number: formData.consumer_number,
-        ward: formData.ward,
-        name: formData.name,
-        phone: formData.mobile,
-        priority: formData.priority as any
+        citizenId: user?.id,
+        area: formData.ward || user?.ward || 'Unknown',
       });
-      setTicketNumber(result.ticket_number || result.id || 'EB-CMP-' + Date.now());
+      
+      setTicketNumber(ticketId);
       // ⭐ PLUG-IN: Show QR after successful submission
       setShowQR(true);
-
-      // ✅ Write to ServiceComplaintContext so this record appears in History
-      const userStr = localStorage.getItem('aazhi_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      await addComplaint({
-        name: formData.name || user?.name || 'Guest',
-        phone: formData.mobile || user?.mobile || '',
-        category: 'Electricity',
-        complaintType: formData.subject || formData.category || 'Electricity Complaint',
-        location: '',
-        description: formData.description,
-        citizenId: user?.id,
-        area: formData.ward || user?.ward || 'Unknown',
-      });
-
       setStep('success');
     } catch (err: any) {
-      console.error('Electricity complaint submission failed (offline fallback):', err);
-      // ✅ Offline fallback: generate local ticket and still write to History
-      const offlineTicket = 'EB-CMP-' + Date.now();
-      setTicketNumber(offlineTicket);
-      const userStr = localStorage.getItem('aazhi_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      await addComplaint({
-        name: formData.name || user?.name || 'Guest',
-        phone: formData.mobile || user?.mobile || '',
-        category: 'Electricity',
-        complaintType: formData.subject || formData.category || 'Electricity Complaint',
-        location: '',
-        description: formData.description || 'Electricity complaint submitted offline',
-        citizenId: user?.id,
-        area: formData.ward || user?.ward || 'Unknown',
-      });
-      setStep('success');
+      console.error('Electricity complaint submission failed:', err);
+      setSubmitError(err.message || 'Failed to submit complaint');
+      setStep('form');
     }
   };
 
