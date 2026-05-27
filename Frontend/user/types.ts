@@ -100,19 +100,34 @@ export interface TrackingStage {
 export interface ServiceRequest {
   id: string;
   ticket_number?: string;
-  type: string;
-  department: string;
-  citizenName: string;
+  type?: string;
+  serviceType?: string;
+  department?: string;
+  category?: string;
+  citizenName?: string;
+  name?: string;
   citizenId?: string;
   status: string;
   currentStage: string;
   stages: TrackingStage[];
-  timestamp: string;
-  details: string;
+  timestamp?: string;
+  createdAt?: string;
+  details?: string;
+  description?: string;
   messages?: Message[];
   issueCategory?: IssueCategory;
   ward?: string;
   phone?: string;
+  address?: string;
+  rejection_reason?: string;
+  resolution_note?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  priority?: string;
+  scheduled_at?: string;
+  resolved_at?: string;
+  closed_at?: string;
+  stage?: string;
 }
 
 export interface Message {

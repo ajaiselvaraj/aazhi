@@ -12,15 +12,34 @@ interface Props {
 const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
   
-  const [profileData, setProfileData] = useState({
-    name: 'Suresh Kumar',
-    citizen_id: 'CI-987-6543',
-    mobile: '9876543210',
-    email: 'suresh.k@example.com',
-    address: '45, Second Street, Ward 15, Coimbatore',
-    aadhaar: 'XXXX-XXXX-9876',
-    property_tax_id: 'PT-12345-67890'
-  });
+  // Load real user profile from localStorage session
+  const getInitialProfile = () => {
+    try {
+      const stored = localStorage.getItem('aazhi_user');
+      const user = stored ? JSON.parse(stored) : null;
+      return {
+        name: user?.name || 'Guest Citizen',
+        citizen_id: user?.id || 'CI-987-6543',
+        mobile: user?.mobile || '9876543210',
+        email: user?.email || 'suresh.k@example.com',
+        address: user?.address || '45, Second Street, Ward 15, Coimbatore',
+        aadhaar: user?.aadhaar_masked || 'XXXX-XXXX-9876',
+        property_tax_id: user?.property_tax_id || 'PT-12345-67890'
+      };
+    } catch {
+      return {
+        name: 'Guest Citizen',
+        citizen_id: 'CI-987-6543',
+        mobile: '9876543210',
+        email: 'suresh.k@example.com',
+        address: '45, Second Street, Ward 15, Coimbatore',
+        aadhaar: 'XXXX-XXXX-9876',
+        property_tax_id: 'PT-12345-67890'
+      };
+    }
+  };
+
+  const [profileData, setProfileData] = useState(getInitialProfile);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...profileData });
@@ -43,12 +62,41 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
       setShowOtp(false);
       
       try {
-        await MunicipalAPI.updateProfile(editData);
+        const res = await MunicipalAPI.updateProfile({
+          name: editData.name,
+          email: editData.email,
+          address: editData.address
+        });
+        
+        // Update localStorage with fresh data
+        const stored = localStorage.getItem('aazhi_user');
+        const existing = stored ? JSON.parse(stored) : {};
+        const freshUser = { 
+          ...existing, 
+          name: editData.name, 
+          email: editData.email, 
+          address: editData.address 
+        };
+        localStorage.setItem('aazhi_user', JSON.stringify(freshUser));
+        if (res?.tokens?.accessToken) {
+          localStorage.setItem('aazhi_token', res.tokens.accessToken);
+        }
+
         setProfileData({ ...editData });
         setSuccessMsg(t('profileUpdated') || 'Profile updated successfully!');
       } catch (err: any) {
         console.error('Failed to update profile:', err);
-        // Fallback to local state if backend is still being mocked/absent
+        // Fallback: persist locally even if API failed
+        const stored = localStorage.getItem('aazhi_user');
+        const user = stored ? JSON.parse(stored) : {};
+        localStorage.setItem('aazhi_user', JSON.stringify({
+          ...user,
+          name: editData.name,
+          mobile: editData.mobile,
+          email: editData.email,
+          address: editData.address
+        }));
+
         setProfileData({ ...editData });
         setSuccessMsg(t('profileUpdated') || 'Profile updated successfully! (Local Mock)');
       } finally {
@@ -144,13 +192,16 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Name */}
-                  <div className="col-span-2 md:col-span-1">
+                  <div className={`col-span-2 md:col-span-1 ${isEditing ? 'bg-indigo-50/30 p-2 rounded-2xl -m-2' : ''}`}>
                     <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('sf_fullName') || 'Name'}</label>
                     <input 
                       type="text" 
-                      value={editData.name}
-                      readOnly
-                      className="w-full bg-slate-50 border-2 border-transparent p-4 rounded-xl font-bold text-slate-500 cursor-not-allowed"
+                      value={isEditing ? editData.name : profileData.name}
+                      onChange={e => handleEditChange('name', e.target.value)}
+                      readOnly={!isEditing}
+                      className={`w-full p-4 rounded-xl font-bold transition-all outline-none ${
+                        isEditing ? 'bg-white border-2 border-indigo-200 focus:border-indigo-500 text-slate-800' : 'bg-slate-50 border-2 border-transparent text-slate-700'
+                      }`}
                     />
                   </div>
 

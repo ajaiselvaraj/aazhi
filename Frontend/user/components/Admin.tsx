@@ -566,6 +566,7 @@ const Admin: React.FC<Props> = ({ onBack, language, onLanguageChange }) => {
              <AdminRequests 
                 requests={serviceRequests} 
                 updateStage={updateServiceStage} 
+                updateStatus={updateServiceStatus}
              />
           )}
 

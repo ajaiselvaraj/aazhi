@@ -9,15 +9,30 @@ import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
+import { emitServiceRequestStatusUpdate, emitServiceRequestTimelineUpdate } from "../socket.js";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://ai-service-aazhi.onrender.com';
+
+// Helper to proactively sync citizen name in DB if currently null/empty
+const syncCitizenName = async (citizenId, name) => {
+    if (!citizenId || !name || name === 'Unknown' || name === 'Guest Citizen' || name === 'Developer Citizen' || name === 'Unknown Citizen') return;
+    try {
+        const citizenRes = await pool.query("SELECT name FROM citizens WHERE id = $1", [citizenId]);
+        if (citizenRes.rows.length > 0 && !citizenRes.rows[0].name) {
+            await pool.query("UPDATE citizens SET name = $1, updated_at = NOW() WHERE id = $2", [name.trim(), citizenId]);
+            logger.info(`👤 [Auth Sync] Proactively synced citizen name in DB to "${name.trim()}"`);
+        }
+    } catch (err) {
+        logger.error(`⚠️ [Auth Sync] Failed to sync citizen name in DB: ${err.message}`);
+    }
+};
 
 // ─── Create Service Request (Auto Supabase / Postgres Version) ──
 export const createServiceRequest = async (req, res, next) => {
     try {
         console.log("📥 [DEBUG] Incoming Service Request Body:", req.body);
         const citizenId = req.user.id;
-        let { request_type, department, description, ward, phone, metadata } = req.body;
+        let { request_type, department, description, ward, phone, metadata, priority, scheduled_at, name, citizen_name } = req.body;
 
         if (!description || description.trim().length < 10) {
             return fail(res, "Description is too short. Please provide more details.", 400);
@@ -130,12 +145,30 @@ export const createServiceRequest = async (req, res, next) => {
 
         if (useSupabaseRest) {
             // ─── SUPABASE REST API MODE ───
-            let citizenName = 'Unknown';
-            try {
-                const { data: citizenData } = await supabase.from('citizens').select('name').eq('id', citizenId).single();
-                if (citizenData) citizenName = citizenData.name;
-            } catch (e) {
-                console.error("⚠️ [WARN] Failed getting citizen name", e);
+            let citizenName = name || citizen_name || null;
+            if (!citizenName) {
+                try {
+                    const { data: citizenData } = await supabase.from('citizens').select('name').eq('id', citizenId).single();
+                    if (citizenData) citizenName = citizenData.name;
+                } catch (e) {
+                    console.error("⚠️ [WARN] Failed getting citizen name", e);
+                }
+            }
+            if (!citizenName) {
+                citizenName = req.user?.name || 'Unknown';
+            }
+
+            // Sync citizen name if needed
+            if (citizenName && citizenName !== 'Unknown' && citizenName !== 'Guest Citizen' && citizenName !== 'Developer Citizen') {
+                try {
+                    const { data: currentCitizen } = await supabase.from('citizens').select('name').eq('id', citizenId).single();
+                    if (currentCitizen && !currentCitizen.name) {
+                        await supabase.from('citizens').update({ name: citizenName }).eq('id', citizenId);
+                        console.log(`👤 Proactively updated citizen name in DB to "${citizenName}"`);
+                    }
+                } catch (updateErr) {
+                    console.error("⚠️ Failed to update citizen name in DB:", updateErr.message);
+                }
             }
 
             const insertPayload = {
@@ -149,7 +182,9 @@ export const createServiceRequest = async (req, res, next) => {
                 phone: phone || req.user?.mobileNumber || null,
                 metadata: finalMetadata,
                 current_stage: 'created',
-                status: 'pending'
+                status: 'pending',
+                priority: priority || 'medium',
+                scheduled_at: scheduled_at || null
             };
 
             console.log("🚀 [SUPABASE] Attempting insert into 'service_requests':", insertPayload.ticket_number);
@@ -182,12 +217,17 @@ export const createServiceRequest = async (req, res, next) => {
 
         } else {
             // ─── POSTGRES DIRECT DRIVER MODE (FALLBACK) ───
+            const citizenNameVal = name || citizen_name || req.user?.name || null;
+            if (citizenNameVal) {
+                await syncCitizenName(citizenId, citizenNameVal);
+            }
+
             const result = await pool.query(
                 `INSERT INTO service_requests 
-                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'created', 'pending')
+                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status, priority, scheduled_at)
+                 VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'created', 'pending', $10, $11)
                  RETURNING *`,
-                [ticketNumber, citizenId, req.body.name || req.user.name, request_type, classifiedDepartment, description, ward || null, phone || req.user?.mobileNumber || null, JSON.stringify(finalMetadata)]
+                [ticketNumber, citizenId, citizenNameVal, request_type, classifiedDepartment, description, ward || null, phone || req.user?.mobileNumber || null, JSON.stringify(finalMetadata), priority || 'medium', scheduled_at || null]
             );
 
             requestRecord = result.rows[0];
@@ -220,9 +260,11 @@ export const trackServiceRequest = async (req, res, next) => {
             `SELECT 
                 sr.*, 
                 COALESCE(sr.citizen_name, c.name) as citizen_name, 
-                COALESCE(sr.phone, c.mobile) as citizen_mobile
+                COALESCE(sr.phone, c.mobile) as citizen_mobile,
+                staff.name AS assigned_to_name
              FROM service_requests sr
              LEFT JOIN citizens c ON sr.citizen_id = c.id
+             LEFT JOIN citizens staff ON sr.assigned_to = staff.id
              WHERE sr.ticket_number = $1`,
             [ticketNumber]
         );
@@ -267,22 +309,35 @@ export const getMyServiceRequests = async (req, res, next) => {
         const { status, department, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
 
-        let query = `SELECT * FROM service_requests WHERE citizen_id = $1`;
+        let query = `
+            SELECT 
+                sr.*, 
+                staff.name AS assigned_to_name
+            FROM service_requests sr
+            LEFT JOIN citizens staff ON sr.assigned_to = staff.id
+            WHERE sr.citizen_id = $1
+        `;
         const params = [citizenId];
 
         if (status) {
-            query += ` AND status = $${params.length + 1}`;
+            query += ` AND sr.status = $${params.length + 1}`;
             params.push(status);
         }
         if (department) {
-            query += ` AND department = $${params.length + 1}`;
+            query += ` AND sr.department = $${params.length + 1}`;
             params.push(department);
         }
 
-        const countQuery = query.replace("SELECT *", "SELECT COUNT(*)");
+        const countQuery = `
+            SELECT COUNT(*) 
+            FROM service_requests sr
+            WHERE sr.citizen_id = $1
+            ${status ? ` AND sr.status = $2` : ''}
+            ${department ? ` AND sr.department = ${status ? '$3' : '$2'}` : ''}
+        `;
         const countResult = await pool.query(countQuery, params);
 
-        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(parseInt(limit), parseInt(offset));
 
         const result = await pool.query(query, params);
@@ -306,10 +361,17 @@ export const getMyServiceRequestsDebug = async (req, res, next) => {
         }
 
         const validCitizenId = isValidUuid(citizen_id) ? citizen_id : null;
-        let query = `SELECT * FROM service_requests WHERE (citizen_id = $1 OR phone = $2)`;
+        let query = `
+            SELECT 
+                sr.*, 
+                staff.name AS assigned_to_name
+            FROM service_requests sr
+            LEFT JOIN citizens staff ON sr.assigned_to = staff.id
+            WHERE (sr.citizen_id = $1 OR sr.phone = $2)
+        `;
         const params = [validCitizenId, phone || null];
 
-        query += ` ORDER BY created_at DESC LIMIT 50`;
+        query += ` ORDER BY sr.created_at DESC LIMIT 50`;
         const result = await pool.query(query, params);
 
         return success(res, "Service requests retrieved (DEBUG)", result.rows);
@@ -328,9 +390,11 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
             SELECT 
                 sr.*, 
                 COALESCE(sr.citizen_name, c.name) AS citizen_name, 
-                COALESCE(sr.phone, c.mobile) AS citizen_mobile
+                COALESCE(sr.phone, c.mobile) AS citizen_mobile,
+                staff.name AS assigned_to_name
             FROM service_requests sr
             LEFT JOIN citizens c ON sr.citizen_id = c.id
+            LEFT JOIN citizens staff ON sr.assigned_to = staff.id
         `;
         const params = [];
 
@@ -369,7 +433,7 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
 export const updateServiceRequestStatus = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { current_stage, status, notes, rejection_reason } = req.body;
+        const { current_stage, status, notes, rejection_reason, resolution_note, assigned_to, scheduled_at, priority } = req.body;
         const updatedBy = req.user.id;
 
         const isTicket = id.startsWith('TKT-') || id.startsWith('SRQ-');
@@ -392,23 +456,43 @@ export const updateServiceRequestStatus = async (req, res, next) => {
         let finalStatus = status ? status.toLowerCase() : (current.rows[0].status || "").toLowerCase();
         let finalStage = current_stage || current.rows[0].current_stage;
 
-        if (finalStage && (finalStage.toLowerCase() === "resolved" || finalStage.toLowerCase() === "completed")) {
-            finalStatus = "resolved";
-        }
-
         console.log(`🔄 [DEBUG] Updating Service Request ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
 
-        // Update request
+        // Update request dynamically
         const updateFields = ["current_stage = $1", "status = $2", "updated_at = NOW()"];
-        const updateParams = [finalStage, finalStatus, actualId];
+        const updateParams = [finalStage, finalStatus];
 
-        if (rejection_reason) {
+        if (rejection_reason !== undefined) {
             updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
             updateParams.push(rejection_reason);
         }
+        if (resolution_note !== undefined) {
+            updateFields.push(`resolution_note = $${updateParams.length + 1}`);
+            updateParams.push(resolution_note);
+        }
+        if (assigned_to !== undefined) {
+            updateFields.push(`assigned_to = $${updateParams.length + 1}`);
+            updateParams.push(assigned_to || null);
+        }
+        if (scheduled_at !== undefined) {
+            updateFields.push(`scheduled_at = $${updateParams.length + 1}`);
+            updateParams.push(scheduled_at || null);
+        }
+        if (priority !== undefined) {
+            updateFields.push(`priority = $${updateParams.length + 1}`);
+            updateParams.push(priority || 'medium');
+        }
+
+        if (finalStatus === "completed") {
+            updateFields.push("resolved_at = NOW()", "closed_at = NOW()");
+        } else if (finalStatus === "cancelled") {
+            updateFields.push("closed_at = NOW()");
+        }
+
+        updateParams.push(actualId);
 
         const result = await pool.query(
-            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $3 RETURNING *`,
+            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $${updateParams.length} RETURNING *`,
             updateParams
         );
 
@@ -426,22 +510,50 @@ export const updateServiceRequestStatus = async (req, res, next) => {
             [actualId, finalStage]
         );
 
+        const stageNotes = notes || resolution_note || rejection_reason || null;
+
         if (stageCheck.rows.length > 0) {
             await pool.query(
                 `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
                  WHERE service_request_id = $3 AND stage = $4`,
-                [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+                [stageNotes, updatedBy, actualId, finalStage]
             );
         } else {
             // Flexible stage insertion
             await pool.query(
                 `INSERT INTO service_request_stages (service_request_id, stage, status, notes, updated_by)
                  VALUES ($1, $2, 'current', $3, $4)`,
-                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+                [actualId, finalStage, stageNotes, updatedBy]
             );
         }
 
         logger.info("Service request updated", { requestId: actualId, newStatus: finalStatus, updatedBy });
+
+        // Emit Socket.IO events for real-time tracking updates
+        try {
+            const ticketNumber = result.rows[0].ticket_number;
+            const socketPayload = {
+                requestId: actualId,
+                ticketNumber: ticketNumber,
+                oldStatus: current.rows[0].status,
+                newStatus: finalStatus,
+                notes: notes || null,
+                resolutionNote: resolution_note || null,
+                rejectionReason: rejection_reason || null,
+                assignedTo: assigned_to || null,
+                scheduledAt: scheduled_at || null,
+                priority: priority || null,
+                updatedAt: result.rows[0].updated_at,
+            };
+
+            emitServiceRequestStatusUpdate(actualId, socketPayload);
+            emitServiceRequestStatusUpdate(ticketNumber, socketPayload);
+
+            emitServiceRequestTimelineUpdate(actualId, { stage: finalStage, status: finalStatus, notes: stageNotes, updatedAt: new Date().toISOString() });
+            emitServiceRequestTimelineUpdate(ticketNumber, { stage: finalStage, status: finalStatus, notes: stageNotes, updatedAt: new Date().toISOString() });
+        } catch (socketErr) {
+            logger.warn("[Socket.IO] Failed to emit status update (non-critical):", socketErr.message);
+        }
 
         return success(res, "Service request status updated", result.rows[0]);
     } catch (err) {
@@ -481,9 +593,14 @@ export const searchRequests = async (req, res, next) => {
 export const getAllRequestsAdminDebug = async (req, res, next) => {
     try {
         const result = await pool.query(`
-            SELECT sr.*, c.name as citizen_name, c.mobile as citizen_mobile
+            SELECT 
+                sr.*, 
+                c.name as citizen_name, 
+                c.mobile as citizen_mobile,
+                staff.name AS assigned_to_name
             FROM service_requests sr
             LEFT JOIN citizens c ON sr.citizen_id = c.id
+            LEFT JOIN citizens staff ON sr.assigned_to = staff.id
             ORDER BY sr.created_at DESC
         `);
         return success(res, "All service requests retrieved", result.rows);
@@ -504,7 +621,13 @@ export const createRequestDebug = async (req, res, next) => {
             }
         }
 
-        let { request_type, department, description, ward, phone, metadata } = req.body;
+        let { request_type, department, description, ward, phone, metadata, priority, scheduled_at, name, citizen_name } = req.body;
+        const citizenNameVal = name || citizen_name || null;
+
+        if (citizenNameVal) {
+            await syncCitizenName(citizenId, citizenNameVal);
+        }
+
         if (description && typeof description === 'string' && description.length > 5000) {
             description = description.substring(0, 5000);
         }
@@ -513,10 +636,10 @@ export const createRequestDebug = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO service_requests 
-             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, $4, $5, $6, $7, $8, 'submitted', 'created')
+             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage, priority, scheduled_at)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'pending', 'created', $10, $11)
              RETURNING *`,
-            [ticketNumber, citizenId, request_type, department, description, ward || null, phone || null, JSON.stringify(metadata || {})]
+            [ticketNumber, citizenId, citizenNameVal, request_type, department, description, ward || null, phone || req.body.citizen_mobile || null, JSON.stringify(metadata || {}), priority || 'medium', scheduled_at || null]
         );
 
         const stages = ["created", "assigned", "working", "completed"];
@@ -538,8 +661,8 @@ export const createRequestDebug = async (req, res, next) => {
 export const updateRequestStatusDebug = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { status, current_stage, notes, rejection_reason } = req.body;
-        const updatedBy = 1;
+        const { status, current_stage, notes, rejection_reason, resolution_note, assigned_to, scheduled_at, priority } = req.body;
+        const updatedBy = null; // dummy admin ID
 
         const isTicket = id.startsWith('TKT-') || id.startsWith('SRQ-');
         if (!isTicket && !isValidUuid(id)) {
@@ -562,20 +685,43 @@ export const updateRequestStatusDebug = async (req, res, next) => {
         let finalStatus = status ? status.toLowerCase() : (current.rows[0].status || "").toLowerCase();
         let finalStage = current_stage || current.rows[0].current_stage;
 
-        if (finalStage && (finalStage.toLowerCase() === "resolved" || finalStage.toLowerCase() === "completed")) {
-            finalStatus = "resolved";
-        }
+        console.log(`🔄 [DEBUG] Updating Service Request (DEBUG) ${actualId}: current_stage=${finalStage}, status=${finalStatus}`);
 
+        // Update request dynamically
         const updateFields = ["current_stage = $1", "status = $2", "updated_at = NOW()"];
-        const updateParams = [finalStage, finalStatus, actualId];
+        const updateParams = [finalStage, finalStatus];
 
-        if (rejection_reason) {
+        if (rejection_reason !== undefined) {
             updateFields.push(`rejection_reason = $${updateParams.length + 1}`);
             updateParams.push(rejection_reason);
         }
+        if (resolution_note !== undefined) {
+            updateFields.push(`resolution_note = $${updateParams.length + 1}`);
+            updateParams.push(resolution_note);
+        }
+        if (assigned_to !== undefined) {
+            updateFields.push(`assigned_to = $${updateParams.length + 1}`);
+            updateParams.push(assigned_to || null);
+        }
+        if (scheduled_at !== undefined) {
+            updateFields.push(`scheduled_at = $${updateParams.length + 1}`);
+            updateParams.push(scheduled_at || null);
+        }
+        if (priority !== undefined) {
+            updateFields.push(`priority = $${updateParams.length + 1}`);
+            updateParams.push(priority || 'medium');
+        }
+
+        if (finalStatus === "completed") {
+            updateFields.push("resolved_at = NOW()", "closed_at = NOW()");
+        } else if (finalStatus === "cancelled") {
+            updateFields.push("closed_at = NOW()");
+        }
+
+        updateParams.push(actualId);
 
         const result = await pool.query(
-            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $3 RETURNING *`,
+            `UPDATE service_requests SET ${updateFields.join(", ")} WHERE id = $${updateParams.length} RETURNING *`,
             updateParams
         );
 
@@ -590,18 +736,46 @@ export const updateRequestStatusDebug = async (req, res, next) => {
             [actualId, finalStage]
         );
 
+        const stageNotes = notes || resolution_note || rejection_reason || null;
+
         if (stageCheck.rows.length > 0) {
             await pool.query(
                 `UPDATE service_request_stages SET status = 'current', notes = $1, updated_by = $2, updated_at = NOW()
                  WHERE service_request_id = $3 AND stage = $4`,
-                [notes || rejection_reason || null, updatedBy, actualId, finalStage]
+                [stageNotes, updatedBy, actualId, finalStage]
             );
         } else {
             await pool.query(
                 `INSERT INTO service_request_stages (service_request_id, stage, status, notes, updated_by)
                  VALUES ($1, $2, 'current', $3, $4)`,
-                [actualId, finalStage, notes || rejection_reason || null, updatedBy]
+                [actualId, finalStage, stageNotes, updatedBy]
             );
+        }
+
+        // Emit Socket.IO events for real-time tracking updates
+        try {
+            const ticketNumber = result.rows[0].ticket_number;
+            const socketPayload = {
+                requestId: actualId,
+                ticketNumber: ticketNumber,
+                oldStatus: current.rows[0].status,
+                newStatus: finalStatus,
+                notes: notes || null,
+                resolutionNote: resolution_note || null,
+                rejectionReason: rejection_reason || null,
+                assignedTo: assigned_to || null,
+                scheduledAt: scheduled_at || null,
+                priority: priority || null,
+                updatedAt: result.rows[0].updated_at,
+            };
+
+            emitServiceRequestStatusUpdate(actualId, socketPayload);
+            emitServiceRequestStatusUpdate(ticketNumber, socketPayload);
+
+            emitServiceRequestTimelineUpdate(actualId, { stage: finalStage, status: finalStatus, notes: stageNotes, updatedAt: new Date().toISOString() });
+            emitServiceRequestTimelineUpdate(ticketNumber, { stage: finalStage, status: finalStatus, notes: stageNotes, updatedAt: new Date().toISOString() });
+        } catch (socketErr) {
+            logger.warn("[Socket.IO] Failed to emit status update (non-critical):", socketErr.message);
         }
 
         return success(res, "Service request status updated (DEBUG)", result.rows[0]);

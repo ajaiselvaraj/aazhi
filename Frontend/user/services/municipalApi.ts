@@ -41,7 +41,7 @@ export const MunicipalAPI = {
     },
     // ---- 4. Profile Management ----
     async updateProfile(profileData: any): Promise<any> {
-        return await apiClient.put('/municipal/profile', profileData);
+        return await apiClient.put('/auth/profile', profileData);
     },
 
     // ---- 5. Water Services ----

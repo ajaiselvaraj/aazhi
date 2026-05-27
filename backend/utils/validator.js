@@ -93,16 +93,22 @@ export const createServiceRequestSchema = Joi.object({
     description: Joi.string().min(10).max(2000).required(),
     ward: Joi.string().max(10).allow("", null),
     phone: Joi.string().pattern(/^[6-9]\d{9}$/).allow("", null),
+    priority: Joi.string().valid("low", "medium", "high", "critical").default("medium"),
+    scheduled_at: Joi.date().allow(null, ""),
     metadata: Joi.object().allow(null),
 });
 
 export const updateServiceRequestStatusSchema = Joi.object({
     status: Joi.string().valid(
-        "pending", "assigned", "in_progress", "resolved", "rejected", "closed"
+        "pending", "assigned", "in_progress", "on_hold", "completed", "cancelled", "resolved", "rejected", "closed"
     ).default("pending"),
     current_stage: Joi.string().max(100).allow("", null),
     notes: Joi.string().max(1000).allow("", null),
     rejection_reason: Joi.string().max(1000).allow("", null),
+    resolution_note: Joi.string().max(2000).allow("", null),
+    assigned_to: Joi.string().uuid().allow(null, ""),
+    scheduled_at: Joi.date().allow(null, ""),
+    priority: Joi.string().valid("low", "medium", "high", "critical").allow("", null),
 });
 
 // ─── Utility Account Schema ──────────────────────────────

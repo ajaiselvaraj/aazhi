@@ -21,7 +21,7 @@ const getApiBase = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL
   if (typeof window !== 'undefined') {
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    if (!envUrl && isLocal) return 'http://localhost:8000/api'
+    if (!envUrl && isLocal) return 'http://localhost:5000/api'
   }
   return envUrl || 'https://aazhi-9gj2.onrender.com/api'
 }

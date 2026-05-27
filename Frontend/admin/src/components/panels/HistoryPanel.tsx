@@ -182,7 +182,7 @@ export default function HistoryPanel() {
                     {item.citizen_name?.charAt(0) || 'C'}
                   </div>
                   <span style={{ fontSize: '.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    {item.citizen_name || 'Anonymous'}
+                    {item.citizen_name || 'No Name Provided'}
                   </span>
                 </div>
                 <div style={{ fontSize: '.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '.25rem' }}>

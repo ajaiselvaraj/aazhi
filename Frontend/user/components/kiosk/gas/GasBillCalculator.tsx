@@ -43,14 +43,20 @@ const GasBillCalculator: React.FC<Props> = ({ onBack, language }) => {
 
     // Auto-fill defaults
     useEffect(() => {
-        const config = GAS_CONFIG[gasType];
         if (gasType === 'LPG') {
+            const config = GAS_CONFIG.LPG;
             const type = config.types.find(t => t.id === lpgSubtype);
             setCustomRate(type?.rate.toString() || '');
+            setTaxPercent(config.taxPercent.toString());
+        } else if (gasType === 'PNG') {
+            const config = GAS_CONFIG.PNG;
+            setCustomRate(config.rate.toString());
+            setTaxPercent(config.taxPercent.toString());
         } else {
-            setCustomRate(config.rate?.toString() || '');
+            const config = GAS_CONFIG.CNG;
+            setCustomRate(config.rate.toString());
+            setTaxPercent(config.taxPercent.toString());
         }
-        setTaxPercent(config.taxPercent.toString());
     }, [gasType, lpgSubtype]);
 
     const calculateBill = () => {

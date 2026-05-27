@@ -206,7 +206,7 @@ export const getInteractionLogs = async (req, res, next) => {
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT il.*, c.name as citizen_name, c.mobile as citizen_mobile
+            SELECT il.*, COALESCE(c.name, 'No Name Provided') as citizen_name, COALESCE(c.mobile, 'No Phone') as citizen_mobile
             FROM interaction_logs il
             LEFT JOIN citizens c ON il.citizen_id = c.id
             WHERE 1=1`;
@@ -352,11 +352,11 @@ export const getPaymentStats = async (req, res, next) => {
                 [parseInt(period)]
             ),
             pool.query(
-                `SELECT t.*, b.bill_number, b.service_type, c.name as citizen_name
-                 FROM transactions t
-                 JOIN bills b ON t.bill_id = b.id
-                 JOIN citizens c ON t.citizen_id = c.id
-                 ORDER BY t.created_at DESC LIMIT 20`
+                `SELECT t.*, b.bill_number, b.service_type, COALESCE(c.name, 'No Name Provided') as citizen_name
+                  FROM transactions t
+                  JOIN bills b ON t.bill_id = b.id
+                  JOIN citizens c ON t.citizen_id = c.id
+                  ORDER BY t.created_at DESC LIMIT 20`
             ),
         ]);
 
@@ -408,8 +408,8 @@ export const getAllComplaints = async (req, res, next) => {
                 ...c,
                 // Prioritize the name/mobile stored ON the complaint (entered at submission time)
                 // Fall back to the linked citizens table only if the ticket field is empty
-                citizen_name: c.citizen_name || c.citizen?.name || null,
-                citizen_mobile: c.citizen_mobile || c.citizen?.mobile || null
+                citizen_name: c.citizen_name || c.citizen?.name || 'No Name Provided',
+                citizen_mobile: c.citizen_mobile || c.citizen?.mobile || 'No Phone'
             }));
 
             return paginated(res, "All complaints", mapped, {
@@ -423,8 +423,8 @@ export const getAllComplaints = async (req, res, next) => {
             let query = `
                 SELECT 
                     c.*,
-                    COALESCE(c.citizen_name, ci.name) as citizen_name,
-                    COALESCE(c.citizen_mobile, ci.mobile) as citizen_mobile,
+                    COALESCE(c.citizen_name, ci.name, 'No Name Provided') as citizen_name,
+                    COALESCE(c.citizen_mobile, ci.mobile, 'No Phone') as citizen_mobile,
                     staff.name as assigned_to_name
                 FROM complaints c
                 LEFT JOIN citizens ci ON c.citizen_id = ci.id
@@ -510,7 +510,7 @@ export const updateServiceConfig = async (req, res, next) => {
 // ─── All Service Requests (Admin View) ───────────────────
 export const getAllServiceRequests = async (req, res, next) => {
     try {
-        const { status, department, page = 1, limit = 25 } = req.query;
+        const { status, department, priority, page = 1, limit = 25 } = req.query;
         const offset = (page - 1) * limit;
 
         const useSupabase = supabase !== null;
@@ -519,10 +519,11 @@ export const getAllServiceRequests = async (req, res, next) => {
             console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
             let query = supabase
                 .from('service_requests')
-                .select('*, citizen:citizens(name, mobile)', { count: 'estimated' });
+                .select('*, citizen:citizens!service_requests_citizen_id_fkey(name, mobile), staff:citizens!service_requests_assigned_to_fkey(name)', { count: 'estimated' });
 
             if (status) query = query.eq('status', status);
             if (department) query = query.ilike('department', `%${department}%`);
+            if (priority) query = query.eq('priority', priority);
 
             const { data, count, error } = await query
                 .order('created_at', { ascending: false })
@@ -532,10 +533,9 @@ export const getAllServiceRequests = async (req, res, next) => {
 
             const mapped = data.map(sr => ({
                 ...sr,
-                // Prioritize name/phone stored ON the service request (entered at submission time)
-                // Fall back to citizens table only if ticket fields are empty
-                citizen_name: sr.citizen_name || sr.citizen?.name || null,
-                citizen_mobile: sr.phone || sr.citizen?.mobile || null
+                citizen_name: sr.citizen_name || sr.citizen?.name || 'No Name Provided',
+                citizen_mobile: sr.phone || sr.citizen?.mobile || 'No Phone',
+                assigned_to_name: sr.staff?.name || null
             }));
 
             return paginated(res, "All service requests", mapped, {
@@ -549,10 +549,12 @@ export const getAllServiceRequests = async (req, res, next) => {
             let query = `
                 SELECT 
                     sr.*,
-                    COALESCE(sr.citizen_name, c.name) as citizen_name,
-                    COALESCE(sr.phone, c.mobile) as citizen_mobile
+                    COALESCE(sr.citizen_name, c.name, 'No Name Provided') as citizen_name,
+                    COALESCE(sr.phone, c.mobile, 'No Phone') as citizen_mobile,
+                    staff.name as assigned_to_name
                 FROM service_requests sr
-                JOIN citizens c ON sr.citizen_id = c.id
+                LEFT JOIN citizens c ON sr.citizen_id = c.id
+                LEFT JOIN citizens staff ON sr.assigned_to = staff.id
                 WHERE 1=1`;
             const params = [];
 
@@ -564,10 +566,33 @@ export const getAllServiceRequests = async (req, res, next) => {
                 params.push(department);
                 query += ` AND sr.department = $${params.length}`;
             }
+            if (priority) {
+                params.push(priority);
+                query += ` AND sr.priority = $${params.length}`;
+            }
 
-            const countQuery = query.replace(/SELECT sr\.\*.*FROM/i, "SELECT COUNT(*) FROM");
-            const totalResult = await pool.query(countQuery, params);
-            const total = parseInt(totalResult.rows[0].count);
+            // Explicit, safe count query
+            let countQuery = `
+                SELECT COUNT(*)::int 
+                FROM service_requests sr
+                LEFT JOIN citizens c ON sr.citizen_id = c.id
+                WHERE 1=1`;
+            const countParams = [];
+            if (status) {
+                countParams.push(status);
+                countQuery += ` AND sr.status = $${countParams.length}`;
+            }
+            if (department) {
+                countParams.push(department);
+                countQuery += ` AND sr.department = $${countParams.length}`;
+            }
+            if (priority) {
+                countParams.push(priority);
+                countQuery += ` AND sr.priority = $${countParams.length}`;
+            }
+
+            const totalResult = await pool.query(countQuery, countParams);
+            const total = totalResult.rows[0].count;
 
             query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
             params.push(parseInt(limit), parseInt(offset));
@@ -721,7 +746,7 @@ export const getDuplicateClusters = async (req, res, next) => {
         // Get recent complaints to cluster
         const { rows: complaints } = await pool.query(`
             SELECT c.id, c.ticket_number, c.subject, c.description, c.department, c.ward, c.status, c.created_at,
-                   ci.name as citizen_name
+                   COALESCE(c.citizen_name, ci.name, 'No Name Provided') as citizen_name
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
             WHERE c.created_at >= NOW() - INTERVAL '30 days'
@@ -886,7 +911,7 @@ export const getMLComplaintClusters = async (req, res, next) => {
         const { rows: complaints } = await pool.query(`
             SELECT c.id, c.ticket_number, c.subject, c.description, c.department,
                    c.ward, c.status, c.created_at,
-                   ci.name as citizen_name
+                   COALESCE(c.citizen_name, ci.name, 'No Name Provided') as citizen_name
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
             WHERE c.created_at >= NOW() - INTERVAL '30 days'

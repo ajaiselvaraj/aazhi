@@ -21,7 +21,18 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
     className = '',
     ...props
 }) => {
+    const [isLocalDisabled, setIsLocalDisabled] = React.useState(false);
+
     const handleInteraction = (e: React.MouseEvent<HTMLButtonElement>) => {
+        if (isLocalDisabled || props.disabled) {
+            e.preventDefault();
+            return;
+        }
+
+        // Prevent rapid double-taps (common on kiosk touchscreens)
+        setIsLocalDisabled(true);
+        setTimeout(() => setIsLocalDisabled(false), 1000);
+
         // Speak on click or touch
         speakText({
             text: speakLabel || label,

@@ -12,6 +12,20 @@ import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socke
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
+// Helper to proactively sync citizen name in DB if currently null/empty
+const syncCitizenName = async (citizenId, name) => {
+    if (!citizenId || !name || name === 'Unknown' || name === 'Guest Citizen' || name === 'Developer Citizen' || name === 'Unknown Citizen') return;
+    try {
+        const citizenRes = await pool.query("SELECT name FROM citizens WHERE id = $1", [citizenId]);
+        if (citizenRes.rows.length > 0 && !citizenRes.rows[0].name) {
+            await pool.query("UPDATE citizens SET name = $1, updated_at = NOW() WHERE id = $2", [name.trim(), citizenId]);
+            logger.info(`👤 [Auth Sync] Proactively synced citizen name in DB to "${name.trim()}"`);
+        }
+    } catch (err) {
+        logger.error(`⚠️ [Auth Sync] Failed to sync citizen name in DB: ${err.message}`);
+    }
+};
+
 // ─── Register Complaint ──────────────────────────────────
 export const registerComplaint = async (req, res, next) => {
     try {
@@ -84,8 +98,12 @@ export const registerComplaint = async (req, res, next) => {
             logger.error("AI service full analysis call failed. Proceeding with user-provided data.", { error: aiErr.response ? aiErr.response.data : aiErr.message });
         }
 
-        const citizenName = name || req.user.name;
-        const citizenMobile = phone || req.user.mobileNumber;
+        const citizenName = name || req.user?.name || null;
+        const citizenMobile = phone || req.user?.mobileNumber || null;
+
+        if (citizenName) {
+            await syncCitizenName(citizenId, citizenName);
+        }
         
         const finalMetadata = { ai_analysis: aiData, citizen_mobile: citizenMobile };
         // ═══════════════════════════════════════════════════════════════
@@ -500,14 +518,18 @@ export const createComplaintDebug = async (req, res, next) => {
         const ticketNumber = generateTicketNumber("CMP");
 
         // Use provided name/phone for offline attribution, else look up from DB
-        const citizenName = name || null;
+        const citizenName = name || req.body.citizen_name || null;
+
+        if (citizenName) {
+            await syncCitizenName(citizenId, citizenName);
+        }
 
         const result = await pool.query(
             `INSERT INTO complaints 
              (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2)), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, phone || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
         );
 
         const stages = [

@@ -68,10 +68,11 @@ const WaterBillCalculator: React.FC<Props> = ({ onBack, language }) => {
         let slabBreakdown: any[] = [];
 
         if (category === 'DOMESTIC') {
+            const domesticConfig = WATER_CONFIG.DOMESTIC;
             let remaining = kl;
             let previousLimit = 0;
 
-            for (const slab of config.slabs) {
+            for (const slab of domesticConfig.slabs) {
                 const slabCapacity = slab.limit - previousLimit;
                 const unitsInSlab = Math.min(remaining, slabCapacity);
                 

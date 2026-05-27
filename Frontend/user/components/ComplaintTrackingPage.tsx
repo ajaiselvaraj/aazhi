@@ -20,8 +20,8 @@ import {
 // - On deployed domain: uses VITE_API_URL env var (set to deployed backend URL)
 const _host = window.location.hostname;
 const _isLocalNetwork = _host === 'localhost' || /^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\./.test(_host);
-const API_BASE   = import.meta.env.VITE_API_URL    || `http://${_host}:8000`;
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || `http://${_host}:8000`;
+const API_BASE   = import.meta.env.VITE_API_URL    || `http://${_host}:5000`;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : `http://${_host}:5000`);
 
 // ── Types ─────────────────────────────────────────────────────
 interface Stage {
@@ -54,6 +54,9 @@ interface Complaint {
     updated_at: string;
     resolved_at?: string;
     citizen_name?: string;
+    type?: string;
+    assigned_to_name?: string;
+    scheduled_at?: string;
 }
 
 interface TrackingData {
@@ -61,15 +64,16 @@ interface TrackingData {
     stages: Stage[];
     messages: Message[];
 }
-
-// ── Status helpers ─────────────────────────────────────────────
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
     pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', icon: <Clock size={18} /> },
     submitted:   { label: 'Submitted',   color: '#2563eb', bg: '#dbeafe', icon: <CheckCircle size={18} /> },
     assigned:    { label: 'Assigned',    color: '#7c3aed', bg: '#ede9fe', icon: <User size={18} /> },
     in_progress: { label: 'In Progress', color: '#0891b2', bg: '#cffafe', icon: <RefreshCw size={18} /> },
+    on_hold:     { label: 'On Hold',     color: '#ea580c', bg: '#ffedd5', icon: <Clock size={18} /> },
+    completed:   { label: 'Completed',   color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
     resolved:    { label: 'Resolved',    color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
     closed:      { label: 'Closed',      color: '#64748b', bg: '#f1f5f9', icon: <CheckCircle size={18} /> },
+    cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
     rejected:    { label: 'Rejected',    color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
 };
 
@@ -97,6 +101,8 @@ const ComplaintTrackingPage: React.FC = () => {
     const [liveFlash, setLiveFlash] = useState(false);
     const socketRef = useRef<Socket | null>(null);
 
+    const isService = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || (data?.complaint && (data.complaint as any).type === 'service_request') || false;
+
     // ── Fetch complaint data ───────────────────────────────────
     const fetchData = useCallback(async () => {
         try {
@@ -105,13 +111,28 @@ const ComplaintTrackingPage: React.FC = () => {
             const res = await fetch(`${API_BASE}/api/track/${encodeURIComponent(complaintId || '')}`);
             const json = await res.json();
             if (!res.ok || !json.success) {
-                setError(json.message || 'Complaint not found.');
+                setError(json.message || 'Tracking ID not found.');
                 return;
             }
             setData(json.data);
         } catch {
             setError('Unable to reach the server. Please check your connection.');
         } finally {
+            setData(prev => {
+                if (prev && !prev.complaint?.type) {
+                    const isServiceReq = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "");
+                    if (isServiceReq) {
+                        return {
+                            ...prev,
+                            complaint: {
+                                ...prev.complaint,
+                                type: 'service_request'
+                            }
+                        };
+                    }
+                }
+                return prev;
+            });
             setLoading(false);
         }
     }, [complaintId]);
@@ -145,6 +166,9 @@ const ComplaintTrackingPage: React.FC = () => {
                         status: payload.newStatus,
                         updated_at: payload.updatedAt || prev.complaint.updated_at,
                         resolution_note: payload.resolutionNote || prev.complaint.resolution_note,
+                        rejection_reason: payload.rejectionReason || prev.complaint.rejection_reason,
+                        assigned_to_name: payload.assignedToName || (prev.complaint as any).assigned_to_name,
+                        scheduled_at: payload.scheduledAt || (prev.complaint as any).scheduled_at,
                     },
                 };
             });
@@ -164,7 +188,7 @@ const ComplaintTrackingPage: React.FC = () => {
     const handleShare = async () => {
         const url = window.location.href;
         if (navigator.share) {
-            await navigator.share({ title: 'Track My Complaint', url });
+            await navigator.share({ title: isService ? 'Track My Service Request' : 'Track My Complaint', url });
         } else {
             await navigator.clipboard.writeText(url);
             alert('Tracking link copied to clipboard!');
@@ -172,9 +196,11 @@ const ComplaintTrackingPage: React.FC = () => {
     };
 
     // ── Hierarchy step order ──────────────────────────────────
-    const STAGE_ORDER = ['pending', 'submitted', 'assigned', 'in_progress', 'resolved', 'closed'];
-
     const orderedStages = (stages: Stage[]) => {
+        const STAGE_ORDER = isService 
+            ? ['pending', 'assigned', 'in_progress', 'on_hold', 'completed', 'cancelled']
+            : ['pending', 'submitted', 'assigned', 'in_progress', 'resolved', 'closed'];
+
         const seen = new Set<string>();
         const result: Stage[] = [];
         STAGE_ORDER.forEach(key => {
@@ -231,7 +257,9 @@ const ComplaintTrackingPage: React.FC = () => {
                         </div>
                         <div>
                             <div style={{ fontWeight: 900, fontSize: 16, letterSpacing: '-0.5px' }}>SUVIDHA MOBILE</div>
-                            <div style={{ fontSize: 10, opacity: 0.7, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Complaint Tracker</div>
+                            <div style={{ fontSize: 10, opacity: 0.7, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+                                {isService ? 'Service Tracker' : 'Complaint Tracker'}
+                            </div>
                         </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -254,7 +282,7 @@ const ComplaintTrackingPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Ticket number */}
+                {/* Reference number */}
                 <div style={{ maxWidth: 600, margin: '0 auto', paddingBottom: 8 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.3em', opacity: 0.7, textTransform: 'uppercase', marginBottom: 4 }}>Reference Number</div>
                     <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: '-1px' }}>{complaint.ticket_number}</div>
@@ -292,6 +320,8 @@ const ComplaintTrackingPage: React.FC = () => {
                         {[
                             { icon: <Tag size={13} />, label: 'Category', value: complaint.category },
                             { icon: <Building2 size={13} />, label: 'Department', value: complaint.department || '—' },
+                            ...(isService && (complaint as any).assigned_to_name ? [{ icon: <User size={13} />, label: 'Assigned Technician', value: (complaint as any).assigned_to_name }] : []),
+                            ...(isService && (complaint as any).scheduled_at ? [{ icon: <Calendar size={13} />, label: 'Scheduled Date & Time', value: fmt((complaint as any).scheduled_at) }] : []),
                             { icon: <MapPin size={13} />, label: 'Ward', value: complaint.ward || '—' },
                             { icon: <Calendar size={13} />, label: 'Last Updated', value: fmt(complaint.updated_at) },
                         ].map(({ icon, label, value }) => (
@@ -328,7 +358,7 @@ const ComplaintTrackingPage: React.FC = () => {
                 {/* Timeline Card */}
                 <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', marginBottom: 20 }}>
                     <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Clock size={18} style={{ color: '#2563eb' }} /> Complaint Timeline
+                        <Clock size={18} style={{ color: '#2563eb' }} /> {isService ? 'Service Timeline' : 'Complaint Timeline'}
                     </h3>
                     <div style={{ position: 'relative' }}>
                         {/* Vertical line */}

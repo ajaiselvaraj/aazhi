@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Search, Filter, RefreshCw, Eye, MoreVertical, Calendar, Phone, User, Clock, ChevronDown } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { Search, Filter, RefreshCw, Eye, MoreVertical, Calendar, Phone, User, Clock, ChevronDown, BarChart2, AlertTriangle, CheckCircle2, Circle, Globe } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
 import { useAuth } from '../../context/AuthContext'
 import { deptKey } from '../../utils/deptFilter'
@@ -12,35 +12,54 @@ function RequestStatusBadge({ s }: { s: string }) {
   const { t } = useLanguage()
   const map: any = {
     'active': { label: t('service_req.hierarchy_status_active') || 'Active', class: 'badge-info' },
+    'pending': { label: 'Pending', class: 'badge-info' },
     'resolved': { label: t('service_req.hierarchy_status_resolved') || 'Resolved', class: 'badge-success' },
+    'completed': { label: 'Completed', class: 'badge-success' },
     'rejected': { label: t('service_req.hierarchy_status_rejected') || 'Rejected', class: 'badge-danger' },
   }
-  const status = map[s] || { label: s, class: 'badge-info' }
+  const status = map[s?.toLowerCase()] || { label: s, class: 'badge-info' }
   return <span className={`badge ${status.class}`}>{status.label}</span>
+}
+
+/* ── Priority Badge ──────────────────────────────────────────── */
+function PriorityBadge({ p }: { p: string }) {
+  const map: any = { 
+    'critical': 'badge-danger', 
+    'high': 'badge-warning', 
+    'medium': 'badge-info', 
+    'low': 'badge-success' 
+  }
+  const display = p ? p.charAt(0).toUpperCase() + p.slice(1) : 'Medium'
+  return <span className={`badge ${map[p?.toLowerCase()] || 'badge-info'}`}>{display}</span>
 }
 
 const HIERARCHY_STAGES = [
   { id: 'submitted', label: 'Submitted' },
+  { id: 'created', label: 'Created' },
   { id: 'officer_assigned', label: 'Officer Assigned' },
+  { id: 'assigned', label: 'Assigned' },
+  { id: 'working', label: 'In Progress' },
   { id: 'manager_review', label: 'Manager Review' },
   { id: 'gm_approval', label: 'GM Approval' },
-  { id: 'resolved', label: 'Resolved' }
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'completed', label: 'Completed' }
 ];
 
 function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { stage: string, status: string, createdAt: string, rejectionReason?: string }) {
   const { t } = useLanguage()
   const isRejected = status === 'rejected';
-  let currentIndex = HIERARCHY_STAGES.findIndex(s => s.id === stage);
-  if (currentIndex === -1) currentIndex = 0;
-  if (status === 'resolved') currentIndex = 4;
   
-  const LOCALIZED_STAGES = [
-    { id: 'submitted', label: t('service_req.hierarchy_stage_submitted') || 'Submitted' },
-    { id: 'officer_assigned', label: t('service_req.hierarchy_stage_officer') || 'Officer Assigned' },
-    { id: 'manager_review', label: t('service_req.hierarchy_stage_manager') || 'Manager Review' },
-    { id: 'gm_approval', label: t('service_req.hierarchy_stage_gm') || 'GM Approval' },
-    { id: 'resolved', label: t('service_req.hierarchy_stage_resolved') || 'Resolved' }
+  // Condense the stages for display
+  const displayStages = [
+    { id: 'created', label: t('service_req.hierarchy_stage_submitted') || 'Submitted' },
+    { id: 'assigned', label: t('service_req.hierarchy_stage_officer') || 'Assigned' },
+    { id: 'working', label: t('service_req.hierarchy_stage_manager') || 'In Progress' },
+    { id: 'completed', label: t('service_req.hierarchy_stage_resolved') || 'Completed' }
   ];
+
+  let currentIndex = displayStages.findIndex(s => s.id === stage);
+  if (currentIndex === -1) currentIndex = 0;
+  if (status === 'resolved' || status === 'completed') currentIndex = 3;
 
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', paddingBottom: '1rem', flexWrap: 'nowrap', overflowX: 'auto' }}>
@@ -48,11 +67,11 @@ function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { st
       <div style={{ 
         position: 'absolute', top: '13px', left: '10%', height: '2px', 
         background: isRejected ? 'var(--danger)' : 'var(--primary)', zIndex: 0, 
-        width: `${(currentIndex / (HIERARCHY_STAGES.length - 1)) * 80}%`, 
+        width: `${(currentIndex / (displayStages.length - 1)) * 80}%`, 
         transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)' 
       }}></div>
 
-      {LOCALIZED_STAGES.map((s, idx) => {
+      {displayStages.map((s, idx) => {
         const isCompleted = idx < currentIndex;
         const isCurrent = idx === currentIndex;
         const stageColor = isRejected && isCurrent ? 'var(--danger)' : 'var(--primary)';
@@ -82,9 +101,6 @@ function ProcessingHierarchy({ stage, status, createdAt, rejectionReason }: { st
   );
 }
 
-// Re-using icon
-import { CheckCircle2, Circle, AlertTriangle } from 'lucide-react'
-
 export default function ServiceRequestsPanel() {
   const { user } = useAuth()
   const { t } = useLanguage()
@@ -98,69 +114,59 @@ export default function ServiceRequestsPanel() {
   const [total, setTotal] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  const [isFetching, setIsFetching] = useState(false)
+  const isFetchingRef = useRef(false)
 
   useEffect(() => {
-    const controller = new AbortController()
-    
-    const fetchWrapper = async () => {
-      if (isFetching) return;
-      await loadRequests(false, controller.signal)
-    }
-
-    fetchWrapper()
+    loadRequests()
 
     // Safe Polling every 10 seconds
-    const interval = setInterval(async () => {
-       if (!isFetching) { 
-         await loadRequests(true, controller.signal); 
+    const interval = setInterval(() => {
+       if (!isFetchingRef.current) { 
+         loadRequests(true); 
        }
     }, 10000)
 
     return () => {
       clearInterval(interval)
-      controller.abort() // Cancel any pending request on unmount/re-render
     }
-  }, [page, statusFilter]) // Keep dependencies tight
+  }, [page, statusFilter])
 
-  async function loadRequests(silent = false, signal?: AbortSignal) {
+  async function loadRequests(silent = false) {
+    if (isFetchingRef.current && !silent) return
     if (!silent) setLoading(true)
-    setIsFetching(true)
+    isFetchingRef.current = true
     try {
-      const params: any = { page, limit: 15 }
+      const params: any = { page, limit: 50 }
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
       
       console.log('📡 [Admin] Fetching service requests...', params)
-      // Removed the hard-coded override that was forcing status: 'active'
       const res = await adminApi.getAllServiceRequests(params)
       console.log('✅ [Admin] Received requests:', res.data?.length)
       
       setRequests(res.data || [])
       setTotal(res.pagination?.total || 0)
     } catch (err: any) {
-      if (err.name === 'AbortError') {
-         console.log('⚠️ [Admin] Fetch aborted due to component unmount.');
-      } else {
-         console.error('❌ [Admin] Failed to fetch service requests:', err)
-      }
+       console.error('❌ [Admin] Failed to fetch service requests:', err)
     } finally {
       setLoading(false)
-      setIsFetching(false)
+      isFetchingRef.current = false
     }
   }
 
   // Frontend filtering for search
   const filtered = requests.filter(r => {
     const matchesStatus = statusFilter === 'All'
-       ? (r.status !== 'resolved' && r.status !== 'rejected')
+       ? (r.status !== 'resolved' && r.status !== 'rejected' && r.status !== 'completed')
        : r.status === statusFilter;
 
-    return matchesStatus &&
-    (r.ticket_number.toLowerCase().includes(search.toLowerCase()) ||
-    r.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
-    r.request_type.toLowerCase().includes(search.toLowerCase()))
+    const tkt = (r.ticket_number || '').toLowerCase();
+    const name = (r.citizen_name || '').toLowerCase();
+    const type = (r.request_type || '').toLowerCase();
+    const s = search.toLowerCase();
+
+    return matchesStatus && (tkt.includes(s) || name.includes(s) || type.includes(s));
   })
 
   async function handleUpdateStage(id: string, newStage: string) {
@@ -193,7 +199,7 @@ export default function ServiceRequestsPanel() {
     if (!confirm("Are you sure you want to resolve this request?")) return;
     try {
       setLoading(true)
-      await adminApi.updateServiceRequestStatus(id, { current_stage: 'resolved', status: 'resolved' })
+      await adminApi.updateServiceRequestStatus(id, { current_stage: 'completed', status: 'completed' })
       await loadRequests(false)
     } catch (err) {
       console.error(err)
@@ -202,14 +208,40 @@ export default function ServiceRequestsPanel() {
     }
   }
 
+  const criticalCount = requests.filter(r => r.priority === 'critical').length
+  const pendingCount = requests.filter(r => r.status !== 'resolved' && r.status !== 'rejected' && r.status !== 'completed').length
+
   return (
     <div className="animate-in fade-in duration-500">
-      {/* ── Page Header ─────────────────────────────────────────── */}
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
-          {t('nav.service_req') || 'Service Requests'}
-        </h1>
-        <p style={{ color: 'var(--text-muted)' }}>{t('service_req.desc') || 'Manage and track all utility service applications and technical requests.'}</p>
+      {/* ── Page Header & Stats ─────────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div className="page-header" style={{ marginBottom: 0 }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            {t('nav.service_req') || 'Service Requests'}
+          </h1>
+          <p style={{ color: 'var(--text-muted)' }}>{t('service_req.desc') || 'Manage and track all utility service applications and technical requests.'}</p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <div className="card" style={{ padding: '.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '.75rem', minWidth: 140 }}>
+            <div style={{ padding: '.5rem', borderRadius: 8, background: '#FF4D4F15', color: '#FF4D4F' }}>
+              <AlertTriangle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{criticalCount}</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('triage.critical_iss') || 'Critical Priority'}</div>
+            </div>
+          </div>
+          <div className="card" style={{ padding: '.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '.75rem', minWidth: 140 }}>
+            <div style={{ padding: '.5rem', borderRadius: 8, background: '#FFA94015', color: '#FFA940' }}>
+              <BarChart2 size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: '1.25rem', fontWeight: 800, lineHeight: 1 }}>{pendingCount}</div>
+              <div style={{ fontSize: '.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>{t('service_req.active_requests') || 'Active Requests'}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Filter Bar ──────────────────────────────────────────── */}
@@ -232,9 +264,9 @@ export default function ServiceRequestsPanel() {
             style={{ padding: '.75rem 1rem', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
           >
             <option value="All">{t('service_req.status_filter_all') || 'All Active Requests'}</option>
-            <option value="active">{t('service_req.status_filter_active') || 'Active (New)'}</option>
-            <option value="in_progress">{t('service_req.status_filter_in_progress') || 'In Progress'}</option>
-            <option value="resolved">{t('service_req.status_filter_resolved') || 'Resolved'}</option>
+            <option value="pending">{t('service_req.status_filter_active') || 'Pending'}</option>
+            <option value="working">{t('service_req.status_filter_in_progress') || 'In Progress'}</option>
+            <option value="completed">{t('service_req.status_filter_resolved') || 'Completed'}</option>
             <option value="rejected">{t('service_req.status_filter_rejected') || 'Rejected'}</option>
           </select>
 
@@ -257,9 +289,10 @@ export default function ServiceRequestsPanel() {
               <tr>
                 <th>{t('service_req.table_ticket') || 'Ticket ID'}</th>
                 <th>{t('service_req.table_citizen') || 'Citizen Details'}</th>
-                <th>{t('service_req.table_service') || 'Service Type'}</th>
+                <th>{t('service_req.table_service') || 'Service & Description'}</th>
                 <th>{t('service_req.table_dept') || 'Department'}</th>
-                <th>{t('service_req.table_submitted') || 'Submitted On'}</th>
+                <th>{t('triage.priority') || 'Priority'}</th>
+                <th>{t('service_req.table_submitted') || 'Submitted'}</th>
                 <th>{t('service_req.table_status') || 'Status'}</th>
                 <th style={{ textAlign: 'right' }}>{t('service_req.table_actions') || 'Actions'}</th>
               </tr>
@@ -267,27 +300,48 @@ export default function ServiceRequestsPanel() {
             <tbody>
               {loading && requests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '4rem' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '4rem' }}>
                     <RefreshCw size={32} className="animate-spin" style={{ color: 'var(--primary)', opacity: 0.5 }} />
                     <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>{t('service_req.fetching') || 'Fetching latest requests...'}</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ textAlign: 'center', padding: '4rem' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '4rem' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📭</div>
                     <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{t('service_req.no_requests') || 'No requests found'}</p>
                     <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('service_req.no_requests_sub') || 'Try adjusting your search or filters.'}</p>
                   </td>
                 </tr>
               ) : (
-                filtered.map(r => (
+                filtered.map(r => {
+                  let aiData: any = null;
+                  try {
+                    if (r.metadata && typeof r.metadata === 'string') {
+                      const parsed = JSON.parse(r.metadata);
+                      aiData = parsed.ai_analysis;
+                    } else if (r.metadata && typeof r.metadata === 'object') {
+                      aiData = r.metadata.ai_analysis;
+                    }
+                  } catch(e) {}
+
+                  return (
                   <React.Fragment key={r.id}>
                     <tr>
                       <td>
                         <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '.85rem' }}>
                           {r.ticket_number}
                         </span>
+                        {aiData?.duplicate?.is_duplicate && (
+                           <div style={{ fontSize: '0.65rem', color: '#FF4D4F', fontWeight: 700, marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                             <AlertTriangle size={10} /> Duplicate {Math.round(aiData.duplicate.similarity*100)}%
+                           </div>
+                        )}
+                        {aiData?.validation?.is_spam && (
+                           <div style={{ fontSize: '0.65rem', background: '#FF4D4F', color: 'white', padding: '1px 4px', borderRadius: 4, fontWeight: 700, marginTop: '0.2rem', display: 'inline-block' }}>
+                             SPAM
+                           </div>
+                        )}
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem' }}>
@@ -295,14 +349,41 @@ export default function ServiceRequestsPanel() {
                             {r.citizen_name?.charAt(0) || 'C'}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || t('service_req.anonymous') || 'Anonymous'}</div>
+                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{r.citizen_name || 'No Name Provided'}</div>
                             <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{r.citizen_mobile || t('service_req.no_phone') || 'No Phone'}</div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ fontWeight: 600, fontSize: '.85rem' }}>{r.request_type}</td>
                       <td>
-                        <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>{r.department}</span>
+                        <div style={{ fontWeight: 600, fontSize: '.85rem', color: 'var(--text-primary)' }}>
+                          {r.request_type || 'General Service'}
+                        </div>
+                        <div style={{ fontSize: '.75rem', color: 'var(--text-secondary)', maxWidth: 200, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {r.description}
+                        </div>
+                        <div style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <a 
+                            href={`https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(r.description || '')}&op=translate`} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            style={{ fontSize: '0.65rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}
+                          >
+                            <Globe size={10} /> Translate
+                          </a>
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{r.department}</span>
+                        {aiData?.sentiment && (
+                           <div style={{ marginTop: '0.2rem' }}>
+                             <span style={{ fontSize: '0.65rem', background: '#F3F4F6', color: '#4B5563', padding: '1px 5px', borderRadius: 4, fontWeight: 600 }}>
+                               AI: {aiData.sentiment.sentiment}
+                             </span>
+                           </div>
+                        )}
+                      </td>
+                      <td>
+                        <PriorityBadge p={r.priority} />
                       </td>
                       <td>
                         <div style={{ fontSize: '.8rem', color: 'var(--text-secondary)' }}>
@@ -332,29 +413,29 @@ export default function ServiceRequestsPanel() {
                     </tr>
                     {expandedRow === r.id && (
                       <tr>
-                        <td colSpan={7} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                        <td colSpan={8} style={{ padding: 0, background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                           <div style={{ padding: '2rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                               <div>
                                 <h4 style={{ fontSize: '1rem', fontWeight: 800 }}>{t('service_req.workflow_title') || 'Workflow Progression'}</h4>
-                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('service_req.workflow_desc') || 'Stage-based lifecycle for service inquiries.'}</p>
+                                <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>{t('service_req.workflow_desc') || 'Stage-based lifecycle for service applications.'}</p>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'var(--bg)', padding: '0.5rem 1rem', borderRadius: 12, border: '1px solid var(--border)' }}>
                                 <label style={{ fontSize: '.85rem', fontWeight: 700 }}>{t('service_req.stage') || 'Stage:'}</label>
                                 <select 
-                                  value={r.current_stage || 'submitted'}
+                                  value={r.current_stage || 'created'}
                                   onChange={(e) => handleUpdateStage(r.id, e.target.value)}
-                                  disabled={loading || ['resolved', 'rejected'].includes(r.status)}
+                                  disabled={loading || ['resolved', 'completed', 'rejected'].includes(r.status)}
                                   style={{ padding: '.4rem .5rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '.85rem', background: 'var(--bg-light)', fontWeight: 600 }}
                                 >
                                   {HIERARCHY_STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                                 </select>
-                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_resolve') || '✅ Resolve'}</button>
-                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || ['resolved', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_reject') || '❌ Reject'}</button>
+                                <button onClick={() => handleResolve(r.id)} className="btn btn-success" disabled={loading || ['resolved', 'completed', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_resolve') || '✅ Resolve'}</button>
+                                <button onClick={() => handleReject(r.id)} className="btn btn-danger" disabled={loading || ['resolved', 'completed', 'rejected'].includes(r.status)} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>{t('service_req.btn_reject') || '❌ Reject'}</button>
                               </div>
                             </div>
                             <div className="card" style={{ padding: '0 2rem 1rem 2rem', background: 'var(--bg)' }}>
-                              <ProcessingHierarchy stage={r.current_stage || 'submitted'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
+                              <ProcessingHierarchy stage={r.current_stage || 'created'} status={r.status} createdAt={r.created_at} rejectionReason={r.rejection_reason} />
                               {r.rejection_reason && (
                                 <div style={{ marginTop: '1rem', padding: '1rem', background: '#FF4D4F10', borderRadius: 12, border: '1px solid #FF4D4F30', color: '#FF4D4F', fontSize: '0.85rem' }}>
                                   <strong>{t('service_req.rejection_reason') || 'Rejection Reason:'}</strong> {r.rejection_reason}
@@ -366,7 +447,8 @@ export default function ServiceRequestsPanel() {
                       </tr>
                     )}
                   </React.Fragment>
-                ))
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -387,7 +469,7 @@ export default function ServiceRequestsPanel() {
               {t('service_req.prev') || 'Previous'}
             </button>
             <button 
-              disabled={requests.length < 15}
+              disabled={requests.length < 50}
               onClick={() => setPage(p => p + 1)}
               className="btn btn-outline" 
               style={{ padding: '.4rem .8rem', fontSize: '.8rem' }}

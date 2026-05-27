@@ -29,6 +29,7 @@ export interface ElectricityBill {
   account_number: string;
   created_at: string;
   metadata?: Record<string, any>;
+  consumer_name_masked?: string;
 }
 
 export interface ElectricityConnectionRequest {
@@ -146,7 +147,7 @@ export const ElectricityService = {
    * Update consumer profile (uses auth-service)
    */
   updateProfile: async (updates: ElectricityProfileUpdate): Promise<any> => {
-    return await apiClient.put('/users/profile', updates);
+    return await apiClient.put('/auth/profile', updates);
   },
 
   /**

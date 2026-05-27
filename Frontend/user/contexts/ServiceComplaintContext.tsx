@@ -15,10 +15,17 @@ export interface ServiceRequest {
     address: string;
     description: string;
     citizenId?: string;
-    status: "active" | "resolved" | "rejected";
+    status: string;
     currentStage: string;
     stage: string;
     rejection_reason?: string;
+    resolution_note?: string;
+    assigned_to?: string;
+    assigned_to_name?: string;
+    priority?: string;
+    scheduled_at?: string;
+    resolved_at?: string;
+    closed_at?: string;
     stages: TrackingStage[];
     createdAt: string;
 }
@@ -63,10 +70,10 @@ interface ServiceComplaintContextType {
     serviceRequests: ServiceRequest[];
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
-    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
+    addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason' | 'resolution_note' | 'assigned_to' | 'assigned_to_name' | 'priority' | 'scheduled_at' | 'resolved_at' | 'closed_at'>) => Promise<string>;
     addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
-    updateServiceStatus: (id: string, status: ServiceRequest['status']) => void;
-    updateServiceStage: (id: string, stage: string) => void;
+    updateServiceStatus: (id: string, status: string, extraPayload?: any) => void;
+    updateServiceStage: (id: string, stage: string, extraPayload?: any) => void;
     updateComplaintStatus: (id: string, status: Complaint['status']) => void;
     updateComplaintStage: (id: string, stage: string) => void;
     acknowledgeAlert: (area: string, operator: string) => void;
@@ -194,6 +201,13 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         address: r.metadata?.address || r.address || '', description: r.description || '',
                         status: r.status || 'active', currentStage: normalizedStage, stage: rawStage,
                         rejection_reason: r.rejection_reason,
+                        resolution_note: r.resolution_note,
+                        assigned_to: r.assigned_to,
+                        assigned_to_name: r.assigned_to_name,
+                        priority: r.priority || 'medium',
+                        scheduled_at: r.scheduled_at,
+                        resolved_at: r.resolved_at,
+                        closed_at: r.closed_at,
                         stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at }],
                         createdAt: r.created_at || r.createdAt,
                     };
@@ -309,7 +323,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         });
     };
 
-    const addServiceRequest = async (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>): Promise<string> => {
+    const addServiceRequest = async (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason' | 'resolution_note' | 'assigned_to' | 'assigned_to_name' | 'priority' | 'scheduled_at' | 'resolved_at' | 'closed_at'>): Promise<string> => {
         const token = `TKT-${new Date().toISOString().split('T')[0].replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
         const userStr = localStorage.getItem('aazhi_user');
         const user = userStr ? JSON.parse(userStr) : null;
@@ -438,32 +452,33 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
         return finalId;
     };
 
-    const updateServiceStatus = (id: string, status: ServiceRequest['status']) => { 
+    const updateServiceStatus = (id: string, status: string, extraPayload: any = {}) => { 
         setServiceRequests(prev => {
-            const updated = prev.map(r => r.id === id ? { ...r, status } : r);
+            const updated = prev.map(r => r.id === id ? { ...r, status, ...extraPayload } : r);
             persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
             return updated;
         }); 
-        GrievanceService.updateRequestStatusAdmin(id, { status }).catch(e => console.error("Failed to update status on server", e));
+        GrievanceService.updateRequestStatusAdmin(id, { status, ...extraPayload }).catch(e => console.error("Failed to update status on server", e));
     };
 
-    const updateServiceStage = (id: string, stage: string) => {
+    const updateServiceStage = (id: string, stage: string, extraPayload: any = {}) => {
         setServiceRequests(prev => {
             const updated = prev.map(r => {
                 if (r.id !== id) return r;
                 const now = new Date().toISOString();
                 const stages: TrackingStage[] = r.stages.map(s => s.status === "Current" ? ({ ...s, status: "Completed" as any, updatedAt: now }) : s);
                 stages.push({ stage, status: "Current" as any, updatedAt: now });
-                const status = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'resolved' : 'active';
-                return { ...r, currentStage: stage, status: status as any, stage: stage.toLowerCase(), stages };
+                const status = (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'completed' : r.status;
+                return { ...r, currentStage: stage, status, stage: stage.toLowerCase(), stages, ...extraPayload };
             });
             persistData(LOCAL_STORAGE_KEYS.SERVICES, updated);
             return updated;
         });
         
         const payload: any = { 
-            status: (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'resolved' : 'pending',
-            current_stage: stage
+            status: (stage.toLowerCase() === 'resolved' || stage.toLowerCase() === 'completed') ? 'completed' : undefined,
+            current_stage: stage,
+            ...extraPayload
         };
         GrievanceService.updateRequestStatusAdmin(id, payload).catch(e => console.error("Failed to update stage on server", e));
     };

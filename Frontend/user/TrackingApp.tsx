@@ -14,6 +14,10 @@ import { io as socketIO, Socket } from "socket.io-client";
 
 // ── Dynamic backend URL detection ─────────────────────────────
 const getBackendUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.replace(/\/api$/, '');
+  }
   const host = window.location.hostname;
   const isProd = host !== 'localhost' && !host.startsWith('192.168.') && !host.startsWith('10.');
   
@@ -22,8 +26,8 @@ const getBackendUrl = () => {
     return 'https://aazhi-9gj2.onrender.com';
   }
   
-  // In kiosk/local demo, use the current machine's IP on port 8000
-  return `http://${host}:8000`;
+  // In kiosk/local demo, use the current machine's IP on port 5000
+  return `http://${host}:5000`;
 };
 
 const BACKEND_URL = getBackendUrl();
@@ -54,6 +58,9 @@ interface Complaint {
   updated_at: string;
   resolved_at?: string;
   citizen_name?: string;
+  type?: string;
+  assigned_to_name?: string;
+  scheduled_at?: string;
 }
 
 interface TrackingData {
@@ -72,23 +79,41 @@ const DEFAULT_WORKFLOW: Stage[] = [
   { stage: "Closed", status: "pending" },
 ];
 
-// ── Map a complaint status to workflow stage states ────────────
-function buildWorkflowFromStatus(status: string): Stage[] {
-  const statusOrder = ["pending", "submitted", "assigned", "in_progress", "resolved", "closed"];
-  const labels: Record<string, string> = {
-    pending: "Complaint Created",
-    submitted: "Submitted to System",
-    assigned: "Assigned to Officer",
-    in_progress: "In Progress",
-    resolved: "Resolved",
-    closed: "Closed",
-  };
-  const currentIdx = statusOrder.indexOf(status?.toLowerCase());
-  return statusOrder.map((key, i) => ({
-    stage: labels[key],
-    status: i < currentIdx ? "done" as const :
-            i === currentIdx ? "current" as const : "pending" as const,
-  }));
+// ── Map a complaint or service status to workflow stage states ────────────
+function buildWorkflowFromStatus(status: string, isService: boolean): Stage[] {
+  if (isService) {
+    const statusOrder = ["pending", "assigned", "in_progress", "on_hold", "completed", "cancelled"];
+    const labels: Record<string, string> = {
+      pending: "Service Submitted",
+      assigned: "Technician Assigned",
+      in_progress: "In Progress",
+      on_hold: "On Hold",
+      completed: "Service Completed",
+      cancelled: "Service Cancelled",
+    };
+    const currentIdx = statusOrder.indexOf(status?.toLowerCase());
+    return statusOrder.map((key, i) => ({
+      stage: labels[key],
+      status: i < currentIdx ? "done" as const :
+              i === currentIdx ? "current" as const : "pending" as const,
+    }));
+  } else {
+    const statusOrder = ["pending", "submitted", "assigned", "in_progress", "resolved", "closed"];
+    const labels: Record<string, string> = {
+      pending: "Complaint Created",
+      submitted: "Submitted to System",
+      assigned: "Assigned to Officer",
+      in_progress: "In Progress",
+      resolved: "Resolved",
+      closed: "Closed",
+    };
+    const currentIdx = statusOrder.indexOf(status?.toLowerCase());
+    return statusOrder.map((key, i) => ({
+      stage: labels[key],
+      status: i < currentIdx ? "done" as const :
+              i === currentIdx ? "current" as const : "pending" as const,
+    }));
+  }
 }
 
 // ── Date formatter ────────────────────────────────────────────
@@ -114,6 +139,8 @@ function ComplaintTrackingPage() {
   const [liveFlash, setLiveFlash] = useState(false);
   const socketRef = useRef<Socket | null>(null);
 
+  const isService = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || (complaint && (complaint as any).type === 'service_request') || false;
+
   // ── Fetch complaint data from API ─────────────────────────
   const fetchData = useCallback(async () => {
     if (!complaintId) return;
@@ -123,15 +150,16 @@ function ComplaintTrackingPage() {
       const res = await fetch(`${API_BASE}/api/track/${encodeURIComponent(complaintId)}`);
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setError(json.message || "Complaint not found.");
-        // Use default workflow as fallback demo
+        setError(json.message || "Tracking ID not found.");
         setWorkflow(DEFAULT_WORKFLOW);
         return;
       }
       const data: TrackingData = json.data;
       setComplaint(data.complaint);
 
-      // Build workflow from API stages or from complaint status
+      const isServiceReq = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || data.complaint?.type === 'service_request';
+
+      // Build workflow from API stages or from status
       if (data.stages && data.stages.length > 0) {
         const mapped = data.stages.map((s) => ({
           ...s,
@@ -139,10 +167,10 @@ function ComplaintTrackingPage() {
         }));
         setWorkflow(mapped as Stage[]);
       } else {
-        setWorkflow(buildWorkflowFromStatus(data.complaint.status));
+        setWorkflow(buildWorkflowFromStatus(data.complaint.status, isServiceReq));
       }
     } catch {
-      setError("Unable to reach the server. Showing demo data.");
+      setError("Unable to reach the server. Showing default timeline.");
       setWorkflow(DEFAULT_WORKFLOW);
     } finally {
       setLoading(false);
@@ -170,17 +198,22 @@ function ComplaintTrackingPage() {
       setLiveFlash(true);
       setTimeout(() => setLiveFlash(false), 2000);
       if (payload.newStatus) {
-        setWorkflow(buildWorkflowFromStatus(payload.newStatus));
-        setComplaint((prev) =>
-          prev
+        setComplaint((prev) => {
+          const nextComplaint = prev
             ? {
                 ...prev,
                 status: payload.newStatus,
                 updated_at: payload.updatedAt || prev.updated_at,
                 resolution_note: payload.resolutionNote || prev.resolution_note,
+                rejection_reason: payload.rejectionReason || prev.rejection_reason,
+                assigned_to_name: payload.assignedToName || prev.assigned_to_name,
+                scheduled_at: payload.scheduledAt || prev.scheduled_at,
               }
-            : prev
-        );
+            : prev;
+          const isServiceReq = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || nextComplaint?.type === 'service_request';
+          setWorkflow(buildWorkflowFromStatus(payload.newStatus, isServiceReq));
+          return nextComplaint;
+        });
       }
       fetchData();
     });
@@ -197,7 +230,7 @@ function ComplaintTrackingPage() {
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      await navigator.share({ title: "Track Complaint", url });
+      await navigator.share({ title: isService ? "Track Service Request" : "Track Complaint", url });
     } else {
       await navigator.clipboard.writeText(url);
       alert("Tracking link copied!");
@@ -232,7 +265,9 @@ function ComplaintTrackingPage() {
             <div style={styles.logoBox}>🏛️</div>
             <div>
               <div style={styles.headerTitle}>SUVIDHA TRACKING</div>
-              <div style={styles.headerSub}>Citizen Complaint Tracker</div>
+              <div style={styles.headerSub}>
+                {isService ? "Citizen Service Request Tracker" : "Citizen Complaint Tracker"}
+              </div>
             </div>
           </div>
           <div style={styles.headerRight}>
@@ -260,7 +295,7 @@ function ComplaintTrackingPage() {
           </div>
         </div>
 
-        {/* Ticket number */}
+        {/* Reference number */}
         <div style={styles.ticketArea}>
           <div style={styles.ticketLabel}>Reference Number</div>
           <div style={styles.ticketId}>{complaint?.ticket_number || complaintId}</div>
@@ -291,8 +326,8 @@ function ComplaintTrackingPage() {
                 <div style={styles.sectionLabel}>Current Status</div>
                 <div style={{
                   fontSize: 24, fontWeight: 900,
-                  color: complaint.status === "resolved" ? "#16a34a" :
-                         complaint.status === "rejected" ? "#dc2626" : "#2563eb",
+                  color: complaint.status === "completed" || complaint.status === "resolved" ? "#16a34a" :
+                         complaint.status === "cancelled" || complaint.status === "rejected" ? "#dc2626" : "#2563eb",
                   textTransform: "capitalize" as const,
                 }}>
                   {complaint.status?.replace(/_/g, " ")}
@@ -312,6 +347,8 @@ function ComplaintTrackingPage() {
               {[
                 { label: "Category", value: complaint.category },
                 { label: "Department", value: complaint.department || "—" },
+                ...(isService && (complaint as any).assigned_to_name ? [{ label: "Assigned Technician", value: (complaint as any).assigned_to_name }] : []),
+                ...(isService && (complaint as any).scheduled_at ? [{ label: "Scheduled Date & Time", value: fmt((complaint as any).scheduled_at) }] : []),
                 { label: "Ward", value: complaint.ward || "—" },
                 { label: "Last Updated", value: fmt(complaint.updated_at) },
               ].map((m) => (
@@ -341,7 +378,7 @@ function ComplaintTrackingPage() {
         {/* ── PROCESS HIERARCHY / TIMELINE ─────────────── */}
         <div style={styles.card}>
           <h3 style={styles.timelineTitle}>
-            📋 Complaint Process Hierarchy
+            {isService ? "📋 Service Process Hierarchy" : "📋 Complaint Process Hierarchy"}
           </h3>
           <div style={styles.timeline}>
             {workflow.map((step, idx) => {

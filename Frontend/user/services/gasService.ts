@@ -194,6 +194,6 @@ export const GasService = {
    * Update consumer profile (uses auth-service)
    */
   updateProfile: async (updates: { mobile?: string; name?: string; address?: string }): Promise<any> => {
-    return await apiClient.put('/users/profile', updates);
+    return await apiClient.put('/auth/profile', updates);
   }
 };

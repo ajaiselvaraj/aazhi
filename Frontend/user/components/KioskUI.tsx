@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom';
 
 // New Components
 import DashboardHome from './kiosk/DashboardHome';
-import ServiceForm from './kiosk/ServiceForm';
+import ServiceModule from './kiosk/ServiceModule';
 import ServiceSuccess from './kiosk/ServiceSuccess';
 import PaymentReceipt from './kiosk/PaymentReceipt';
 import KioskShell from './KioskShell';
@@ -875,13 +875,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
               />
             )}
 
-            {/* Service Form */}
-            {submissionStep === 'form' && selectedService && selectedDepartment && (
-              <ServiceForm
-                serviceName={selectedService}
+            {submissionStep === 'form' && selectedDepartment && (
+              <ServiceModule
                 departmentId={selectedDepartment}
                 onBack={() => setSubmissionStep('select')}
-                onSubmit={handleServiceSubmit}
                 language={language}
               />
             )}

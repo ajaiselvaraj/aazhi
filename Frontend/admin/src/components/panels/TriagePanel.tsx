@@ -321,7 +321,7 @@ export default function TriagePanel() {
                             {c.citizen_name?.charAt(0) || 'C'}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{c.citizen_name || 'Anonymous'}</div>
+                            <div style={{ fontWeight: 700, fontSize: '.85rem' }}>{c.citizen_name || 'No Name Provided'}</div>
                             <div style={{ fontSize: '.75rem', color: 'var(--text-muted)' }}>{c.citizen_mobile || 'No Phone'}</div>
                           </div>
                         </div>
