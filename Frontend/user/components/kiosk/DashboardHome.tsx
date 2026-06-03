@@ -3,7 +3,7 @@ import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, 
 import AlertsPanel from './AlertsPanel';
 import LiveAlertsPanel from './LiveAlertsPanel'; // ⭐ ADD-ON: live backend feed with fallback
 import ConsumptionAnalytics from './ConsumptionAnalytics';
-import DisruptionMap from './DisruptionMap';
+import DisruptionMap from './disruption/DisruptionMap';
 import { CityAlert, Language } from '../../types';
 import { LocalityService } from '../../services/civicService';
 import { MOCK_USER_PROFILE } from '../../constants';
@@ -168,9 +168,13 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                 </div>
             </motion.div>
 
-            {/* Middle Row: Analytics & Map — stack in portrait */}
-            <motion.div variants={itemVariants} className={`grid ${isVertical ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} gap-6`}>
+            {/* Middle Row: Analytics */}
+            <motion.div variants={itemVariants} className="w-full">
                 <ConsumptionAnalytics language={language} />
+            </motion.div>
+
+            {/* Live Disruption Map Row (Hero Element) */}
+            <motion.div variants={itemVariants} className="w-full">
                 <DisruptionMap alerts={alerts} language={language} />
             </motion.div>
 

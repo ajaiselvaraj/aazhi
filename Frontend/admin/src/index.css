@@ -557,7 +557,28 @@ body {
   overflow: hidden;
   border: 1px solid var(--border);
 }
-.leaflet-container { font-family: var(--font-body) !important; }
+.mapboxgl-map { font-family: var(--font-body) !important; }
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid var(--border);
+}
+.mapboxgl-popup-close-button {
+  color: #9ca3af !important;
+  padding: 8px 10px !important;
+  font-size: 16px !important;
+  outline: none !important;
+  z-index: 10;
+  border: none !important;
+  background: transparent !important;
+}
+.mapboxgl-popup-close-button:hover {
+  background-color: transparent !important;
+  color: #4b5563 !important;
+}
+
 
 /* — Insight Cards — */
 .insight-card {

@@ -6,9 +6,17 @@ import {
   Settings, PenTool, FileText, MapPin, MapPinned
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import {
+  setup3DBuildings,
+  setup3DTerrain,
+  setupAtmosphere,
+  remove3DBuildings,
+  remove3DTerrain,
+  removeAtmosphere
+} from '../utils/mapbox3DUtils';
+
 
 interface MaintenanceLog {
   id: string;
@@ -83,43 +91,24 @@ const initialMockKiosks: ExtendedKiosk[] = [
 
 const TECHNICIANS = ["Rahul Sharma", "Amit Kumar", "Sanjay Verma", "Priya Singh"];
 
-// Custom Leaflet Icons using SVG rendering logic
-const createCustomIcon = (status: string) => {
-  const color = status === 'Online' ? '#10b981' : status === 'Offline' ? '#ef4444' : '#f97316';
-  const pulseClass = status !== 'Online' ? 'animate-pulse' : '';
-  
-  const markerHtml = `
-    <div style="position: relative; top: -15px; left: -10px;">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="drop-shadow-lg" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" fill="${color}" fill-opacity="0.2"></path>
-        <circle cx="12" cy="10" r="3" fill="${color}"></circle>
-      </svg>
-      ${status !== 'Online' ? `
-        <span style="position: absolute; top: 0; right: 0; display: flex; height: 12px; width: 12px;">
-          <span style="position: absolute; display: inline-flex; height: 100%; width: 100%; border-radius: 9999px; background-color: ${color}; opacity: 0.75;" class="animate-ping"></span>
-          <span style="position: relative; display: inline-flex; border-radius: 9999px; height: 12px; width: 12px; background-color: ${color};"></span>
-        </span>
-      ` : ''}
-    </div>
-  `;
 
-  return L.divIcon({
-    html: markerHtml,
-    className: `custom-leaflet-marker ${pulseClass}`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
-  });
-};
 
 const KioskNetwork: React.FC = () => {
   const { t } = useTranslation();
   const [kiosks, setKiosks] = useState<ExtendedKiosk[]>(initialMockKiosks);
+
+  // Mapbox Refs
+  const mapContainerRef = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<mapboxgl.Map | null>(null);
+  const markersRef = React.useRef<Record<string, mapboxgl.Marker>>({});
   
   // UI State
   const [viewMode, setViewMode] = useState<'Grid' | 'Map'>('Grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [is3DMode, setIs3DMode] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+
   
   // Modal State
   const [activeModal, setActiveModal] = useState<'add' | 'tech' | 'issue' | 'history' | null>(null);
@@ -153,12 +142,179 @@ const KioskNetwork: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Mapbox GL JS Lifecycle
+  useEffect(() => {
+    if (viewMode !== 'Map' || !mapContainerRef.current) return;
+
+    const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    // Fallback to a valid format token if none specified
+    mapboxgl.accessToken = token || '';
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: 'mapbox://styles/mapbox/light-v11',
+      center: [77.2090, 28.6139], // [longitude, latitude]
+      zoom: 11.5,
+      pitch: is3DMode ? 55 : 0,
+      bearing: is3DMode ? -15 : 0
+    });
+
+    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
+    
+    map.on('load', () => {
+      setMapReady(true);
+      if (is3DMode) {
+        setup3DBuildings(map);
+        setup3DTerrain(map);
+        setupAtmosphere(map, false);
+      }
+    });
+
+    mapRef.current = map;
+
+    return () => {
+      map.remove();
+      mapRef.current = null;
+      setMapReady(false);
+      markersRef.current = {};
+    };
+  }, [viewMode]);
+
+  // Toggle 3D visual layers dynamically based on is3DMode switch
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (is3DMode) {
+      map.easeTo({ pitch: 55, bearing: -15, duration: 800 });
+      setup3DBuildings(map);
+      setup3DTerrain(map);
+      setupAtmosphere(map, false);
+    } else {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+      remove3DBuildings(map);
+      remove3DTerrain(map);
+      removeAtmosphere(map);
+    }
+  }, [is3DMode, mapReady]);
+
   // Filtered Kiosks
   const filteredKiosks = kiosks.filter(k => {
     const matchesSearch = k.location.toLowerCase().includes(searchQuery.toLowerCase()) || k.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = statusFilter === 'All' || k.status === statusFilter;
     return matchesSearch && matchesFilter;
   });
+
+  // Sync Mapbox Markers with filteredKiosks state
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Remove obsolete markers
+    Object.keys(markersRef.current).forEach(id => {
+      if (!filteredKiosks.some(k => k.id === id)) {
+        markersRef.current[id].remove();
+        delete markersRef.current[id];
+      }
+    });
+
+    // Add or update markers
+    filteredKiosks.forEach(kiosk => {
+      const color = kiosk.status === 'Online' ? '#10b981' : kiosk.status === 'Offline' ? '#ef4444' : '#f97316';
+      
+      if (markersRef.current[kiosk.id]) {
+        markersRef.current[kiosk.id].setLngLat([kiosk.mapCoords.lng, kiosk.mapCoords.lat]);
+        return;
+      }
+
+      // Create Custom DOM Element for marker
+      const el = document.createElement('div');
+      el.className = 'custom-mapbox-marker';
+      el.style.width = '32px';
+      el.style.height = '32px';
+      el.innerHTML = `
+        <div style="position: relative; cursor: pointer; top: -16px; left: -16px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="drop-shadow-lg" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" fill="${color}" fill-opacity="0.2"></path>
+            <circle cx="12" cy="10" r="3" fill="${color}"></circle>
+          </svg>
+          ${kiosk.status !== 'Online' ? `
+            <span style="position: absolute; top: 0; right: 0; display: flex; height: 12px; width: 12px;">
+              <span style="position: absolute; display: inline-flex; height: 100%; width: 100%; border-radius: 9999px; background-color: ${color}; opacity: 0.75;" class="animate-ping"></span>
+              <span style="position: relative; display: inline-flex; border-radius: 9999px; height: 12px; width: 12px; background-color: ${color};"></span>
+            </span>
+          ` : ''}
+        </div>
+      `;
+
+      // Create Popup content node to register click listeners natively (bypassing React template boundaries)
+      const popupContent = document.createElement('div');
+      popupContent.className = 'kiosk-popup-container';
+      popupContent.style.padding = '0';
+      popupContent.innerHTML = `
+        <div class="bg-slate-900 p-4 text-white rounded-xl min-w-[200px] text-sm font-sans" style="margin: -10px -15px -10px -15px;">
+           <h4 class="font-extrabold text-[15px] mb-1 leading-tight tracking-tight">${kiosk.location}</h4>
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 12px;">
+             <span class="bg-slate-800 px-2 py-1 rounded bg-opacity-50 border border-slate-700 font-bold text-[10px]">${kiosk.id}</span>
+             <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${kiosk.status === 'Online' ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' : kiosk.status === 'Offline' ? 'text-red-400 bg-red-400/10 border border-red-400/20' : 'text-orange-400 bg-orange-400/10 border border-orange-400/20'}">
+                ${kiosk.status}
+             </span>
+           </div>
+           
+           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; margin-bottom: 8px;">
+             <div style="background: #1e293b; text-align: center; border-radius: 8px; padding: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <span style="display: block; color: #34d399; font-weight: 800; font-size: 14px;">${kiosk.stats.services}</span>
+                <span style="font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; display: block; margin-top: 2px;">Services</span>
+             </div>
+             <div style="background: #1e293b; text-align: center; border-radius: 8px; padding: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                <span style="display: block; color: #cbd5e1; font-weight: 800; font-size: 14px;">${Math.floor(kiosk.uptimeHours)}h</span>
+                <span style="font-size: 9px; text-transform: uppercase; color: #94a3b8; font-weight: 700; display: block; margin-top: 2px;">Uptime</span>
+             </div>
+           </div>
+
+           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px;">
+               <button id="popup-btn-history-${kiosk.id}" style="background: rgba(255,255,255,0.1); border: 0; color: white; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; text-align: center;">
+                  History
+               </button>
+               ${kiosk.status !== 'Online' ? `
+                 <button id="popup-btn-action-${kiosk.id}" style="background: #2563eb; border: 0; color: white; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; text-align: center;">
+                    Fix
+                 </button>
+               ` : `
+                 <button id="popup-btn-action-${kiosk.id}" style="background: rgba(255,255,255,0.1); border: 0; color: white; padding: 6px 8px; border-radius: 6px; font-weight: 700; font-size: 10px; cursor: pointer; text-align: center;">
+                    Report
+                 </button>
+               `}
+           </div>
+        </div>
+      `;
+
+      popupContent.querySelector(`#popup-btn-history-${kiosk.id}`)?.addEventListener('click', () => {
+        setSelectedKioskId(kiosk.id);
+        setActiveModal('history');
+      });
+      popupContent.querySelector(`#popup-btn-action-${kiosk.id}`)?.addEventListener('click', () => {
+        setSelectedKioskId(kiosk.id);
+        if (kiosk.status !== 'Online') {
+          setActiveModal('tech');
+        } else {
+          setActiveModal('issue');
+        }
+      });
+
+      const popup = new mapboxgl.Popup({ offset: [0, -15], closeButton: false })
+        .setDOMContent(popupContent);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([kiosk.mapCoords.lng, kiosk.mapCoords.lat])
+        .setPopup(popup)
+        .addTo(map);
+
+      markersRef.current[kiosk.id] = marker;
+    });
+  }, [filteredKiosks, viewMode]);
+
+
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -388,65 +544,28 @@ const KioskNetwork: React.FC = () => {
           ))}
         </div>
       )}
-
-      {/* 7. Real Map-Based Visualization using React-Leaflet */}
+      {/* 7. Real Map-Based Visualization using Mapbox GL JS */}
       {viewMode === 'Map' && (
         <div className="w-full h-[600px] bg-white rounded-3xl border border-slate-200 relative overflow-hidden animate-in fade-in zoom-in-95 shadow-sm">
-          {/* We default center the map around New Delhi roughly */}
-          <MapContainer center={[28.6139, 77.2090]} zoom={11} className="w-full h-full z-0 font-sans">
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            />
-            
-            {filteredKiosks.map(kiosk => (
-              <Marker 
-                key={kiosk.id} 
-                position={[kiosk.mapCoords.lat, kiosk.mapCoords.lng]}
-                icon={createCustomIcon(kiosk.status)}
-              >
-                <Popup className="rounded-xl shadow-xl border-0 overflow-hidden min-w-[200px] kiosk-popup text-sm font-sans" closeButton={false}>
-                   <div className="bg-slate-900 -m-[14px] p-4 text-white">
-                      <h4 className="font-extrabold text-[15px] mb-1 leading-tight tracking-tight">{kiosk.location}</h4>
-                      <div className="flex justify-between items-center text-[11px] font-bold text-slate-300 mt-2 mb-3 tracking-wide">
-                        <span className="bg-slate-800 px-2 py-1 rounded bg-opacity-50 border border-slate-700">{kiosk.id}</span>
-                        <span className={`px-2 py-1 rounded lowercase ${kiosk.status === 'Online' ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20' : kiosk.status === 'Offline' ? 'text-red-400 bg-red-400/10 border border-red-400/20' : 'text-orange-400 bg-orange-400/10 border border-orange-400/20'}`}>
-                           {kiosk.status}
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 mt-3 mb-2">
-                        <div className="bg-slate-800 rounded p-2 text-center border border-slate-700/50">
-                           <span className="block text-emerald-400 font-black text-sm">{kiosk.stats.services}</span>
-                           <span className="text-[9px] uppercase font-bold text-slate-400">{t('navServices') || 'Services'}</span>
-                        </div>
-                        <div className="bg-slate-800 rounded p-2 text-center border border-slate-700/50">
-                           <span className="block text-slate-300 font-black text-sm">{Math.floor(kiosk.uptimeHours)}h</span>
-                           <span className="text-[9px] uppercase font-bold text-slate-400">Uptime</span>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                          <button onClick={() => { setSelectedKioskId(kiosk.id); setActiveModal('history'); }} className="bg-white/10 hover:bg-white/20 text-white w-full py-1.5 rounded text-[10px] font-bold transition flex items-center justify-center gap-1">
-                             <FileText size={12}/> History
-                          </button>
-                          {kiosk.status !== 'Online' ? (
-                            <button onClick={() => { setSelectedKioskId(kiosk.id); setActiveModal('tech'); }} className="bg-blue-600 hover:bg-blue-500 text-white w-full py-1.5 rounded text-[10px] font-bold transition flex items-center justify-center gap-1 shadow-md shadow-blue-500/20">
-                               <Wrench size={12}/> Fix
-                            </button>
-                          ) : (
-                            <button onClick={() => { setSelectedKioskId(kiosk.id); setActiveModal('issue'); }} className="bg-white/10 hover:bg-orange-500 text-white w-full py-1.5 rounded text-[10px] font-bold transition flex items-center justify-center gap-1">
-                               <AlertTriangle size={12}/> Report
-                            </button>
-                          )}
-                      </div>
-                   </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+          <div ref={mapContainerRef} className="w-full h-full z-0 font-sans" />
           
-          <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 text-xs font-bold text-slate-700 flex flex-col gap-3 pointer-events-none z-[1000]">
+          {/* 3D Mode Toggle Control */}
+          <div className="absolute top-4 left-4 z-[10] flex bg-white/95 backdrop-blur-md p-1 rounded-2xl shadow border border-slate-100">
+             <button 
+               onClick={() => setIs3DMode(false)} 
+               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${!is3DMode ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+             >
+                2D Flat
+             </button>
+             <button 
+               onClick={() => setIs3DMode(true)} 
+               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${is3DMode ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-800'}`}
+             >
+                3D City
+             </button>
+          </div>
+
+          <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md p-4 rounded-xl shadow-lg border border-slate-200 text-xs font-bold text-slate-700 flex flex-col gap-3 pointer-events-none z-[10]">
              <div className="text-[10px] uppercase text-slate-400 tracking-widest border-b border-slate-200 pb-1 mb-1">Network Legend</div>
              <div className="flex items-center gap-3"><MapPinned size={16} className="text-emerald-500 fill-white"/> Online & Healthy</div>
              <div className="flex items-center gap-3"><MapPinned size={16} className="text-orange-500 fill-white drop-shadow-sm"/> Maintenance / Warning</div>
