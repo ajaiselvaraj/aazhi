@@ -79,7 +79,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
 
   // Map Controls State
   const [is3DMode, setIs3DMode] = useState(true);
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/streets-v12');
   const [activeLayers, setActiveLayers] = useState<string[]>(['water', 'power', 'incidents']);
   const [aiRisksEnabled, setAiRisksEnabled] = useState(true);
   const [flowLinesEnabled, setFlowLinesEnabled] = useState(true);

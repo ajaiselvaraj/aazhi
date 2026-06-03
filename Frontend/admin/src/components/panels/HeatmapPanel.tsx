@@ -55,7 +55,7 @@ export default function HeatmapPanel() {
   const { t } = useLanguage()
   const [issues, setIssues] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/light-v11')
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/streets-v12')
   const [mapReady, setMapReady] = useState(false)
   const [is3DMode, setIs3DMode] = useState(true)
   const [isRotating, setIsRotating] = useState(false)
