@@ -35,13 +35,20 @@ function getCoordinates(complaint: any): [number, number] | null {
   if (complaint.latitude && complaint.longitude) {
     return [parseFloat(complaint.latitude), parseFloat(complaint.longitude)]
   }
-  // Try ward-based coordinates with small random offset
+  const seedStr = (complaint.ticket_number || '') + (complaint.description || '') + (complaint.subject || '')
+  const seed = seedStr.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)
+
+  // Try ward-based coordinates with small deterministic offset
   if (complaint.ward && WARD_COORDS[complaint.ward]) {
     const base = WARD_COORDS[complaint.ward]
-    return [base[0] + (Math.random() - 0.5) * 0.01, base[1] + (Math.random() - 0.5) * 0.01]
+    const latJitter = ((seed % 100) / 100 - 0.5) * 0.01
+    const lngJitter = (((seed * 17) % 100) / 100 - 0.5) * 0.01
+    return [base[0] + latJitter, base[1] + lngJitter]
   }
-  // Random position in the default area with jitter
-  return [26.18 + (Math.random() - 0.5) * 0.08, 91.74 + (Math.random() - 0.5) * 0.06]
+  // Deterministic position in the default area with jitter
+  const latJitter = ((seed % 100) / 100 - 0.5) * 0.08
+  const lngJitter = (((seed * 17) % 100) / 100 - 0.5) * 0.06
+  return [26.18 + latJitter, 91.74 + lngJitter]
 }
 
 const MAP_STYLES = [

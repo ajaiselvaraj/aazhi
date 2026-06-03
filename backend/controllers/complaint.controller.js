@@ -27,10 +27,24 @@ const syncCitizenName = async (citizenId, name) => {
 };
 
 // ─── Register Complaint ──────────────────────────────────
+const WARD_COORDS = {
+    'Ward 1': [26.182, 91.745],
+    'Ward 2': [26.195, 91.758],
+    'Ward 3': [26.171, 91.762],
+    'Ward 4': [26.208, 91.731],
+    'Ward 5': [26.164, 91.776],
+    'Ward 6': [26.212, 91.724],
+    'Ward 7': [26.155, 91.749],
+    'Ward 8': [26.226, 91.768],
+    'Ward 9': [26.141, 91.735],
+    'Ward 10': [26.234, 91.752],
+};
+
+// ─── Register Complaint ──────────────────────────────────
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        let { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude } = req.body;
 
         // Validation for mandatory fields
         if (!subject || subject.trim() === '') {
@@ -108,14 +122,26 @@ export const registerComplaint = async (req, res, next) => {
         const finalMetadata = { ai_analysis: aiData, citizen_mobile: citizenMobile };
         // ═══════════════════════════════════════════════════════════════
 
+        // Populate latitude and longitude if missing deterministically
+        let finalLat = latitude;
+        let finalLng = longitude;
+        if (!finalLat || !finalLng) {
+            const baseCoords = WARD_COORDS[ward] || [26.180, 91.740];
+            const seed = (description || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const latJitter = ((seed % 100) / 100 - 0.5) * 0.01;
+            const lngJitter = (((seed * 17) % 100) / 100 - 0.5) * 0.01;
+            finalLat = baseCoords[0] + latJitter;
+            finalLng = baseCoords[1] + lngJitter;
+        }
+
         const ticketNumber = generateTicketNumber("CMP");
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority]
+            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, finalLat, finalLng]
         );
 
         // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
@@ -508,11 +534,23 @@ export const createComplaintDebug = async (req, res, next) => {
             return fail(res, "No citizen found in DB to attribute this complaint to.", 422);
         }
 
-        let { category, issue_category, department, subject, description, ward, priority, name, phone } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude } = req.body;
         
         // Fallback for subject if missing in debug route
         if (!subject || subject.trim() === '') {
             subject = category || issue_category || "Debug Complaint";
+        }
+
+        // Populate latitude and longitude if missing deterministically
+        let finalLat = latitude;
+        let finalLng = longitude;
+        if (!finalLat || !finalLng) {
+            const baseCoords = WARD_COORDS[ward] || [26.180, 91.740];
+            const seed = (description || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const latJitter = ((seed % 100) / 100 - 0.5) * 0.01;
+            const lngJitter = (((seed * 17) % 100) / 100 - 0.5) * 0.01;
+            finalLat = baseCoords[0] + latJitter;
+            finalLng = baseCoords[1] + lngJitter;
         }
 
         const ticketNumber = generateTicketNumber("CMP");
@@ -526,10 +564,10 @@ export const createComplaintDebug = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted', $12, $13)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium"]
+            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium", finalLat, finalLng]
         );
 
         const stages = [

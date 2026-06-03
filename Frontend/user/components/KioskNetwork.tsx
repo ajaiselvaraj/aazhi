@@ -147,7 +147,7 @@ const KioskNetwork: React.FC = () => {
     if (viewMode !== 'Map' || !mapContainerRef.current) return;
 
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    // Fallback to a valid format token if none specified
+    // Use token from environment variables
     mapboxgl.accessToken = token || '';
 
     const map = new mapboxgl.Map({

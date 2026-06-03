@@ -1,0 +1,45 @@
+{
+    "timestamp": "2026-06-03T22:19:57.680682",
+    "models": {
+        "spam_classifier": {
+            "accuracy": 1.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+        },
+        "department_router": {
+            "accuracy": 1.0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0
+        },
+        "sentiment_analyzer": {
+            "accuracy": 0.27225130890052357,
+            "precision": 0.2750117869213283,
+            "recall": 0.42334054834054835,
+            "f1": 0.1656105227210432
+        },
+        "sla_predictor": {
+            "accuracy": 0.8429319371727748,
+            "precision": 0.3333333333333333,
+            "recall": 0.42857142857142855,
+            "f1": 0.375
+        },
+        "resolution_time_regressor": {
+            "mae": 19.120318901381996,
+            "r2": 0.5237553596780256
+        },
+        "fraud_detector": {
+            "anomaly_rate": 0.072
+        },
+        "volume_forecaster": {
+            "mae": 3.9200000000000004,
+            "r2": -0.80477976391231
+        }
+    },
+    "latency_telemetry": {
+        "average_ms": 67.5174799998058,
+        "minimum_ms": 58.887300023343414,
+        "maximum_ms": 105.4596999892965
+    }
+}

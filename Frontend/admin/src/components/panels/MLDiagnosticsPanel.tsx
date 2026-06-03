@@ -4,8 +4,7 @@ import {
   Shield, Clock, Play, AlertTriangle, Sparkles, Zap
 } from 'lucide-react'
 import { adminApi } from '../../services/adminApi'
-
-const AI_SERVICE_URL = 'https://ai-service-aazhi.onrender.com'
+import * as aiApi from '../../api/aiApi'
 
 interface TestResult {
   test_id: number
@@ -37,7 +36,7 @@ export default function MLDiagnosticsPanel() {
   async function checkHealth() {
     setHealthLoading(true)
     try {
-      const res = await fetch(`${AI_SERVICE_URL}/health`)
+      const res = await fetch(`${aiApi.getAiBaseUrl()}/health`)
       const data = await res.json()
       setHealth(data)
     } catch {
@@ -56,7 +55,7 @@ export default function MLDiagnosticsPanel() {
       try {
         result = await adminApi.getMLDiagnostics()
       } catch {
-        const res = await fetch(`${AI_SERVICE_URL}/api/ai/diagnostics`, {
+        const res = await fetch(`${aiApi.getAiBaseUrl()}/api/ai/diagnostics`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ run_full: true }),

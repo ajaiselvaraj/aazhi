@@ -4,10 +4,9 @@ import {
   BarChart2, Shield, TrendingUp, AlertTriangle, CheckCircle, XCircle,
   Sparkles, Search, Tag
 } from 'lucide-react'
+import * as aiApi from '../../api/aiApi'
 import { adminApi } from '../../services/adminApi'
 import { useLanguage } from '../../context/LanguageContext'
-
-const AI_SERVICE_URL = 'https://ai-service-aazhi.onrender.com'
 
 /* ── Tiny inline bar chart ──────────────────────────────── */
 function MiniBar({ data, colorMap }: { data: { label: string; value: number }[]; colorMap?: Record<string, string> }) {
@@ -73,7 +72,8 @@ export default function AIInsightsPanel() {
 
   async function checkHealth() {
     try {
-      const res = await fetch(`${AI_SERVICE_URL}/health`)
+      const aiBaseUrl = aiApi.getAiBaseUrl()
+      const res = await fetch(`${aiBaseUrl}/health`)
       const data = await res.json()
       setHealth(data)
     } catch {
@@ -102,25 +102,37 @@ export default function AIInsightsPanel() {
 
   /* ── ML Playground ────────────────────────────────────── */
   async function runFullAnalysis(text: string) {
-    const headers = { 'Content-Type': 'application/json' }
-    const body = JSON.stringify({ text })
+    let existing: any[] = []
+    try {
+      const res = await adminApi.getAllComplaints({ limit: 10 })
+      existing = res.data || []
+    } catch (e) {
+      console.warn("Failed to load complaints for duplicate detection:", e)
+    }
 
-    // Call all 3 real AI endpoints in parallel
-    const [spamRes, deptRes, sentRes] = await Promise.all([
-      fetch(`${AI_SERVICE_URL}/api/ai/validate-complaint`, { method: 'POST', headers, body }),
-      fetch(`${AI_SERVICE_URL}/api/ai/classify-complaint`, { method: 'POST', headers, body }),
-      fetch(`${AI_SERVICE_URL}/api/ai/analyze-sentiment`, { method: 'POST', headers, body }),
-    ])
+    const aiBaseUrl = aiApi.getAiBaseUrl()
+    const res = await fetch(`${aiBaseUrl}/api/ai/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, existing_complaints: existing })
+    })
 
-    const [spamJson, deptJson, sentJson] = await Promise.all([
-      spamRes.json(), deptRes.json(), sentRes.json(),
-    ])
+    if (!res.ok) {
+      throw new Error(`AI Service returned status ${res.status}`)
+    }
+
+    const json = await res.json()
+    if (!json.success || !json.data) {
+      throw new Error(json.message || 'AI analysis failed')
+    }
+
+    const { validation, department, duplicate, sentiment } = json.data
 
     return {
-      validation: spamJson.success ? spamJson.data : null,
-      department: deptJson.success ? deptJson.data : null,
-      sentiment: sentJson.success ? sentJson.data : null,
-      duplicate: { is_duplicate: false, similarity: 0, reason: 'No previous complaints compared.' },
+      validation,
+      department,
+      sentiment,
+      duplicate
     }
   }
 
@@ -152,8 +164,9 @@ export default function AIInsightsPanel() {
         setAnalyzing(false)
         return
       }
-      const random = list[Math.floor(Math.random() * list.length)]
-      const text = `${random.subject || ''} ${random.description || ''}`.trim()
+      // Use deterministic index fallback (the first complaint) to remove Math.random()
+      const targetComplaint = list[0]
+      const text = `${targetComplaint.subject || ''} ${targetComplaint.description || ''}`.trim()
       setPlaygroundText(text)
 
       const data = await runFullAnalysis(text)
@@ -166,7 +179,7 @@ export default function AIInsightsPanel() {
   }
 
   const isOnline = health?.status === 'healthy'
-  const modelLoaded = health?.model_loaded === true
+  const modelLoaded = health?.models?.spam === true
 
   return (
     <div className="section-gap" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
