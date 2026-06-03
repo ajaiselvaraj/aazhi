@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 interface ComplaintsModuleProps {
     onBack: () => void;
     language: Language;
-    departmentId?: string; // Optional prop for pre-selecting department
+    departmentId?: string; //Optional prop for pre-selecting department
 }
 
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
