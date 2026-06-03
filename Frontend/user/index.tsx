@@ -2,6 +2,11 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
+  throw new Error("Missing Mapbox token");
+}
+
+
 import App from "./App";
 import TrackingApp from "./TrackingApp";
 import { OrientationProvider } from "./contexts/OrientationContext";

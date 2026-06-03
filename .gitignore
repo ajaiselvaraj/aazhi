@@ -48,3 +48,7 @@ venv/
 back.env
 front.env
 admin.env
+
+# ─── Security Keys and Certificates ───────────────────────
+*.pem
+*.key

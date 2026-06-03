@@ -3,6 +3,11 @@
 
 import express from 'express';
 import 'dotenv/config';
+
+if (!process.env.JWT_SECRET) {
+    throw new Error("Missing JWT_SECRET environment variable");
+}
+
 import cors from 'cors';
 import morgan from 'morgan';
 

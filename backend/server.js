@@ -11,6 +11,11 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, "back.env") });
 
+if (!process.env.JWT_SECRET) {
+    throw new Error("Missing JWT_SECRET environment variable");
+}
+
+
 import app from "./app.js";
 import { testConnection } from "./config/db.js";
 import logger from "./utils/logger.js";
