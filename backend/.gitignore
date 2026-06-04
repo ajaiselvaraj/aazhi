@@ -1,6 +1,22 @@
-node_modules/
-logs/
+# Ignore env files
 .env
+.env.*
+*.env
+
+# Ignore microservice envs
+microservices/.env.auth
+microservices/.env.elec
+microservices/.env.gas
+microservices/.env.muni
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build folders
+dist/
+**/dist/
+
+# Logs
+logs/
 *.log
-firebase-service-account.json.json
-*service-account*.json

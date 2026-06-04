@@ -20,6 +20,8 @@
     "**/*.js"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "middleware/InputValidator.ts",
+    "services/AuditLogger.ts"
   ]
 }
