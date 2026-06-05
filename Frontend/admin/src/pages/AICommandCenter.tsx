@@ -187,7 +187,12 @@ export default function AICommandCenter() {
 
   // --- Mapbox GL Initialization ---
   useEffect(() => {
-    if (!mapContainerRef.current) return
+    if (!mapContainerRef.current || !MAPBOX_TOKEN) {
+      if (!MAPBOX_TOKEN) {
+        addLog('GIS', 'Mapbox token is missing. Map visualization disabled.')
+      }
+      return
+    }
 
     mapboxgl.accessToken = MAPBOX_TOKEN
     const map = new mapboxgl.Map({
@@ -509,23 +514,43 @@ export default function AICommandCenter() {
                 <Map size={16} style={{ color: '#2ECC71' }} /> GIS Predictive Overlay Viewport
               </h3>
               <div style={{ display: 'flex', gap: '1rem', fontSize: '.75rem', fontWeight: 600 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showHotspots} onChange={e => setShowHotspots(e.target.checked)} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: MAPBOX_TOKEN ? 'pointer' : 'not-allowed', opacity: MAPBOX_TOKEN ? 1 : 0.5 }}>
+                  <input type="checkbox" checked={showHotspots} onChange={e => setShowHotspots(e.target.checked)} disabled={!MAPBOX_TOKEN} />
                   <span>AI Hotspots</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={showAnomalies} onChange={e => setShowAnomalies(e.target.checked)} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: '.3rem', cursor: MAPBOX_TOKEN ? 'pointer' : 'not-allowed', opacity: MAPBOX_TOKEN ? 1 : 0.5 }}>
+                  <input type="checkbox" checked={showAnomalies} onChange={e => setShowAnomalies(e.target.checked)} disabled={!MAPBOX_TOKEN} />
                   <span>Fraud Anomaly Markers</span>
                 </label>
               </div>
             </div>
 
             {/* Map Container */}
-            <div ref={mapContainerRef} style={{ width: '100%', height: 320 }} />
+            {MAPBOX_TOKEN ? (
+              <div ref={mapContainerRef} style={{ width: '100%', height: 320 }} />
+            ) : (
+              <div style={{
+                width: '100%',
+                height: 320,
+                background: '#0B0F19',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                borderBottom: '1px solid var(--border)'
+              }}>
+                <Map size={32} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', fontWeight: 600 }}>Mapbox Token Missing</div>
+                <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textAlign: 'center', padding: '0 2rem' }}>
+                  Please add <code>VITE_MAPBOX_ACCESS_TOKEN</code> to your <code>.env</code> file to enable predictive GIS layers.
+                </div>
+              </div>
+            )}
 
             <div style={{ padding: '.8rem 1.5rem', background: 'var(--border)', fontSize: '.72rem', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Guwahati Metropolitan Region • GIS Engine active</span>
-              <span>Map Style: 3D Dark Extrusions</span>
+              <span>Guwahati Metropolitan Region • GIS Engine {MAPBOX_TOKEN ? 'active' : 'inactive (missing token)'}</span>
+              <span>Map Style: {MAPBOX_TOKEN ? '3D Dark Extrusions' : 'N/A'}</span>
             </div>
           </div>
 
@@ -588,13 +613,17 @@ export default function AICommandCenter() {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Spam Model:</span>
                   <strong style={{ color: diagnostics.spam_model_loaded ? '#2ECC71' : '#FF4D4F' }}>
-                    {diagnostics.spam_model_loaded ? 'LOADED' : 'UNLOADED'}
+                    {diagnostics.spam_model_loaded 
+                      ? (diagnostics.spam_model_accuracy ? `LOADED (${diagnostics.spam_model_accuracy})` : 'LOADED') 
+                      : 'UNLOADED'}
                   </strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Router Classifier:</span>
                   <strong style={{ color: diagnostics.router_model_loaded ? '#2ECC71' : '#FF4D4F' }}>
-                    {diagnostics.router_model_loaded ? 'LOADED' : 'UNLOADED'}
+                    {diagnostics.router_model_loaded 
+                      ? (diagnostics.department_router_accuracy ? `LOADED (${diagnostics.department_router_accuracy})` : 'LOADED') 
+                      : 'UNLOADED'}
                   </strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -615,13 +644,19 @@ export default function AICommandCenter() {
                     {diagnostics.fraud_model_loaded ? 'LOADED' : 'UNLOADED'}
                   </strong>
                 </div>
+                {diagnostics.active_rules !== undefined && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Active Heuristic Rules:</span>
+                    <strong>{diagnostics.active_rules} Rules</strong>
+                  </div>
+                )}
                 <div style={{ borderTop: '1px solid var(--border)', marginTop: '.4rem', paddingTop: '.6rem', display: 'flex', justifyContent: 'space-between' }}>
                   <span>Avg Latency:</span>
                   <strong>{diagnostics.inference_latency_avg_ms} ms</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>System Memory:</span>
-                  <strong>{diagnostics.system_memory_mb} MB</strong>
+                  <strong>{diagnostics.memory_usage || `${diagnostics.system_memory_mb} MB`}</strong>
                 </div>
               </div>
             ) : (

@@ -138,10 +138,10 @@ export default function HeatmapPanel() {
 
   // Initialize Mapbox Map
   useEffect(() => {
-    if (!mapContainerRef.current) return
+    if (!mapContainerRef.current || !import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) return
 
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
-    mapboxgl.accessToken = token || ''
+    mapboxgl.accessToken = token
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -469,195 +469,216 @@ export default function HeatmapPanel() {
 
       {/* Map & Street View Split View Container */}
       <div style={{ width: '100%', height: '550px', display: 'flex', position: 'relative', zIndex: 0 }}>
-        {/* Map Column */}
-        <div 
-          ref={mapContainerRef} 
-          style={{ 
-            width: viewMode === 'street' ? '50%' : '100%', 
-            height: '100%',
-            transition: 'width 0.25s ease-in-out'
-          }} 
-        />
-
-        {/* Street View Column */}
-        {viewMode === 'street' && (
-          <div style={{ 
-            width: '50%', 
-            height: '100%', 
-            borderLeft: '1px solid var(--border)',
-            position: 'relative',
-            zIndex: 10
-          }}>
-            <StreetViewPanel 
-              lat={streetViewCoords.lat}
-              lng={streetViewCoords.lng}
-              onPositionChange={handleStreetViewPositionChange}
-              onClose={() => setViewMode('map')}
+        {import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ? (
+          <>
+            {/* Map Column */}
+            <div 
+              ref={mapContainerRef} 
+              style={{ 
+                width: viewMode === 'street' ? '50%' : '100%', 
+                height: '100%',
+                transition: 'width 0.25s ease-in-out'
+              }} 
             />
-          </div>
-        )}
 
-        {/* Overlay Loader */}
-        {loading && (
-          <div style={{
-            position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
-            backdropFilter: 'blur(2px)'
-          }}>
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-              <RefreshCw size={28} className="animate-spin" style={{ opacity: 0.4, margin: '0 auto 1rem' }} />
-              <p style={{ fontWeight: 600 }}>Updating issue map...</p>
-            </div>
-          </div>
-        )}
-
-        {/* Empty State Overlay */}
-        {!loading && issues.length === 0 && (
-          <div style={{
-            position: 'absolute', inset: 0, background: '#ffffff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1900
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <Inbox size={40} style={{ color: 'var(--border)', margin: '0 auto 1rem' }} />
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No Complaints to Display</p>
-              <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Complaint locations will appear on the map once complaints are submitted.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Style Control, View Mode & 3D Tools */}
-        <div style={{
-          position: 'absolute', top: '12px', left: '12px', zIndex: 1000,
-          display: 'flex', flexDirection: 'column', gap: '8px'
-        }}>
-          {/* View Mode Toggle */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '4px',
-            border: '1px solid var(--border)', width: 'fit-content', backdropFilter: 'blur(4px)'
-          }}>
-            <button
-              onClick={() => setViewMode('map')}
-              style={{
-                background: viewMode === 'map' ? 'var(--primary)' : 'transparent',
-                color: viewMode === 'map' ? '#ffffff' : 'var(--text-primary)',
-                border: 'none', padding: '6px 12px', borderRadius: '6px',
-                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-            >
-              Map View
-            </button>
-            <button
-              onClick={() => {
-                if (issues.length > 0) {
-                  setStreetViewCoords({ lat: issues[0].lat, lng: issues[0].lng })
-                }
-                setViewMode('street')
-              }}
-              style={{
-                background: viewMode === 'street' ? 'var(--primary)' : 'transparent',
-                color: viewMode === 'street' ? '#ffffff' : 'var(--text-primary)',
-                border: 'none', padding: '6px 12px', borderRadius: '6px',
-                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-            >
-              Street View
-            </button>
-          </div>
-
-          {/* Map Styles Selector */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '4px',
-            border: '1px solid var(--border)', backdropFilter: 'blur(4px)'
-          }}>
-            {MAP_STYLES.map(style => (
-              <button
-                key={style.name}
-                onClick={() => setMapStyle(style.url)}
-                style={{
-                  background: mapStyle === style.url ? 'var(--primary)' : 'transparent',
-                  color: mapStyle === style.url ? '#ffffff' : 'var(--text-primary)',
-                  border: 'none', padding: '6px 12px', borderRadius: '6px',
-                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  outline: 'none'
-                }}
-              >
-                {style.name}
-              </button>
-            ))}
-          </div>
-
-          {/* 3D Smart City Toggles */}
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '6px',
-            border: '1px solid var(--border)', width: 'fit-content', backdropFilter: 'blur(4px)'
-          }}>
-            <button
-              onClick={() => setIs3DMode(!is3DMode)}
-              style={{
-                background: is3DMode ? 'var(--primary)' : 'transparent',
-                color: is3DMode ? '#ffffff' : 'var(--text-primary)',
-                border: 'none', padding: '6px 12px', borderRadius: '6px',
-                fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.2s',
-                outline: 'none'
-              }}
-            >
-              {is3DMode ? '3D City Active' : 'Enable 3D'}
-            </button>
-            {is3DMode && (
-              <button
-                onClick={() => setIsRotating(!isRotating)}
-                style={{
-                  background: isRotating ? '#10b981' : 'transparent',
-                  color: isRotating ? '#ffffff' : 'var(--text-primary)',
-                  border: 'none', padding: '6px 12px', borderRadius: '6px',
-                  fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  outline: 'none'
-                }}
-              >
-                {isRotating ? 'Orbiting' : 'Cinematic Scan'}
-              </button>
+            {/* Street View Column */}
+            {viewMode === 'street' && (
+              <div style={{ 
+                width: '50%', 
+                height: '100%', 
+                borderLeft: '1px solid var(--border)',
+                position: 'relative',
+                zIndex: 10
+              }}>
+                <StreetViewPanel 
+                  lat={streetViewCoords.lat}
+                  lng={streetViewCoords.lng}
+                  onPositionChange={handleStreetViewPositionChange}
+                  onClose={() => setViewMode('map')}
+                />
+              </div>
             )}
-          </div>
-        </div>
 
+            {/* Overlay Loader */}
+            {loading && (
+              <div style={{
+                position: 'absolute', inset: 0, background: 'rgba(255, 255, 255, 0.7)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+                backdropFilter: 'blur(2px)'
+              }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <RefreshCw size={28} className="animate-spin" style={{ opacity: 0.4, margin: '0 auto 1rem' }} />
+                  <p style={{ fontWeight: 600 }}>Updating issue map...</p>
+                </div>
+              </div>
+            )}
 
-        {/* Floating Legend */}
-        <div style={{
-          position: 'absolute', bottom: '24px', right: '24px', zIndex: 1000,
-          background: 'rgba(255, 255, 255, 0.95)', padding: '14px 18px', borderRadius: '10px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backdropFilter: 'blur(4px)',
-          border: '1px solid var(--border)',
-        }}>
-          <div style={{ fontWeight: 700, marginBottom: '10px', fontSize: '0.9rem', color: '#111827' }}>Priority Legend</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 14, height: 14, background: '#FF4D4F', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Critical Issue
+            {/* Empty State Overlay */}
+            {!loading && issues.length === 0 && (
+              <div style={{
+                position: 'absolute', inset: 0, background: '#ffffff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1900
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <Inbox size={40} style={{ color: 'var(--border)', margin: '0 auto 1rem' }} />
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>No Complaints to Display</p>
+                  <p style={{ fontSize: '.85rem', color: 'var(--text-muted)' }}>Complaint locations will appear on the map once complaints are submitted.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Style Control, View Mode & 3D Tools */}
+            <div style={{
+              position: 'absolute', top: '12px', left: '12px', zIndex: 1000,
+              display: 'flex', flexDirection: 'column', gap: '8px'
+            }}>
+              {/* View Mode Toggle */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '4px',
+                border: '1px solid var(--border)', width: 'fit-content', backdropFilter: 'blur(4px)'
+              }}>
+                <button
+                  onClick={() => setViewMode('map')}
+                  style={{
+                    background: viewMode === 'map' ? 'var(--primary)' : 'transparent',
+                    color: viewMode === 'map' ? '#ffffff' : 'var(--text-primary)',
+                    border: 'none', padding: '6px 12px', borderRadius: '6px',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    outline: 'none'
+                  }}
+                >
+                  Map View
+                </button>
+                <button
+                  onClick={() => {
+                    if (issues.length > 0) {
+                      setStreetViewCoords({ lat: issues[0].lat, lng: issues[0].lng })
+                    }
+                    setViewMode('street')
+                  }}
+                  style={{
+                    background: viewMode === 'street' ? 'var(--primary)' : 'transparent',
+                    color: viewMode === 'street' ? '#ffffff' : 'var(--text-primary)',
+                    border: 'none', padding: '6px 12px', borderRadius: '6px',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    outline: 'none'
+                  }}
+                >
+                  Street View
+                </button>
+              </div>
+
+              {/* Map Styles Selector */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '4px',
+                border: '1px solid var(--border)', backdropFilter: 'blur(4px)'
+              }}>
+                {MAP_STYLES.map(style => (
+                  <button
+                    key={style.name}
+                    onClick={() => setMapStyle(style.url)}
+                    style={{
+                      background: mapStyle === style.url ? 'var(--primary)' : 'transparent',
+                      color: mapStyle === style.url ? '#ffffff' : 'var(--text-primary)',
+                      border: 'none', padding: '6px 12px', borderRadius: '6px',
+                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      outline: 'none'
+                    }}
+                  >
+                    {style.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* 3D Smart City Toggles */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.95)', padding: '4px', borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)', display: 'flex', gap: '6px',
+                border: '1px solid var(--border)', width: 'fit-content', backdropFilter: 'blur(4px)'
+              }}>
+                <button
+                  onClick={() => setIs3DMode(!is3DMode)}
+                  style={{
+                    background: is3DMode ? 'var(--primary)' : 'transparent',
+                    color: is3DMode ? '#ffffff' : 'var(--text-primary)',
+                    border: 'none', padding: '6px 12px', borderRadius: '6px',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    outline: 'none'
+                  }}
+                >
+                  {is3DMode ? '3D City Active' : 'Enable 3D'}
+                </button>
+                {is3DMode && (
+                  <button
+                    onClick={() => setIsRotating(!isRotating)}
+                    style={{
+                      background: isRotating ? '#10b981' : 'transparent',
+                      color: isRotating ? '#ffffff' : 'var(--text-primary)',
+                      border: 'none', padding: '6px 12px', borderRadius: '6px',
+                      fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      outline: 'none'
+                    }}
+                  >
+                    {isRotating ? 'Orbiting' : 'Cinematic Scan'}
+                  </button>
+                )}
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 14, height: 14, background: '#FFA940', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              High Priority
+
+            {/* Floating Legend */}
+            <div style={{
+              position: 'absolute', bottom: '24px', right: '24px', zIndex: 1000,
+              background: 'rgba(255, 255, 255, 0.95)', padding: '14px 18px', borderRadius: '10px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backdropFilter: 'blur(4px)',
+              border: '1px solid var(--border)',
+            }}>
+              <div style={{ fontWeight: 700, marginBottom: '10px', fontSize: '0.9rem', color: '#111827' }}>Priority Legend</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: '#374151', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: 14, height: 14, background: '#FF4D4F', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
+                  Critical Issue
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: 14, height: 14, background: '#FFA940', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
+                  High Priority
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: 14, height: 14, background: '#FFD43B', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
+                  Medium Priority
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: 14, height: 14, background: '#2ECC71', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
+                  Low Priority
+                </div>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 14, height: 14, background: '#FFD43B', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Medium Priority
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: 14, height: 14, background: '#2ECC71', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #FFE0E0' }} />
-              Low Priority
+          </>
+        ) : (
+          <div style={{
+            width: '100%',
+            height: '100%',
+            background: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column',
+            gap: '1rem',
+            border: '1px dashed var(--border)',
+          }}>
+            <MapPin size={48} style={{ color: 'var(--text-muted)' }} />
+            <div style={{ color: 'var(--text-primary)', fontSize: '1.1rem', fontWeight: 700 }}>Mapbox Token Missing</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px', lineHeight: 1.5 }}>
+              The Live Issue Map requires a Mapbox API token. Please configure <code>VITE_MAPBOX_ACCESS_TOKEN</code> in your admin <code>.env</code> file.
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
