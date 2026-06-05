@@ -9,7 +9,7 @@ import { success, fail, paginated } from "../utils/response.js";
 import stringSimilarity from "string-similarity";
 import logger from "../utils/logger.js";
 
-// ─── Simple In-Memory Cache ────────────────────────────────
+// ─── Simple In-Memory Cache ───────────────────────────────
 const cache = {
     dashboard: { data: null, timestamp: 0 },
     analytics: { data: null, timestamp: 0 },
