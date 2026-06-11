@@ -144,11 +144,11 @@ const KioskNetwork: React.FC = () => {
 
   // Mapbox GL JS Lifecycle
   useEffect(() => {
-    if (viewMode !== 'Map' || !mapContainerRef.current) return;
-
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    if (viewMode !== 'Map' || !mapContainerRef.current || !token) return;
+
     // Use token from environment variables
-    mapboxgl.accessToken = token || '';
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -547,7 +547,24 @@ const KioskNetwork: React.FC = () => {
       {/* 7. Real Map-Based Visualization using Mapbox GL JS */}
       {viewMode === 'Map' && (
         <div className="w-full h-[600px] bg-white rounded-3xl border border-slate-200 relative overflow-hidden animate-in fade-in zoom-in-95 shadow-sm">
-          <div ref={mapContainerRef} className="w-full h-full z-0 font-sans" />
+          {import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ? (
+            <div ref={mapContainerRef} className="w-full h-full z-0 font-sans" />
+          ) : (
+            <div className="w-full h-full z-0 flex flex-col items-center justify-center p-8 text-center bg-slate-50">
+              <div className="p-4 bg-orange-100 rounded-full border border-orange-200 mb-4 animate-pulse">
+                <MapPin className="h-8 w-8 text-orange-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Interactive Kiosk Map Disabled</h3>
+              <p className="text-xs text-slate-500 max-w-sm mb-6 leading-relaxed">
+                The Kiosk map requires a Mapbox API token. Please configure the 
+                <code className="mx-1.5 px-1.5 py-0.5 rounded bg-slate-100 text-orange-600 font-mono text-[10px] border border-orange-200">VITE_MAPBOX_ACCESS_TOKEN</code> 
+                in your environment file.
+              </p>
+              <div className="text-xs text-slate-400 font-medium">
+                Create a token at <a href="https://mapbox.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">mapbox.com</a> to unlock GIS mapping.
+              </div>
+            </div>
+          )}
           
           {/* 3D Mode Toggle Control */}
           <div className="absolute top-4 left-4 z-[10] flex bg-white/95 backdrop-blur-md p-1 rounded-2xl shadow border border-slate-100">

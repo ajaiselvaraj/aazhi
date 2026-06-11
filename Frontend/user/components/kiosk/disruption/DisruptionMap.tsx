@@ -5,7 +5,7 @@ import { Language } from '../../../types';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CloudSun, ShieldCheck, List, Sidebar } from 'lucide-react';
+import { CloudSun, ShieldCheck, List, Sidebar, MapPin } from 'lucide-react';
 
 // Utilities
 import {
@@ -112,10 +112,10 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
 
   // 1. Initialize Mapbox Map
   useEffect(() => {
-    if (!mapContainerRef.current) return;
-
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-    mapboxgl.accessToken = token || '';
+    if (!mapContainerRef.current || !token) return;
+
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -611,8 +611,25 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
       <div className="flex-1 flex gap-5 w-full h-full min-h-0 relative overflow-hidden">
         {/* Map Column */}
         <div className="flex-1 h-full bg-slate-950/80 rounded-[2.5rem] border border-white/5 relative overflow-hidden shadow-2xl">
-          {/* Map canvas */}
-          <div ref={mapContainerRef} className="w-full h-full z-0" />
+          {/* Map canvas or Fallback */}
+          {import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ? (
+            <div ref={mapContainerRef} className="w-full h-full z-0" />
+          ) : (
+            <div className="w-full h-full z-0 flex flex-col items-center justify-center p-8 text-center bg-slate-950/40 rounded-[2.5rem]">
+              <div className="p-4 bg-purple-500/10 rounded-full border border-purple-500/20 mb-4 animate-pulse">
+                <MapPin className="h-8 w-8 text-purple-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-200 mb-2">Live Outage Map Disabled</h3>
+              <p className="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
+                The interactive map requires a Mapbox API token. Please configure the 
+                <code className="mx-1.5 px-1.5 py-0.5 rounded bg-slate-900 text-purple-300 font-mono text-[10px] border border-purple-500/25">VITE_MAPBOX_ACCESS_TOKEN</code> 
+                in your environment file.
+              </p>
+              <div className="text-[10px] text-slate-500 font-medium">
+                You can get a free token from <a href="https://mapbox.com" target="_blank" rel="noreferrer" className="text-purple-400 hover:underline">mapbox.com</a>
+              </div>
+            </div>
+          )}
 
           {/* AI Scan Overlay Line */}
           {aiRisksEnabled && <div className="radar-scan-line" />}
