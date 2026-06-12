@@ -75,24 +75,20 @@ axiosInstance.interceptors.response.use(
     const data: any = error.response?.data;
     const message = data?.message || error.message || 'Something went wrong';
 
-    if (status === 401) {
-      // Only clear the session if a real token was sent with this request
-      // AND the server actively rejected it.
-      const sentHeader = error.config?.headers?.['Authorization'] as string | undefined;
-      const hadRealToken = !!(sentHeader && sentHeader.startsWith('Bearer '));
+    if (status === 401 || status === 403) {
+      console.warn('🔓 [Auth] Server rejected session (401/403) — clearing session and redirecting.');
+      
+      const lang = localStorage.getItem('selectedLanguage');
+      const appLang = localStorage.getItem('app_lang');
 
-      if (hadRealToken) {
-        // Double check if the token is still in localStorage (it might have been cleared already)
-        const currentToken = localStorage.getItem('aazhi_token');
-        if (currentToken && sentHeader.includes(currentToken)) {
-          console.warn('🔓 [Auth] Server rejected the current token — clearing session.');
-          localStorage.removeItem('aazhi_token');
-          localStorage.removeItem('aazhi_user');
-        }
-      } else {
-        // No token was sent — this is an unauthenticated request hitting a protected route.
-        console.info(`ℹ️ [Auth] 401 on unauthenticated request to ${error.config?.url}.`);
-      }
+      localStorage.clear();
+      sessionStorage.clear();
+
+      if (lang) localStorage.setItem('selectedLanguage', lang);
+      if (appLang) localStorage.setItem('app_lang', appLang);
+
+      window.location.href = '/choose-language';
+      return Promise.reject(error);
     }
 
     console.error(`❌ [API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}: ${message}`);

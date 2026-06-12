@@ -203,16 +203,24 @@ const App: React.FC = () => {
     console.log("[RouteSync] Synchronizing view/tab with path:", path);
     const user = localStorage.getItem('aazhi_user');
 
-    if (path === '/') {
+    if (path === '/choose-language') {
       if (user) {
         setView(ViewState.SELECTION);
       } else {
         setView(ViewState.LANDING);
       }
+    } else if (path === '/') {
+      if (user) {
+        setView(ViewState.SELECTION);
+      } else {
+        setView(ViewState.LANDING);
+        navigate('/choose-language', { replace: true });
+        return;
+      }
     } else {
       if (!user) {
         setView(ViewState.LANDING);
-        navigate('/');
+        navigate('/choose-language', { replace: true });
         return;
       }
 
@@ -444,10 +452,29 @@ const App: React.FC = () => {
   };
 
   const handleBackToLanding = () => {
+    // 1. Preserve language settings
+    const lang = localStorage.getItem('selectedLanguage');
+    const appLang = localStorage.getItem('app_lang');
+
+    // 2. Clear all storage
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2.5 Clear all cookies
+    document.cookie.split(";").forEach((c) => {
+        document.cookie = c
+            .replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+    });
+
+    // 3. Restore language settings
+    if (lang) localStorage.setItem('selectedLanguage', lang);
+    if (appLang) localStorage.setItem('app_lang', appLang);
+
     setView(ViewState.LANDING);
     resetLoginState();
     setIsPrivacyShieldOn(false);
-    navigate('/');
+    navigate('/choose-language', { replace: true });
   };
 
   const handleSelection = (target: 'ai' | 'billing') => {
@@ -665,7 +692,7 @@ const App: React.FC = () => {
       {/* Header */}
       <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200/50`}>
         <div className="flex items-center gap-4">
-          <button onClick={() => setView(ViewState.LANDING)} className="p-2 hover:bg-slate-100 rounded-full transition">
+          <button onClick={handleBackToLanding} className="p-2 hover:bg-slate-100 rounded-full transition">
             <ArrowLeft className="text-slate-500" size={20} />
           </button>
           <div className="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200">
