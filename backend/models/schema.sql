@@ -138,7 +138,8 @@ CREATE TABLE IF NOT EXISTS complaints (
     resolved_at     TIMESTAMP,
     closed_at       TIMESTAMP,
     created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
+    updated_at      TIMESTAMP DEFAULT NOW(),
+    request_category VARCHAR(20) DEFAULT 'civic' CHECK (request_category IN ('civic', 'power', 'gas', 'municipal'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_complaints_citizen ON complaints(citizen_id);
@@ -185,7 +186,8 @@ CREATE TABLE IF NOT EXISTS service_requests (
     closed_at       TIMESTAMP,
     metadata        JSONB DEFAULT '{}',
     created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
+    updated_at      TIMESTAMP DEFAULT NOW(),
+    request_category VARCHAR(20) DEFAULT 'civic' CHECK (request_category IN ('civic', 'power', 'gas', 'municipal'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_service_req_citizen ON service_requests(citizen_id);

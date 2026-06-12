@@ -89,6 +89,7 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
         description: formData.description,
         citizenId: user?.id,
         area: formData.ward || user?.ward || 'Unknown',
+        request_category: 'municipal',
       });
       
       setTicketNumber(ticketId);

@@ -82,6 +82,7 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
         serviceType: selectedType || 'Meter Service',
         address: formData.address,
         description: formData.description,
+        request_category: 'power',
         metadata: {
           reason: formData.reason,
           priority: formData.priority || 'normal',

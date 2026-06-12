@@ -27,6 +27,27 @@ const syncCitizenName = async (citizenId, name) => {
     }
 };
 
+export const deriveCategory = (department, category, subject = '') => {
+    const dept = (department || '').toLowerCase();
+    const cat = (category || '').toLowerCase();
+    const sub = (subject || '').toLowerCase();
+    
+    if (dept.includes('electricity') || dept.includes('power') || dept.includes('eb') || 
+        cat.includes('electricity') || cat.includes('power') || cat.includes('eb')) {
+        return 'power';
+    }
+    if (dept.includes('gas') || cat.includes('gas')) {
+        return 'gas';
+    }
+    if (dept.includes('water') || dept.includes('municipal') || dept.includes('waste') || dept.includes('property') ||
+        cat.includes('water') || cat.includes('municipal') || cat.includes('waste') || cat.includes('property') ||
+        sub.includes('water') || sub.includes('municipal') || sub.includes('waste') || sub.includes('property')) {
+        return 'municipal';
+    }
+    return 'civic';
+};
+
+
 // ─── Create Service Request (Auto Supabase / Postgres Version) ──
 export const createServiceRequest = async (req, res, next) => {
     try {
@@ -171,6 +192,7 @@ export const createServiceRequest = async (req, res, next) => {
                 }
             }
 
+            const requestCategory = req.body.request_category || deriveCategory(classifiedDepartment || department, request_type);
             const insertPayload = {
                 ticket_number: ticketNumber,
                 citizen_id: citizenId,
@@ -184,7 +206,8 @@ export const createServiceRequest = async (req, res, next) => {
                 current_stage: 'created',
                 status: 'pending',
                 priority: priority || 'medium',
-                scheduled_at: scheduled_at || null
+                scheduled_at: scheduled_at || null,
+                request_category: requestCategory
             };
 
             console.log("🚀 [SUPABASE] Attempting insert into 'service_requests':", insertPayload.ticket_number);
@@ -222,12 +245,13 @@ export const createServiceRequest = async (req, res, next) => {
                 await syncCitizenName(citizenId, citizenNameVal);
             }
 
+            const requestCategory = req.body.request_category || deriveCategory(classifiedDepartment || department, request_type);
             const result = await pool.query(
                 `INSERT INTO service_requests 
-                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status, priority, scheduled_at)
-                 VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'created', 'pending', $10, $11)
+                 (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, current_stage, status, priority, scheduled_at, request_category)
+                 VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'created', 'pending', $10, $11, $12)
                  RETURNING *`,
-                [ticketNumber, citizenId, citizenNameVal, request_type, classifiedDepartment, description, ward || null, phone || req.user?.mobileNumber || null, JSON.stringify(finalMetadata), priority || 'medium', scheduled_at || null]
+                [ticketNumber, citizenId, citizenNameVal, request_type, classifiedDepartment, description, ward || null, phone || req.user?.mobileNumber || null, JSON.stringify(finalMetadata), priority || 'medium', scheduled_at || null, requestCategory]
             );
 
             requestRecord = result.rows[0];
@@ -306,13 +330,10 @@ export const trackServiceRequest = async (req, res, next) => {
 export const getMyServiceRequests = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        const { status, department, page = 1, limit = 10 } = req.query;
+        const { status, department, category, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT 
-                sr.*, 
-                staff.name AS assigned_to_name
             FROM service_requests sr
             LEFT JOIN citizens staff ON sr.assigned_to = staff.id
             WHERE sr.citizen_id = $1
@@ -327,20 +348,22 @@ export const getMyServiceRequests = async (req, res, next) => {
             query += ` AND sr.department = $${params.length + 1}`;
             params.push(department);
         }
+        
+        const activeCategory = category || 'civic';
+        if (activeCategory !== 'all') {
+            query += ` AND sr.request_category = $${params.length + 1}`;
+            params.push(activeCategory);
+        }
 
-        const countQuery = `
-            SELECT COUNT(*) 
-            FROM service_requests sr
-            WHERE sr.citizen_id = $1
-            ${status ? ` AND sr.status = $2` : ''}
-            ${department ? ` AND sr.department = ${status ? '$3' : '$2'}` : ''}
-        `;
+        // Get total count
+        const countQuery = `SELECT COUNT(*) ${query}`;
         const countResult = await pool.query(countQuery, params);
 
-        query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        let selectQuery = `SELECT sr.*, staff.name AS assigned_to_name ${query}`;
+        selectQuery += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(parseInt(limit), parseInt(offset));
 
-        const result = await pool.query(query, params);
+        const result = await pool.query(selectQuery, params);
 
         return paginated(res, "Service requests retrieved", result.rows, {
             total: parseInt(countResult.rows[0].count),
@@ -355,7 +378,7 @@ export const getMyServiceRequests = async (req, res, next) => {
 // ─── DEBUG: Get My Service Requests (Bypass Auth) ─────────
 export const getMyServiceRequestsDebug = async (req, res, next) => {
     try {
-        const { citizen_id, phone } = req.query;
+        const { citizen_id, phone, category } = req.query;
         if (!citizen_id && !phone) {
             return fail(res, "citizen_id or phone is required for debug fetching.", 400);
         }
@@ -371,6 +394,12 @@ export const getMyServiceRequestsDebug = async (req, res, next) => {
         `;
         const params = [validCitizenId, phone || null];
 
+        const activeCategory = category || 'civic';
+        if (activeCategory !== 'all') {
+            query += ` AND sr.request_category = $${params.length + 1}`;
+            params.push(activeCategory);
+        }
+
         query += ` ORDER BY sr.created_at DESC LIMIT 50`;
         const result = await pool.query(query, params);
 
@@ -383,22 +412,17 @@ export const getMyServiceRequestsDebug = async (req, res, next) => {
 // ─── Get All Service Requests (Admin/Staff Only) ─────────
 export const getAllServiceRequestsAdmin = async (req, res, next) => {
     try {
-        const { status, department, page = 1, limit = 50 } = req.query;
+        const { status, department, category, page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `
-            SELECT 
-                sr.*, 
-                COALESCE(sr.citizen_name, c.name) AS citizen_name, 
-                COALESCE(sr.phone, c.mobile) AS citizen_mobile,
-                staff.name AS assigned_to_name
             FROM service_requests sr
             LEFT JOIN citizens c ON sr.citizen_id = c.id
             LEFT JOIN citizens staff ON sr.assigned_to = staff.id
         `;
         const params = [];
-
         const conditions = [];
+
         if (status) {
             conditions.push(`sr.status = $${params.length + 1}`);
             params.push(status);
@@ -407,17 +431,32 @@ export const getAllServiceRequestsAdmin = async (req, res, next) => {
             conditions.push(`sr.department = $${params.length + 1}`);
             params.push(department);
         }
+        
+        const activeCategory = category || 'all';
+        if (activeCategory !== 'all') {
+            conditions.push(`sr.request_category = $${params.length + 1}`);
+            params.push(activeCategory);
+        }
+
         if (conditions.length > 0) {
             query += ` WHERE ${conditions.join(' AND ')}`;
         }
 
-        const countQuery = `SELECT COUNT(*) FROM service_requests sr${conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''}`;
+        const countQuery = `SELECT COUNT(*) ${query}`;
         const countResult = await pool.query(countQuery, params);
 
-        query += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        let selectQuery = `
+            SELECT 
+                sr.*, 
+                COALESCE(sr.citizen_name, c.name) AS citizen_name, 
+                COALESCE(sr.phone, c.mobile) AS citizen_mobile,
+                staff.name AS assigned_to_name
+            ${query}
+        `;
+        selectQuery += ` ORDER BY sr.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
         params.push(parseInt(limit), parseInt(offset));
 
-        const result = await pool.query(query, params);
+        const result = await pool.query(selectQuery, params);
 
         return paginated(res, "All service requests retrieved", result.rows, {
             total: parseInt(countResult.rows[0].count),
@@ -592,7 +631,8 @@ export const searchRequests = async (req, res, next) => {
 // ─── DEBUG: Get All Service Requests (Bypass Auth) ─────────────
 export const getAllRequestsAdminDebug = async (req, res, next) => {
     try {
-        const result = await pool.query(`
+        const { category } = req.query;
+        let query = `
             SELECT 
                 sr.*, 
                 c.name as citizen_name, 
@@ -601,8 +641,15 @@ export const getAllRequestsAdminDebug = async (req, res, next) => {
             FROM service_requests sr
             LEFT JOIN citizens c ON sr.citizen_id = c.id
             LEFT JOIN citizens staff ON sr.assigned_to = staff.id
-            ORDER BY sr.created_at DESC
-        `);
+        `;
+        const params = [];
+        const activeCategory = category || 'all';
+        if (activeCategory !== 'all') {
+            query += ` WHERE sr.request_category = $1`;
+            params.push(activeCategory);
+        }
+        query += ` ORDER BY sr.created_at DESC`;
+        const result = await pool.query(query, params);
         return success(res, "All service requests retrieved", result.rows);
     } catch (err) {
         next(err);
@@ -634,12 +681,14 @@ export const createRequestDebug = async (req, res, next) => {
 
         const ticketNumber = generateTicketNumber("SRQ");
 
+        const requestCategory = req.body.request_category || deriveCategory(department, request_type);
+
         const result = await pool.query(
             `INSERT INTO service_requests 
-             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage, priority, scheduled_at)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'pending', 'created', $10, $11)
+             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, metadata, status, current_stage, priority, scheduled_at, request_category)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, 'pending', 'created', $10, $11, $12)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenNameVal, request_type, department, description, ward || null, phone || req.body.citizen_mobile || null, JSON.stringify(metadata || {}), priority || 'medium', scheduled_at || null]
+            [ticketNumber, citizenId, citizenNameVal, request_type, department, description, ward || null, phone || req.body.citizen_mobile || null, JSON.stringify(metadata || {}), priority || 'medium', scheduled_at || null, requestCategory]
         );
 
         const stages = ["created", "assigned", "working", "completed"];

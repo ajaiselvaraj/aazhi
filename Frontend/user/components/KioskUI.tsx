@@ -48,7 +48,7 @@ interface Props {
   isPrivacyShield: boolean;
   timer: number;
   onTogglePrivacy?: () => void;
-  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal';
+  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker';
   initialAiQuery?: string;
 }
 
@@ -63,7 +63,7 @@ interface ChatMessage {
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '' }) => {
   const { isVertical } = useOrientation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>(initialTab);
 
   // ── Sync activeTab to browser URL ──
   useEffect(() => {
@@ -74,6 +74,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       tracker: '/track',
       status: '/history',
       ai: '/assistant',
+      'power-tracker': '/power/track-request',
+      'gas-tracker': '/gas/track-request',
+      'municipal-tracker': '/municipal/track-request',
     };
     const targetPath = tabToPath[activeTab];
     if (targetPath && window.location.pathname !== targetPath) {
@@ -1032,7 +1035,19 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW 6: TRACKER */}
         {activeTab === 'tracker' && (
-          <ApplicationTracker />
+          <ApplicationTracker category="civic" />
+        )}
+
+        {activeTab === 'power-tracker' && (
+          <ApplicationTracker category="power" onBack={() => setActiveTab('billing')} />
+        )}
+
+        {activeTab === 'gas-tracker' && (
+          <ApplicationTracker category="gas" onBack={() => setActiveTab('gas')} />
+        )}
+
+        {activeTab === 'municipal-tracker' && (
+          <ApplicationTracker category="municipal" onBack={() => setActiveTab('municipal')} />
         )}
 
         {/* VIEW 5: STATUS/HISTORY — Full Production-Grade Archive Module */}

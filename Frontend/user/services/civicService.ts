@@ -77,12 +77,17 @@ export const BillingService = {
 
 // --- GRIEVANCE SERVICE ---
 export const GrievanceService = {
-    getUserRequests: async (citizenId?: string, phone?: string): Promise<ServiceRequest[]> => {
+    getUserRequests: async (citizenId?: string, phone?: string, category: string = 'civic'): Promise<ServiceRequest[]> => {
         const token = localStorage.getItem('aazhi_token');
         const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
         
         const endpoint = hasRealJwt ? '/service-requests' : '/service-requests/debug';
-        const config = !hasRealJwt ? { params: { citizen_id: citizenId, phone: phone } } : {};
+        const config = {
+            params: {
+                ...(!hasRealJwt ? { citizen_id: citizenId, phone: phone } : {}),
+                category
+            }
+        };
         
         try {
             return await apiClient.get<ServiceRequest[]>(endpoint, config);
@@ -92,12 +97,17 @@ export const GrievanceService = {
         }
     },
 
-    getMyComplaints: async (citizenId?: string, phone?: string): Promise<any[]> => {
+    getMyComplaints: async (citizenId?: string, phone?: string, category: string = 'civic'): Promise<any[]> => {
         const token = localStorage.getItem('aazhi_token');
         const hasRealJwt = !!(token && token.split('.').length === 3 && token.length > 50);
         
         const endpoint = hasRealJwt ? '/complaints' : '/complaints/debug';
-        const config = !hasRealJwt ? { params: { citizen_id: citizenId, phone: phone } } : {};
+        const config = {
+            params: {
+                ...(!hasRealJwt ? { citizen_id: citizenId, phone: phone } : {}),
+                category
+            }
+        };
         
         try {
             return await apiClient.get<any[]>(endpoint, config);
@@ -106,8 +116,8 @@ export const GrievanceService = {
         }
     },
 
-    getAllRequestsAdmin: async (): Promise<any[]> => {
-        const response = await apiClient.get<any[]>('/service-requests/admin');
+    getAllRequestsAdmin: async (category: string = 'civic'): Promise<any[]> => {
+        const response = await apiClient.get<any[]>('/service-requests/admin', { params: { category } });
         return response;
     },
 
@@ -133,8 +143,8 @@ export const GrievanceService = {
         return await apiClient.post<ServiceRequest>(endpoint, payload);
     },
 
-    getAllComplaintsAdmin: async (): Promise<any[]> => {
-        const response = await apiClient.get<any[]>('/complaints/admin');
+    getAllComplaintsAdmin: async (category: string = 'civic'): Promise<any[]> => {
+        const response = await apiClient.get<any[]>('/complaints/admin', { params: { category } });
         return response;
     },
 

@@ -18,8 +18,8 @@ export const bookCylinder = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO service_requests 
-             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, status, current_stage)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), 'Cylinder Booking', 'Gas', $3, $4, $5, 'submitted', 'submitted')
+             (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, status, current_stage, request_category)
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), 'Cylinder Booking', 'Gas', $3, $4, $5, 'submitted', 'submitted', 'gas')
              RETURNING *`,
             [ticketNumber, citizenId, description || "LPG Cylinder Booking Request", ward || null, phone || null]
         );

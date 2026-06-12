@@ -36,7 +36,7 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
 
   const handleNavigate = (target: GasView) => {
     if (target === 'TRACKER' && onGlobalNavigate) {
-      onGlobalNavigate('tracker');
+      onGlobalNavigate('gas-tracker');
       return;
     }
 

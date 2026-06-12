@@ -194,7 +194,7 @@ const App: React.FC = () => {
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const { isVertical, toggleOrientation } = useOrientation();
-  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>('home');
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
 
   // ─── ROUTE PATH SYNCHRONIZATION ───
@@ -237,6 +237,12 @@ const App: React.FC = () => {
         setDashboardInitialTab('ai');
       } else if (path === '/history') {
         setDashboardInitialTab('status');
+      } else if (path === '/power/track-request') {
+        setDashboardInitialTab('power-tracker');
+      } else if (path === '/gas/track-request') {
+        setDashboardInitialTab('gas-tracker');
+      } else if (path === '/municipal/track-request') {
+        setDashboardInitialTab('municipal-tracker');
       }
     }
   }, [location.pathname, navigate]);

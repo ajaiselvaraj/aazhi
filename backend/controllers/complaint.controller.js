@@ -26,6 +26,27 @@ const syncCitizenName = async (citizenId, name) => {
     }
 };
 
+export const deriveCategory = (department, category, subject = '') => {
+    const dept = (department || '').toLowerCase();
+    const cat = (category || '').toLowerCase();
+    const sub = (subject || '').toLowerCase();
+    
+    if (dept.includes('electricity') || dept.includes('power') || dept.includes('eb') || 
+        cat.includes('electricity') || cat.includes('power') || cat.includes('eb')) {
+        return 'power';
+    }
+    if (dept.includes('gas') || cat.includes('gas')) {
+        return 'gas';
+    }
+    if (dept.includes('water') || dept.includes('municipal') || dept.includes('waste') || dept.includes('property') ||
+        cat.includes('water') || cat.includes('municipal') || cat.includes('waste') || cat.includes('property') ||
+        sub.includes('water') || sub.includes('municipal') || sub.includes('waste') || sub.includes('property')) {
+        return 'municipal';
+    }
+    return 'civic';
+};
+
+
 // ─── Register Complaint ──────────────────────────────────
 const WARD_COORDS = {
     'Ward 1': [26.182, 91.745],
@@ -136,12 +157,14 @@ export const registerComplaint = async (req, res, next) => {
 
         const ticketNumber = generateTicketNumber("CMP");
 
+        const requestCategory = req.body.request_category || deriveCategory(classifiedDepartment || department, category, subject || description);
+
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13)
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13, $14)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, finalLat, finalLng]
+            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, finalLat, finalLng, requestCategory]
         );
 
         // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
@@ -247,12 +270,12 @@ export const trackComplaint = async (req, res, next) => {
 export const getMyComplaints = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        const { status, department, page = 1, limit = 10 } = req.query;
+        const { status, department, category, page = 1, limit = 10 } = req.query;
         const offset = (page - 1) * limit;
-
+ 
         let query = `SELECT * FROM complaints WHERE citizen_id = $1`;
         const params = [citizenId];
-
+ 
         if (status) {
             query += ` AND status = $${params.length + 1}`;
             params.push(status);
@@ -260,6 +283,12 @@ export const getMyComplaints = async (req, res, next) => {
         if (department) {
             query += ` AND department = $${params.length + 1}`;
             params.push(department);
+        }
+        
+        const activeCategory = category || 'civic';
+        if (activeCategory !== 'all') {
+            query += ` AND request_category = $${params.length + 1}`;
+            params.push(activeCategory);
         }
 
         // Get total count
@@ -284,15 +313,20 @@ export const getMyComplaints = async (req, res, next) => {
 // ─── DEBUG: Get My Complaints (Bypass Auth) ────────────────
 export const getMyComplaintsDebug = async (req, res, next) => {
     try {
-        const { citizen_id, phone } = req.query;
+        const { citizen_id, phone, category } = req.query;
         if (!citizen_id && !phone) {
             return fail(res, "citizen_id or phone is required for debug fetching.", 400);
         }
-
+ 
         const validCitizenId = isValidUuid(citizen_id) ? citizen_id : null;
         let query = `SELECT * FROM complaints WHERE (citizen_id = $1 OR citizen_mobile = $2)`;
         const params = [validCitizenId, phone || null];
-
+ 
+        const activeCategory = category || 'civic';
+        if (activeCategory !== 'all') {
+            query += ` AND request_category = $${params.length + 1}`;
+            params.push(activeCategory);
+        }
         query += ` ORDER BY created_at DESC LIMIT 50`;
         const result = await pool.query(query, params);
 
@@ -456,7 +490,7 @@ export const addMessage = async (req, res, next) => {
 // ─── Get All Complaints (Admin/Staff Only) ───────────────
 export const getAllComplaintsAdmin = async (req, res, next) => {
     try {
-        const { status, department, page = 1, limit = 50 } = req.query;
+        const { status, department, category, page = 1, limit = 50 } = req.query;
         const offset = (page - 1) * limit;
 
         let query = `
@@ -477,6 +511,12 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
         if (department) {
             conditions.push(`c.department = $${params.length + 1}`);
             params.push(department);
+        }
+        
+        const activeCategory = category || 'all';
+        if (activeCategory !== 'all') {
+            conditions.push(`c.request_category = $${params.length + 1}`);
+            params.push(activeCategory);
         }
         if (conditions.length > 0) {
             query += ` WHERE ${conditions.join(' AND ')}`;
@@ -503,15 +543,23 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
 // ─── DEBUG: Get All Complaints (Bypass Auth) ─────────────
 export const getAllComplaintsAdminDebug = async (req, res, next) => {
     try {
-        const result = await pool.query(`
+        const { category } = req.query;
+        let query = `
             SELECT 
                 c.*, 
                 COALESCE(c.citizen_name, ci.name) as citizen_name, 
                 COALESCE(c.citizen_mobile, ci.mobile) as citizen_mobile
             FROM complaints c
             LEFT JOIN citizens ci ON c.citizen_id = ci.id
-            ORDER BY c.created_at DESC
-        `);
+        `;
+        const params = [];
+        const activeCategory = category || 'all';
+        if (activeCategory !== 'all') {
+            query += ` WHERE c.request_category = $1`;
+            params.push(activeCategory);
+        }
+        query += ` ORDER BY c.created_at DESC`;
+        const result = await pool.query(query, params);
         return success(res, "All complaints retrieved", result.rows);
     } catch (err) {
         next(err);
@@ -562,12 +610,14 @@ export const createComplaintDebug = async (req, res, next) => {
             await syncCitizenName(citizenId, citizenName);
         }
 
+        const requestCategory = req.body.request_category || deriveCategory(department, category, subject || description);
+
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted', $12, $13)
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted', $12, $13, $14)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium", finalLat, finalLng]
+            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium", finalLat, finalLng, requestCategory]
         );
 
         const stages = [

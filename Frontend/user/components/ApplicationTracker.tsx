@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, ArrowRight, User, RefreshCw } from 'lucide-react';
+import { Search, CheckCircle, Clock, AlertCircle, FileText, AlertTriangle, ArrowRight, ArrowLeft, User, RefreshCw } from 'lucide-react';
 import { useServiceComplaint, ServiceRequest, Complaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import { GrievanceService } from '../services/civicService';
@@ -29,7 +29,12 @@ const LEGACY_STAGE_INDEX_MAP: Record<string, number> = {
     'closed': 4
 };
 
-const ApplicationTracker: React.FC = () => {
+interface ApplicationTrackerProps {
+    category?: 'civic' | 'power' | 'gas' | 'municipal';
+    onBack?: () => void;
+}
+
+const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civic', onBack }) => {
     const { serviceRequests, complaints } = useServiceComplaint();
     const { t, i18n } = useTranslation();
     const language = i18n.language;
@@ -103,7 +108,7 @@ const ApplicationTracker: React.FC = () => {
     };
 
     const myActivity = useMemo<ActivityItem[]>(() => {
-        return [
+        const items = [
             ...safeServiceRequests
                 .filter(r => {
                     if (isKioskMode) return true;
@@ -116,12 +121,16 @@ const ApplicationTracker: React.FC = () => {
                     return c.phone === currentUser?.mobile || c.citizenId === currentUser?.id;
                 })
                 .map(c => ({ ...c, type: 'Complaint' as const, serviceType: c.complaintType, category: c.category || 'General' }))
-        ].sort((a, b) => {
-            const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
-            const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
-            return dateB - dateA;
-        }) as ActivityItem[];
-    }, [safeServiceRequests, safeComplaints, isKioskMode, currentUser]);
+        ];
+
+        return items
+            .filter(item => (item.request_category || 'civic') === category)
+            .sort((a, b) => {
+                const dateA = new Date((a as any).createdAt || (a as any).timestamp || 0).getTime();
+                const dateB = new Date((b as any).createdAt || (b as any).timestamp || 0).getTime();
+                return dateB - dateA;
+            }) as ActivityItem[];
+    }, [safeServiceRequests, safeComplaints, isKioskMode, currentUser, category]);
 
     const itemsToDisplay = viewMode === 'my-activity' ? myActivity : searchResult;
 
@@ -202,15 +211,58 @@ const ApplicationTracker: React.FC = () => {
         setIsSearching(true);
         setSearchError('');
         try {
-            const data = await GrievanceService.trackComplaint(searchId.trim());
+            let data: any = null;
+            let type: 'Complaint' | 'Request' = 'Complaint';
+            const tid = searchId.trim();
+
+            if (tid.startsWith('TKT-')) {
+                try {
+                    data = await GrievanceService.trackRequest(tid);
+                    type = 'Request';
+                } catch (e) {
+                    // Ignore and try complaint
+                }
+                if (!data) {
+                    try {
+                        data = await GrievanceService.trackComplaint(tid);
+                        type = 'Complaint';
+                    } catch (e) {}
+                }
+            } else {
+                try {
+                    data = await GrievanceService.trackComplaint(tid);
+                    type = 'Complaint';
+                } catch (e) {
+                    // Ignore and try request
+                }
+                if (!data) {
+                    try {
+                        data = await GrievanceService.trackRequest(tid);
+                        type = 'Request';
+                    } catch (e) {}
+                }
+            }
+
             if (data) {
-                setSearchResult([{ ...data, type: 'Complaint', serviceType: data.complaintType, category: data.category || 'General' }]);
-                setViewMode('search');
+                const itemCategory = data.request_category || 'civic';
+                if (itemCategory !== category) {
+                    setSearchError(t('ticketNotFound') || 'Ticket not found.');
+                    setSearchResult([]);
+                } else {
+                    if (type === 'Complaint') {
+                        setSearchResult([{ ...data, type: 'Complaint', serviceType: data.complaintType, category: data.category || 'General' }]);
+                    } else {
+                        setSearchResult([{ ...data, type: 'Request' }]);
+                    }
+                    setViewMode('search');
+                }
             } else {
                 setSearchError(t('ticketNotFound') || 'Ticket not found.');
+                setSearchResult([]);
             }
         } catch (e) {
-            setSearchError(t('searchError') || 'Search failed.');
+            setSearchError(t('ticketNotFound') || 'Ticket not found.');
+            setSearchResult([]);
         } finally {
             setIsSearching(false);
         }
@@ -218,6 +270,12 @@ const ApplicationTracker: React.FC = () => {
 
     return (
         <div className="p-4 md:p-8 max-w-5xl mx-auto font-sans h-full flex flex-col">
+            {onBack && (
+                <button onClick={onBack} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-6 self-start hover:text-slate-900 transition print:hidden">
+                    <ArrowLeft size={16} />
+                    {t('goBack') || "Go Back"}
+                </button>
+            )}
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                 <div>

@@ -121,6 +121,7 @@ router.get("/:trackingId", async (req, res, next) => {
                     created_at: record.created_at,
                     updated_at: record.updated_at,
                     assigned_to_name: record.assigned_to_name,
+                    request_category: record.request_category,
                     type: 'service_request'
                 },
                 stages: stages.rows,

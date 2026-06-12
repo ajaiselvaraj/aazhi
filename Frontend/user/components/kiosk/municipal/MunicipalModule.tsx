@@ -32,7 +32,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
 
   const handleNavigate = (newView: any) => {
     if (newView === 'TRACKER' && onGlobalNavigate) {
-      onGlobalNavigate('tracker');
+      onGlobalNavigate('municipal-tracker');
       return;
     }
     setView(newView);

@@ -63,6 +63,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
         serviceType: formData.connectionType || 'Water Connection',
         address: formData.address,
         description: `${formData.propertyType} water connection — Pipe size: ${formData.pipeSize}`,
+        request_category: 'municipal',
         metadata: {
           propertyType: formData.propertyType,
           pipeSize: formData.pipeSize,

@@ -105,11 +105,19 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
         try {
             // Map the department ID to category
             let deptCat = 'Municipal';
-            if (departmentId === 'eb') deptCat = 'Electricity';
-            else if (departmentId === 'water') deptCat = 'Water';
-            else if (departmentId === 'gas') deptCat = 'Gas';
+            let requestCategory = 'civic';
+            if (departmentId === 'eb') {
+                deptCat = 'Electricity';
+                requestCategory = 'power';
+            } else if (departmentId === 'water') {
+                deptCat = 'Water';
+                requestCategory = 'municipal';
+            } else if (departmentId === 'gas') {
+                deptCat = 'Gas';
+                requestCategory = 'gas';
+            }
 
-            console.log(`🚀 [Civic] Calling addComplaint for department: ${deptCat}`);
+            console.log(`🚀 [Civic] Calling addComplaint for department: ${deptCat} (category: ${requestCategory})`);
             
             const payload = {
                 name: sessionUser?.name || null,
@@ -118,7 +126,8 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 complaintType: t(category), // Issue Type (translated)
                 description: desc || 'Filed via Aazhi Kiosk.',
                 location: location.address,
-                area: sessionUser?.ward || 'Unknown'
+                area: sessionUser?.ward || 'Unknown',
+                request_category: requestCategory
             };
 
             console.log("📦 [Civic] Submission Payload:", payload);

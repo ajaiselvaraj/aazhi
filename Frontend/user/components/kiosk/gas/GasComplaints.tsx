@@ -89,6 +89,7 @@ const GasComplaints: React.FC<Props> = ({ onBack, language }) => {
         description: formData.description,
         citizenId: user?.id,
         area: formData.ward || user?.ward || 'Unknown',
+        request_category: 'gas',
       });
       
       setTicketNumber(ticketId);

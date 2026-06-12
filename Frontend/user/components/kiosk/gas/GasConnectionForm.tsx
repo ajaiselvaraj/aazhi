@@ -78,6 +78,7 @@ const GasConnectionForm: React.FC<Props> = ({ onBack, language }) => {
         serviceType: selectedType,
         address: formData.address,
         description: formData.description,
+        request_category: 'gas',
         metadata: {
           ward: formData.ward,
           documents: uploadedFiles

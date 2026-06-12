@@ -100,6 +100,38 @@ export const initializeAuthTables = async () => {
         `;
         await pool.query(performanceIndexes);
 
+        // 🚀 REQUEST CATEGORY SEGREGATION MIGRATIONS
+        logger.info("📡 Applying request_category columns to complaints and service_requests tables...");
+        
+        await pool.query(`
+            ALTER TABLE complaints 
+            ADD COLUMN IF NOT EXISTS request_category VARCHAR(20) DEFAULT 'civic' CHECK (request_category IN ('civic', 'power', 'gas', 'municipal'));
+        `).catch(e => {
+            logger.warn(`Migration complaints.request_category failed or already applied: ${e.message}`);
+        });
+
+        await pool.query(`
+            ALTER TABLE service_requests 
+            ADD COLUMN IF NOT EXISTS request_category VARCHAR(20) DEFAULT 'civic' CHECK (request_category IN ('civic', 'power', 'gas', 'municipal'));
+        `).catch(e => {
+            logger.warn(`Migration service_requests.request_category failed or already applied: ${e.message}`);
+        });
+
+        // Seed/Update existing records
+        logger.info("📡 Categorizing existing complaints and service requests...");
+        
+        await pool.query("UPDATE complaints SET request_category = 'power' WHERE department = 'Electricity' OR department = 'Electricity Board' OR category ILIKE '%electricity%' OR category ILIKE '%power%'");
+        await pool.query("UPDATE complaints SET request_category = 'gas' WHERE department = 'Gas' OR category ILIKE '%gas%'");
+        await pool.query("UPDATE complaints SET request_category = 'municipal' WHERE department = 'Municipal' OR department = 'Municipal Corp' OR department = 'Water Supply & Sewage' OR department = 'Waste Management' OR category ILIKE '%water%' OR category ILIKE '%municipal%' OR category ILIKE '%waste%' OR category ILIKE '%property%'");
+        await pool.query("UPDATE complaints SET request_category = 'civic' WHERE request_category IS NULL OR request_category NOT IN ('power', 'gas', 'municipal')");
+
+        await pool.query("UPDATE service_requests SET request_category = 'power' WHERE department = 'Electricity' OR department = 'Electricity Board' OR request_type ILIKE '%electricity%' OR request_type ILIKE '%power%'");
+        await pool.query("UPDATE service_requests SET request_category = 'gas' WHERE department = 'Gas' OR request_type ILIKE '%gas%'");
+        await pool.query("UPDATE service_requests SET request_category = 'municipal' WHERE department = 'Municipal' OR department = 'Municipal Corp' OR department = 'Water' OR department = 'Water Supply' OR department = 'Waste Management' OR request_type ILIKE '%water%' OR request_type ILIKE '%municipal%' OR request_type ILIKE '%waste%' OR request_type ILIKE '%property%'");
+        await pool.query("UPDATE service_requests SET request_category = 'civic' WHERE request_category IS NULL OR request_category NOT IN ('power', 'gas', 'municipal')");
+        
+        logger.info("✅ Database request_category migration complete.");
+
         logger.info("✅ DB Optimization complete: Performance indexes verified/created.");
     } catch (err) {
         logger.error(`❌ Error initializing Auth DB or Performance Indexes: ${err.message}`);

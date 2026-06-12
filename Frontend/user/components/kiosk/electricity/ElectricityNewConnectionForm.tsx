@@ -84,6 +84,7 @@ const ElectricityNewConnectionForm: React.FC<Props> = ({ onBack, language }) => 
         serviceType: selectedType,
         address: formData.address,
         description: formData.description,
+        request_category: 'power',
         metadata: {
           phase_type: formData.phase_type,
           premises_type: formData.premises_type,

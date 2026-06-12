@@ -39,7 +39,7 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate
 
     const handleNavigate = (target: ElectricityView) => {
         if (target === 'TRACK_REQUEST' && onGlobalNavigate) {
-            onGlobalNavigate('tracker');
+            onGlobalNavigate('power-tracker');
             return;
         }
         setView(target);

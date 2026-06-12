@@ -29,6 +29,7 @@ export interface ServiceRequest {
     stages: TrackingStage[];
     createdAt: string;
     metadata?: Record<string, any>;
+    request_category?: string;
 }
 
 export interface Complaint {
@@ -49,6 +50,7 @@ export interface Complaint {
     currentStage: string;
     stages: TrackingStage[];
     createdAt: string;
+    request_category?: string;
 }
 
 export interface AreaAlert {
@@ -211,6 +213,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         closed_at: r.closed_at,
                         stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at }],
                         createdAt: r.created_at || r.createdAt,
+                        request_category: r.request_category,
                     };
                 };
 
@@ -234,6 +237,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                         rejection_reason: r.rejection_reason,
                         stages: r.stages || [{ stage: normalizedStage, status: 'Current', updatedAt: r.updated_at || r.created_at }],
                         createdAt: r.created_at || r.createdAt,
+                        request_category: r.request_category,
                     };
                 };
 
@@ -266,8 +270,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
                 // Citizen/Kiosk sync: Fetch only THEIR data
                 if (isStaff) {
-                    const apiRequests = await GrievanceService.getAllRequestsAdmin();
-                    const apiComplaints = await GrievanceService.getAllComplaintsAdmin();
+                    const apiRequests = await GrievanceService.getAllRequestsAdmin('all');
+                    const apiComplaints = await GrievanceService.getAllComplaintsAdmin('all');
 
                     if (Array.isArray(apiRequests)) {
                         mergeIntoState(apiRequests.map(mapApiRequest), setServiceRequests, LOCAL_STORAGE_KEYS.SERVICES);
@@ -277,8 +281,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                     }
                 } else if (user) {
                     // Citizen/Kiosk mode - Fetch by ID or Phone
-                    const apiRequests = await GrievanceService.getUserRequests(user.id, user.mobile || user.phone);
-                    const apiComplaints = await GrievanceService.getMyComplaints(user.id, user.mobile || user.phone);
+                    const apiRequests = await GrievanceService.getUserRequests(user.id, user.mobile || user.phone, 'all');
+                    const apiComplaints = await GrievanceService.getMyComplaints(user.id, user.mobile || user.phone, 'all');
 
                     if (Array.isArray(apiRequests)) {
                         mergeIntoState(apiRequests.map(mapApiRequest), setServiceRequests, LOCAL_STORAGE_KEYS.SERVICES);
@@ -361,6 +365,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 description: data.description || `Service request for ${data.serviceType}`,
                 phone: data.phone || user?.mobile,
                 name: data.name || user?.name,
+                request_category: data.request_category,
                 metadata: { 
                     ...((data as any).metadata || {}),
                     token, 
@@ -420,7 +425,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 ward: data.area !== 'Unknown' ? data.area : undefined,
                 priority: priority.toLowerCase(),
                 name: data.name,
-                phone: data.phone
+                phone: data.phone,
+                request_category: data.request_category
             });
             finalId = (apiRes as any).ticket_number || apiRes.id;
             // ✅ Use the server-returned created_at as the definitive timestamp
