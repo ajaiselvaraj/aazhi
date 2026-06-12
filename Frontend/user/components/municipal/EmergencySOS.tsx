@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Zap, Droplets, ArrowRight, ShieldAlert, Navigation, Home, Flame, CheckCircle } from 'lucide-react';
 import { MunicipalAPI } from '../../services/municipalApi';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { useOrientation } from '../../contexts/OrientationContext';
@@ -30,11 +30,6 @@ export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }
     };
 
     useEffect(() => {
-        speakText({
-            text: t("emer_sosActivated"),
-            language: getLanguageName(),
-            rate: 1.1
-        });
 
         // Background auto-locate immediately for emergencies
         if ("geolocation" in navigator) {
@@ -52,7 +47,7 @@ export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }
         setIsSubmitting(true);
         try {
             // Bypass regular complaints and fire directly to emergency mock endpoint
-            speakText({ text: t("emer_dispatching"), language: getLanguageName() });
+
 
             setTimeout(() => {
                 setStep(3);
@@ -92,7 +87,6 @@ export const EmergencySOS: React.FC<{ onBack: () => void; isPrivacyOn: boolean }
                                     onClick={() => {
                                         setType(em.id);
                                         setStep(2);
-                                        speakText({ text: t(em.labelKey), language: getLanguageName() });
                                     }}
                                     className={`min-h-[160px] text-center p-8 text-3xl font-black border-4 border-transparent hover:border-${em.color}-500 bg-white hover:bg-${em.color}-50 shadow-xl relative overflow-hidden group`}
                                 >

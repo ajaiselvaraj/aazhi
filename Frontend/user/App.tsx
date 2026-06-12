@@ -1,24 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, Mic, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor, Bot } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language, ViewState } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import './i18n';
-import { speakText, loadVoices } from './utils/speak';
-import { dispatchVoiceCommand, buildContext } from './utils/VoiceCommandRouter';
 import { useOrientation } from './contexts/OrientationContext';
-import { VoiceAssistantProvider } from './contexts/VoiceAssistantContext';
-import { globalSpeak, triggerFirstInteractionWelcome, getNavigationAnnouncement } from './utils/globalVoice';
 
 // ─── LAZY LOADED COMPONENTS (Code Splitting) ───
 const KioskUI = lazy(() => import('./components/KioskUI'));
 const Documentation = lazy(() => import('./components/Documentation'));
 const Admin = lazy(() => import('./components/Admin'));
-const SuvidhaVoiceControl = lazy(() => import('./components/SuvidhaVoiceControl'));
-const VoiceFeedbackController = lazy(() => import('./components/VoiceFeedbackController'));
+
 import { authService } from './services/authService';
 import { Persistence } from './utils/persistence';
 import cdacLogo from './assets/cdac_logo.png';
@@ -325,8 +320,6 @@ const App: React.FC = () => {
       setView(savedRoute.view as ViewState);
     }
 
-    // Pre-load Text-to-Speech voices for Accessibility
-    loadVoices();
   }, [handleAutoDetectLocation]);
 
   // Handle inactivity auto-logout
@@ -356,22 +349,7 @@ const App: React.FC = () => {
     localStorage.setItem('selectedLanguage', lang);
     localStorage.setItem('app_lang', lang);
 
-    // Find the language info to speak out loud
-    const selectedLangConfig = LANGUAGES_CONFIG.find(l => l.code === lang);
-    if (selectedLangConfig) {
-      // Speak in English that the language was selected
-      speakText({
-        text: `Language changed to ${selectedLangConfig.name}`,
-        language: 'English'
-      });
-      // Then speak the native greeting
-      setTimeout(() => {
-        speakText({
-          text: selectedLangConfig.label,
-          language: selectedLangConfig.name
-        });
-      }, 1500);
-    }
+
 
     // [ACCESSIBILITY BYPASS] Skip authentication and go directly to Selection
     // We set a guest session so the system treats the user as 'Offline'
@@ -418,7 +396,7 @@ const App: React.FC = () => {
       try {
         await authService.sendOtp(identifier);
         setAuthStage('OTP');
-        speakText({ text: t('otpSent') || "OTP sent to your mobile", language: "English" });
+
       } catch (e: any) {
         console.error("Auth Error", e);
         setError(e.message || "Failed to send OTP. Please try again.");
@@ -477,49 +455,6 @@ const App: React.FC = () => {
     setView(ViewState.DASHBOARD);
   };
 
-  const handleVoiceCommand = useCallback((command: string) => {
-    console.log('[App] Voice input received:', command);
-
-    // Strip the "ai_query:" prefix if the speech hook pre-routed it
-    // (legacy compatibility — the hook may still use this prefix)
-    const rawText = command.startsWith('ai_query:')
-      ? command.replace('ai_query:', '').trim()
-      : command;
-
-    // Build context from current view + tab so the router can apply
-    // context-aware rules (e.g., "gas" inside billing vs. global)
-    const context = buildContext(view, dashboardInitialTab);
-
-    dispatchVoiceCommand(
-      rawText,
-      context,
-      // ── Matched a navigation command ──────────────────────────────
-      (action) => {
-        console.log(`[App] Navigating → view=${action.view} tab=${action.tab} (command=${action.command})`);
-
-        // Speak navigation feedback
-        const announcement = getNavigationAnnouncement(action.tab, action.command);
-        globalSpeak(announcement, language);
-
-        if (action.command === 'exit') {
-          // Exit has special handling — call the full logout flow
-          handleBackToLanding();
-          return;
-        }
-        if (action.tab) {
-          setDashboardInitialTab(action.tab);
-        }
-        setView(action.view);
-      },
-      // ── No command matched — route to AI assistant ─────────────────
-      (query) => {
-        console.log('[App] Routing to AI assistant with query:', query);
-        setDashboardInitialAiQuery(query);
-        setDashboardInitialTab('ai');
-        setView(ViewState.DASHBOARD);
-      }
-    );
-  }, [view, dashboardInitialTab, setView, handleBackToLanding, language]);
 
 
   // ─────────────────────────────────────────────
@@ -545,12 +480,7 @@ const App: React.FC = () => {
         <LocationSelector locationInfo={locationInfo} />
       </div>
 
-      {/* Top-left: Voice + Orientation toggle */}
-      <div style={{ position: 'absolute', top: '24px', left: '32px', zIndex: 40, display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <Suspense fallback={null}>
-          <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} showTTS={false} />
-        </Suspense>
-      </div>
+
 
       {/* Compact Header */}
       <header className={`text-center ${isVertical ? 'mb-4 pt-20' : 'mb-6 pt-8'} z-10 w-full max-w-7xl mx-auto flex flex-col items-center justify-center`}>
@@ -694,7 +624,7 @@ const App: React.FC = () => {
         <button onClick={() => handleSelection('ai')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
           <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
-            <Mic size={isVertical ? 40 : 64} />
+            <Bot size={isVertical ? 40 : 64} />
           </div>
           <div className="relative z-10 flex-1">
             <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 group-hover:text-indigo-900`}>{t('sel_aiTitle')}</h2>
@@ -751,7 +681,7 @@ const App: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <SuvidhaVoiceControl onCommand={handleVoiceCommand} ttsLanguage={alertLanguage} variant="inline" />
+
           <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
@@ -938,7 +868,6 @@ const App: React.FC = () => {
   );
 
   return (
-    <VoiceAssistantProvider onCommand={handleVoiceCommand} initialLanguage={language}>
     <Suspense fallback={<LoadingFallback />}>
       <div
         className={`font-sans antialiased text-gray-900 selection:bg-blue-100 h-screen overflow-hidden ${isPrivacyShieldOn ? 'privacy-active' : ''}`}
@@ -946,14 +875,6 @@ const App: React.FC = () => {
           resetTimer();
           if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen().catch(() => { });
-          }
-          // First-interaction welcome: when user touches after reaching SELECTION
-          if (view === ViewState.SELECTION || view === ViewState.DASHBOARD) {
-            const alreadyWelcomed = sessionStorage.getItem('aazhi_welcomed');
-            if (!alreadyWelcomed) {
-              sessionStorage.setItem('aazhi_welcomed', 'true');
-              triggerFirstInteractionWelcome(language);
-            }
           }
         }}
         onKeyDown={resetTimer}
@@ -973,7 +894,7 @@ const App: React.FC = () => {
                 onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
                 initialTab={dashboardInitialTab}
                 initialAiQuery={dashboardInitialAiQuery}
-                onVoiceCommand={handleVoiceCommand}
+
               />
             )}
             {view === ViewState.DOCUMENTATION && (
@@ -992,7 +913,7 @@ const App: React.FC = () => {
           </ServiceComplaintProvider>
         </KioskKeyboardWrapper>
 
-        <VoiceFeedbackController />
+
 
         <style>{`
           .privacy-active .privacy-sensitive {
@@ -1006,7 +927,6 @@ const App: React.FC = () => {
         `}</style>
       </div>
     </Suspense>
-    </VoiceAssistantProvider>
 );
 };
 

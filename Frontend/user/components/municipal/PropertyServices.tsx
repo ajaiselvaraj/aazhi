@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Home, HardHat, Pickaxe, MapPin, CheckCircle, Smartphone } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { useOrientation } from '../../contexts/OrientationContext';
@@ -54,8 +54,7 @@ export const PropertyServices: React.FC<{ onBack: () => void; isPrivacyOn: boole
                                     onClick={() => {
                                         setService(t(svc.labelKey));
                                         setStep(2);
-                                        speakText({ text: t("prop_scanPrompt"), language: getLanguageName() });
-                                    }}
+                                        }}
                                     className="min-h-[140px] text-2xl font-black bg-white shadow-md border-2 border-slate-100 p-8 hover:border-indigo-500 hover:bg-indigo-50"
                                 />
                             ))}

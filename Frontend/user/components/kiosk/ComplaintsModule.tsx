@@ -8,7 +8,6 @@ import {
     ArrowLeft,
     CheckCircle,
     Clock,
-    Mic,
     FileText
 } from 'lucide-react';
 import { PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
@@ -204,9 +203,6 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 <div className="mt-4 flex gap-3">
                                     <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
                                         <Camera size={18} /> {t('comp_addPhoto')}
-                                    </button>
-                                    <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                                        <Mic size={18} /> {t('comp_voiceNote')}
                                     </button>
                                 </div>
                             </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Building2, UserCircle, Briefcase, MapPin, Search } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Application } from '../../types/municipal';
@@ -33,13 +33,11 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
 
     const handleSubmit = () => {
         setIsSubmitting(true);
-        speakText({ text: t("vendor_processing"), language: getLanguageName() });
         setTimeout(() => {
             setReference(`APP-${Math.floor(Math.random() * 90000) + 10000}`);
             setStep(4);
             setIsSubmitting(false);
-            speakText({ text: t("vendor_submitted"), language: getLanguageName() });
-        }, 2000);
+            }, 2000);
     };
 
     return (
@@ -68,7 +66,6 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
                                     onClick={() => {
                                         setType(cat.id);
                                         setStep(2);
-                                        speakText({ text: `${t(cat.labelKey)}`, language: getLanguageName() });
                                     }}
                                     className="min-h-[140px] text-xl font-bold bg-white text-left p-6 shadow border-b-4 border-slate-200 hover:border-blue-500"
                                 />
@@ -104,7 +101,7 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
                             <AccessibleButton
                                 label={t("vendor_reviewDetails")}
                                 language={getLanguageName()}
-                                onClick={() => { setStep(3); speakText({ text: t("vendor_reviewConfirm"), language: getLanguageName() }); }}
+                                onClick={() => { setStep(3); }}
                                 disabled={!applicantName}
                                 className="flex-1 bg-blue-600 text-white border-none disabled:opacity-50"
                             />

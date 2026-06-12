@@ -13,15 +13,14 @@ import TariffDetails from './TariffDetails';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
-import { resolveSubAction } from '../../../utils/VoiceHierarchyRouter';
-import type { ElectricityView } from '../../../utils/VoiceHierarchyRouter';
+
+
+type ElectricityView = 'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST' | 'TARIFF';
 
 interface Props {
     onBack: () => void;
     language: Language;
     onGlobalNavigate?: (tab: string) => void;
-    /** Voice command passthrough from global handler */
-    onVoiceCommand?: (command: string) => void;
     /** Optional: pre-navigate to a specific sub-view on mount */
     initialSubView?: ElectricityView;
 }

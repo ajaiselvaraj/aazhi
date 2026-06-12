@@ -4,7 +4,7 @@ import {
   ArrowRight, Settings, Upload, FileText, Download, CheckCircle, AlertTriangle,
   Brain, Image as ImageIcon, Sparkles, Maximize2, CreditCard, Zap, Droplets,
   Flame, Receipt, ArrowLeft, Smartphone, Info, History, AlertCircle, ShieldCheck,
-  RefreshCw, Users, QrCode, ClipboardCheck, Home, Volume2, VolumeX, Type, Printer, Mic, MicOff, PlayCircle, RotateCcw, Trash2
+  RefreshCw, Users, QrCode, ClipboardCheck, Home, Type, Printer, RotateCcw, Trash2
 } from 'lucide-react';
 import { ViewState, Language, ServiceRequest } from '../types';
 import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
@@ -39,10 +39,7 @@ import { useServiceComplaint } from '../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import { useInactivityTimer } from '../hooks/useInactivityTimer';
 import { Persistence } from '../utils/persistence';
-import { routeHierarchy, detectActiveModule } from '../utils/VoiceHierarchyRouter';
-import type { ElectricityView, GasView } from '../utils/VoiceHierarchyRouter';
 import { useOrientation } from '../contexts/OrientationContext';
-import { globalSpeak } from '../utils/globalVoice';
 
 interface Props {
   language: Language;
@@ -53,19 +50,17 @@ interface Props {
   onTogglePrivacy?: () => void;
   initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal';
   initialAiQuery?: string;
-  onVoiceCommand?: (command: string) => void;
 }
 
 interface ChatMessage {
   id: string;
   sender: 'user' | 'bot';
   text: string;
-  voiceText?: string;
   action?: any;
   menu?: AIMenu; // New: Structure Menu Data
 }
 
-const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', onVoiceCommand }) => {
+const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '' }) => {
   const { isVertical } = useOrientation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal'>(initialTab);
@@ -96,26 +91,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedPayment, setSelectedPayment] = useState<string | null>(null);
   const [assistantStep, setAssistantStep] = useState<string | null>(null);
 
-  // ── Voice deep-link sub-view state ──
-  // These carry the L2 view name into ElectricityModule / GasModule
-  // when a voice command skips the landing screen entirely.
-  const [electricitySubView, setElectricitySubView] = useState<ElectricityView | undefined>(undefined);
-  const [gasSubView, setGasSubView] = useState<GasView | undefined>(undefined);
 
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(() => {
-    return localStorage.getItem('voice_enabled') === 'true';
-  });
-
-  // Sync with global voice state (Talkback control)
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'voice_enabled') {
-        setIsVoiceEnabled(e.newValue === 'true');
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
 
   // Sync with global navigation requests (Voice Commands from App.tsx)
   useEffect(() => {
@@ -193,113 +169,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     onLogout();
   });
 
-  // ── Context-aware scroll/highlight for Services page ─────────────
-  // Maps voice commands to department IDs for scrollIntoView
-  const COMMAND_TO_DEPT_ID: Record<string, string> = {
-    electricity_bill: 'eb',
-    water_bill: 'water',
-    gas: 'gas',
-    municipal: 'municipal',
-  };
-
-  const highlightDeptCard = (deptId: string) => {
-    const el = document.getElementById(`dept-card-${deptId}`);
-    if (!el) return false;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Add a highlight animation class
-    el.classList.add('dept-card-highlight');
-    el.focus();
-    setTimeout(() => el.classList.remove('dept-card-highlight'), 3000);
-    return true;
-  };
-
-  // Voice Command Handler — uses VoiceHierarchyRouter for L1+L2 routing
-  const handleVoiceCommand = (command: string) => {
-    console.log('[KioskUI] Voice input received:', command);
-
-    // ── Context-Aware: If on Services page, try scroll/highlight first ──
-    if (activeTab === 'services' && submissionStep === 'select') {
-      const deptId = COMMAND_TO_DEPT_ID[command];
-      if (deptId && highlightDeptCard(deptId)) {
-        speakText(`Showing ${command.replace('_', ' ')} section.`);
-        return;
-      }
-    }
-
-    // Build current module context for context-aware matching
-    const ctx = detectActiveModule(activeTab);
-    const action = routeHierarchy(command, ctx);
-
-    if (!action) {
-      // Unrecognized — try simple legacy fallback then speak error
-      console.warn('[KioskUI] No route match for:', command);
-      speakText(t('commandNotUnderstood', 'I did not understand that command.'));
-      return;
-    }
-
-    console.log(`[KioskUI] Route → module=${action.module} subView=${action.subView} tab=${action.dashboardTab}`);
-    speakText(action.announcement);
-
-    // ── L1: Handle global nav modules (no sub-view) ──
-    switch (action.module) {
-      case 'home':
-        setActiveTab('home');
-        return;
-      case 'complaints':
-        setActiveTab('complaints');
-        return;
-      case 'assistant':
-        setActiveTab('ai');
-        return;
-      case 'tracker':
-        setActiveTab('tracker');
-        return;
-      case 'history':
-        setActiveTab('status');
-        return;
-      case 'services':
-        setActiveTab('services');
-        setSubmissionStep('select');
-        return;
-      case 'municipal':
-        setActiveTab('municipal');
-        return;
-    }
-
-    // ── L2: Electricity deep navigation ──
-    if (action.module === 'electricity') {
-      const subView = (action.subView ?? 'HOME') as ElectricityView;
-      setElectricitySubView(subView);
-      // If not already in billing/electricity, navigate there first
-      if (activeTab !== 'billing' || selectedBillService?.id !== 'elec') {
-        setSelectedBillService({ id: 'elec', name: 'Electricity' });
-        setBillingStep('form'); // skip selection — go straight to module
-        setActiveTab('billing');
-      }
-      return;
-    }
-
-    // ── L2: Gas deep navigation ──
-    if (action.module === 'gas') {
-      const subView = (action.subView ?? 'HOME') as GasView;
-      setGasSubView(subView);
-      setActiveTab('gas');
-      return;
-    }
-
-    // ── L2: Water / Pay Bill ──
-    if (action.module === 'water') {
-      setSelectedBillService({ id: 'water', name: 'Water' });
-      setBillingStep('select');
-      setActiveTab('billing');
-      return;
-    }
-    if (action.module === 'paybill') {
-      setBillingStep('select');
-      setActiveTab('billing');
-      return;
-    }
-  };
 
 
   // Initialize Chat with Welcome Message on Load
@@ -345,59 +214,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, activeTab]);
 
-  // Full language-to-BCP47 locale map for voice synthesis & recognition
-  const LANG_LOCALE_MAP: Record<Language, string> = {
-    [Language.ENGLISH]: 'en-IN',
-    [Language.HINDI]: 'hi-IN',
-    [Language.TAMIL]: 'ta-IN',
-    [Language.TELUGU]: 'te-IN',
-    [Language.KANNADA]: 'kn-IN',
-    [Language.MALAYALAM]: 'ml-IN',
-    [Language.MARATHI]: 'mr-IN',
-    [Language.GUJARATI]: 'gu-IN',
-    [Language.PUNJABI]: 'pa-IN',
-    [Language.BENGALI]: 'bn-IN',
-    [Language.ODIA]: 'or-IN',
-    [Language.ASSAMESE]: 'as-IN',
-    [Language.URDU]: 'ur-IN',
-    [Language.MAITHILI]: 'mai',
-    [Language.DOGRI]: 'doi',
-    [Language.KONKANI]: 'kok-IN',
-    [Language.KASHMIRI]: 'ks-IN',
-    [Language.MANIPURI]: 'mni-IN',
-    [Language.BODO]: 'brx-IN',
-    [Language.SANSKRIT]: 'sa-IN',
-    [Language.SANTALI]: 'sat-IN',
-    [Language.SINDHI]: 'sd-IN',
 
-  };
-
-  // Handle Voice Speak — delegates to globalSpeak for consistent female voice
-  const speakText = (text: string, onEnd?: () => void) => {
-    if (!isVoiceEnabled || !window.speechSynthesis) {
-        if (onEnd) onEnd();
-        return;
-    }
-
-    // Map the Language enum to a language name string for globalSpeak
-    const langNameMap: Record<string, string> = {
-      'en-IN': 'English', 'hi-IN': 'Hindi', 'ta-IN': 'Tamil',
-      'te-IN': 'Telugu', 'kn-IN': 'Kannada', 'ml-IN': 'Malayalam',
-      'mr-IN': 'Marathi', 'gu-IN': 'Gujarati', 'pa-IN': 'Punjabi',
-      'bn-IN': 'Bengali', 'or-IN': 'Odia', 'as-IN': 'Assamese',
-      'ur-IN': 'Urdu',
-    };
-    const locale = LANG_LOCALE_MAP[language] || 'en-IN';
-    const langName = langNameMap[locale] || 'English';
-
-    globalSpeak(text, langName, onEnd);
-  };
 
   const handleAiSearch = async (queryOverride?: string) => {
-    // If there is no override, it implies a manual keyboard submit, so break the voice loop
-    if (!queryOverride) {
-      isConversationalRef.current = false;
-    }
 
     const query = queryOverride || aiQuery;
     if (!query.trim()) return;
@@ -461,32 +280,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setIsAiLoading(true);
 
     try {
-      const response: AIResponse = await getAssistantResponse(query, t, isVoiceEnabled);
+      const response: AIResponse = await getAssistantResponse(query, t, false);
 
       const botMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         text: response.text,
-        voiceText: response.voice,
         action: response.actions ? response.actions[0] : undefined,
         menu: response.menu // Capture menu options
       };
 
       setChatHistory(prev => [...prev, botMsg]);
-
-      // Auto-speak if voice is enabled, and support conversational hot-mic loop
-      const textToSpeak = response.voice || response.text;
-      if (isVoiceEnabled && textToSpeak) {
-        speakText(textToSpeak, () => {
-           if (isConversationalRef.current && (!response.actions || response.actions.length === 0)) {
-               setTimeout(() => {
-                   if (!isListening) handleVoiceInput();
-               }, 400); // Small breath pause before hot-mic reactivates
-           } else {
-               isConversationalRef.current = false;
-           }
-        });
-      }
 
       // Handle Actions
       if (response.actions) {
@@ -520,47 +324,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setTimeout(() => handleAiSearch("start"), 100);
   };
 
-  // Voice Input State
-  const [isListening, setIsListening] = useState(false);
-
-  // Handle Voice Input
-  const handleVoiceInput = () => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      if (isListening) {
-        setIsListening(false);
-        return;
-      }
-
-      setIsListening(true);
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.lang = LANG_LOCALE_MAP[language] || 'en-IN';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setAiQuery(transcript);
-        setIsListening(false);
-        isConversationalRef.current = true; // Enters continuous conversation loop
-        setTimeout(() => handleAiSearch(transcript), 500); // Auto-submit after voice
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.start();
-    } else {
-      setToast({ message: "Voice input is not supported in this browser.", type: 'error' });
-    }
-  };
 
 
   const handleGenerateImage = async () => {
@@ -712,7 +475,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       timer={timer}
       isPrivacyShield={isPrivacyShield}
       onTogglePrivacy={onTogglePrivacy}
-      onVoiceCommand={onVoiceCommand || handleVoiceCommand}
     >
       {/* KIOSK WALK-AWAY WARNING MODAL */}
       {isWarning && (
@@ -898,9 +660,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW: GAS MODULE */}
         {activeTab === 'gas' && <GasModule
-          onBack={() => { setGasSubView(undefined); setActiveTab('services'); }}
+          onBack={() => { setActiveTab('services'); }}
           language={language}
-          initialSubView={gasSubView}
           onGlobalNavigate={(tab) => setActiveTab(tab as any)}
         />}
         
@@ -956,7 +717,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
-                  initialSubView={electricitySubView}
                 />
               ) : selectedBillService.id === 'water' ? (
                 <MunicipalModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
@@ -965,7 +725,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
-                  initialSubView={gasSubView}
                 />
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
@@ -1132,7 +891,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <h3 className="font-black text-2xl tracking-tight">AAZHI AI</h3>
                   <div className="flex items-center gap-2 opacity-80">
                     <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <p className="text-[10px] uppercase font-black tracking-[0.2em]">{t('ai_online')} • {t('ai_voiceEnabled')}</p>
+                    <p className="text-[10px] uppercase font-black tracking-[0.2em]">{t('ai_online')}</p>
                   </div>
                 </div>
               </div>
@@ -1147,19 +906,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   <span className="text-xs uppercase tracking-wider">{t('ai_newChat')}</span>
                 </button>
 
-                {/* Voice Toggle */}
-                <button
-                  onClick={() => {
-                    const nextState = !isVoiceEnabled;
-                    setIsVoiceEnabled(nextState);
-                    localStorage.setItem('voice_enabled', nextState.toString());
-                  }}
 
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold transition-all border ${isVoiceEnabled ? 'bg-white text-indigo-900 border-white' : 'bg-indigo-800 text-indigo-300 border-indigo-700'}`}
-                >
-                  {isVoiceEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-                  <span className="text-xs uppercase tracking-wider">{isVoiceEnabled ? t('ai_voiceOn') : t('ai_voiceOff')}</span>
-                </button>
               </div>
             </div>
 
@@ -1196,12 +943,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                           </div>
                         )}
 
-                        {/* Bot Actions - Replay Voice */}
-                        {msg.sender === 'bot' && msg.voiceText && isVoiceEnabled && (
-                          <button onClick={() => speakText(msg.voiceText!)} className="mt-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg w-fit hover:bg-indigo-100 transition">
-                            <PlayCircle size={14} /> {t('ai_replay')}
-                          </button>
-                        )}
+
                       </div>
                     </div>
                   ))}
@@ -1349,23 +1091,5 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   );
 };
 
-// ─── Styles for Voice-Highlight Effect ────────────────────────────
-const KIOSK_VOICE_STYLES = document.createElement('style');
-KIOSK_VOICE_STYLES.textContent = `
-  @keyframes dept-card-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-    50%      { box-shadow: 0 0 20px 6px rgba(59, 130, 246, 0.6); }
-  }
-  .dept-card-highlight {
-    animation: dept-card-glow 1s ease-in-out 3;
-    border-color: #3b82f6 !important;
-    transform: scale(1.02);
-    transition: all 0.3s ease;
-  }
-`;
-if (typeof document !== 'undefined' && !document.getElementById('kiosk-voice-styles')) {
-  KIOSK_VOICE_STYLES.id = 'kiosk-voice-styles';
-  document.head.appendChild(KIOSK_VOICE_STYLES);
-}
 
 export default KioskUI;

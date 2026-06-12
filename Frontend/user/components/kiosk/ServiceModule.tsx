@@ -9,7 +9,6 @@ import {
     ArrowLeft,
     CheckCircle,
     Clock,
-    Mic,
     FileText,
     Upload,
     ShieldCheck

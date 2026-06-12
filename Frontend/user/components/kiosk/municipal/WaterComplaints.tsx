@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, AlertCircle, Send, Camera, Mic } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Send, Camera } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import DocumentScannerOverlay from '../DocumentScannerOverlay';
@@ -275,16 +275,13 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             />
             {errors.description && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.description}</p>}
 
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4">
               <button 
                 type="button"
                 onClick={() => setShowScanner(true)}
-                className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition cursor-pointer"
+                className="w-full bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition cursor-pointer"
               >
                 <Camera size={18} /> {t('comp_addPhoto') || 'Add Photo'}
-              </button>
-              <button type="button" className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                <Mic size={18} /> {t('comp_voiceNote') || 'Voice Note'}
               </button>
             </div>
             {uploadedFiles.length > 0 && (

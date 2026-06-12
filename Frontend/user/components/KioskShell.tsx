@@ -5,7 +5,7 @@ import cdacLogo from '../assets/cdac_logo.png';
 
 import { Language } from '../types';
 import { useTranslation } from 'react-i18next';
-import SuvidhaVoiceControl from './SuvidhaVoiceControl';
+
 import KioskErrorBoundary from './KioskErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SystemService } from '../services/systemService';
@@ -23,7 +23,7 @@ interface KioskShellProps {
     timer?: number;
     isPrivacyShield?: boolean;
     onTogglePrivacy?: () => void;
-    onVoiceCommand?: (command: string) => void;
+
 }
 
 const DynamicBatteryIcon = ({ level, isCharging }: { level: number | null, isCharging: boolean }) => {
@@ -85,8 +85,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
     language,
     timer = 120, // Default to avoid crash if not passed
     isPrivacyShield = false,
-    onTogglePrivacy,
-    onVoiceCommand
+    onTogglePrivacy
 }) => {
     const [time, setTime] = useState(new Date());
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -181,7 +180,6 @@ const KioskShell: React.FC<KioskShellProps> = ({
         // 1. Preserve non-PII settings
         const lang = localStorage.getItem('selectedLanguage');
         const appLang = localStorage.getItem('app_lang');
-        const voice = localStorage.getItem('voice_enabled');
 
         // 2. Aggressively clear all storage
         localStorage.clear();
@@ -197,7 +195,6 @@ const KioskShell: React.FC<KioskShellProps> = ({
         // 3. Restore non-PII settings
         if (lang) localStorage.setItem('selectedLanguage', lang);
         if (appLang) localStorage.setItem('app_lang', appLang);
-        if (voice) localStorage.setItem('voice_enabled', voice);
 
         // 4. Update parent view state to Landing
         onLogout();
@@ -328,11 +325,6 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     </div>
 
                     <div className={`flex items-center ${isVertical ? 'w-full justify-between bg-slate-50 p-3 rounded-2xl border border-slate-200' : 'gap-6'}`}>
-                        {onVoiceCommand && (
-                            <div className={`${isVertical ? 'scale-110 origin-left' : ''}`}>
-                                <SuvidhaVoiceControl onCommand={onVoiceCommand as any} ttsLanguage={language} variant="inline" />
-                            </div>
-                        )}
 
                         {/* System Status Indicators */}
                         <div className={`flex items-center gap-4 ${isVertical ? '' : 'pl-6 border-l border-slate-200'}`}>

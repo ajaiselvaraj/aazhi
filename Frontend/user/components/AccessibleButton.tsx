@@ -1,16 +1,14 @@
 import React from 'react';
-import { speakText } from '../utils/speak';
 
 export interface AccessibleButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     label: string;
-    speakLabel?: string; // Optional: custom text to speak instead of the visible label
-    language: string; // The current selected language (e.g., 'English', 'Hindi')
+    speakLabel?: string; // Kept for backwards compatibility (no-op)
+    language?: string; // Kept for backwards compatibility (no-op)
     largeFont?: boolean; // Large font compatibility for senior citizens
 }
 
 /**
- * An Accessible Button for kiosks that speaks its label on touch/click 
- * and provides large typography and visible focus states.
+ * An Accessible Button for kiosks with large typography and visible focus states.
  */
 export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
     label,
@@ -32,12 +30,6 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
         // Prevent rapid double-taps (common on kiosk touchscreens)
         setIsLocalDisabled(true);
         setTimeout(() => setIsLocalDisabled(false), 1000);
-
-        // Speak on click or touch
-        speakText({
-            text: speakLabel || label,
-            language: language
-        });
 
         // Call original onClick handler if provided
         if (onClick) {

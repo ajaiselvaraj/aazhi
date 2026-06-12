@@ -28,7 +28,7 @@ const getBaseUrl = () => {
   return url;
 };
 
-const API_BASE_URL = getBaseUrl();
+export const API_BASE_URL = getBaseUrl();
 
 // ── Axios Instance Configuration ──────────────────────────────────────────
 const axiosInstance: AxiosInstance = axios.create({

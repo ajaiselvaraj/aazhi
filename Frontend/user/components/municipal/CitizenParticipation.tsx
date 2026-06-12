@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, FileSignature, CheckSquare, Search, Play, Vote, MessageSquare, Activity, AlertCircle } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { useOrientation } from '../../contexts/OrientationContext';
@@ -54,8 +54,7 @@ export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: b
                                     onClick={() => {
                                         setView(t(act.labelKey));
                                         setStep(act.id === 'ward' ? 2 : act.id === 'track' ? 3 : 4);
-                                        speakText({ text: t(act.labelKey), language: getLanguageName() });
-                                    }}
+                                        }}
                                     className="min-h-[160px] text-2xl font-black bg-white shadow-md border-b-4 border-slate-100 hover:border-blue-500 hover:bg-blue-50 p-6 flex flex-col justify-start text-left items-start gap-4"
                                 />
                             ))}

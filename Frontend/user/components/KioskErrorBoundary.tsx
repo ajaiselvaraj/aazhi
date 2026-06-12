@@ -25,13 +25,11 @@ class KioskErrorBoundary extends Component<Props, State> {
     private handleReset = () => {
         // Aggressively clear state on crash to prevent data leak
         const lang = localStorage.getItem('selectedLanguage');
-        const voice = localStorage.getItem('voice_enabled');
         
         localStorage.clear();
         sessionStorage.clear();
 
         if (lang) localStorage.setItem('selectedLanguage', lang);
-        if (voice) localStorage.setItem('voice_enabled', voice);
 
         window.location.reload();
     };

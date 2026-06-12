@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Download, QrCode, Search, ShieldCheck, CheckCircle, FileText, Smartphone } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Certificate } from '../../types/municipal';
@@ -38,8 +38,7 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
         setTimeout(() => {
             setStep(3);
             setIsVerifying(false);
-            speakText({ text: t("cert_otpInstruct"), language: getLanguageName() });
-        }, 1200);
+            }, 1200);
     };
 
     const handleOTPAuth = () => {
@@ -57,8 +56,7 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
             });
             setStep(4);
             setIsVerifying(false);
-            speakText({ text: t("cert_authSuccess"), language: getLanguageName() });
-        }, 1500);
+            }, 1500);
     };
 
     return (
@@ -87,7 +85,6 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
                                     onClick={() => {
                                         setType(ctKey);
                                         setStep(2);
-                                        speakText({ text: `${t(ctKey)}. ${t("cert_regId")}.`, language: getLanguageName() });
                                     }}
                                     className="min-h-[120px] text-2xl font-black bg-white shadow border-b-4 border-slate-200 hover:border-blue-500"
                                 />
@@ -177,7 +174,6 @@ export const CertificateDownload: React.FC<{ onBack: () => void; isPrivacyOn: bo
                                 speakLabel={t("cert_printing")}
                                 language={getLanguageName()}
                                 onClick={() => {
-                                    speakText({ text: t("cert_printing"), language: getLanguageName() });
                                     onBack();
                                 }}
                                 className="w-full bg-blue-600 text-white py-6 text-2xl font-black flex items-center justify-center gap-3"

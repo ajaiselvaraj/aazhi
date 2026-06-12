@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, MapPin, AlertCircle, CheckCircle, Mic, Plus } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
-import { speakText } from '../../utils/speak';
+
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Priority } from '../../types/municipal';
@@ -58,18 +58,12 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
         return config ? config.name : 'English';
     };
 
-    // Step 1: Speak Instructions on Load
-    useEffect(() => {
-        speakText({
-            text: t("civic_selectComplaint"),
-            language: getLanguageName()
-        });
-    }, [language]);
+
 
     // Step 2: Auto-detect Location
     const handleLocationDetect = () => {
         setIsTrackingLoc(true);
-        speakText({ text: t("civic_locating"), language: getLanguageName() });
+
 
         // HTML5 GeoLocation API (mocked quickly for browsers without SSL/permissions)
         if ("geolocation" in navigator) {
@@ -134,16 +128,12 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             console.log("✅ [Civic] Submission success. Ticket received:", ticketId);
             setSubmittedTicket(ticketId);
 
-            speakText({
-                text: t("civic_successMsg"),
-                language: getLanguageName(),
-                rate: 0.9
-            });
+
 
             setStep(4); // Success screen
         } catch (e: any) {
             console.error("❌ [Civic] Critical submission failure:", e?.message || e);
-            speakText({ text: t("civic_errorMsg"), language: getLanguageName() });
+
         } finally {
             setIsSubmitting(false);
             console.log("🏳️ [Civic] Submission flow ended.");
@@ -178,7 +168,6 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                     onClick={() => {
                                         setCategory(catKey);
                                         setStep(2);
-                                        speakText({ text: t(catKey), language: getLanguageName() });
                                     }}
                                     className={`
                     min-h-[100px] text-left !justify-start p-6 text-xl
@@ -227,7 +216,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
                         <div className="flex justify-between w-full mt-12 gap-6">
                             <AccessibleButton label={t("backBtn")} language={getLanguageName()} onClick={() => setStep(1)} className="flex-1 bg-slate-200 border-none" />
-                            <AccessibleButton label={t("nextBtn")} language={getLanguageName()} onClick={() => { setStep(3); speakText({ text: t("civic_takePhoto"), language: getLanguageName() }) }} disabled={!location} className="flex-1 bg-slate-800 text-white border-none disabled:opacity-50" />
+                            <AccessibleButton label={t("nextBtn")} language={getLanguageName()} onClick={() => { setStep(3); }} disabled={!location} className="flex-1 bg-slate-800 text-white border-none disabled:opacity-50" />
                         </div>
                     </div>
                 )}
@@ -299,7 +288,6 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                     onScanComplete={(fileName) => {
                         setAttachedFile(fileName);
                         setShowScanner(false);
-                        speakText({ text: "Photo attached successfully", language: getLanguageName() });
                     }}
                 />
             )}
