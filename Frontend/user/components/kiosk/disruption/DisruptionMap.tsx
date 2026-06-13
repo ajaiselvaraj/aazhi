@@ -43,11 +43,11 @@ const aiRisksGeojson: any = {
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          [76.9300, 11.0200],
-          [76.9480, 11.0200],
-          [76.9480, 11.0330],
-          [76.9300, 11.0330],
-          [76.9300, 11.0200]
+          [91.7200, 26.1300],
+          [91.7500, 26.1300],
+          [91.7500, 26.1500],
+          [91.7200, 26.1500],
+          [91.7200, 26.1300]
         ]]
       }
     }
@@ -120,7 +120,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: mapStyle,
-      center: [76.9558, 11.0168], // Coimbatore center [lng, lat]
+      center: [91.7362, 26.1445], // Assam center [lng, lat]
       zoom: 11.2,
       minZoom: 10.0,
       maxZoom: 14.5,
@@ -250,7 +250,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         type: 'fill-extrusion',
         source: 'ai-risks',
         paint: {
-          'fill-extrusion-color': '#a855f7', // Purple AI glow
+          'fill-extrusion-color': '#3b82f6', // Soothing blue
           'fill-extrusion-height': is3DModeRef.current ? 180 : 0,
           'fill-extrusion-base': 0,
           'fill-extrusion-opacity': aiRisksEnabledRef.current ? 0.35 : 0
@@ -330,7 +330,19 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
 
     mapRef.current = map;
 
+    // Use ResizeObserver to automatically resize Mapbox canvas when container resizes
+    let resizeObserver: ResizeObserver | null = null;
+    if (mapContainerRef.current && window.ResizeObserver) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapRef.current) {
+          mapRef.current.resize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
+      if (resizeObserver) resizeObserver.disconnect();
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       map.remove();
       mapRef.current = null;
@@ -443,28 +455,30 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
 
       const color =
         incident.status === 'Critical'
-          ? '#ef4444'
+          ? '#ef4444' // Softer Red
           : incident.status === 'In Progress'
-          ? '#f59e0b'
-          : '#10b981';
+          ? '#f59e0b' // Amber
+          : '#3b82f6'; // Professional Blue
 
       el.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%;">
+        <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
           <span style="
             position: absolute; 
             inset: -4px; 
             border-radius: 50%; 
             background-color: ${color}; 
-            opacity: 0.5; 
-            animation: pulseGlow 1.5s infinite ease-out;
+            opacity: 0.3; 
+            animation: pulseGlow 2s infinite ease-out;
           "></span>
           <span style="
-            position: absolute; 
-            inset: -8px; 
-            border-radius: 50%; 
-            background-color: ${color}; 
-            opacity: 0.25; 
-            animation: pulseGlowSlow 2.5s infinite ease-out;
+            position: relative;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: ${color};
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
           "></span>
           <div style="
             position: absolute;
@@ -544,7 +558,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
   const activeCount = mockIncidents.filter((i) => i.status !== 'Resolved').length;
 
   return (
-    <div className="flex flex-col gap-5 w-full h-[780px] relative font-sans text-white select-none">
+    <div className="flex flex-col gap-5 w-full h-[500px] lg:h-[600px] xl:h-[780px] relative font-sans text-white select-none">
       <style>{`
         @keyframes pulseGlow {
           0% { transform: scale(0.6); opacity: 1; }
@@ -656,7 +670,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl px-3.5 py-2 text-slate-300 shadow-xl flex items-center gap-2.5 border-l-cyan-500/50 border-l-[3px]">
               <CloudSun size={13} className="text-cyan-400 animate-pulse" />
               <div className="text-left leading-none">
-                <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">coimbatore weather</span>
+                <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">assam weather</span>
                 <span className="font-extrabold text-xs text-white">31°C • Storm Alert</span>
               </div>
             </div>

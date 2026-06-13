@@ -4,6 +4,7 @@ import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { MOCK_USER_PROFILE } from '../../../constants';
 import OfficialReceipt from './OfficialReceipt';
 import PaymentReceipt from '../PaymentReceipt';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 import { Language } from '../../../types';
 import { ElectricityService, ElectricityBill } from '../../../services/electricityService';
 import { useTranslation } from 'react-i18next';
@@ -102,6 +103,12 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                     >
                         {isLoading ? <RefreshCw className="animate-spin" /> : t('fetchBill')}
                     </button>
+                </div>
+            )}
+            
+            {step === 'INPUT' && (
+                <div className="mt-8">
+                    <ConsumptionAnalytics language={language} serviceType="electricity" />
                 </div>
             )}
 

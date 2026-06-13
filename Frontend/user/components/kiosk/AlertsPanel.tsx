@@ -18,7 +18,7 @@ const AlertsPanel: React.FC<Props> = ({ alerts, language = Language.ENGLISH }) =
     };
 
     return (
-        <div className="bg-slate-900 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl">
+        <div className="bg-slate-900 rounded-[2rem] p-6 text-white overflow-hidden relative shadow-2xl h-full flex flex-col">
             <div className="flex items-center justify-between mb-4 border-b border-gray-700 pb-2">
                 <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <AlertCircle className="text-red-500 animate-pulse" size={16} />

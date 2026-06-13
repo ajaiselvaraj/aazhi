@@ -147,12 +147,12 @@ const ElectricityNewConnectionForm: React.FC<Props> = ({ onBack, language }) => 
           <ArrowLeft size={16} /> {t('backToUtils') || 'Back'}
         </button>
 
-        <div className="text-center mb-10">
+        <div className="mb-10 text-center">
           <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
             <Bolt size={40} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 mb-2">{t('elec_selectConnectionType') || 'Select Connection Type'}</h1>
-          <p className="text-slate-500 font-medium">{t('elec_selectConnectionDesc') || 'Choose the type of electricity connection service you need.'}</p>
+          <h1 className="text-4xl font-black text-slate-900 mb-2">{t('elec_selectConnectionType') || 'What kind of electricity service do you need?'}</h1>
+          <p className="text-slate-500 font-medium">{t('elec_selectConnectionDesc') || 'Please select a request type to continue.'}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

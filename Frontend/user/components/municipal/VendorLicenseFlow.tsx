@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Building2, UserCircle, Briefcase, MapPin, Search } from 'lucide-react';
+import { FileText, Building2, UserCircle, Briefcase, MapPin, Search, ArrowLeft } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 
 import { useTranslation } from 'react-i18next';
@@ -8,11 +8,11 @@ import { Application } from '../../types/municipal';
 import { useOrientation } from '../../contexts/OrientationContext';
 
 const BUSINESS_CATEGORIES_KEYS = [
-    { id: 'hawker', labelKey: 'vendor_streetVendor', icon: UserCircle },
-    { id: 'market', labelKey: 'vendor_marketStall', icon: MapPin },
-    { id: 'event', labelKey: 'vendor_eventPermit', icon: FileText },
-    { id: 'ads', labelKey: 'vendor_adBoard', icon: Briefcase },
-    { id: 'trade', labelKey: 'vendor_tradeReg', icon: Building2 }
+    { id: 'hawker', labelKey: 'vendor_streetVendor', icon: UserCircle, circleColor: '#b45309' },
+    { id: 'market', labelKey: 'vendor_marketStall', icon: MapPin, circleColor: '#047857' },
+    { id: 'event', labelKey: 'vendor_eventPermit', icon: FileText, circleColor: '#1d4ed8' },
+    { id: 'ads', labelKey: 'vendor_adBoard', icon: Briefcase, circleColor: '#6d28d9' },
+    { id: 'trade', labelKey: 'vendor_tradeReg', icon: Building2, circleColor: '#0f766e' }
 ];
 
 export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
@@ -41,38 +41,83 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
     };
 
     return (
-        <div className={`flex flex-col h-full bg-slate-50 w-full p-8 font-sans ${isPrivacyOn ? 'privacy-sensitive' : ''}`}>
-            <div className="flex justify-between items-center mb-12">
-                <AccessibleButton
-                    label={`← ${t("mainMenu")}`}
-                    speakLabel={t("cancelBtn")}
-                    language={getLanguageName()}
-                    onClick={onBack}
-                    className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
-                />
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight">{t("vendor_title")}</h2>
-            </div>
+        <div className={`flex flex-col h-full w-full font-sans ${isPrivacyOn ? 'privacy-sensitive' : ''}`}
+             style={{ backgroundColor: step === 1 ? '#f4f6fa' : undefined }}
+        >
+            {/* Step 1: VENDOR LICENSE - Full zoom-out grid */}
+            {step === 1 && (
+                <div className="flex flex-col h-full p-4 sm:p-8 animate-in fade-in">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 mb-4">
+                        <button
+                            onClick={onBack}
+                            className="w-12 h-12 rounded-full flex items-center justify-center transition shadow-sm"
+                            style={{ backgroundColor: '#ffffff', border: '2px solid #e2e8f0', color: '#475569' }}
+                        >
+                            <ArrowLeft size={24} />
+                        </button>
+                        <div>
+                            <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter"
+                                style={{ color: '#1e293b' }}>
+                                {t("vendor_title") || 'VENDOR & LICENSE'}
+                            </h2>
+                        </div>
+                    </div>
+                    <p className="text-center font-bold mb-8 uppercase tracking-widest text-sm"
+                       style={{ color: '#64748b' }}>
+                        {t("vendor_selectService") || 'Select a service to apply'}
+                    </p>
 
-            <div className="flex-1 max-w-5xl mx-auto w-full">
-                {step === 1 && (
-                    <div className="animate-in slide-in-from-right-8 duration-500">
-                        <h3 className="text-2xl font-bold mb-6 text-slate-700">{t("vendor_selectService")}</h3>
-                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 md:grid-cols-3 gap-6'}`}>
-                            {BUSINESS_CATEGORIES_KEYS.map(cat => (
-                                <AccessibleButton
+                    {/* Category Grid */}
+                    <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6'} pb-12 overflow-y-auto`}>
+                        {BUSINESS_CATEGORIES_KEYS.map(cat => {
+                            const IconComp = cat.icon;
+                            return (
+                                <button
                                     key={cat.id}
-                                    label={t(cat.labelKey)}
-                                    language={getLanguageName()}
                                     onClick={() => {
                                         setType(cat.id);
                                         setStep(2);
                                     }}
-                                    className="min-h-[140px] text-xl font-bold bg-white text-left p-6 shadow border-b-4 border-slate-200 hover:border-blue-500"
-                                />
-                            ))}
-                        </div>
+                                    className="group flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[180px]"
+                                    style={{
+                                        backgroundColor: '#222836',
+                                        borderRadius: '1.5rem',
+                                        border: 'none',
+                                        padding: '1.5rem',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    <div className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-md"
+                                         style={{ backgroundColor: cat.circleColor }}>
+                                        <IconComp size={32} style={{ color: '#ffffff' }} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[1.1rem] sm:text-lg font-bold text-center leading-tight"
+                                          style={{ color: '#ffffff' }}>
+                                        {t(cat.labelKey)}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
-                )}
+                </div>
+            )}
+
+            {/* Steps 2-4: Keep existing kiosk layout */}
+            {step > 1 && (
+                <div className="p-8 bg-slate-50 flex-1 flex flex-col">
+                    <div className="flex justify-between items-center mb-12">
+                        <AccessibleButton
+                            label={`← ${t("mainMenu")}`}
+                            speakLabel={t("cancelBtn")}
+                            language={getLanguageName()}
+                            onClick={() => step === 2 ? setStep(1) : undefined}
+                            className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
+                        />
+                        <h2 className="text-4xl font-black text-slate-800 tracking-tight">{t("vendor_title")}</h2>
+                    </div>
+
+                    <div className="flex-1 max-w-5xl mx-auto w-full">
 
                 {step === 2 && (
                     <div className="animate-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto text-center mt-12">
@@ -162,6 +207,8 @@ export const VendorLicenseFlow: React.FC<{ onBack: () => void; isPrivacyOn: bool
                     </div>
                 )}
             </div>
+                </div>
+            )}
         </div>
     );
 };

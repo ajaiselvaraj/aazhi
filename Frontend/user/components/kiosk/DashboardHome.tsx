@@ -41,13 +41,10 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
             {/* Greeting Section */}
             <motion.div variants={itemVariants} className={`flex ${isVertical ? 'flex-col gap-3' : 'justify-between items-end'}`}>
                 <div>
-                    <h2 className={`${isVertical ? 'text-3xl' : 'text-4xl'} font-black text-slate-900 tracking-tight mb-2`}>{t('welcomeCitizen')} <span className="privacy-sensitive">{userName === 'Citizen' ? '' : userName}</span></h2>
+                    <h2 className={`${isVertical ? 'text-3xl' : 'text-4xl'} font-black text-slate-900 tracking-tight mb-2`}>{t('welcomeCitizen')}</h2>
                     <div className="flex gap-2">
                         <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
                             <Smartphone size={12} /> {t('eKycVerified')}
-                        </span>
-                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                            <User size={12} /> {t('aadhaar')}: •••• 9821
                         </span>
                         <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
                             <MapPin size={12} /> {t('ward')} {MOCK_USER_PROFILE.ward}
@@ -166,11 +163,6 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                         </div>
                     </motion.button>
                 </div>
-            </motion.div>
-
-            {/* Middle Row: Analytics */}
-            <motion.div variants={itemVariants} className="w-full">
-                <ConsumptionAnalytics language={language} />
             </motion.div>
 
             {/* Live Disruption Map Row (Hero Element) */}

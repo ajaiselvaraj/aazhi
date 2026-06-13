@@ -306,13 +306,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     <div className={`${isVertical ? 'w-full flex justify-between items-start' : ''}`}>
                         <div>
                             <h1 className={`${isVertical ? 'text-3xl' : 'text-2xl'} font-black text-slate-800 tracking-tight flex items-center gap-3 transition-all duration-300`}>
-                                {activeTab === 'home' ? `${t('welcomeCitizen') || 'Welcome, Citizen'} ${userName === 'Citizen' ? (t('citizen') || 'Citizen') : userName}` : NAV_ITEMS.find(n => n.id === activeTab)?.label}
+                                {activeTab === 'home' ? 'Welcome, Citizen' : NAV_ITEMS.find(n => n.id === activeTab)?.label}
                             </h1>
                             <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-2">
-                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-md font-bold text-[10px] uppercase tracking-wide">
-                                    {t('terminalId') || 'Terminal ID'}: CBE-02
-                                </span>
-                                <span>•</span>
                                 <span>{t('loginSubtitle')}</span>
                             </div>
                         </div>

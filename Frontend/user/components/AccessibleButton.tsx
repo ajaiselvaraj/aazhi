@@ -54,7 +54,7 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
             type="button"
             {...props}
         >
-            {label}
+            {props.children || label}
         </button>
     );
 };

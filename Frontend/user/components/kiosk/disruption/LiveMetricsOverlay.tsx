@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, CheckCircle, Clock, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react';
 
 interface Props {
   activeCount: number;
@@ -10,50 +10,46 @@ const LiveMetricsOverlay: React.FC<Props> = ({ activeCount }) => {
     {
       label: 'Active Incidents',
       value: activeCount,
-      icon: ShieldAlert,
-      color: activeCount > 2 ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-      glow: activeCount > 2 ? 'shadow-[0_0_10px_rgba(239,68,68,0.25)]' : 'shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+      icon: AlertTriangle,
+      color: activeCount > 2 ? 'text-red-500 bg-red-50' : 'text-amber-500 bg-amber-50',
     },
     {
       label: 'Resolved Today',
       value: 18,
       icon: CheckCircle,
-      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-      glow: 'shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+      color: 'text-emerald-500 bg-emerald-50',
     },
     {
-      label: 'Avg Response Time',
+      label: 'Avg Response',
       value: '28m',
       icon: Clock,
-      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-      glow: 'shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+      color: 'text-blue-500 bg-blue-50',
     },
     {
-      label: 'Response Teams Active',
+      label: 'Response Teams',
       value: 6,
       icon: Users,
-      color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-      glow: 'shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+      color: 'text-purple-500 bg-purple-50',
     }
   ];
 
   return (
-    <div className="flex flex-wrap md:flex-nowrap gap-3 w-full z-10">
+    <div className="flex flex-wrap md:flex-nowrap gap-4 w-full z-10">
       {metrics.map((metric, idx) => {
         const Icon = metric.icon;
         return (
           <div
             key={idx}
-            className={`flex-1 min-w-[140px] flex items-center gap-3.5 px-4 py-2.5 bg-slate-950/45 backdrop-blur-xl border border-white/5 rounded-2xl transition-all duration-300 hover:border-white/15 hover:-translate-y-0.5 group ${metric.glow}`}
+            className="flex-1 min-w-[140px] flex items-center gap-4 px-4 py-3 bg-white border border-slate-100 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
           >
-            <div className={`p-2 rounded-xl border flex items-center justify-center shrink-0 transition-all duration-300 ${metric.color}`}>
-              <Icon size={14} className="group-hover:scale-110 transition duration-300" />
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${metric.color}`}>
+              <Icon size={18} strokeWidth={2.5} />
             </div>
-            <div className="text-left">
-              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400 leading-none">
+            <div className="text-left flex flex-col justify-center">
+              <p className="text-[9px] font-black uppercase tracking-wider text-slate-500 leading-none mb-1.5">
                 {metric.label}
               </p>
-              <p className="text-sm font-black text-white mt-1 leading-none font-mono">
+              <p className="text-xl font-bold text-slate-800 leading-none mt-1">
                 {metric.value}
               </p>
             </div>

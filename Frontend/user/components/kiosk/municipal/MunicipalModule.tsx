@@ -14,6 +14,7 @@ import WaterTariff from './WaterTariff';
 import WaterBillCalculator from './WaterBillCalculator';
 import PropertyTaxTariff from './PropertyTaxTariff';
 import PropertyTaxCalculator from './PropertyTaxCalculator';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 
 interface Props {
   onBack: () => void;
@@ -183,6 +184,10 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
                   </div>
               </div>
           </button>
+      </div>
+
+      <div className="max-w-4xl mx-auto mt-8">
+        <ConsumptionAnalytics language={language} serviceType="water" />
       </div>
 
       {/* Consumer Services Grid */}

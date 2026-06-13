@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, CreditCard, Printer, Droplet } from 'lucide-react';
 import PaymentReceipt from '../PaymentReceipt';
 import OfficialReceipt from '../electricity/OfficialReceipt';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 import { Language } from '../../../types';
 import { MunicipalAPI } from '../../../services/municipalApi';
 import { useTranslation } from 'react-i18next';
@@ -65,7 +66,7 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <CreditCard size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('muni_consumerPrompt') || 'Enter Assessment Number'}</h2>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('muni_consumerPrompt') || 'Pay Water & Municipal Bill'}</h2>
                         <p className="text-slate-500 font-medium mb-1">Enter your 10 or 12-digit Water or Property Tax assessment number.</p>
                         <p className="text-cyan-600 font-black text-sm">Example: 123456789012</p>
                     </div>
@@ -98,6 +99,12 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     >
                         {isLoading ? <RefreshCw className="animate-spin" /> : t('fetchBill')}
                     </button>
+                </div>
+            )}
+            
+            {step === 'INPUT' && (
+                <div className="mt-8">
+                    <ConsumptionAnalytics language={language} serviceType="water" />
                 </div>
             )}
 

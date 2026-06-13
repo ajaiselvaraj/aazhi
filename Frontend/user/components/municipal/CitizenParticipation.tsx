@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, FileSignature, CheckSquare, Search, Play, Vote, MessageSquare, Activity, AlertCircle } from 'lucide-react';
+import { Calendar, FileSignature, CheckSquare, Search, Play, Vote, MessageSquare, Activity, AlertCircle, ArrowLeft } from 'lucide-react';
 import { AccessibleButton } from '../AccessibleButton';
 
 import { useTranslation } from 'react-i18next';
@@ -7,12 +7,12 @@ import { LANGUAGES_CONFIG } from '../../constants';
 import { useOrientation } from '../../contexts/OrientationContext';
 
 const CIVIC_ACTIONS_KEYS = [
-    { id: 'ward', labelKey: 'citizen_wardCalendar', icon: Calendar },
-    { id: 'suggest', labelKey: 'citizen_submitSuggestion', icon: MessageSquare },
-    { id: 'survey', labelKey: 'citizen_localSurvey', icon: CheckSquare },
-    { id: 'budget', labelKey: 'citizen_budgetTransparency', icon: Search },
-    { id: 'track', labelKey: 'citizen_trackProgress', icon: Activity },
-    { id: 'rti', labelKey: 'citizen_rtiRequest', icon: FileSignature }
+    { id: 'ward', labelKey: 'citizen_wardCalendar', icon: Calendar, circleColor: '#b45309' },
+    { id: 'suggest', labelKey: 'citizen_submitSuggestion', icon: MessageSquare, circleColor: '#047857' },
+    { id: 'survey', labelKey: 'citizen_localSurvey', icon: CheckSquare, circleColor: '#1d4ed8' },
+    { id: 'budget', labelKey: 'citizen_budgetTransparency', icon: Search, circleColor: '#6d28d9' },
+    { id: 'track', labelKey: 'citizen_trackProgress', icon: Activity, circleColor: '#0f766e' },
+    { id: 'rti', labelKey: 'citizen_rtiRequest', icon: FileSignature, circleColor: '#be123c' }
 ];
 
 export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: boolean }> = ({ onBack, isPrivacyOn }) => {
@@ -28,39 +28,78 @@ export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: b
     };
 
     return (
-        <div className={`flex flex-col h-full bg-slate-50 w-full p-8 font-sans ${isPrivacyOn ? 'privacy-sensitive' : ''}`}>
-            <div className="flex justify-between items-center mb-12">
-                <AccessibleButton
-                    label={`← ${t("citizen_mainDashboard")}`}
-                    speakLabel={t("cancelBtn")}
-                    language={getLanguageName()}
-                    onClick={onBack}
-                    className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
-                />
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-                    <Vote className="text-blue-600" size={36} /> {t("citizen_title")}
-                </h2>
-            </div>
+        <div className={`flex flex-col h-full w-full font-sans ${isPrivacyOn ? 'privacy-sensitive' : ''}`}
+             style={{ backgroundColor: step === 1 ? '#f4f6fa' : undefined }}
+        >
+            {/* Step 1: GOVERNANCE - Full zoom-out grid */}
+            {step === 1 && (
+                <div className="flex flex-col h-full p-4 sm:p-8 animate-in fade-in">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 mb-4">
+                        <button
+                            onClick={onBack}
+                            className="w-12 h-12 rounded-full flex items-center justify-center transition shadow-sm"
+                            style={{ backgroundColor: '#ffffff', border: '2px solid #e2e8f0', color: '#475569' }}
+                        >
+                            <ArrowLeft size={24} />
+                        </button>
+                        <div>
+                            <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter"
+                                style={{ color: '#1e293b' }}>
+                                {t("citizen_title") || 'GOVERNANCE'}
+                            </h2>
+                        </div>
+                    </div>
+                    <p className="text-center font-bold mb-8 uppercase tracking-widest text-sm"
+                       style={{ color: '#64748b' }}>
+                        {t("citizen_mainDashboard") || 'Select a service'}
+                    </p>
 
-            <div className="flex-1 max-w-6xl mx-auto w-full">
-                {step === 1 && (
-                    <div className="animate-in slide-in-from-right-8 duration-500">
-                        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 lg:grid-cols-3 gap-6'}`}>
-                            {CIVIC_ACTIONS_KEYS.map(act => (
-                                <AccessibleButton
+                    {/* Category Grid */}
+                    <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6'} pb-12 overflow-y-auto`}>
+                        {CIVIC_ACTIONS_KEYS.map(act => {
+                            const IconComp = act.icon;
+                            return (
+                                <button
                                     key={act.id}
-                                    label={t(act.labelKey)}
-                                    language={getLanguageName()}
                                     onClick={() => {
                                         setView(t(act.labelKey));
                                         setStep(act.id === 'ward' ? 2 : act.id === 'track' ? 3 : 4);
-                                        }}
-                                    className="min-h-[160px] text-2xl font-black bg-white shadow-md border-b-4 border-slate-100 hover:border-blue-500 hover:bg-blue-50 p-6 flex flex-col justify-start text-left items-start gap-4"
-                                />
-                            ))}
-                        </div>
+                                        // NOTE: speakText removed based on stash if needed, or kept. The stash had it. We'll keep the white style.
+                                    }}
+                                    className="min-h-[160px] text-2xl font-black bg-white shadow-md border-b-4 border-slate-100 hover:border-blue-500 hover:bg-blue-50 p-6 flex flex-col justify-start text-left items-start gap-4 rounded-3xl transition-all"
+                                >
+                                    <div className="w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm"
+                                         style={{ backgroundColor: act.circleColor + '20', color: act.circleColor }}>
+                                        <IconComp size={32} strokeWidth={2.5} />
+                                    </div>
+                                    <span className="text-[1.1rem] sm:text-lg font-black text-slate-800 leading-tight">
+                                        {t(act.labelKey)}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
-                )}
+                </div>
+            )}
+
+            {/* Steps 2-4: Keep existing kiosk layout */}
+            {step > 1 && (
+                <div className="p-8 bg-slate-50 flex-1 flex flex-col">
+                    <div className="flex justify-between items-center mb-12">
+                        <AccessibleButton
+                            label={`← ${t("citizen_mainDashboard")}`}
+                            speakLabel={t("cancelBtn")}
+                            language={getLanguageName()}
+                            onClick={onBack}
+                            className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
+                        />
+                        <h2 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+                            <Vote className="text-blue-600" size={36} /> {t("citizen_title")}
+                        </h2>
+                    </div>
+
+                    <div className="flex-1 max-w-6xl mx-auto w-full">
 
                 {step === 2 && (
                     <div className="animate-in zoom-in-95 duration-500 max-w-3xl mx-auto mt-12">
@@ -138,6 +177,8 @@ export const CitizenParticipation: React.FC<{ onBack: () => void; isPrivacyOn: b
                     </div>
                 )}
             </div>
+                </div>
+            )}
         </div>
     );
 };

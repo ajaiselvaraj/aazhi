@@ -18,10 +18,10 @@ export const mockIncidents: Incident[] = [
     ward: '12',
     timestamp: '12 mins ago',
     reporter: 'IoT Pressure Sensor #W12-04',
-    responseTeam: 'Coimbatore Municipal Water Team B',
+    responseTeam: 'Assam Municipal Water Team B',
     estimatedRestore: '2h 15m',
     status: 'Critical',
-    coordinates: [76.9412, 11.0321]
+    coordinates: [91.7216, 26.1598]
   },
   {
     id: 'INC-2039',
@@ -34,7 +34,7 @@ export const mockIncidents: Incident[] = [
     responseTeam: 'TANGEDCO Emergency Crew 4',
     estimatedRestore: '3h 45m',
     status: 'In Progress',
-    coordinates: [76.9388, 10.9982]
+    coordinates: [91.7192, 26.1259]
   },
   {
     id: 'INC-2035',
@@ -47,7 +47,7 @@ export const mockIncidents: Incident[] = [
     responseTeam: 'Sanitation Department Zone 3',
     estimatedRestore: '1h 30m',
     status: 'In Progress',
-    coordinates: [76.9621, 10.9912]
+    coordinates: [91.7425, 26.1189]
   },
   {
     id: 'INC-2031',
@@ -60,7 +60,7 @@ export const mockIncidents: Incident[] = [
     responseTeam: 'Public Works Division C',
     estimatedRestore: '55 mins',
     status: 'In Progress',
-    coordinates: [76.9788, 11.0254]
+    coordinates: [91.7592, 26.1531]
   },
   {
     id: 'INC-2022',
@@ -73,7 +73,7 @@ export const mockIncidents: Incident[] = [
     responseTeam: 'Municipal Drainage Unit',
     estimatedRestore: 'Resolved',
     status: 'Resolved',
-    coordinates: [76.9691, 11.0312]
+    coordinates: [91.7495, 26.1589]
   }
 ];
 
@@ -87,11 +87,11 @@ export const wardGeojson: any = {
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          [76.9258, 11.0168],
-          [76.9558, 11.0168],
-          [76.9558, 11.0468],
-          [76.9258, 11.0468],
-          [76.9258, 11.0168]
+          [91.7062, 26.1445],
+          [91.7362, 26.1445],
+          [91.7362, 26.1745],
+          [91.7062, 26.1745],
+          [91.7062, 26.1445]
         ]]
       }
     },
@@ -102,11 +102,11 @@ export const wardGeojson: any = {
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          [76.9558, 11.0168],
-          [76.9858, 11.0168],
-          [76.9858, 11.0468],
-          [76.9558, 11.0468],
-          [76.9558, 11.0168]
+          [91.7362, 26.1445],
+          [91.7662, 26.1445],
+          [91.7662, 26.1745],
+          [91.7362, 26.1745],
+          [91.7362, 26.1445]
         ]]
       }
     },
@@ -117,11 +117,11 @@ export const wardGeojson: any = {
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          [76.9258, 10.9868],
-          [76.9558, 10.9868],
-          [76.9558, 11.0168],
-          [76.9258, 11.0168],
-          [76.9258, 10.9868]
+          [91.7062, 26.1145],
+          [91.7362, 26.1145],
+          [91.7362, 26.1445],
+          [91.7062, 26.1445],
+          [91.7062, 26.1145]
         ]]
       }
     },
@@ -132,11 +132,11 @@ export const wardGeojson: any = {
       geometry: {
         type: 'Polygon',
         coordinates: [[
-          [76.9558, 10.9868],
-          [76.9858, 10.9868],
-          [76.9858, 11.0168],
-          [76.9558, 11.0168],
-          [76.9558, 10.9868]
+          [91.7362, 26.1145],
+          [91.7662, 26.1145],
+          [91.7662, 26.1445],
+          [91.7362, 26.1445],
+          [91.7362, 26.1145]
         ]]
       }
     }
@@ -153,10 +153,10 @@ export const flowLinesGeojson: any = {
       geometry: {
         type: 'LineString',
         coordinates: [
-          [76.9288, 11.0250],
-          [76.9458, 11.0200],
-          [76.9520, 11.0310],
-          [76.9710, 11.0360]
+          [91.7092, 26.1527],
+          [91.7262, 26.1477],
+          [91.7324, 26.1587],
+          [91.7514, 26.1637]
         ]
       }
     },
@@ -166,10 +166,10 @@ export const flowLinesGeojson: any = {
       geometry: {
         type: 'LineString',
         coordinates: [
-          [76.9312, 10.9950],
-          [76.9488, 11.0020],
-          [76.9550, 11.0110],
-          [76.9810, 11.0190]
+          [91.7116, 26.1227],
+          [91.7292, 26.1297],
+          [91.7354, 26.1387],
+          [91.7614, 26.1467]
         ]
       }
     },
@@ -180,10 +180,10 @@ export const flowLinesGeojson: any = {
       geometry: {
         type: 'LineString',
         coordinates: [
-          [76.9388, 10.9982],
-          [76.9510, 11.0040],
-          [76.9580, 11.0180],
-          [76.9820, 11.0310]
+          [91.7192, 26.1259],
+          [91.7314, 26.1317],
+          [91.7384, 26.1457],
+          [91.7624, 26.1587]
         ]
       }
     }

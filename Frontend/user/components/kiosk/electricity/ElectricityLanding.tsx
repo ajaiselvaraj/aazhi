@@ -3,6 +3,7 @@ import { Zap, ShieldCheck, User, CreditCard, Calculator, FileText, Smartphone, A
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../../contexts/OrientationContext';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 
 interface Props {
     onNavigate: (view: 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST') => void;
@@ -95,6 +96,10 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                         </div>
                     </div>
                 </button>
+            </div>
+
+            <div className="max-w-4xl mx-auto mt-8">
+                <ConsumptionAnalytics language={language} serviceType="electricity" />
             </div>
 
             {/* Consumer Services */}

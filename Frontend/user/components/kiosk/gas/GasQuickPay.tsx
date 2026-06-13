@@ -4,6 +4,7 @@ import PaymentReceipt from '../PaymentReceipt';
 import OfficialReceipt from '../electricity/OfficialReceipt';
 import { Language } from '../../../types';
 import { GasService } from '../../../services/gasService';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 import { useTranslation } from 'react-i18next';
 import RazorpayCheckout from '../../RazorpayCheckout';
 
@@ -99,6 +100,12 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     >
                         {isLoading ? <RefreshCw className="animate-spin" /> : t('fetchBill')}
                     </button>
+                </div>
+            )}
+            
+            {step === 'INPUT' && (
+                <div className="mt-8">
+                    <ConsumptionAnalytics language={language} serviceType="gas" />
                 </div>
             )}
 

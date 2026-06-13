@@ -3,6 +3,7 @@ import { Flame, ShieldCheck, CreditCard, AlertTriangle, ArrowRight, ArrowLeft, F
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../../contexts/OrientationContext';
+import ConsumptionAnalytics from '../ConsumptionAnalytics';
 
 interface Props {
   onNavigate: (view: 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS') => void;
@@ -121,6 +122,10 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
           </button>
       </div>
 
+      <div className="max-w-4xl mx-auto mt-8">
+        <ConsumptionAnalytics language={language} serviceType="gas" />
+      </div>
+
       {/* Consumer Services Grid */}
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
@@ -174,10 +179,10 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
         </div>
         <div>
           <h4 className="font-black text-red-900 text-sm uppercase tracking-wider mb-1">
-            {t('gas_safetyTitle') || 'Gas Safety Notice'}
+            {t('gas_safetyTitle') || 'Important Safety Information'}
           </h4>
           <p className="text-red-800 text-sm font-medium leading-relaxed">
-            {t('gas_safetyMsg') || 'If you smell gas or suspect a gas leak, immediately evacuate the area and call the emergency helpline. Do NOT use any electrical switches, matches, or phones near the leak. Your safety is our top priority.'}
+            {t('gas_safetyMsg') || 'If you smell gas or suspect a leak, evacuate immediately and call the emergency helpline. Do NOT use electrical switches or phones near the leak.'}
           </p>
         </div>
       </div>

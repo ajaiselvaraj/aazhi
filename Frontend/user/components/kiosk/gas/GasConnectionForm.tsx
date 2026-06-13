@@ -135,12 +135,12 @@ const GasConnectionForm: React.FC<Props> = ({ onBack, language }) => {
           <ArrowLeft size={16} /> {t('backToUtils') || 'Back'}
         </button>
 
-        <div className="text-center mb-10">
+        <div className="mb-10 text-center">
           <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
             <Flame size={40} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 mb-2">{t('gas_selectRequestType') || 'Select Request Type'}</h1>
-          <p className="text-slate-500 font-medium">{t('gas_selectRequestDesc') || 'Choose the type of gas service you need.'}</p>
+          <h1 className="text-4xl font-black text-slate-900 mb-2">{t('gas_selectRequestType') || 'What gas service do you need today?'}</h1>
+          <p className="text-slate-500 font-medium">{t('gas_selectRequestDesc') || 'Please choose an option below to get started.'}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
