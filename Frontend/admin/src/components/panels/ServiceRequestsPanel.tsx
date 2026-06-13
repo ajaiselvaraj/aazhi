@@ -114,27 +114,15 @@ export default function ServiceRequestsPanel() {
   const [total, setTotal] = useState(0)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
 
-  const isFetchingRef = useRef(false)
 
-  useEffect(() => {
-    loadRequests()
 
-    // Safe Polling every 10 seconds
-    const interval = setInterval(() => {
-       if (!isFetchingRef.current) { 
-         loadRequests(true); 
-       }
-    }, 10000)
+  const requestCounterRef = useRef(0)
 
-    return () => {
-      clearInterval(interval)
-    }
-  }, [page, statusFilter])
-
-  async function loadRequests(silent = false) {
-    if (isFetchingRef.current && !silent) return
+  const loadRequests = React.useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
-    isFetchingRef.current = true
+    
+    const currentReqId = ++requestCounterRef.current;
+
     try {
       const params: any = { page, limit: 50 }
       if (statusFilter !== 'All') {
@@ -143,22 +131,45 @@ export default function ServiceRequestsPanel() {
       
       console.log('📡 [Admin] Fetching service requests...', params)
       const res = await adminApi.getAllServiceRequests(params)
-      console.log('✅ [Admin] Received requests:', res.data?.length)
+      
+      // Ignore if a newer request was initiated
+      if (currentReqId !== requestCounterRef.current) return;
+
+      console.log("REQUESTS RECEIVED:", res.data?.length);
       
       setRequests(res.data || [])
       setTotal(res.pagination?.total || 0)
     } catch (err: any) {
+       if (currentReqId !== requestCounterRef.current) return;
        console.error('❌ [Admin] Failed to fetch service requests:', err)
     } finally {
-      setLoading(false)
-      isFetchingRef.current = false
+      if (currentReqId === requestCounterRef.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [page, statusFilter])
+
+  useEffect(() => {
+    loadRequests()
+
+    // Safe Polling every 10 seconds
+    const interval = setInterval(() => {
+         loadRequests(true); 
+    }, 10000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [loadRequests])
 
   // Frontend filtering for search
+  // ✅ FIX: 'All Active Requests' now shows pending + submitted + in_progress.
+  // This ensures utility service requests (stored as 'submitted') are visible.
+  const ACTIVE_STATUSES = ['pending', 'submitted', 'in_progress'];
+
   const filtered = requests.filter(r => {
     const matchesStatus = statusFilter === 'All'
-       ? (r.status !== 'resolved' && r.status !== 'rejected' && r.status !== 'completed')
+       ? ACTIVE_STATUSES.includes(r.status)
        : r.status === statusFilter;
 
     const tkt = (r.ticket_number || '').toLowerCase();
@@ -210,7 +221,6 @@ export default function ServiceRequestsPanel() {
 
   const criticalCount = requests.filter(r => r.priority === 'critical').length
   const pendingCount = requests.filter(r => r.status !== 'resolved' && r.status !== 'rejected' && r.status !== 'completed').length
-
   return (
     <div className="animate-in fade-in duration-500">
       {/* ── Page Header & Stats ─────────────────────────────────── */}
@@ -265,6 +275,8 @@ export default function ServiceRequestsPanel() {
           >
             <option value="All">{t('service_req.status_filter_all') || 'All Active Requests'}</option>
             <option value="pending">{t('service_req.status_filter_active') || 'Pending'}</option>
+            {/* ✅ FIX: Explicit filter option for utility requests (Electricity, Gas, Municipal) */}
+            <option value="submitted">{t('service_req.status_filter_submitted') || 'Submitted (Utility)'}</option>
             <option value="working">{t('service_req.status_filter_in_progress') || 'In Progress'}</option>
             <option value="completed">{t('service_req.status_filter_resolved') || 'Completed'}</option>
             <option value="rejected">{t('service_req.status_filter_rejected') || 'Rejected'}</option>

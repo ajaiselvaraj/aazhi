@@ -507,22 +507,55 @@ export const updateServiceConfig = async (req, res, next) => {
     }
 };
 
+// ─── Department normalization map ────────────────────────
+// Maps the verbose labels used in the Admin UI to the short
+// values actually stored in the service_requests.department column.
+const DEPT_NORMALIZE = {
+    'electricity department': 'Electricity',
+    'electricity': 'Electricity',
+    'gas department': 'Gas',
+    'gas distribution': 'Gas',
+    'gas': 'Gas',
+    'municipal services': 'Municipal',
+    'municipal department': 'Municipal',
+    'municipal': 'Municipal',
+    'waste management': 'Waste Management',
+    'water supply department': 'Water',
+    'water': 'Water',
+};
+
+// Active statuses – requests that are neither resolved nor rejected.
+const ACTIVE_STATUSES = ['pending', 'submitted', 'in_progress'];
+
 // ─── All Service Requests (Admin View) ───────────────────
 export const getAllServiceRequests = async (req, res, next) => {
     try {
         const { status, department, priority, page = 1, limit = 25 } = req.query;
         const offset = (page - 1) * limit;
 
+        // ── Bug 2 fix: normalize department label before filtering ──
+        const normalizedDept = department
+            ? (DEPT_NORMALIZE[department.toLowerCase()] || department)
+            : null;
+
         const useSupabase = supabase !== null;
 
         if (useSupabase) {
-            console.log("📡 [ADMIN] Fetching service requests via SUPABASE CLIENT");
+            console.log("USING SUPABASE QUERY");
             let query = supabase
                 .from('service_requests')
                 .select('*, citizen:citizens!service_requests_citizen_id_fkey(name, mobile), staff:citizens!service_requests_assigned_to_fkey(name)', { count: 'estimated' });
 
-            if (status) query = query.eq('status', status);
-            if (department) query = query.ilike('department', `%${department}%`);
+            // ── Additional requirement: when no explicit status filter is given,
+            // show all active statuses (pending + submitted + in_progress) so
+            // utility requests stored as 'submitted' are never hidden. ──
+            if (status) {
+                query = query.eq('status', status);
+            } else {
+                query = query.in('status', ACTIVE_STATUSES);
+            }
+
+            if (normalizedDept) query = query.ilike('department', `%${normalizedDept}%`);
             if (priority) query = query.eq('priority', priority);
 
             const { data, count, error } = await query
@@ -545,7 +578,7 @@ export const getAllServiceRequests = async (req, res, next) => {
             });
         } else {
             // Fallback to pool query
-            console.log("📡 [ADMIN] Fetching service requests via POOL QUERY (Direct DB)");
+            console.log("USING PG QUERY");
             let query = `
                 SELECT 
                     sr.*,
@@ -558,13 +591,18 @@ export const getAllServiceRequests = async (req, res, next) => {
                 WHERE 1=1`;
             const params = [];
 
+            // ── Additional requirement: apply multi-status active filter ──
             if (status) {
                 params.push(status);
                 query += ` AND sr.status = $${params.length}`;
+            } else {
+                query += ` AND sr.status = ANY($${params.length + 1})`;
+                params.push(ACTIVE_STATUSES);
             }
-            if (department) {
-                params.push(department);
-                query += ` AND sr.department = $${params.length}`;
+
+            if (normalizedDept) {
+                params.push(`%${normalizedDept}%`);
+                query += ` AND sr.department ILIKE $${params.length}`;
             }
             if (priority) {
                 params.push(priority);
@@ -581,10 +619,13 @@ export const getAllServiceRequests = async (req, res, next) => {
             if (status) {
                 countParams.push(status);
                 countQuery += ` AND sr.status = $${countParams.length}`;
+            } else {
+                countQuery += ` AND sr.status = ANY($${countParams.length + 1})`;
+                countParams.push(ACTIVE_STATUSES);
             }
-            if (department) {
-                countParams.push(department);
-                countQuery += ` AND sr.department = $${countParams.length}`;
+            if (normalizedDept) {
+                countParams.push(`%${normalizedDept}%`);
+                countQuery += ` AND sr.department ILIKE $${countParams.length}`;
             }
             if (priority) {
                 countParams.push(priority);
@@ -598,6 +639,9 @@ export const getAllServiceRequests = async (req, res, next) => {
             params.push(parseInt(limit), parseInt(offset));
 
             const result = await pool.query(query, params);
+
+            console.log("ADMIN REQUEST COUNT:", result.rows.length);
+            console.log(JSON.stringify(result.rows.slice(0,5), null, 2));
 
             return paginated(res, "All service requests", result.rows, {
                 total,

@@ -6,7 +6,7 @@
 
 const VITE_API_URL = import.meta.env.VITE_API_URL as string;
 const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_BASE = VITE_API_URL || (isLocal ? 'http://localhost:5000/api' : 'https://aazhi-9gj2.onrender.com/api');
+const API_BASE = isLocal ? 'http://localhost:5000/api' : (VITE_API_URL || 'https://aazhi-9gj2.onrender.com/api');
 
 // ── Reuse the same request helper pattern as adminApi.ts ─────────────────────
 async function request(endpoint: string, options: RequestInit = {}) {

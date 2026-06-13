@@ -86,7 +86,7 @@ export const addressChange = async (req, res, next) => {
         const result = await pool.query(
             `INSERT INTO service_requests
              (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, status, current_stage, request_category)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), 'Address Change', 'Municipal', $3, $4, $5, 'submitted', 'submitted', 'municipal')
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), 'Address Change', 'Municipal', $3, $4, $5, 'pending', 'submitted', 'municipal')
              RETURNING *`,
             [ticketNumber, citizenId, description, ward || null, phone || null]
         );
@@ -120,7 +120,7 @@ export const wasteServiceRequest = async (req, res, next) => {
         const result = await pool.query(
             `INSERT INTO service_requests
              (ticket_number, citizen_id, citizen_name, request_type, department, description, ward, phone, status, current_stage, request_category)
-             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, 'Waste Management', $4, $5, $6, 'submitted', 'submitted', 'municipal')
+             VALUES ($1, $2, (SELECT name FROM citizens WHERE id = $2), $3, 'Waste Management', $4, $5, $6, 'pending', 'submitted', 'municipal')
              RETURNING *`,
             [ticketNumber, citizenId, request_type || "Waste Collection", description, ward || null, phone || null]
         );

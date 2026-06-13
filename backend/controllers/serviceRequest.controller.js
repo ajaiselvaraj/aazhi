@@ -661,11 +661,9 @@ export const createRequestDebug = async (req, res, next) => {
     try {
         let citizenId = req.body.citizen_id;
         if (!citizenId || !isValidUuid(citizenId)) {
-            const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
-            if (cit.rows.length > 0) citizenId = cit.rows[0].id;
-            else {
-                return fail(res, "No citizen found in DB to attribute this request to.", 422);
-            }
+            // User Kiosk often submits without a logged-in user.
+            // Use the standard Demo Citizen UUID instead of blocking the request.
+            citizenId = '9eb3f201-174d-48e9-a061-b88093fe58dc';
         }
 
         let { request_type, department, description, ward, phone, metadata, priority, scheduled_at, name, citizen_name } = req.body;

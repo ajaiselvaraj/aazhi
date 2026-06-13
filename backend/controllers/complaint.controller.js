@@ -569,17 +569,11 @@ export const getAllComplaintsAdminDebug = async (req, res, next) => {
 // ─── DEBUG: Create Complaint (Bypass Auth) ────────────────
 export const createComplaintDebug = async (req, res, next) => {
     try {
-        // Validate citizen_id — it must be a real UUID or we fall back to the first citizen in the DB
         let citizenId = req.body.citizen_id;
         const isCitizenUuidValid = citizenId && isValidUuid(citizenId);
 
         if (!isCitizenUuidValid) {
-            const cit = await pool.query("SELECT id FROM citizens LIMIT 1");
-            citizenId = cit.rows.length > 0 ? cit.rows[0].id : null;
-        }
-
-        if (!citizenId) {
-            return fail(res, "No citizen found in DB to attribute this complaint to.", 422);
+            citizenId = '9eb3f201-174d-48e9-a061-b88093fe58dc'; // Demo Citizen UUID
         }
 
         let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude } = req.body;
