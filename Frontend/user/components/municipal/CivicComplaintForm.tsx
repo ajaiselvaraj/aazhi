@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { LANGUAGES_CONFIG } from '../../constants';
 import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
-import DocumentScannerOverlay from '../kiosk/DocumentScannerOverlay';
 import { useOrientation } from '../../contexts/OrientationContext';
 
 const CIVIC_CATEGORIES_KEYS = [
@@ -50,8 +49,6 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
     const [isTrackingLoc, setIsTrackingLoc] = useState(false);
     const [submittedTicket, setSubmittedTicket] = useState('');
-    const [showScanner, setShowScanner] = useState(false);
-    const [attachedFile, setAttachedFile] = useState<string | null>(null);
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);
@@ -225,41 +222,11 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
                         <div className="flex justify-between w-full mt-12 gap-6">
                             <AccessibleButton label={t("backBtn")} language={getLanguageName()} onClick={() => setStep(1)} className="flex-1 bg-slate-200 border-none" />
-                            <AccessibleButton label={t("nextBtn")} language={getLanguageName()} onClick={() => { setStep(3); }} disabled={!location} className="flex-1 bg-slate-800 text-white border-none disabled:opacity-50" />
-                        </div>
-                    </div>
-                )}
-
-                {step === 3 && (
-                    <div className="animate-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto text-center">
-                        <h3 className="text-2xl font-bold mb-8 text-slate-700">{t("civic_attachPhoto")}</h3>
-
-                        <div 
-                            onClick={() => setShowScanner(true)}
-                            className="bg-slate-100 border-4 border-dashed border-slate-300 rounded-[2rem] h-64 flex flex-col justify-center items-center cursor-pointer hover:bg-slate-200 transition mb-8"
-                        >
-                            <Camera size={64} className="text-slate-400 mb-4" />
-                            {attachedFile ? (
-                                <div className="bg-green-100 text-green-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2">
-                                    <CheckCircle size={20} /> {attachedFile}
-                                </div>
-                            ) : (
-                                <AccessibleButton
-                                    label={t("civic_takePhoto")}
-                                    speakLabel={t("civic_openCamera")}
-                                    language={getLanguageName()}
-                                    className="bg-blue-600 text-white hover:bg-blue-700 pointer-events-none"
-                                />
-                            )}
-                        </div>
-
-                        <div className="flex justify-between w-full mt-12 gap-6">
-                            <AccessibleButton label={t("backBtn")} language={getLanguageName()} onClick={() => setStep(2)} className="flex-1 bg-slate-200 border-none" />
                             <AccessibleButton
                                 label={isSubmitting ? t("civic_submitting") : t("civic_submitComplaint")}
                                 language={getLanguageName()}
                                 onClick={handleSubmit}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || !location}
                                 className="flex-1 bg-green-600 text-white font-black border-none hover:bg-green-700 shadow-xl shadow-green-200 disabled:opacity-50"
                             />
                         </div>
@@ -289,17 +256,6 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                 )}
 
             </div>
-
-            {showScanner && (
-                <DocumentScannerOverlay 
-                    documentName="Complaint Photo"
-                    onClose={() => setShowScanner(false)}
-                    onScanComplete={(fileName) => {
-                        setAttachedFile(fileName);
-                        setShowScanner(false);
-                    }}
-                />
-            )}
         </div>
     );
 };

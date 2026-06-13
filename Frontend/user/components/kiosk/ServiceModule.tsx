@@ -17,9 +17,6 @@ import { PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
 import { Language } from '../../types';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
-import DocScanner from './DocScanner';
-import DigiLockerAuth from './digilocker/DigiLockerAuth';
-import { DigiLockerDoc } from '../../types/digilocker';
 import { AccessibleButton } from '../AccessibleButton';
 
 interface ServiceModuleProps {
@@ -33,7 +30,7 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
     const { addServiceRequest } = useServiceComplaint();
 
     // Steps: category -> details -> scan -> success
-    const [step, setStep] = useState<'category' | 'details' | 'scan' | 'success'>(departmentId ? 'details' : 'category');
+    const [step, setStep] = useState<'category' | 'details' | 'success'>(departmentId ? 'details' : 'category');
     
     // Form State
     const [selectedDept, setSelectedDept] = useState<string>(departmentId || '');
@@ -42,13 +39,6 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
     const [applicantName, setApplicantName] = useState('');
     const [contactNumber, setContactNumber] = useState('');
     
-    // Document Verification State
-    const [showScanner, setShowScanner] = useState(false);
-    const [showDigiLocker, setShowDigiLocker] = useState(false);
-    const [dlReqId, setDlReqId] = useState('');
-    const [dlDocs, setDlDocs] = useState<DigiLockerDoc[]>([]);
-    const [isVerified, setIsVerified] = useState(false);
-
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [ticketId, setTicketId] = useState('');
 
@@ -71,18 +61,7 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
         return DEPARTMENTS.find(d => d.id === id)?.name || 'General';
     };
 
-    const handleDigiLockerSuccess = (docs: DigiLockerDoc[]) => {
-        setDlDocs(docs);
-        setShowDigiLocker(false);
-        setIsVerified(true);
-        handleFinalSubmit();
-    };
 
-    const handleScanComplete = () => {
-        setShowScanner(false);
-        setIsVerified(true);
-        handleFinalSubmit();
-    };
 
     const handleFinalSubmit = async () => {
         setIsSubmitting(true);
@@ -268,94 +247,12 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
                             </button>
                             <AccessibleButton
                                 disabled={!serviceType || !applicantName || !contactNumber}
-                                onClick={() => setStep('scan')}
-                                label={t('verify_identity') || "Verify Identity"}
+                                onClick={handleFinalSubmit}
+                                label={t('submitBtn') || "Submit Application"}
                                 language={language}
                                 className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-black text-lg hover:bg-indigo-700 transition disabled:opacity-50 flex items-center gap-2"
                             />
                         </div>
-                    </div>
-                )}
-
-                {/* STEP 3: DOCUMENT SCAN */}
-                {step === 'scan' && (
-                    <div className="p-8 h-full flex flex-col items-center justify-center animate-in slide-in-from-right-4">
-                        <div className="w-full max-w-lg">
-                            <h3 className="text-2xl font-black text-slate-900 text-center mb-2">{t('docProvHeading') || "How would you like to provide documents?"}</h3>
-                            <p className="text-center text-slate-500 font-medium mb-8">Service requests require identity verification before submission.</p>
-
-                            <div className="grid grid-cols-1 gap-6">
-                                {/* Option 1: DigiLocker */}
-                                <button
-                                    onClick={() => {
-                                        setDlReqId('DLK-TEMP-' + Date.now());
-                                        setShowDigiLocker(true);
-                                    }}
-                                    className="bg-[#2E3192]/5 border-2 border-[#2E3192] p-8 rounded-[2rem] flex items-center justify-between group hover:bg-[#2E3192] hover:text-white transition-all relative overflow-hidden"
-                                >
-                                    <div className="flex items-center gap-6 z-10">
-                                        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg text-[#2E3192] font-black text-xl">DL</div>
-                                        <div className="text-left">
-                                            <h4 className="font-black text-lg group-hover:text-white text-[#2E3192]">{t('fetchDL') || "Fetch from DigiLocker"}</h4>
-                                            <p className="text-xs font-bold opacity-60 mt-1 uppercase tracking-widest group-hover:text-indigo-100">{t('fetchDLDesc') || "Recommended • Instant Verification"}</p>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/20 p-3 rounded-full z-10">
-                                        <ArrowRight size={24} />
-                                    </div>
-                                    <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition">
-                                        <ShieldCheck size={150} />
-                                    </div>
-                                </button>
-
-                                <div className="relative text-center my-2">
-                                    <span className="bg-white px-4 text-xs font-bold text-slate-400 uppercase relative z-10">{t('or') || "OR"}</span>
-                                    <div className="absolute top-1/2 left-0 w-full h-[1px] bg-slate-100"></div>
-                                </div>
-
-                                {/* Option 2: Manual Scan */}
-                                <button
-                                    onClick={() => setShowScanner(true)}
-                                    className="bg-slate-50 border-2 border-slate-100 p-6 rounded-[2rem] flex items-center justify-between group hover:border-slate-300 transition-all text-slate-500 hover:text-slate-900"
-                                >
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border text-slate-400 group-hover:text-slate-900 group-hover:scale-110 transition"><Upload size={24} /></div>
-                                        <div className="text-left">
-                                            <h4 className="font-bold text-base">{t('uploadMan') || "Upload Manually"}</h4>
-                                            <p className="text-[10px] font-bold opacity-60 mt-1 uppercase tracking-widest">{t('uploadManDesc') || "Scan Physical Copies"}</p>
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-
-                            <div className="flex justify-center mt-8">
-                                <button onClick={() => setStep('details')} className="text-slate-400 font-bold hover:text-slate-600 px-4">
-                                    {t('backBtn') || "Back"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Scanner Wrapper */}
-                {showScanner && (
-                    <div className="absolute inset-0 z-50 bg-white">
-                        <DocScanner
-                            onScanComplete={handleScanComplete}
-                            onCancel={() => setShowScanner(false)}
-                        />
-                    </div>
-                )}
-
-                {/* DigiLocker Auth Wrapper */}
-                {showDigiLocker && (
-                    <div className="absolute inset-0 z-50 bg-white">
-                        <DigiLockerAuth
-                            requestId={dlReqId}
-                            onSuccess={handleDigiLockerSuccess}
-                            onCancel={() => setShowDigiLocker(false)}
-                            language={language}
-                        />
                     </div>
                 )}
 

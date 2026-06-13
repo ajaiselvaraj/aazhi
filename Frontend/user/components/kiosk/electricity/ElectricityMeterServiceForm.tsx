@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, Upload, AlertCircle, X, Gauge, ArrowRight, Wrench, Clock, AlertTriangle, ScanLine } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
-import { ElectricityService } from '../../../services/electricityService';
-import DocumentScannerOverlay from '../DocumentScannerOverlay';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 
 interface Props {
@@ -34,10 +32,8 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
   const [selectedType, setSelectedType] = useState<MeterServiceType | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [showScanner, setShowScanner] = useState(false);
 
   const selectedInfo = SERVICE_TYPES.find(s => s.value === selectedType);
 
@@ -51,10 +47,6 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
     if (errors[name]) {
       setErrors(prev => { const next = { ...prev }; delete next[name]; return next; });
     }
-  };
-
-  const handleFileUpload = (file: File | null) => {
-    if (file) setUploadedFiles(prev => [...prev, file.name]);
   };
 
   const validate = (): boolean => {
@@ -87,8 +79,7 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
           reason: formData.reason,
           priority: formData.priority || 'normal',
           consumer_number: formData.consumer_number,
-          ward: formData.ward,
-          documents: uploadedFiles
+          ward: formData.ward
         }
       });
       setTicketNumber(ticketId);
@@ -340,30 +331,11 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
           {errors.description && <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-xl text-sm font-bold"><AlertCircle size={18} /> {errors.description}</div>}
         </div>
 
-        {/* Document Upload */}
-        <div className="space-y-3">
-          <label className="block text-sm font-black text-slate-700 uppercase tracking-wider">
-            {t('elec_supportingDocs') || 'Evidence / Photos'} ({t('optional') || 'Optional'})
-          </label>
-          <div onClick={() => setShowScanner(true)} className="w-full bg-slate-50 border-2 border-dashed border-slate-300 hover:border-indigo-500 p-8 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition group">
-            <ScanLine size={32} className="text-slate-400 group-hover:text-indigo-600 mb-2 transition" />
-            <span className="text-sm font-bold text-slate-600 group-hover:text-indigo-600 transition">{t('tapToScan') || 'Hardware Document Scan'}</span>
-            <span className="text-xs text-slate-400 mt-1">Place evidence on the scanner bed</span>
-          </div>
-          {uploadedFiles.length > 0 && (
-            <div className="space-y-2 mt-3">
-              {uploadedFiles.map((file, i) => (
-                <div key={i} className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded-xl">
-                  <CheckCircle size={20} /><span className="text-sm font-bold">{file}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+
 
         {/* Actions */}
         <div className="flex gap-6 pt-8 border-t-2 border-slate-100">
-          <button type="button" onClick={() => { setFormData({}); setErrors({}); setUploadedFiles([]); }}
+          <button type="button" onClick={() => { setFormData({}); setErrors({}); }}
             className="flex-1 bg-slate-100 text-slate-700 px-8 py-6 rounded-2xl font-black text-xl hover:bg-slate-200 transition border-2 border-slate-200 flex items-center justify-center gap-3">
             <X size={24} /> {t('resetForm') || 'Reset'}
           </button>
@@ -377,17 +349,6 @@ const ElectricityMeterServiceForm: React.FC<Props> = ({ onBack, language }) => {
           </button>
         </div>
       </form>
-
-      {showScanner && (
-          <DocumentScannerOverlay 
-            documentName="Meter Evidence"
-            onClose={() => setShowScanner(false)}
-            onScanComplete={(fileName) => {
-                setUploadedFiles(prev => [...prev, fileName]);
-                setShowScanner(false);
-            }}
-          />
-      )}
     </div>
   );
 };

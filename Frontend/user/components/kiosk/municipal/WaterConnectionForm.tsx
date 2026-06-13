@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle, Upload, AlertCircle, X, Droplet, ArrowRight, FileText, ScanLine } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertCircle, Droplet, ArrowRight } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
-import { MunicipalAPI } from '../../../services/municipalApi';
-import DocumentScannerOverlay from '../DocumentScannerOverlay';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 
 interface Props {
@@ -14,7 +12,7 @@ interface Props {
 const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
   const { addServiceRequest } = useServiceComplaint();
-  const [step, setStep] = useState<'type' | 'details' | 'documents' | 'submitting' | 'success'>('type');
+  const [step, setStep] = useState<'type' | 'details' | 'submitting' | 'success'>('type');
   
   const [formData, setFormData] = useState<Record<string, string>>({
     connectionType: 'New Connection',
@@ -22,9 +20,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
     pipeSize: '15mm (1/2 inch)'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [ticketNumber, setTicketNumber] = useState('');
-  const [showScanner, setShowScanner] = useState(false);
 
   const connectionTypes = ['New Connection', 'Connection Upgrade', 'Reconnection', 'Disconnection'];
   const propertyTypes = ['Residential', 'Commercial', 'Industrial'];
@@ -69,7 +65,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
           pipeSize: formData.pipeSize,
           ward: formData.ward,
           propertyId: formData.propertyId,
-          documents: uploadedFiles
+          documents: []
         }
       });
       setTicketNumber(ticketId);
@@ -119,7 +115,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-right-8 pb-12">
       <div className="flex items-center gap-4 mb-8">
         <button
-          onClick={step === 'type' ? onBack : () => setStep(step === 'documents' ? 'details' : 'type')}
+          onClick={step === 'type' ? onBack : () => setStep('type')}
           className="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition shadow-sm hover:shadow"
         >
           <ArrowLeft size={24} />
@@ -266,91 +262,22 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
             <div className="pt-6 border-t border-slate-100 flex justify-end gap-4">
               <button onClick={() => setStep('type')} className="px-8 py-5 text-slate-500 font-bold hover:text-slate-800 transition">{t('backBtn') || 'Back'}</button>
               <button
-                onClick={() => validateDetails() && setStep('documents')}
-                className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-blue-700 transition flex items-center gap-3 shadow-xl hover:-translate-y-1"
+                onClick={() => validateDetails() && handleSubmit()}
+                className="bg-green-600 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-green-700 transition flex items-center gap-3 shadow-xl hover:-translate-y-1"
               >
-                {t('continueBtn') || 'Continue'} <ArrowRight size={24} />
+                Submit Application <CheckCircle size={24} />
               </button>
             </div>
           </div>
         )}
 
-        {(step === 'documents' || step === 'submitting') && (
-          <div className="p-10 space-y-8 animate-in slide-in-from-right-4">
-            <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl">
-              <h4 className="font-bold text-amber-900 mb-2">Required Documents for {formData.connectionType}</h4>
-              <ul className="list-disc ml-5 text-sm font-medium text-amber-800 space-y-1">
-                <li>Proof of Ownership (Property Tax Receipt/Sale Deed)</li>
-                <li>Address Proof (Aadhaar/Voter ID)</li>
-                <li>Site Plan / Building Plan (For new commercial/apartment connections)</li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <div 
-                onClick={() => setShowScanner(true)}
-                className="border-4 border-dashed border-slate-200 rounded-[2rem] p-10 flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 hover:border-slate-300 transition cursor-pointer group"
-              >
-                <div className="w-20 h-20 bg-white rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <ScanLine size={32} className="text-blue-500" />
-                </div>
-                <p className="font-bold text-lg text-slate-700 mb-1">{t('tapToScan') || 'Hardware Document Scan'}</p>
-                <p className="text-sm font-medium text-slate-400">Place document on the scanner bed</p>
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-sm text-slate-500 uppercase tracking-widest">Uploaded Files</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {uploadedFiles.map((file, i) => (
-                      <div key={i} className="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
-                        <div className="flex items-center gap-3 overflow-hidden">
-                          <FileText size={20} className="text-blue-500 shrink-0" />
-                          <span className="font-bold text-slate-700 truncate">{file}</span>
-                        </div>
-                        <button onClick={() => setUploadedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-slate-400 hover:text-red-500 transition">
-                          <X size={20} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-6 border-t border-slate-100 flex justify-end gap-4">
-              <button 
-                onClick={() => setStep('details')} 
-                className="px-8 py-5 text-slate-500 font-bold hover:bg-slate-100 rounded-2xl transition"
-              >
-                {t('backBtn') || 'Back'}
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={uploadedFiles.length === 0}
-                className="bg-green-600 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-green-700 transition flex items-center gap-3 shadow-xl hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
-              >
-                {step === 'submitting' ? (
-                  <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>Submit Application <CheckCircle size={24} /></>
-                )}
-              </button>
-            </div>
+        {step === 'submitting' && (
+          <div className="p-20 flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <p className="font-bold text-lg text-slate-700">{t('submitting') || 'Submitting your request...'}</p>
           </div>
         )}
       </div>
-
-      {showScanner && (
-          <DocumentScannerOverlay 
-            documentName="Installation Property Proof"
-            onClose={() => setShowScanner(false)}
-            onScanComplete={(fileName) => {
-                setUploadedFiles(prev => [...prev, fileName]);
-                setShowScanner(false);
-            }}
-          />
-      )}
     </div>
   );
 };

@@ -206,9 +206,6 @@ const BASE_TRANSLATIONS = {
   payBills: "Pay Bills",
   payBillsDesc: "Water, Elec, Gas & Property Tax",
   pay: "Pay",
-  zeroDocVault: "Zero-Document Vault",
-  docVaultDesc: "DigiLocker Linked • 3 Verified Documents Ready",
-  viewDocs: "View Documents",
   // Sidebar
   navHome: "Home",
   navServices: "Services",
@@ -578,9 +575,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     payBills: "பில்கள் செலுத்த",
     payBillsDesc: "நீர், மின்சாரம், எரிவாயு & சொத்து வரி",
     pay: "செலுத்த",
-    zeroDocVault: "ஆவண காப்பகம்",
-    docVaultDesc: "DigiLocker இணைக்கப்பட்டுள்ளது • 3 சரிபார்க்கப்பட்ட ஆவணங்கள் தயாராக உள்ளன",
-    viewDocs: "ஆவணங்களைப் பார்க்கவும்",
     // Sidebar
     navHome: "முகப்பு",
     navServices: "சேவைகள்",
@@ -910,7 +904,6 @@ export const TRANSLATIONS: Record<Language, typeof BASE_TRANSLATIONS> = {
     payBills: "बिल भुगतान",
     payBillsDesc: "पानी, बिजली, गैस और संपत्ति कर",
     pay: "भुगतान करें",
-    viewDocs: "दस्तावेज़ देखें",
     // Sidebar
     navHome: "होम",
     navServices: "सेवाएं",

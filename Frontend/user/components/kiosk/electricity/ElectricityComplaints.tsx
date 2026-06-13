@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { ArrowLeft, CheckCircle, Upload, AlertCircle, X, AlertTriangle, Send, Camera } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
-import { ElectricityService } from '../../../services/electricityService';
-import DocumentScannerOverlay from '../DocumentScannerOverlay';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
 
@@ -37,10 +35,8 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
     priority: 'medium'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [showScanner, setShowScanner] = useState(false);
   const [showQR, setShowQR] = useState(false); // ⭐ PLUG-IN: QR modal state
 
   const handleInputChange = (name: string, value: string) => {
@@ -51,12 +47,6 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
         delete next[name];
         return next;
       });
-    }
-  };
-
-  const handleFileUpload = (file: File | null) => {
-    if (file) {
-      setUploadedFiles(prev => [...prev, file.name]);
     }
   };
 
@@ -282,24 +272,6 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
             />
             {errors.description && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.description}</p>}
 
-            <div className="mt-4">
-              <button 
-                type="button"
-                onClick={() => setShowScanner(true)}
-                className="w-full bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition cursor-pointer"
-              >
-                <Camera size={18} /> {t('comp_addPhoto') || 'Add Photo'}
-              </button>
-            </div>
-            {uploadedFiles.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                {uploadedFiles.map((file, i) => (
-                  <span key={i} className="text-xs bg-slate-200 text-slate-700 px-3 py-1 rounded-full font-bold flex items-center gap-1">
-                    <CheckCircle size={12} className="text-green-600" /> {file}
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
 
         </div>
@@ -325,17 +297,6 @@ const ElectricityComplaints: React.FC<Props> = ({ onBack, language }) => {
           </button>
         </div>
       </form>
-
-      {showScanner && (
-          <DocumentScannerOverlay 
-            documentName="Complaint Evidence"
-            onClose={() => setShowScanner(false)}
-            onScanComplete={(fileName) => {
-                setUploadedFiles(prev => [...prev, fileName]);
-                setShowScanner(false);
-            }}
-          />
-      )}
     </div>
   );
 };

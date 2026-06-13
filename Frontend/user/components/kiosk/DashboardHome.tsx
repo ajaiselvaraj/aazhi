@@ -178,30 +178,7 @@ const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citize
                 <DisruptionMap alerts={alerts} language={language} />
             </motion.div>
 
-            {/* Bottom Row: Zero-Document / DigiLocker Showcase */}
-            <motion.div variants={itemVariants} className="bg-indigo-50 border border-indigo-100 rounded-[2.5rem] p-8 relative overflow-hidden mt-10">
-                <div className={`flex ${isVertical ? 'flex-col gap-4' : 'justify-between items-center'} relative z-10`}>
-                    <div className="flex gap-6 items-center">
-                        <div className="bg-white p-4 rounded-2xl shadow-sm text-indigo-600">
-                            <FileText size={32} />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-indigo-900">{t('zeroDocVault')}</h3>
-                            <p className="text-indigo-600 font-bold text-sm">{t('docVaultDesc')}</p>
-                        </div>
-                    </div>
-                    <div className={`flex gap-4 ${isVertical ? 'w-full' : ''}`}>
-                        <button onClick={() => onNavigate('certificates')} className={`bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-indigo-700 transition ${isVertical ? 'flex-1' : ''}`}>
-                            {t('viewDocs') || "Certificates"}
-                        </button>
-                        <button onClick={() => onNavigate('property')} className={`bg-white text-indigo-600 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest border border-indigo-200 shadow-md hover:bg-indigo-50 transition ${isVertical ? 'flex-1' : ''}`}>
-                            {t('propertyServices')}
-                        </button>
-                    </div>
-                </div>
 
-                <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-indigo-100 to-transparent"></div>
-            </motion.div>
 
             {/* Extra Kiosk Links Row — 1-column in portrait */}
             <motion.div variants={itemVariants} className={`grid ${isVertical ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'} gap-6 mt-6`}>
