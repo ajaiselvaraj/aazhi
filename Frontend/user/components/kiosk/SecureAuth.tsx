@@ -81,8 +81,8 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
   };
 
   return (
-    <div className={`w-full ${isVertical ? 'max-w-xl px-4 mt-6' : 'max-w-2xl mt-10'} mx-auto`}>
-      <div className={`bg-white rounded-[3rem] shadow-sm border border-slate-100 ${isVertical ? 'p-8' : 'p-12'} relative overflow-hidden flex flex-col items-center animate-in slide-in-from-bottom-8`}>
+    <div className={`w-full ${isVertical ? 'max-w-xl px-4' : 'max-w-3xl'} mx-auto my-auto transition-all duration-300`}>
+      <div className={`bg-white rounded-[3rem] shadow-sm border border-slate-100 ${isVertical ? 'p-10' : 'p-16'} relative overflow-hidden flex flex-col items-center animate-in slide-in-from-bottom-8`}>
         
         {/* Back Button */}
         {onBack && (
@@ -109,38 +109,38 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
 
         {/* Auth Method Tabs */}
         {authStage === 'INPUT' && (
-          <div className="flex bg-slate-50 p-2 rounded-2xl w-full max-w-md mb-8 border border-slate-100 shadow-sm">
+          <div className="flex bg-slate-50 p-2 rounded-2xl w-full max-w-xl mb-8 border border-slate-100 shadow-sm">
             <button
               onClick={() => { setAuthMethod('AADHAAR'); setInputValue(''); setError(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-xl text-lg font-bold transition-all ${
                 authMethod === 'AADHAAR' 
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200' 
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <User size={18} />
+              <User size={24} />
               {t('aadhaar') || "Aadhaar"}
             </button>
             <button
               onClick={() => { setAuthMethod('MOBILE'); setInputValue(''); setError(''); }}
-              className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-5 rounded-xl text-lg font-bold transition-all ${
                 authMethod === 'MOBILE' 
                   ? 'bg-white text-slate-900 shadow-sm border border-slate-200'  
                   : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              <Smartphone size={18} />
+              <Smartphone size={24} />
               {t('mobileOTP') || "Mobile OTP"}
             </button>
           </div>
         )}
 
         {/* Form Area */}
-        <div className="w-full max-w-md space-y-6">
+        <div className="w-full max-w-xl space-y-8">
           {authStage === 'INPUT' ? (
-            <>
+            <form onSubmit={(e) => { e.preventDefault(); handleVerify(); }}>
               <div className="space-y-4">
-                <label className="block text-xs font-black text-slate-600 uppercase tracking-widest ml-1">
+                <label className="block text-sm font-black text-slate-600 uppercase tracking-widest ml-1">
                   {authMethod === 'AADHAAR' ? (t('aadhaarNumber') || "AADHAAR NUMBER") : (t('mobileNumber') || "MOBILE NUMBER")}
                 </label>
                 <div className="relative">
@@ -154,17 +154,17 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
                       setError('');
                     }}
                     placeholder={authMethod === 'AADHAAR' ? "XXXX XXXX XXXX" : "98765 43210"}
-                    className={`w-full bg-slate-50 border p-5 rounded-2xl text-xl font-bold outline-none focus:bg-white focus:ring-4 transition text-slate-700 tracking-wider placeholder-slate-300 ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-50'}`}
-                    icon={authMethod === 'AADHAAR' ? <ShieldCheck size={24} strokeWidth={1.5} /> : <Smartphone size={24} strokeWidth={1.5} />}
+                    className={`w-full bg-slate-50 border p-6 rounded-2xl text-3xl font-black outline-none focus:bg-white focus:ring-4 transition text-slate-700 tracking-[0.2em] placeholder-slate-300 ${error ? 'border-red-400 focus:border-red-500 focus:ring-red-50' : 'border-slate-200 focus:border-blue-500 focus:ring-blue-50'}`}
+                    icon={authMethod === 'AADHAAR' ? <ShieldCheck size={32} strokeWidth={1.5} /> : <Smartphone size={32} strokeWidth={1.5} />}
                   />
                 </div>
-                {error && <p className="text-red-500 text-xs font-bold px-2">{error}</p>}
+                {error && <p className="text-red-500 text-sm font-bold px-2">{error}</p>}
               </div>
 
               <button
                 onClick={handleVerify}
                 disabled={isLoading || (authMethod === 'AADHAAR' ? inputValue.length !== 12 : inputValue.length !== 10)}
-                className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:shadow-none"
+                className="w-full bg-blue-600 text-white p-6 rounded-2xl font-black text-2xl hover:bg-blue-700 transition shadow-lg shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-3 mt-6 disabled:opacity-50 disabled:shadow-none"
               >
                 {isLoading ? (
                   <RefreshCw className="animate-spin mb-1 mt-1" size={24} />
@@ -175,10 +175,10 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
                   </>
                 )}
               </button>
-            </>
+            </form>
           ) : (
-            <div className="text-center space-y-6 animate-in slide-in-from-right-8 fade-in">
-              <p className="text-slate-500 font-medium">{t('enterCodeLinked') || 'Enter the 6-digit code sent to linked mobile'}</p>
+            <form onSubmit={(e) => { e.preventDefault(); handleLoginSubmit(); }} className="text-center space-y-8 animate-in slide-in-from-right-8 fade-in">
+              <p className="text-slate-500 font-medium text-xl">{t('enterCodeLinked') || 'Enter the 6-digit code sent to linked mobile'}</p>
               <KioskInput
                 formatType="pin"
                 inputMode="numeric"
@@ -188,14 +188,14 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
                   setOtp(val);
                   setError('');
                 }}
-                className={`w-full bg-white border-2 p-4 rounded-2xl text-3xl font-black text-center outline-none tracking-[1em] ${error ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-green-500'}`}
+                className={`w-full bg-white border-2 p-6 rounded-2xl text-5xl font-black text-center outline-none tracking-[1em] ${error ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-green-500'}`}
                 placeholder="••••••"
               />
-              {error && <p className="text-red-500 text-xs font-bold text-left px-2">{error}</p>}
+              {error && <p className="text-red-500 text-sm font-bold text-left px-2">{error}</p>}
               <button
                 onClick={handleLoginSubmit}
                 disabled={isLoading || (otp.length !== 6 && otp !== '123')}
-                className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white p-6 rounded-2xl font-black text-2xl hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-3"
               >
                 {isLoading ? (
                   <RefreshCw className="animate-spin" size={24} />
@@ -211,7 +211,7 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
               >
                 {authMethod === 'AADHAAR' ? (t('changeAadhaar') || 'Change Aadhaar Number') : (t('changeNumber') || 'Change Number')}
               </button>
-            </div>
+            </form>
           )}
         </div>
         

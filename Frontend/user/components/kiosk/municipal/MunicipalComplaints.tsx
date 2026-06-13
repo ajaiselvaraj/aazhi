@@ -173,22 +173,26 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
             1. What is the issue?
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pb-12 overflow-y-auto">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 pb-12 overflow-y-auto">
           {CIVIC_ISSUES.map(issue => (
-            <AccessibleButton
-              key={issue.id}
-              label={issue.label}
-              language="English"
-              onClick={() => handleCategorySelect(issue.label)}
-              className="!bg-[#222836] hover:!bg-[#2c3344] !border-none !rounded-[1.5rem] p-6 flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px] group"
+            <div 
+              key={issue.id} 
+              className="w-[calc(50%-0.5rem)] sm:w-[calc(50%-0.75rem)] max-w-[400px] flex"
             >
-              <div className={`w-16 h-16 rounded-full ${issue.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
-                <issue.icon size={32} className={issue.iconColor} strokeWidth={2.5} />
-              </div>
-              <span className="!text-white text-lg sm:text-xl font-bold text-center leading-tight">
-                {issue.label}
-              </span>
-            </AccessibleButton>
+              <AccessibleButton
+                label={issue.label}
+                language="English"
+                onClick={() => handleCategorySelect(issue.label)}
+                className="!bg-[#222836] hover:!bg-[#2c3344] !border-none !rounded-[1.5rem] p-6 flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px] flex-1 group"
+              >
+                <div className={`w-16 h-16 rounded-full ${issue.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
+                  <issue.icon size={32} className={issue.iconColor} strokeWidth={2.5} />
+                </div>
+                <span className="!text-white text-[1.1rem] sm:text-lg font-bold text-center leading-tight">
+                  {issue.label}
+                </span>
+              </AccessibleButton>
+            </div>
           ))}
         </div>
       </div>

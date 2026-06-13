@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Clock, AlertTriangle, FileText, Archive, Download, Search, Filter, ArrowLeft, AlertCircle, RefreshCw, CreditCard, X, Receipt, Zap, Flame, Droplets, Landmark } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import HistoryReceipt from './kiosk/HistoryReceipt';
 import TransactionReceipt from './kiosk/TransactionReceipt';
 import RazorpayCheckout, { Toast } from './RazorpayCheckout';
@@ -44,6 +45,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem) => void }> = ({ item, onDownload }) => {
+  const navigate = useNavigate();
   const isComplaint = item.itemType === 'complaint';
   const title = isComplaint ? (item as Complaint).complaintType : (item as ServiceRequest).serviceType;
   const description = item.description || (item as any).details || 'No description provided';
@@ -64,7 +66,10 @@ const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem)
   const displayStatus = item.currentStage || item.stage || item.status || 'Submitted';
 
   return (
-    <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 ${isVertical ? 'p-8 flex flex-col gap-6' : 'p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between'}`}>
+    <div 
+      onClick={() => navigate(`/track/${item.id}`)}
+      className={`bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-400 cursor-pointer active:scale-[0.99] transition-all duration-300 ${isVertical ? 'p-8 flex flex-col gap-6' : 'p-6 flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between'}`}
+    >
       
       {/* Left Side */}
       <div className={`flex items-start ${isVertical ? 'gap-6' : 'gap-5'} flex-1 min-w-0`}>
@@ -100,7 +105,10 @@ const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem)
       `}>
         {!isVertical && <StatusBadge status={displayStatus} />}
         <button 
-          onClick={() => onDownload(item)} 
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload(item);
+          }} 
           className={`flex items-center justify-center gap-2 bg-slate-900 hover:bg-blue-600 text-white font-bold rounded-xl transition-all duration-300 shadow-sm active:scale-95
             ${isVertical ? 'w-full py-4 text-base' : 'px-5 py-2.5 text-sm'}
           `}

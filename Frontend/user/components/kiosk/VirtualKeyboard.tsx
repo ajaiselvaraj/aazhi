@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Delete, Check, ChevronDown, GripHorizontal, ArrowBigUp, CornerDownLeft } from 'lucide-react';
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
@@ -65,6 +65,36 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
     const [isCaps, setIsCaps] = useState(false);
     const [mode, setMode] = useState<KeyboardMode>('ALPHA');
     const lastShiftTap = useRef<number>(0);
+    const deleteInterval = useRef<NodeJS.Timeout | null>(null);
+    const deleteTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (deleteTimeout.current) clearTimeout(deleteTimeout.current);
+            if (deleteInterval.current) clearInterval(deleteInterval.current);
+        };
+    }, []);
+
+    const startDelete = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault();
+        onDelete();
+        deleteTimeout.current = setTimeout(() => {
+            deleteInterval.current = setInterval(() => {
+                onDelete();
+            }, 100);
+        }, 500);
+    };
+
+    const stopDelete = () => {
+        if (deleteTimeout.current) {
+            clearTimeout(deleteTimeout.current);
+            deleteTimeout.current = null;
+        }
+        if (deleteInterval.current) {
+            clearInterval(deleteInterval.current);
+            deleteInterval.current = null;
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -168,7 +198,15 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                 <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onClear} className="bg-red-50 rounded-2xl shadow-[0_3px_0_0_rgba(254,202,202,1)] text-red-600 font-bold text-sm uppercase tracking-wider hover:bg-red-100 active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center">
                     {t('kb_clear') || 'Clear'}
                 </button>
-                <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onDelete} className="bg-slate-200 rounded-2xl shadow-[0_3px_0_0_rgba(203,213,225,1)] text-slate-700 hover:bg-slate-300 active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center">
+                <button 
+                    onMouseDown={startDelete} 
+                    onTouchStart={startDelete} 
+                    onMouseUp={stopDelete}
+                    onMouseLeave={stopDelete}
+                    onTouchEnd={stopDelete}
+                    onTouchCancel={stopDelete}
+                    className="bg-slate-200 rounded-2xl shadow-[0_3px_0_0_rgba(203,213,225,1)] text-slate-700 hover:bg-slate-300 active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center"
+                >
                     <Delete size={28} />
                 </button>
                 <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={onEnter} className="bg-blue-600 rounded-2xl shadow-[0_3px_0_0_rgba(37,99,235,1)] text-white font-bold text-sm uppercase tracking-wider hover:bg-blue-700 active:translate-y-[3px] active:shadow-none transition-all flex items-center justify-center gap-1">
@@ -221,9 +259,12 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
 
                             {isLastRow && (
                                 <button
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onTouchStart={(e) => e.preventDefault()}
-                                    onClick={onDelete}
+                                    onMouseDown={startDelete}
+                                    onTouchStart={startDelete}
+                                    onMouseUp={stopDelete}
+                                    onMouseLeave={stopDelete}
+                                    onTouchEnd={stopDelete}
+                                    onTouchCancel={stopDelete}
                                     className="flex-[1.5] flex items-center justify-center bg-slate-200 rounded-xl shadow-[0_2px_0_0_rgba(156,163,175,1)] text-slate-700 active:translate-y-[2px] active:shadow-none transition-all"
                                     style={{ height: isVertical ? '64px' : '56px' }}
                                 >

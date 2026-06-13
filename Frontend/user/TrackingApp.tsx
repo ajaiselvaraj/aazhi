@@ -9,7 +9,7 @@
 //   • Government/enterprise tracking system look
 // ═══════════════════════════════════════════════════════════════
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Routes, Route, useParams } from "react-router-dom";
+import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { io as socketIO, Socket } from "socket.io-client";
 
 // ── Dynamic backend URL detection ─────────────────────────────
@@ -130,6 +130,7 @@ const fmt = (iso?: string) => {
 // ══════════════════════════════════════════════════════════════
 function ComplaintTrackingPage() {
   const { complaintId } = useParams();
+  const navigate = useNavigate();
 
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [workflow, setWorkflow] = useState<Stage[]>(DEFAULT_WORKFLOW);
@@ -262,6 +263,19 @@ function ComplaintTrackingPage() {
       <header style={styles.header}>
         <div style={styles.headerInner}>
           <div style={styles.headerLeft}>
+            <button 
+              onClick={() => {
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/history');
+                }
+              }} 
+              style={styles.backBtn}
+              title="Go Back"
+            >
+              ←
+            </button>
             <div style={styles.logoBox}>🏛️</div>
             <div>
               <div style={styles.headerTitle}>SUVIDHA TRACKING</div>
@@ -271,7 +285,6 @@ function ComplaintTrackingPage() {
             </div>
           </div>
           <div style={styles.headerRight}>
-            {/* Live indicator */}
             <div style={{
               ...styles.liveBadge,
               background: connected ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)",
@@ -291,7 +304,6 @@ function ComplaintTrackingPage() {
                 {connected ? "Live" : "Offline"}
               </span>
             </div>
-            <button onClick={handleShare} style={styles.shareBtn}>📤</button>
           </div>
         </div>
 
@@ -392,7 +404,7 @@ function ComplaintTrackingPage() {
                   {idx < workflow.length - 1 && (
                     <div style={{
                       ...styles.connectorLine,
-                      background: isDone ? "#16a34a" : "#e2e8f0",
+                      background: "#16a34a",
                     }} />
                   )}
 
@@ -507,6 +519,18 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 600, margin: "0 auto 20px",
   },
   headerLeft: { display: "flex", alignItems: "center", gap: 12 },
+  backBtn: {
+    width: 42, height: 42,
+    background: "rgba(255,255,255,0.15)",
+    borderRadius: 12,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    border: "none",
+    color: "#fff",
+    fontSize: 20,
+    cursor: "pointer",
+    marginRight: 4,
+    transition: "background 0.2s",
+  },
   logoBox: {
     width: 42, height: 42,
     background: "rgba(255,255,255,0.15)",

@@ -376,7 +376,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
            - Own scrolling container
            - No padding constraints (handled by children or internal wrapper)
         */}
-                <div className="flex-1 overflow-y-auto overflow-x-hidden relative p-6 md:p-8 w-full">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden relative w-full flex flex-col">
                     <AnimatePresence mode="wait">
                         <motion.div 
                             key={activeTab}
@@ -384,7 +384,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                             exit={{ opacity: 0, y: -15, scale: 0.98, filter: "blur(4px)" }}
                             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="min-h-full w-full max-w-[1920px] mx-auto"
+                            className="flex-1 flex flex-col w-full max-w-[1920px] mx-auto p-6 md:p-8"
                         >
                             <KioskErrorBoundary>
                                 {children}

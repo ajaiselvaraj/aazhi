@@ -175,11 +175,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
 
   // Initialize Chat with Welcome Message on Load
+  const chatInitialized = useRef(false);
   useEffect(() => {
-    if (chatHistory.length === 0) {
+    // Only send welcome if chatHistory is empty AND we haven't initialized
+    // This prevents double welcome messages when the component re-renders
+    if (chatHistory.length === 0 && !chatInitialized.current) {
+      chatInitialized.current = true;
       handleAiSearch("start"); // Trigger initial welcome flow
     }
+  }, [chatHistory.length]);
 
+  useEffect(() => {
     // Fetch user requests for the status tab
     const fetchRequests = async () => {
       setIsLoadingRequests(true);
@@ -496,7 +502,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         </div>
       )}
 
-      <div className={`min-h-full ${isLargeText ? 'text-lg' : ''} print:hidden`}>
+      <div className={`flex-1 flex flex-col ${isLargeText ? 'text-lg' : ''} print:hidden`}>
 
         {/* VIEW 1: DASHBOARD HOME (Feature 1) */}
         {activeTab === 'home' && (
@@ -673,14 +679,14 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW 3: BILLING */}
         {activeTab === 'billing' && (
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full max-w-4xl mx-auto flex-1 flex flex-col justify-center py-8">
             {billingStep === 'select' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 my-auto">
                 <div className="text-center">
                   <h2 className="text-4xl font-black text-slate-900 mb-3">{t('navPayBills') || "Pay Bills"}</h2>
                   <p className="text-slate-500 text-lg">{t('oneTap') || "One-tap utility payments for a smarter life."}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
                   {[
                     { id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' },
                     { id: 'water', name: 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' },
@@ -730,12 +736,12 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
                 />
               ) : (
-                <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-12 max-w-xl mx-auto animate-in zoom-in-95 relative overflow-hidden">
-                  <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest mb-10 hover:text-blue-600 transition">
+                <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-16 max-w-3xl w-full mx-auto my-auto animate-in zoom-in-95 relative overflow-hidden">
+                  <button onClick={resetBilling} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest mb-10 hover:text-blue-600 transition">
                     <ArrowLeft size={16} /> {t('changeUtility') || "Change Utility"}
                   </button>
-                  <div className="flex items-center gap-5 mb-10">
-                    <div className={`w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center`}>
+                  <div className="flex items-center gap-6 mb-10">
+                    <div className={`w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center`}>
                       <selectedBillService.icon size={28} />
                     </div>
                     <div>
@@ -879,8 +885,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW 4: AI & ASSISTANT (Updated) */}
         {activeTab === 'ai' && (
-          <div className="max-w-4xl mx-auto h-full flex flex-col bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-10">
-            <div className="bg-indigo-900 p-6 flex items-center justify-between gap-4 text-white relative overflow-hidden">
+          <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in slide-in-from-right-10">
+            <div className="bg-indigo-900 p-6 flex items-center justify-between gap-4 text-white relative overflow-hidden shrink-0">
               {/* Background Pattern */}
               <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Brain size={150} />

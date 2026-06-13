@@ -653,30 +653,40 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <div className={`w-full ${isVertical ? 'max-w-2xl' : 'max-w-4xl'} mx-auto grid ${isVertical ? 'grid-cols-1 gap-5' : 'grid-cols-1 md:grid-cols-2 gap-8'} z-10 animate-in zoom-in-95 duration-500`}>
-        <button onClick={() => handleSelection('ai')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-          <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
-            <Bot size={isVertical ? 40 : 64} />
+      {/* Welcome Text Added based on User Request */}
+      <div className="text-center mt-8 mb-10 z-10 animate-in slide-in-from-bottom-6 px-4">
+        <h1 className={`${isVertical ? 'text-3xl' : 'text-5xl'} font-black text-slate-900 mb-4 tracking-tight`}>
+          Welcome to Aazhi: Your Official Gateway to City Services
+        </h1>
+        <p className={`${isVertical ? 'text-base' : 'text-lg'} text-slate-500 font-medium max-w-3xl mx-auto leading-relaxed`}>
+          Streamline your civic life with easy access to utility payments, permit applications, and real-time community updates. Built for citizens, powered by trust.
+        </p>
+      </div>
+
+      <div className={`w-full ${isVertical ? 'max-w-2xl' : 'max-w-4xl'} mx-auto flex flex-col gap-6 z-10 animate-in zoom-in-95 duration-500`}>
+        <button onClick={() => handleSelection('ai')} className={`group relative bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex flex-col items-center text-center overflow-hidden w-full min-h-[220px]`}>
+          <div className="absolute inset-0 bg-gradient-to-b from-indigo-50 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="w-24 h-24 shrink-0 bg-indigo-100 text-indigo-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300 mb-6">
+            <Bot size={48} />
           </div>
-          <div className="relative z-10 flex-1">
-            <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 group-hover:text-indigo-900`}>{t('sel_aiTitle')}</h2>
-            <p className="text-slate-500 font-medium text-sm mb-4">{t('sel_aiDesc')}</p>
-            <div className={`${isVertical ? 'w-full text-center py-4 text-sm rounded-2xl' : 'px-6 py-2 rounded-full text-xs w-fit'} bg-indigo-600 text-white font-bold uppercase tracking-widest group-hover:bg-indigo-700 shadow-lg shadow-indigo-200 inline-block`}>
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
+            <h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-black text-slate-800 mb-3 group-hover:text-indigo-900`}>{t('sel_aiTitle')}</h2>
+            <p className="text-slate-500 font-medium text-lg mb-6 max-w-2xl">{t('sel_aiDesc')}</p>
+            <div className="px-8 py-3 rounded-full text-sm bg-indigo-600 text-white font-bold uppercase tracking-widest group-hover:bg-indigo-700 shadow-lg shadow-indigo-200 inline-block">
               {t('sel_aiBtn')}
             </div>
           </div>
         </button>
 
-        <button onClick={() => handleSelection('billing')} className={`group relative bg-white ${isVertical ? 'p-8 rounded-[2rem] flex-row gap-6' : 'p-10 rounded-[3rem] flex-col'} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex items-center text-${isVertical ? 'left' : 'center'} overflow-hidden`}>
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition duration-500"></div>
-          <div className={`${isVertical ? 'w-20 h-20 shrink-0' : 'w-32 h-32 mb-8'} bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300`}>
-            <RefreshCw size={isVertical ? 40 : 64} />
+        <button onClick={() => handleSelection('billing')} className={`group relative bg-white p-10 rounded-[3rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 border border-slate-100 flex flex-col items-center text-center overflow-hidden w-full min-h-[220px]`}>
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition duration-500"></div>
+          <div className="w-24 h-24 shrink-0 bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center shadow-inner relative z-10 group-hover:scale-110 transition duration-300 mb-6">
+            <RefreshCw size={48} />
           </div>
-          <div className="relative z-10 flex-1">
-            <h2 className={`${isVertical ? 'text-2xl' : 'text-3xl'} font-black text-slate-800 mb-2 group-hover:text-blue-900`}>{t('sel_payTitle')}</h2>
-            <p className="text-slate-500 font-medium text-sm mb-4">{t('sel_payDesc')}</p>
-            <div className={`${isVertical ? 'w-full text-center py-4 text-sm rounded-2xl' : 'px-6 py-2 rounded-full text-xs w-fit'} bg-blue-600 text-white font-bold uppercase tracking-widest group-hover:bg-blue-700 shadow-lg shadow-blue-200 inline-block`}>
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center">
+            <h2 className={`${isVertical ? 'text-2xl' : 'text-4xl'} font-black text-slate-800 mb-3 group-hover:text-blue-900`}>{t('sel_payTitle')}</h2>
+            <p className="text-slate-500 font-medium text-lg mb-6 max-w-2xl">{t('sel_payDesc')}</p>
+            <div className="px-8 py-3 rounded-full text-sm bg-blue-600 text-white font-bold uppercase tracking-widest group-hover:bg-blue-700 shadow-lg shadow-blue-200 inline-block">
               {t('sel_payBtn')}
             </div>
           </div>

@@ -66,7 +66,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [ticketId, setTicketId] = useState('');
-    const [priority, setPriority] = useState<'Low' | 'Medium' | 'Critical'>('Medium');
+    const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
     const [locationDetected, setLocationDetected] = useState(false);
 
     // Update selectedDept if prop changes
@@ -166,26 +166,30 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             1. What is the issue?
                         </p>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 pb-12 overflow-y-auto">
+                        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 pb-12 overflow-y-auto">
                             {CIVIC_ISSUES.map(issue => (
-                                <AccessibleButton
-                                    key={issue.id}
-                                    label={issue.label}
-                                    language="English"
-                                    onClick={() => {
-                                        setSelectedDept(getDeptForIssue(issue.label));
-                                        setIssueType(issue.label);
-                                        setStep('details');
-                                    }}
-                                    className="!bg-[#222836] hover:!bg-[#2c3344] !border-none !rounded-[1.5rem] p-6 flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px] group"
+                                <div 
+                                    key={issue.id} 
+                                    className="w-[calc(50%-0.5rem)] sm:w-[calc(50%-0.75rem)] max-w-[400px] flex"
                                 >
-                                    <div className={`w-16 h-16 rounded-full ${issue.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
-                                        <issue.icon size={32} className={issue.iconColor} strokeWidth={2.5} />
-                                    </div>
-                                    <span className="!text-white text-[1.1rem] sm:text-lg font-bold text-center leading-tight">
-                                        {issue.label}
-                                    </span>
-                                </AccessibleButton>
+                                    <AccessibleButton
+                                        label={issue.label}
+                                        language="English"
+                                        onClick={() => {
+                                            setSelectedDept(getDeptForIssue(issue.label));
+                                            setIssueType(issue.label);
+                                            setStep('details');
+                                        }}
+                                        className="!bg-[#222836] hover:!bg-[#2c3344] !border-none !rounded-[1.5rem] p-6 flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px] flex-1 group"
+                                    >
+                                        <div className={`w-16 h-16 rounded-full ${issue.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
+                                            <issue.icon size={32} className={issue.iconColor} strokeWidth={2.5} />
+                                        </div>
+                                        <span className="!text-white text-[1.1rem] sm:text-lg font-bold text-center leading-tight">
+                                            {issue.label}
+                                        </span>
+                                    </AccessibleButton>
+                                </div>
                             ))}
                         </div>
                     </div>
@@ -195,6 +199,21 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                 {/* STEP 2: DETAILS */}
                 {step === 'details' && (
                     <div className="p-8 h-full flex flex-col max-w-2xl mx-auto w-full items-center justify-center">
+                        {(() => {
+                            const issueData = CIVIC_ISSUES.find(i => i.label === issueType) || { icon: AlertCircle, circleColor: 'bg-blue-100' };
+                            const IconComp = issueData.icon;
+                            return (
+                                <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm mx-auto justify-center">
+                                    <div className={`w-12 h-12 rounded-full ${issueData.circleColor} flex items-center justify-center shadow-md`}>
+                                        <IconComp size={24} className="text-white" strokeWidth={2.5} />
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Selected Issue</p>
+                                        <p className="text-lg font-black text-slate-800 leading-tight">{issueType}</p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         <h3 className="text-xl font-bold text-[#1e293b] mb-6">
                             2. Geo-Tag & Priority
                         </h3>
@@ -233,24 +252,24 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             
                         <div className="w-full flex flex-col items-center mb-8">
                             <label className="block text-sm font-bold text-slate-700 mb-4">Select Issue Priority</label>
-                            <div className="grid grid-cols-3 gap-4 w-full">
+                            <div className="flex flex-col gap-4 w-full">
                                 <button
-                                    onClick={() => setPriority('Low')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    onClick={() => setPriority('High')}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'High' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronDown size={20} /> Low
+                                    <ChevronUp size={20} /> High
                                 </button>
                                 <button
                                     onClick={() => setPriority('Medium')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
                                     <Minus size={20} /> Medium
                                 </button>
                                 <button
-                                    onClick={() => setPriority('Critical')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Critical' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    onClick={() => setPriority('Low')}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronUp size={20} /> Critical
+                                    <ChevronDown size={20} /> Low
                                 </button>
                             </div>
                         </div>

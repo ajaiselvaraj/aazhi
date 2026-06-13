@@ -11,7 +11,7 @@
  *   → Falls back to native DOM mutation + dispatches a synthetic 'input' event
  *     so React's onChange fires normally.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import VirtualKeyboard, { KeyboardType } from './kiosk/VirtualKeyboard';
 import { Language } from '../types';
 import type { KioskInputHandle } from './kiosk/KioskInput';
@@ -146,13 +146,115 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
         mutateNativeDom(input, '', 0);
     };
 
+    // ── Enter ─────────────────────────────────────────────────────────────────
+    const handleEnter = useCallback(() => {
+        const input = activeInputRef.current;
+        if (input) {
+            const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: true
+            });
+            input.dispatchEvent(event);
+            
+            if (input.form) {
+                // Dispatch native submit event
+                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                input.form.dispatchEvent(submitEvent);
+            }
+        }
+        handleClose();
+    }, []);
+
     // ── Close ─────────────────────────────────────────────────────────────────
-    const handleClose = () => {
+    const handleClose = useCallback(() => {
         activeInputRef.current?.blur();
         setIsOpen(false);
         activeInputRef.current = null;
         activeKioskHandleRef.current = null;
-    };
+    }, []);
+
+    // ── Outside Click Detection ───────────────────────────────────────────────
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+            const target = e.target as HTMLElement;
+            // Ignore clicks on inputs
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+            // Ignore clicks inside the keyboard
+            if (target.closest('[data-keyboard-container="true"]')) return;
+            
+            handleClose();
+        };
+
+        // Use capture phase to catch clicks before they might be stopped
+        document.addEventListener('mousedown', handleOutsideClick, true);
+        document.addEventListener('touchstart', handleOutsideClick, true);
+
+        return () => {
+            document.removeEventListener('mousedown', handleOutsideClick, true);
+            document.removeEventListener('touchstart', handleOutsideClick, true);
+        };
+    }, [isOpen, handleClose]);
+
+    // ── Auto-focus first input when new screen renders ─────────────────────────
+    useEffect(() => {
+        const focusFirstInput = () => {
+            // Only auto-focus if no input is currently focused
+            const active = document.activeElement as HTMLElement | null;
+            if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            // Find all inputs excluding disabled, readonly, hidden
+            const inputs = document.querySelectorAll('input:not([type="hidden"]):not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly])');
+            for (let i = 0; i < inputs.length; i++) {
+                const el = inputs[i] as HTMLElement;
+                // Check if it's part of the keyboard
+                if (el.closest('[data-keyboard-container="true"]')) continue;
+                // Check if visible (using standard offsetWidth/Height check)
+                if (el.offsetWidth > 0 && el.offsetHeight > 0) {
+                    el.focus();
+                    break;
+                }
+            }
+        };
+
+        // Try once on mount
+        focusFirstInput();
+
+        const observer = new MutationObserver((mutations) => {
+            let shouldCheck = false;
+            for (const mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    for (let i = 0; i < mutation.addedNodes.length; i++) {
+                        const node = mutation.addedNodes[i];
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            const el = node as HTMLElement;
+                            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.querySelector('input, textarea')) {
+                                shouldCheck = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (shouldCheck) break;
+            }
+
+            if (shouldCheck) {
+                // Short delay to let React finish layout calculation
+                setTimeout(focusFirstInput, 50);
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        return () => observer.disconnect();
+    }, []);
 
     return (
         <div
@@ -196,7 +298,7 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
                     onKeyPress={handleKeyPress}
                     onDelete={handleDelete}
                     onClear={handleClear}
-                    onEnter={handleClose}
+                    onEnter={handleEnter}
                     onClose={handleClose}
                 />
             </div>

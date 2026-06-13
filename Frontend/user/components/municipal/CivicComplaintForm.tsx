@@ -204,34 +204,38 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                     </p>
 
                     {/* Category Grid */}
-                    <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6'} pb-12 overflow-y-auto`}>
+                    <div className="flex flex-wrap justify-center gap-4 sm:gap-6 pb-12 overflow-y-auto">
                         {CIVIC_CATEGORIES_KEYS.map(catKey => {
                             const meta = CIVIC_ISSUE_META[catKey] || { icon: AlertCircle, circleColor: 'bg-[#475569]' };
                             const IconComp = meta.icon;
                             return (
-                                <button
+                                <div 
                                     key={catKey}
-                                    onClick={() => {
-                                        setCategory(catKey);
-                                        setStep(2);
-                                    }}
-                                    className="group flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px]"
-                                    style={{
-                                        backgroundColor: '#222836',
-                                        borderRadius: '1.5rem',
-                                        border: 'none',
-                                        padding: '1.5rem',
-                                        cursor: 'pointer',
-                                    }}
+                                    className="w-[calc(50%-0.5rem)] sm:w-[calc(50%-0.75rem)] max-w-[400px] flex"
                                 >
-                                    <div className={`w-16 h-16 rounded-full ${meta.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
-                                        <IconComp size={32} className="text-white" strokeWidth={2.5} />
-                                    </div>
-                                    <span className="text-[1.1rem] sm:text-lg font-bold text-center leading-tight"
-                                          style={{ color: '#ffffff' }}>
-                                        {t(catKey)}
-                                    </span>
-                                </button>
+                                    <button
+                                        onClick={() => {
+                                            setCategory(catKey);
+                                            setStep(2);
+                                        }}
+                                        className="group flex flex-col items-center justify-center gap-4 shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] w-full min-h-[160px] flex-1"
+                                        style={{
+                                            backgroundColor: '#222836',
+                                            borderRadius: '1.5rem',
+                                            border: 'none',
+                                            padding: '1.5rem',
+                                            cursor: 'pointer',
+                                        }}
+                                    >
+                                        <div className={`w-16 h-16 rounded-full ${meta.circleColor} flex items-center justify-center group-hover:scale-110 transition-transform shadow-md`}>
+                                            <IconComp size={32} className="text-white" strokeWidth={2.5} />
+                                        </div>
+                                        <span className="text-[1.1rem] sm:text-lg font-bold text-center leading-tight"
+                                              style={{ color: '#ffffff' }}>
+                                            {t(catKey)}
+                                        </span>
+                                    </button>
+                                </div>
                             );
                         })}
                     </div>
@@ -256,6 +260,21 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
                 {step === 2 && (
                     <div className="animate-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto w-full text-center flex flex-col items-center justify-center pt-4">
+                        {(() => {
+                            const meta = CIVIC_ISSUE_META[category] || { icon: AlertCircle, circleColor: 'bg-blue-100' };
+                            const IconComp = meta.icon;
+                            return (
+                                <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm mx-auto justify-center">
+                                    <div className={`w-12 h-12 rounded-full ${meta.circleColor} flex items-center justify-center shadow-md`}>
+                                        <IconComp size={24} className="text-white" strokeWidth={2.5} />
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Selected Issue</p>
+                                        <p className="text-lg font-black text-slate-800 leading-tight">{t(category)}</p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         <h3 className="text-xl font-bold text-[#1e293b] mb-6">
                             2. Geo-Tag & Priority
                         </h3>
@@ -282,24 +301,24 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
                         <div className="w-full flex flex-col items-center">
                             <label className="block text-sm font-bold text-slate-700 mb-4">Select Issue Priority</label>
-                            <div className="grid grid-cols-3 gap-4 w-full mb-10">
+                            <div className="flex flex-col gap-4 w-full mb-10">
                                 <button
-                                    onClick={() => setPriority('Low')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    onClick={() => setPriority('High')}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'High' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronsDown size={20} /> Low
+                                    <ChevronsUp size={20} /> High
                                 </button>
                                 <button
                                     onClick={() => setPriority('Medium')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
                                     <Minus size={20} /> Medium
                                 </button>
                                 <button
-                                    onClick={() => setPriority('Critical')}
-                                    className={`py-4 rounded-xl flex flex-col items-center justify-center gap-2 font-bold transition-all border ${priority === 'Critical' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
+                                    onClick={() => setPriority('Low')}
+                                    className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronsUp size={20} /> Critical
+                                    <ChevronsDown size={20} /> Low
                                 </button>
                             </div>
                         </div>
@@ -324,6 +343,21 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
                 {step === 3 && (
                     <div className="animate-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto text-center">
+                        {(() => {
+                            const meta = CIVIC_ISSUE_META[category] || { icon: AlertCircle, circleColor: 'bg-blue-100' };
+                            const IconComp = meta.icon;
+                            return (
+                                <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm mx-auto justify-center">
+                                    <div className={`w-12 h-12 rounded-full ${meta.circleColor} flex items-center justify-center shadow-md`}>
+                                        <IconComp size={24} className="text-white" strokeWidth={2.5} />
+                                    </div>
+                                    <div className="text-left flex-1">
+                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Selected Issue</p>
+                                        <p className="text-lg font-black text-slate-800 leading-tight">{t(category)}</p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                         <h3 className="text-2xl font-bold mb-8 text-slate-700">{t("civic_attachPhoto")}</h3>
 
                         <div 

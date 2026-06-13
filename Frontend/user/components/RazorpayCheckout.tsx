@@ -12,6 +12,8 @@ interface RazorpayCheckoutProps {
     onCancel?: () => void;
     isGuest?: boolean; // If true, uses the /api/payment/guest-order endpoint
     billId?: string; // Associated bill ID
+    buttonClassName?: string;
+    customButtonText?: string;
 }
 
 // Ensure Razorpay interface is available
@@ -82,6 +84,8 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
     onCancel,
     isGuest,
     billId,
+    buttonClassName,
+    customButtonText,
 }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -228,15 +232,15 @@ const RazorpayCheckout: React.FC<RazorpayCheckoutProps> = ({
             <button
                 onClick={handlePayment}
                 disabled={isLoading}
-                className="w-full bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={buttonClassName || "w-full bg-blue-600 text-white p-6 rounded-2xl font-black text-xl hover:bg-blue-700 transition shadow-xl shadow-blue-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"}
             >
                 {isLoading ? (
                     <>
-                        <Loader2 className="animate-spin" /> Processing...
+                        <Loader2 className="animate-spin" size={buttonClassName ? 18 : 24} /> {buttonClassName ? "..." : "Processing..."}
                     </>
                 ) : (
                     <>
-                        <CreditCard /> Pay Securely Now
+                        {!buttonClassName && <CreditCard />} {customButtonText || "Pay Securely Now"}
                     </>
                 )}
             </button>
