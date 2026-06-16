@@ -1,0 +1,33 @@
+{
+  "lastBackupTime": "2026-06-16T06:45:00.212Z",
+  "backupStatus": "Success",
+  "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
+  "lastVerificationTime": "2026-06-16T06:45:00.212Z",
+  "verificationStatus": "Passed",
+  "recoveryTestLogs": [
+    {
+      "timestamp": "2026-06-16T06:30:00.190Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 136,
+      "rtoAchieved": "256ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-16T05:30:01.620Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 1580,
+      "rtoAchieved": "1700ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-16T02:14:37.336Z",
+      "testType": "Database Recovery Dry-run",
+      "status": "Success",
+      "durationMs": 4200,
+      "rtoAchieved": "12 Minutes",
+      "notes": "Successfully restored 45 encrypted records, integrity check passed."
+    }
+  ]
+}

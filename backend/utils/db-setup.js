@@ -161,6 +161,15 @@ export const initializeAuthTables = async () => {
                 logger.warn(`⚠️ Migration file not found at ${sqlPath}`);
             }
 
+            const sqlV3Path = path.resolve(__dirname, "..", "models", "integrity_v3_schema.sql");
+            if (fs.existsSync(sqlV3Path)) {
+                const migrationSql = fs.readFileSync(sqlV3Path, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ integrity_v3_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${sqlV3Path}`);
+            }
+
             // Seed default integrity officer in officer_accounts
             const checkOfficer = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", ["integrity_admin"]);
             if (checkOfficer.rows.length === 0) {
@@ -171,8 +180,28 @@ export const initializeAuthTables = async () => {
                 `, ["integrity_admin", passHash, "Integrity Office", "integrity_officer"]);
                 logger.info("👤 Seeded default integrity officer (username: integrity_admin).");
             }
+
+            const sqlV4Path = path.resolve(__dirname, "..", "models", "integrity_v4_schema.sql");
+            if (fs.existsSync(sqlV4Path)) {
+                const migrationSql = fs.readFileSync(sqlV4Path, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ integrity_v4_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${sqlV4Path}`);
+            }
+
+            // Seed default executive oversight officer in officer_accounts
+            const checkExecutive = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", ["executive_admin"]);
+            if (checkExecutive.rows.length === 0) {
+                const passHash = bcrypt.hashSync("executive_pass", 10);
+                await pool.query(`
+                    INSERT INTO officer_accounts (username, password_hash, department, role)
+                    VALUES ($1, $2, $3, $4)
+                `, ["executive_admin", passHash, "Executive Oversight Board", "executive_oversight"]);
+                logger.info("👤 Seeded default executive oversight officer (username: executive_admin).");
+            }
         } catch (e) {
-            logger.error(`❌ Failed to run Integrity V2 migrations / seeding: ${e.message}`);
+            logger.error(`❌ Failed to run Integrity V2/V3/V4 migrations / seeding: ${e.message}`);
             throw e;
         }
 

@@ -75,6 +75,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
   const { user } = useAuth()
 
   const isIntegrity = user?.role === 'integrity_officer'
+  const isExecutive = user?.role === 'executive_oversight'
 
   const groupsToRender = isIntegrity ? [
     {
@@ -82,6 +83,14 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
       label_default: 'Civic Integrity Board',
       items: [
         { id: 'integrity-dashboard', icon: ShieldAlert, trans_key: 'nav.integrity_dashboard', default_label: 'Integrity Dashboard' }
+      ]
+    }
+  ] : isExecutive ? [
+    {
+      label_key: 'nav.grp_executive',
+      label_default: 'Executive Governance',
+      items: [
+        { id: 'executive-oversight', icon: ShieldAlert, trans_key: 'nav.executive_oversight', default_label: 'Executive Dashboard' }
       ]
     }
   ] : navGroups;
@@ -127,7 +136,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        {!isIntegrity && (
+        {!isIntegrity && !isExecutive && (
           <button 
             className={`nav-item${active === 'settings' ? ' active' : ''}`} 
             onClick={() => onNav('settings')}

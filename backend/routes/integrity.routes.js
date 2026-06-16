@@ -16,10 +16,33 @@ import {
     getOfficerMessages,
     postOfficerMessage,
     getCitizenMessages,
-    postCitizenMessage
+    postCitizenMessage,
+    setupMfa,
+    verifyAndEnableMfa,
+    getAssignments,
+    createAssignment,
+    deleteAssignment,
+    getApprovals,
+    createApprovalRequest,
+    updateApprovalRequest,
+    getEvidenceChain,
+    getSecurityIncidents,
+    resolveSecurityIncident,
+    getEscalations,
+    escalateReport,
+    getDRStatus,
+    getGovernanceReport,
+    getActiveOfficers,
+    getPublicTransparencyMetrics,
+    getAITriageResults,
+    getWatchlist,
+    getEvidenceIntelligence,
+    getExecutiveAnalytics,
+    getCompliancePackage
 } from "../controllers/integrity.controller.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 import { allowRoles } from "../middleware/role.middleware.js";
+import { fail } from "../utils/response.js";
 
 const router = express.Router();
 
@@ -53,17 +76,60 @@ router.post("/report", reportLimiter, lodgeReport);
 router.get("/track/:caseCode", trackReport);
 router.get("/track/:caseCode/messages", getCitizenMessages);
 router.post("/track/:caseCode/messages", postCitizenMessage);
+router.get("/public/transparency", getPublicTransparencyMetrics); // V4 Public transparency aggregation
 
-// ─── INTEGRITY OFFICER ENFORCED RBAC ENDPOINTS ───
+// ─── ENFORCED RBAC ENDPOINTS ───
 router.use(authMiddleware);
-router.use(allowRoles("integrity_officer"));
+router.use(allowRoles("integrity_officer", "oversight_auditor", "executive_oversight"));
 
-router.get("/reports", getReports);
-router.get("/reports/:id/evidence/:fileId", downloadEvidence);
-router.put("/reports/:id/status", updateStatus);
-router.put("/reports/:id/notes", updateNotes);
+// Helper: restrict executive_oversight role from report detail contents
+const restrictExecutive = (req, res, next) => {
+    if (req.user.role === "executive_oversight") {
+        return fail(res, "Access denied. Executive Oversight role is restricted from accessing detailed report contents.", 403);
+    }
+    next();
+};
+
+// Read-only auditor or executive helper middleware
+const restrictAuditorOrExecutive = (req, res, next) => {
+    if (req.user.role === "oversight_auditor" || req.user.role === "executive_oversight") {
+        return fail(res, "Mutation denied. Oversight role is read-only.", 403);
+    }
+    next();
+};
+
+// GET read routes (restricted from executive_oversight)
+router.get("/reports", restrictExecutive, getReports);
+router.get("/reports/:id/evidence/:fileId", restrictExecutive, downloadEvidence);
+router.get("/reports/:id/messages", restrictExecutive, getOfficerMessages);
+router.get("/reports/:id/assignments", restrictExecutive, getAssignments);
+router.get("/reports/:id/approvals", restrictExecutive, getApprovals);
+router.get("/reports/:id/evidence-chain", restrictExecutive, getEvidenceChain);
+router.get("/reports/:id/escalate", restrictExecutive, getEscalations);
+router.get("/reports/:id/triage", restrictExecutive, getAITriageResults);
+router.get("/reports/:id/evidence-intelligence", restrictExecutive, getEvidenceIntelligence);
+
+// GET aggregated analytics routes (accessible by executive_oversight)
 router.get("/metrics", getMetrics);
-router.get("/reports/:id/messages", getOfficerMessages);
-router.post("/reports/:id/messages", postOfficerMessage);
+router.get("/incidents", getSecurityIncidents);
+router.get("/disaster-recovery/status", getDRStatus);
+router.get("/governance/report", getGovernanceReport);
+router.get("/officers", getActiveOfficers);
+router.get("/watchlist", getWatchlist);
+router.get("/analytics/executive", getExecutiveAnalytics);
+router.get("/compliance/export", getCompliancePackage);
+
+// Mutation routes (Integrity Officer only)
+router.put("/reports/:id/status", restrictAuditorOrExecutive, updateStatus);
+router.put("/reports/:id/notes", restrictAuditorOrExecutive, updateNotes);
+router.post("/reports/:id/messages", restrictAuditorOrExecutive, postOfficerMessage);
+router.post("/mfa/setup", restrictAuditorOrExecutive, setupMfa);
+router.post("/mfa/verify", restrictAuditorOrExecutive, verifyAndEnableMfa);
+router.post("/reports/:id/assignments", restrictAuditorOrExecutive, createAssignment);
+router.delete("/reports/:id/assignments/:assignmentId", restrictAuditorOrExecutive, deleteAssignment);
+router.post("/reports/:id/approvals", restrictAuditorOrExecutive, createApprovalRequest);
+router.put("/approvals/:approvalId", restrictAuditorOrExecutive, updateApprovalRequest);
+router.put("/incidents/:id/resolve", restrictAuditorOrExecutive, resolveSecurityIncident);
+router.post("/reports/:id/escalate", restrictAuditorOrExecutive, escalateReport);
 
 export default router;

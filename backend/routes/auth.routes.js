@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, refreshTokenController, logoutController, updateProfileController, kioskLoginController } from "../controllers/auth.controller.js";
+import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, verifyMfaLogin, refreshTokenController, logoutController, updateProfileController, kioskLoginController } from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -43,6 +43,13 @@ router.post("/kiosk/login", authLimiter, kioskLoginController);
  * @access  Public
  */
 router.post("/admin-login", adminLogin);
+
+/**
+ * @desc    Verify MFA token and code
+ * @route   POST /api/auth/verify-mfa
+ * @access  Public
+ */
+router.post("/verify-mfa", verifyMfaLogin);
 
 /**
  * @desc    Refresh access token using refresh token

@@ -19,6 +19,7 @@ import CivicAlertPanel from '../components/panels/CivicAlertPanel' // ⭐ ADD-ON
 import AICommandCenter from './AICommandCenter'
 import AIModelMetrics from './AIModelMetrics'
 import IntegrityDashboardPanel from '../components/panels/IntegrityDashboardPanel' // ⭐ ADD-ON: Integrity Queue
+import ExecutiveOversightPanel from '../components/panels/ExecutiveOversightPanel'
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -40,18 +41,22 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   'civic-alerts':   CivicAlertPanel,  // ⭐ ADD-ON: Admin Civic Alert Management
   'ai-command-center': AICommandCenter,
   'ai-model-metrics': AIModelMetrics,
-  'integrity-dashboard': IntegrityDashboardPanel
+  'integrity-dashboard': IntegrityDashboardPanel,
+  'executive-oversight': ExecutiveOversightPanel
 }
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
   const isIntegrity = user?.role === 'integrity_officer'
-  const [activeNav, setActiveNav] = useState(isIntegrity ? 'integrity-dashboard' : 'overview')
+  const isExecutive = user?.role === 'executive_oversight'
+  const [activeNav, setActiveNav] = useState(isIntegrity ? 'integrity-dashboard' : isExecutive ? 'executive-oversight' : 'overview')
 
   // Enforce strict role-based panel rendering
   const Panel = isIntegrity 
     ? IntegrityDashboardPanel 
-    : (activeNav === 'integrity-dashboard' ? DashboardOverview : (PANEL_MAP[activeNav] || DashboardOverview))
+    : isExecutive
+      ? ExecutiveOversightPanel
+      : (activeNav === 'integrity-dashboard' ? DashboardOverview : (PANEL_MAP[activeNav] || DashboardOverview))
 
   return (
     <div className="app-shell">

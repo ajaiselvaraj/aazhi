@@ -9,6 +9,10 @@ import { success, fail, error as serverError } from "../utils/response.js";
 import logger from "../utils/logger.js";
 import { pool } from "../config/db.js";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import { encrypt, decrypt } from "../utils/crypto.js";
+import { logSecurityIncident } from "../services/securityMonitoring.js";
+import { logIntegrityAudit } from "../utils/auditChain.js";
 
 const setTokenCookies = (res, accessToken, refreshToken) => {
     const isProd = process.env.NODE_ENV === "production";
@@ -215,22 +219,28 @@ export const kioskLoginController = async (req, res, next) => {
     }
 };
 
+const globalOfficerLoginFailures = new Map();
+
 /**
  * ADMIN LOGIN (For Admin Dashboard)
  * Route: POST /api/auth/admin-login
  */
 export const adminLogin = async (req, res, next) => {
     try {
-        const { adminId, password, department } = req.body;
+        const { adminId, password, department, deviceFingerprint } = req.body;
 
         if (!adminId || !password || !department) {
             logger.warn(`[Auth Controller] Admin login attempt failed: Missing fields`);
             return fail(res, "Admin ID, password, and department are required.", 400);
         }
 
+        // Compute/get device fingerprint
+        const computedFingerprint = crypto.createHash("sha256").update((req.headers["user-agent"] || "unknown") + (req.ip || "127.0.0.1")).digest("hex");
+        const fingerprint = deviceFingerprint || computedFingerprint;
+
         // Check if Integrity Office login is requested
         let admin;
-        if (department === "Integrity Office") {
+        if (department === "Integrity Office" || department === "Executive Oversight Board") {
             const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", [adminId]);
             if (officerRes.rows.length === 0) {
                 logger.warn(`[Auth Controller] Integrity login attempt failed: Officer account ${adminId} not found.`);
@@ -238,12 +248,91 @@ export const adminLogin = async (req, res, next) => {
             }
             
             const officer = officerRes.rows[0];
+
+            // Lockout checks
+            const lockoutKey = `lockout:officer:${officer.id}`;
+            const failCountKey = `fails:officer:${officer.id}`;
+            const lockoutTime = globalOfficerLoginFailures.get(lockoutKey) || 0;
+            if (Date.now() < lockoutTime) {
+                const waitMins = Math.ceil((lockoutTime - Date.now()) / 60000);
+                return fail(res, `Account locked due to repeated failures. Please try again after ${waitMins} minute(s).`, 423);
+            }
+
             const isMatch = bcrypt.compareSync(password, officer.password_hash);
             if (!isMatch) {
+                const fails = (globalOfficerLoginFailures.get(failCountKey) || 0) + 1;
+                globalOfficerLoginFailures.set(failCountKey, fails);
+                
+                if (fails >= 5) {
+                    globalOfficerLoginFailures.set(lockoutKey, Date.now() + 15 * 60 * 1000); // 15 mins lockout
+                    globalOfficerLoginFailures.set(failCountKey, 0); // reset
+                    
+                    await logSecurityIncident("Repeated failed officer logins", "Critical", { username: adminId, officerId: officer.id, fingerprint });
+                    await logIntegrityAudit(
+                        officer.id,
+                        officer.role,
+                        officer.id,
+                        "SECURITY_EVENT",
+                        req.ip || "127.0.0.1",
+                        req.headers["user-agent"] || "Unknown",
+                        null,
+                        { event: "OFFICER_LOCKOUT", username: adminId },
+                        { message: "Officer account locked out after 5 failed password attempts." }
+                    );
+                } else {
+                    await logSecurityIncident("Repeated failed officer logins", "Medium", { username: adminId, attempts: fails });
+                }
+                
                 logger.warn(`[Auth Controller] Integrity login attempt failed: Password mismatch for ${adminId}.`);
                 return fail(res, "Invalid Admin ID, password, or department.", 401);
             }
             
+            // Login matches, reset failures
+            globalOfficerLoginFailures.set(failCountKey, 0);
+
+            // Device Fingerprint validation & Login anomaly detection
+            let fingerprints = [];
+            try {
+                fingerprints = officer.device_fingerprints || [];
+            } catch (e) {
+                fingerprints = [];
+            }
+            const isNewDevice = !fingerprints.includes(fingerprint);
+            if (isNewDevice) {
+                fingerprints.push(fingerprint);
+                await pool.query(
+                    "UPDATE officer_accounts SET device_fingerprints = $1 WHERE id = $2",
+                    [JSON.stringify(fingerprints), officer.id]
+                );
+                
+                // Log security incident for new device login
+                await logSecurityIncident("New device login", "Medium", { username: adminId, officerId: officer.id, fingerprint });
+                await logIntegrityAudit(
+                    officer.id,
+                    officer.role,
+                    officer.id,
+                    "SECURITY_EVENT",
+                    req.ip || "127.0.0.1",
+                    req.headers["user-agent"] || "Unknown",
+                    null,
+                    { event: "NEW_DEVICE_LOGIN", fingerprint },
+                    { message: "New device fingerprint registered for officer." }
+                );
+            }
+
+            // Check if MFA is enabled
+            if (officer.mfa_enabled) {
+                // Return temp_token for MFA verification
+                const tempToken = encrypt(JSON.stringify({
+                    officerId: officer.id,
+                    expiry: Date.now() + 5 * 60 * 1000 // 5 minutes validity
+                }));
+                return success(res, "MFA code required.", {
+                    mfa_required: true,
+                    temp_token: tempToken
+                }, 200);
+            }
+
             admin = {
                 id: officer.id,
                 mobile: "1111111111", // Compatibility mapping
@@ -309,6 +398,85 @@ export const adminLogin = async (req, res, next) => {
 };
 
 /**
+ * VERIFY MFA TOKEN & LOG IN
+ * Route: POST /api/auth/verify-mfa
+ */
+export const verifyMfaLogin = async (req, res) => {
+    try {
+        const { temp_token, code } = req.body;
+        if (!temp_token || !code) {
+            return fail(res, "MFA token and code are required.", 400);
+        }
+
+        const decrypted = decrypt(temp_token);
+        if (decrypted === "[Decryption Failed]" || !decrypted) {
+            return fail(res, "Invalid MFA token.", 400);
+        }
+
+        const { officerId, expiry } = JSON.parse(decrypted);
+        if (Date.now() > expiry) {
+            return fail(res, "MFA verification session expired. Please log in again.", 401);
+        }
+
+        const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE id = $1", [officerId]);
+        if (officerRes.rows.length === 0) {
+            return fail(res, "Officer account not found.", 404);
+        }
+
+        const officer = officerRes.rows[0];
+        const { verifyTOTP } = await import("../utils/mfa.js");
+        const isValid = verifyTOTP(officer.mfa_secret, code);
+
+        if (!isValid) {
+            await logSecurityIncident("Failed MFA", "High", { username: officer.username, officerId });
+            await logIntegrityAudit(
+                officer.id,
+                officer.role,
+                officer.id,
+                "SECURITY_EVENT",
+                req.ip || "127.0.0.1",
+                req.headers["user-agent"] || "Unknown",
+                null,
+                { event: "FAILED_MFA", username: officer.username },
+                { message: "Officer failed MFA TOTP verification." }
+            );
+            return fail(res, "Invalid verification code.", 401);
+        }
+
+        const admin = {
+            id: officer.id,
+            mobile: "1111111111",
+            name: officer.username,
+            role: officer.role,
+            department: officer.department
+        };
+
+        const { accessToken, refreshToken } = generateTokens(admin);
+        setTokenCookies(res, accessToken, refreshToken);
+
+        logger.info(`[Auth Controller] MFA login successful for officer: ${officer.username}`);
+
+        return success(res, "MFA verification successful.", {
+            admin: {
+                id: admin.id,
+                adminId: officer.username,
+                name: officer.username,
+                department: officer.department,
+                role: admin.role
+            },
+            tokens: {
+                accessToken,
+                refreshToken
+            }
+        }, 200);
+
+    } catch (err) {
+        logger.error(`[Auth Controller] verifyMfaLogin Error: ${err.message}`);
+        return serverError(res, "MFA verification failed.", 500);
+    }
+};
+
+/**
  * REFRESH TOKEN
  * Route: POST /api/auth/refresh
  */
@@ -330,7 +498,7 @@ export const refreshTokenController = async (req, res, next) => {
         
         // Ensure user still exists
         let user;
-        if (decoded.role === "integrity_officer") {
+        if (decoded.role === "integrity_officer" || decoded.role === "executive_oversight") {
             const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE id = $1", [decoded.id]);
             if (officerRes.rows.length === 0) {
                 return fail(res, "Officer account not found.", 404);

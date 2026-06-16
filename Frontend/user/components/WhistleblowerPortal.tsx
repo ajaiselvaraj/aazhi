@@ -30,13 +30,41 @@ const TRACKING_STAGES = [
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/integrity";
 
 export default function WhistleblowerPortal({ onBack, language }: Props) {
-  const [activeTab, setActiveTab] = useState<'report' | 'track'>('report');
+  const [activeTab, setActiveTab] = useState<'report' | 'track' | 'transparency'>('report');
   
+  // Transparency Portal State
+  const [transparencyData, setTransparencyData] = useState<any | null>(null);
+  const [transparencyLoading, setTransparencyLoading] = useState(false);
+  const [transparencyError, setTransparencyError] = useState('');
+
+  const fetchTransparencyData = async () => {
+    setTransparencyLoading(true);
+    setTransparencyError('');
+    try {
+      const res = await axios.get(`${API_URL}/public/transparency`);
+      if (res.data && res.data.success) {
+        setTransparencyData(res.data.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to load public transparency metrics", err);
+      setTransparencyError("Failed to fetch public transparency statistics.");
+    } finally {
+      setTransparencyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'transparency') {
+      fetchTransparencyData();
+    }
+  }, [activeTab]);
+
   // Reporting Form State
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [incidentDate, setIncidentDate] = useState('');
+  const [retaliationRisk, setRetaliationRisk] = useState(false);
   
   // Attachments state
   const [imageFile, setImageFile] = useState<{ filename: string, mimetype: string, data: string } | null>(null);
@@ -290,7 +318,8 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
         incidentDate,
         captchaId: captcha?.captchaId,
         captchaAnswer,
-        mediaFiles
+        mediaFiles,
+        retaliationRisk
       };
 
       const res = await axios.post(`${API_URL}/report`, payload);
@@ -305,6 +334,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
         setVoiceFile(null);
         setDocFile(null);
         setCaptchaAnswer('');
+        setRetaliationRisk(false);
       }
     } catch (err: any) {
       console.error(err);
@@ -377,23 +407,29 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
       <div className="flex-1 overflow-y-auto px-6 py-8 z-10 max-w-4xl w-full mx-auto">
         
         {/* Tabs navigation */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-3xl mb-8 max-w-md mx-auto shadow-xl">
+        <div className="flex bg-slate-900 border border-slate-800 p-1.5 rounded-3xl mb-8 max-w-xl mx-auto shadow-xl">
           <button
             onClick={() => { setActiveTab('report'); setError(''); }}
             className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            <ShieldAlert size={16} /> File Anonymous Report
+            <ShieldAlert size={16} /> File Report
           </button>
           <button
             onClick={() => { setActiveTab('track'); setTrackingError(''); }}
             className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'track' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-200'}`}
           >
-            <Key size={16} /> Track Investigation
+            <Key size={16} /> Track Case
+          </button>
+          <button
+            onClick={() => { setActiveTab('transparency'); }}
+            className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'transparency' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-200'}`}
+          >
+            <Eye size={16} /> Transparency
           </button>
         </div>
 
         {/* Tab content */}
-        {activeTab === 'report' ? (
+        {activeTab === 'report' && (
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
             
             {/* Warning Disclaimer Cards */}
@@ -489,6 +525,20 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                       className="w-full bg-slate-950 border border-slate-800 p-4 rounded-2xl text-slate-200 font-bold focus:border-blue-500 outline-none transition text-left"
                     />
                   </div>
+                </div>
+
+                {/* Retaliation Risk Checkbox (Feature 6) */}
+                <div className="bg-red-950/20 border border-red-500/20 p-4 rounded-2xl flex items-start gap-3 col-span-1 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    id="retaliationRisk"
+                    checked={retaliationRisk}
+                    onChange={(e) => setRetaliationRisk(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-800 text-blue-600 focus:ring-blue-500 bg-slate-950 shrink-0 mt-0.5 cursor-pointer"
+                  />
+                  <label htmlFor="retaliationRisk" className="text-xs text-slate-300 font-bold select-none cursor-pointer leading-tight">
+                    <span className="text-red-400 font-black">⚠ Witness Protection:</span> This report involves potential retaliation risk. Enabling this increases confidentiality protocols, redacts location details from general lists, and flags witness protection guidelines.
+                  </label>
                 </div>
 
                 {/* Upload Fields Container */}
@@ -601,7 +651,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
               </form>
             )}
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'track' && (
           /* Track status page */
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
             <form onSubmit={handleTrackReport} className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-xl space-y-4">
@@ -769,6 +821,104 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Transparency portal page */}
+        {activeTab === 'transparency' && (
+          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
+            {/* Disclaimer / Intro Card */}
+            <div className="bg-gradient-to-r from-blue-950/40 to-slate-900 border border-blue-900/30 rounded-3xl p-6 shadow-md flex items-start gap-4">
+              <Eye className="text-blue-400 shrink-0 mt-0.5" size={24} />
+              <div className="space-y-2">
+                <h3 className="font-bold text-white text-base">Public Transparency Dashboard</h3>
+                <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                  This dashboard shows anonymised, aggregated metrics to ensure transparency while strictly preserving citizen anonymity. No individual report descriptions, witness locations, chat logs, or uploaded evidence are exposed here.
+                </p>
+              </div>
+            </div>
+
+            {transparencyLoading ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-16 text-center flex flex-col items-center justify-center space-y-4 shadow-xl">
+                <RefreshCw className="animate-spin text-blue-500" size={32} />
+                <p className="text-sm text-slate-400 font-bold uppercase tracking-wider">Fetching transparency statistics...</p>
+              </div>
+            ) : transparencyError ? (
+              <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 text-center space-y-4 shadow-xl">
+                <div className="text-red-400 text-2xl">⚠️</div>
+                <p className="text-sm text-red-400 font-bold">{transparencyError}</p>
+                <button
+                  type="button"
+                  onClick={fetchTransparencyData}
+                  className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider transition"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : transparencyData ? (
+              <div className="space-y-6">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl text-center space-y-1 hover:border-slate-700 transition">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Total Reports</span>
+                    <p className="text-2xl font-black text-white">{transparencyData.totalReports}</p>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl text-center space-y-1 hover:border-slate-700 transition">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Active Cases</span>
+                    <p className="text-2xl font-black text-blue-400">{transparencyData.activeInvestigations}</p>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl text-center space-y-1 hover:border-slate-700 transition">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Resolved Cases</span>
+                    <p className="text-2xl font-black text-green-400">{transparencyData.closedCases}</p>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800/80 p-5 rounded-2xl text-center space-y-1 hover:border-slate-700 transition">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block mb-1">Resolution SLA</span>
+                    <p className="text-2xl font-black text-purple-400">{transparencyData.averageResolutionDays} Days</p>
+                  </div>
+                </div>
+
+                {/* Department Stats */}
+                <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-xl space-y-6">
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-slate-400 tracking-widest">Reports by Department Sector</h3>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Aggregated category breakdown of submitted integrity reports</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {transparencyData.departmentStats && transparencyData.departmentStats.length > 0 ? (
+                      transparencyData.departmentStats.map((stat: any, idx: number) => {
+                        const total = transparencyData.totalReports || 1;
+                        const percentage = Math.round((stat.count / total) * 100);
+                        return (
+                          <div key={idx} className="space-y-2">
+                            <div className="flex justify-between text-xs font-bold">
+                              <span className="text-slate-300">{stat.department}</span>
+                              <span className="text-slate-400">{stat.count} ({percentage}%)</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                              <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500"
+                                style={{ width: `${percentage}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-xs text-slate-500 text-center py-6 font-bold uppercase">No category statistics available.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Certification stamp */}
+                <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 text-center space-y-2">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">🛡️ Cryptographic Ledger Certification</p>
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-lg mx-auto font-medium">
+                    All compliance verification events are written into a tamper-evident cryptographic audit ledger. Citizen credentials are never stored.
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
