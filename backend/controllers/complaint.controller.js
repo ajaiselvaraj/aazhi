@@ -9,6 +9,7 @@ import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
 import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
+import { checkAndClusterComplaint, syncClusterCompletionStatus } from "../services/cascadeDetection.service.js"; // ⭐ ADD-ON: CCI Integration
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
@@ -205,12 +206,24 @@ export const registerComplaint = async (req, res, next) => {
 
         logger.info("Complaint registered", { citizenId, ticketNumber, category, department });
 
+        // ⭐ INTEGRATION: Cross-Complaint Cascade Intelligence (CCI)
+        let cciResult = { detected: false };
+        try {
+            const clusterData = await checkAndClusterComplaint(result.rows[0].id);
+            if (clusterData && clusterData.detected) {
+                cciResult = clusterData;
+            }
+        } catch (cciErr) {
+            logger.error(`⚠️ [CCI Integration] Failed to run cascade matching: ${cciErr.message}`);
+        }
+
         return success(res, "Complaint registered successfully", {
             ...result.rows[0],
             stages: stages.map((s) => ({
                 stage: s.stage,
                 status: s.status,
             })),
+            cci: cciResult
         }, 201);
     } catch (err) {
         next(err);
@@ -452,6 +465,13 @@ export const updateComplaintStatus = async (req, res, next) => {
             logger.warn("[Socket.IO] Failed to emit status update (non-critical):", socketErr.message);
         }
 
+        // ⭐ INTEGRATION: Coordinated SLA Completion Check
+        try {
+            await syncClusterCompletionStatus(actualId);
+        } catch (cciErr) {
+            logger.warn(`⚠️ [CCI Coordinated SLA] Sync failed: ${cciErr.message}`);
+        }
+
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {
         next(err);
@@ -629,9 +649,22 @@ export const createComplaintDebug = async (req, res, next) => {
                 [result.rows[0].id, s.stage, s.status]
             );
         }
+
+        // ⭐ INTEGRATION: Cross-Complaint Cascade Intelligence (CCI)
+        let cciResult = { detected: false };
+        try {
+            const clusterData = await checkAndClusterComplaint(result.rows[0].id);
+            if (clusterData && clusterData.detected) {
+                cciResult = clusterData;
+            }
+        } catch (cciErr) {
+            logger.error(`⚠️ [CCI Integration Debug] Failed to run cascade matching: ${cciErr.message}`);
+        }
+
         return success(res, "Complaint registered (DEBUG)", {
             ...result.rows[0],
-            stages: stages.map((s) => ({ stage: s.stage, status: s.status }))
+            stages: stages.map((s) => ({ stage: s.stage, status: s.status })),
+            cci: cciResult
         }, 201);
     } catch (err) {
         next(err);
@@ -687,6 +720,13 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
              WHERE complaint_id = $3 AND stage = $4`,
             [notes || null, updatedBy, id, status]
         );
+
+        // ⭐ INTEGRATION: Coordinated SLA Completion Check
+        try {
+            await syncClusterCompletionStatus(id);
+        } catch (cciErr) {
+            logger.warn(`⚠️ [CCI Coordinated SLA Debug] Sync failed: ${cciErr.message}`);
+        }
 
         return success(res, "Complaint updated (DEBUG)", result.rows[0]);
     } catch (err) {

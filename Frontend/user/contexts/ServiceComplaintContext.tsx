@@ -73,6 +73,8 @@ interface ServiceComplaintContextType {
     serviceRequests: ServiceRequest[];
     complaints: Complaint[];
     areaAlerts: AreaAlert[];
+    latestCci?: any;
+    clearLatestCci?: () => void;
     addServiceRequest: (data: Omit<ServiceRequest, 'id' | 'token' | 'createdAt' | 'status' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason' | 'resolution_note' | 'assigned_to' | 'assigned_to_name' | 'priority' | 'scheduled_at' | 'resolved_at' | 'closed_at'>) => Promise<string>;
     addComplaint: (data: Omit<Complaint, 'id' | 'createdAt' | 'status' | 'priority' | 'areaAlert' | 'currentStage' | 'stage' | 'stages' | 'rejection_reason'>) => Promise<string>;
     updateServiceStatus: (id: string, status: string, extraPayload?: any) => void;
@@ -137,6 +139,9 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
     const [kiosks, setKiosks] = useState<Kiosk[]>([]);
     const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [latestCci, setLatestCci] = useState<any>(null);
+
+    const clearLatestCci = () => setLatestCci(null);
 
     const persistData = (key: string, data: any) => {
         localStorage.setItem(key, JSON.stringify(data));
@@ -416,6 +421,7 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
 
         let serverCreatedAt: string | null = null;
         let finalId: string | null = null;
+        let cciData: any = null;
         try {
             const apiRes = await GrievanceService.createComplaint({
                 subject: data.complaintType || 'Civic Complaint', // FIXED: Added subject to satisfy DB constraint
@@ -431,8 +437,15 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
             finalId = (apiRes as any).ticket_number || apiRes.id;
             // ✅ Use the server-returned created_at as the definitive timestamp
             serverCreatedAt = (apiRes as any).created_at || (apiRes as any).createdAt || null;
+            cciData = (apiRes as any).cci || null;
+            if (cciData) {
+                setLatestCci(cciData);
+            } else {
+                setLatestCci(null);
+            }
         } catch (error) {
             console.warn("API submission failed, falling back to offline mode", error);
+            setLatestCci(null);
         }
 
         finalId = finalId || `CMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
@@ -538,6 +551,8 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 serviceRequests,
                 complaints,
                 areaAlerts,
+                latestCci,
+                clearLatestCci,
                 addServiceRequest,
                 addComplaint,
                 updateServiceStatus,

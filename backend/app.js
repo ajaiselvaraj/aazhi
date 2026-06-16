@@ -21,6 +21,7 @@ import userRoutes from "./routes/user.routes.js";
 import trackingRoutes from "./routes/tracking.routes.js"; // ⭐ PLUG-IN: QR Tracking Layer
 import { adminAlertRouter, publicAlertRouter } from "./routes/alert.routes.js"; // ⭐ ADD-ON: Civic Alert Management
 import integrityRoutes from "./routes/integrity.routes.js"; // ⭐ ADD-ON: Anonymous Civic Whistleblower Channel
+import cciRoutes from "./routes/cci.routes.js"; // ⭐ ADD-ON: Cross-Complaint Cascade Intelligence (CCI)
 
 import { pool, getPoolStatus } from "./config/db.js";
 
@@ -171,6 +172,7 @@ app.use("/api/track", trackingRoutes); // ⭐ PLUG-IN: Public QR Tracking (no au
 app.use("/api/admin/alerts", adminAlertRouter); // ⭐ ADD-ON: Admin Civic Alert CRUD
 app.use("/api/alerts", publicAlertRouter);       // ⭐ ADD-ON: Public active-alert feed
 app.use("/api/integrity", integrityRoutes);     // ⭐ ADD-ON: Anonymous Civic Whistleblower Channel
+app.use("/api/cci", cciRoutes);                 // ⭐ ADD-ON: Cross-Complaint Cascade Intelligence (CCI)
 
 
 // ─── 404 ───────────────────────────────────────────────

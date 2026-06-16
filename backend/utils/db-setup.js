@@ -200,8 +200,18 @@ export const initializeAuthTables = async () => {
                 `, ["executive_admin", passHash, "Executive Oversight Board", "executive_oversight"]);
                 logger.info("👤 Seeded default executive oversight officer (username: executive_admin).");
             }
+
+            // 🚀 CCI (Cross-Complaint Cascade Intelligence) MIGRATIONS
+            const cciSqlPath = path.resolve(__dirname, "..", "models", "cci_schema.sql");
+            if (fs.existsSync(cciSqlPath)) {
+                const migrationSql = fs.readFileSync(cciSqlPath, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ cci_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${cciSqlPath}`);
+            }
         } catch (e) {
-            logger.error(`❌ Failed to run Integrity V2/V3/V4 migrations / seeding: ${e.message}`);
+            logger.error(`❌ Failed to run Integrity V2/V3/V4/CCI migrations / seeding: ${e.message}`);
             throw e;
         }
 

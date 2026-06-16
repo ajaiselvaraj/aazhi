@@ -26,6 +26,7 @@ const navGroups = [
       { id: 'triage',       icon: Cpu,             trans_key: 'nav.ai_route', default_label: 'AI Routing Queue' },
       { id: 'duplicate',    icon: Copy,            trans_key: 'nav.dup_det', default_label: 'Duplicate Detection' },
       { id: 'ai-insights',  icon: Brain,           trans_key: 'nav.ai_insights', default_label: 'AI Insights' },
+      { id: 'cci-command',  icon: Layers,          trans_key: 'nav.cci_command', default_label: 'Cascade Coordination' },
     ],
   },
   {

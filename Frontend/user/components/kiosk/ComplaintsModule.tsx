@@ -57,7 +57,7 @@ interface ComplaintsModuleProps {
 
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
     const { t } = useTranslation();
-    const { addComplaint } = useServiceComplaint();
+    const { addComplaint, latestCci, clearLatestCci } = useServiceComplaint();
 
     // If departmentId is provided, start at details step, otherwise category
     const [step, setStep] = useState<'category' | 'details' | 'success'>(departmentId ? 'details' : 'category');
@@ -303,13 +303,35 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             {t('comp_grievanceForwarded')}
                         </p>
 
+                        {latestCci?.detected && (
+                            <div className="mb-8 p-6 bg-amber-50 border-2 border-amber-200 rounded-[1.5rem] text-left max-w-md mx-auto animate-in slide-in-from-bottom-2">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                                        <AlertTriangle size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-extrabold text-[#92400e] text-lg mb-2">Area Recovery Event Active</h4>
+                                        <p className="text-[#b45309] font-bold text-sm leading-relaxed">
+                                            {latestCci.message}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 w-full max-w-sm mb-8">
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{t('comp_ticketId')}</p>
                             <p className="text-3xl font-black text-slate-800 tracking-tight">{ticketId}</p>
                         </div>
 
                         <div className="flex gap-4">
-                            <button onClick={onBack} className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition">
+                            <button 
+                                onClick={() => {
+                                    clearLatestCci?.();
+                                    onBack();
+                                }} 
+                                className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition"
+                            >
                                 {t('returnHome')}
                             </button>
                         </div>

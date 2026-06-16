@@ -146,6 +146,54 @@ router.get("/:trackingId", async (req, res, next) => {
                 [record.id]
             );
 
+            // ⭐ INTEGRATION: Cross-Complaint Cascade Intelligence (CCI)
+            const { rows: mappings } = await pool.query(
+                "SELECT * FROM cluster_complaints WHERE complaint_id = $1",
+                [record.id]
+            );
+
+            let cciData = null;
+            if (mappings.length > 0) {
+                const clusterId = mappings[0].cluster_id;
+                const { rows: clusterRows } = await pool.query(
+                    "SELECT * FROM infrastructure_clusters WHERE id = $1",
+                    [clusterId]
+                );
+
+                if (clusterRows.length > 0) {
+                    const cluster = clusterRows[0];
+                    const { rows: depts } = await pool.query(
+                        "SELECT * FROM cluster_departments WHERE cluster_id = $1 ORDER BY assigned_at ASC",
+                        [clusterId]
+                    );
+
+                    const { rows: otherComps } = await pool.query(
+                        `SELECT c.ticket_number, c.category, c.department, c.status, c.subject
+                         FROM complaints c
+                         JOIN cluster_complaints cc ON c.id = cc.complaint_id
+                         WHERE cc.cluster_id = $1`,
+                        [clusterId]
+                    );
+
+                    const totalDepts = depts.length;
+                    const completedDepts = depts.filter(d => d.completion_status === 'completed').length;
+                    const progress = totalDepts > 0 ? Math.round((completedDepts / totalDepts) * 100) : 0;
+
+                    cciData = {
+                        detected: true,
+                        cluster_id: clusterId,
+                        cluster_code: cluster.cluster_code,
+                        root_cause: cluster.root_cause_category,
+                        status: cluster.status,
+                        severity: cluster.severity,
+                        locality: cluster.locality,
+                        progress: progress,
+                        departments: depts,
+                        complaints: otherComps
+                    };
+                }
+            }
+
             return success(res, "Tracking details fetched", {
                 complaint: {
                     ...record,
@@ -153,6 +201,7 @@ router.get("/:trackingId", async (req, res, next) => {
                 },
                 stages: stages.rows,
                 messages: messages.rows,
+                cci: cciData
             });
         }
     } catch (err) {

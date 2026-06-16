@@ -37,6 +37,30 @@ interface Message {
     created_at: string;
 }
 
+interface CCI {
+    detected: boolean;
+    cluster_id: string;
+    cluster_code: string;
+    root_cause: string;
+    status: string;
+    severity: string;
+    locality: string;
+    progress: number;
+    departments: {
+        id: string;
+        department_name: string;
+        sla_deadline: string;
+        completion_status: 'pending' | 'completed';
+    }[];
+    complaints: {
+        ticket_number: string;
+        category: string;
+        department: string;
+        status: string;
+        subject?: string;
+    }[];
+}
+
 interface Complaint {
     id: string;
     ticket_number: string;
@@ -63,6 +87,7 @@ interface TrackingData {
     complaint: Complaint;
     stages: Stage[];
     messages: Message[];
+    cci?: CCI;
 }
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
     pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', icon: <Clock size={18} /> },
@@ -298,106 +323,242 @@ const ComplaintTrackingPage: React.FC = () => {
             {/* ── Main card area ─────────────────────────── */}
             <main style={{ padding: '0 16px 40px', marginTop: -48, maxWidth: 640, margin: '-48px auto 0' }}>
 
-                {/* Status Card */}
-                <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', marginBottom: 20, border: `2px solid ${statusCfg.bg}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                        <div>
-                            <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Current Status</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ background: statusCfg.bg, color: statusCfg.color, borderRadius: 10, padding: 8 }}>{statusCfg.icon}</div>
-                                <span style={{ fontSize: 26, fontWeight: 900, color: statusCfg.color }}>{statusCfg.label}</span>
-                            </div>
-                        </div>
-                        <div style={{ background: statusCfg.bg, borderRadius: 16, padding: '6px 14px' }}>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: statusCfg.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                                {complaint.priority}
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* Meta grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        {[
-                            { icon: <Tag size={13} />, label: 'Category', value: complaint.category },
-                            { icon: <Building2 size={13} />, label: 'Department', value: complaint.department || '—' },
-                            ...(isService && (complaint as any).assigned_to_name ? [{ icon: <User size={13} />, label: 'Assigned Technician', value: (complaint as any).assigned_to_name }] : []),
-                            ...(isService && (complaint as any).scheduled_at ? [{ icon: <Calendar size={13} />, label: 'Scheduled Date & Time', value: fmt((complaint as any).scheduled_at) }] : []),
-                            { icon: <MapPin size={13} />, label: 'Ward', value: complaint.ward || '—' },
-                            { icon: <Calendar size={13} />, label: 'Last Updated', value: fmt(complaint.updated_at) },
-                        ].map(({ icon, label, value }) => (
-                            <div key={label} style={{ background: '#f8fafc', borderRadius: 12, padding: '10px 14px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#94a3b8', marginBottom: 4 }}>{icon}<span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{label}</span></div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{value}</div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Subject */}
-                    {complaint.subject && (
-                        <div style={{ marginTop: 14, padding: '12px 16px', background: '#f8fafc', borderRadius: 12 }}>
-                            <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Subject</div>
-                            <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{complaint.subject}</div>
-                        </div>
-                    )}
-
-                    {/* Resolution / rejection note */}
-                    {complaint.resolution_note && (
-                        <div style={{ marginTop: 14, padding: '14px 16px', background: '#f0fdf4', borderRadius: 12, borderLeft: '4px solid #16a34a' }}>
-                            <div style={{ fontSize: 9, fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Resolution Note</div>
-                            <div style={{ fontSize: 13, color: '#166534' }}>{complaint.resolution_note}</div>
-                        </div>
-                    )}
-                    {complaint.rejection_reason && (
-                        <div style={{ marginTop: 14, padding: '14px 16px', background: '#fef2f2', borderRadius: 12, borderLeft: '4px solid #dc2626' }}>
-                            <div style={{ fontSize: 9, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Rejection Reason</div>
-                            <div style={{ fontSize: 13, color: '#991b1b' }}>{complaint.rejection_reason}</div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Timeline Card */}
-                <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', marginBottom: 20 }}>
-                    <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Clock size={18} style={{ color: '#2563eb' }} /> {isService ? 'Service Timeline' : 'Complaint Timeline'}
-                    </h3>
-                    <div style={{ position: 'relative' }}>
-                        {/* Vertical line */}
-                        <div style={{ position: 'absolute', left: 19, top: 10, bottom: 20, width: 2, background: '#e2e8f0', borderRadius: 4 }} />
-
-                        {stageList.map((stage, idx) => {
-                            const cfg = getStatusCfg(stage.stage);
-                            const isDone = stage.status === 'completed';
-                            const isCurrent = stage.status === 'current';
-                            return (
-                                <div key={idx} style={{ display: 'flex', gap: 16, paddingBottom: 24, position: 'relative' }}>
-                                    <div style={{
-                                        width: 40, height: 40, borderRadius: 12, flexShrink: 0, zIndex: 1,
-                                        background: isDone ? '#dcfce7' : isCurrent ? cfg.bg : '#f1f5f9',
-                                        color: isDone ? '#16a34a' : isCurrent ? cfg.color : '#cbd5e1',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        border: isCurrent ? `2px solid ${cfg.color}` : '2px solid transparent',
-                                        boxShadow: isCurrent ? `0 0 0 4px ${cfg.bg}` : 'none',
-                                        transition: 'all 0.3s',
-                                    }}>
-                                        {isDone ? <CheckCircle size={18} /> : cfg.icon}
+                {data.cci?.detected ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 20 }}>
+                        {/* Area Recovery Title Card */}
+                        <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', border: '2px solid #dbeafe' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                                <div>
+                                    <span style={{ fontSize: 10, fontWeight: 800, color: '#2563eb', background: '#dbeafe', borderRadius: 20, padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                        Area Recovery Event
+                                    </span>
+                                    <h2 style={{ fontSize: 24, fontWeight: 900, color: '#1e3a8a', marginTop: 8 }}>
+                                        {data.cci.root_cause}
+                                    </h2>
+                                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, fontWeight: 600 }}>
+                                        Cluster ID: <span style={{ color: '#1e293b', fontWeight: 700 }}>{data.cci.cluster_code}</span>
                                     </div>
-                                    <div style={{ flex: 1, paddingTop: 8 }}>
-                                        <div style={{ fontWeight: 800, fontSize: 14, color: isDone || isCurrent ? '#1e293b' : '#94a3b8', textTransform: 'capitalize' }}>
-                                            {stage.stage.replace(/_/g, ' ')}
-                                            {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '2px 8px', borderRadius: 20 }}>CURRENT</span>}
-                                        </div>
-                                        {stage.updated_at && (
-                                            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{fmt(stage.updated_at)}</div>
-                                        )}
-                                        {stage.notes && (
-                                            <div style={{ fontSize: 12, color: '#475569', marginTop: 6, padding: '8px 12px', background: '#f8fafc', borderRadius: 8 }}>{stage.notes}</div>
-                                        )}
+                                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 2, fontWeight: 600 }}>
+                                        Locality: <span style={{ color: '#1e293b', fontWeight: 700 }}>{data.cci.locality || 'Ward 12'}</span>
                                     </div>
                                 </div>
-                            );
-                        })}
+                                <div style={{ background: data.cci.severity === 'critical' ? '#fee2e2' : '#fef3c7', borderRadius: 16, padding: '6px 14px' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: data.cci.severity === 'critical' ? '#dc2626' : '#d97706', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                        {data.cci.severity} Severity
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Progress bar */}
+                            <div style={{ background: '#f8fafc', borderRadius: 20, padding: '16px 20px', marginTop: 20, border: '1px solid #e2e8f0' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#475569' }}>Recovery Progress</span>
+                                    <span style={{ fontSize: 16, fontWeight: 900, color: '#2563eb' }}>{data.cci.progress}%</span>
+                                </div>
+                                <div style={{ height: 10, width: '100%', background: '#cbd5e1', borderRadius: 5, overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${data.cci.progress}%`, background: 'linear-gradient(90deg, #3b82f6, #10b981)', borderRadius: 5, transition: 'width 1s ease-in-out' }} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Coordinated Departments SLA Checklist */}
+                        <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+                            <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, color: '#1e3a8a' }}>
+                                <Building2 size={18} style={{ color: '#2563eb' }} /> Coordinated Work Checklist
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                {data.cci.departments.map((dept, index) => {
+                                    const isCompleted = dept.completion_status === 'completed';
+                                    return (
+                                        <div key={index} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            background: isCompleted ? '#f0fdf4' : '#f8fafc',
+                                            borderRadius: 16, padding: '14px 18px',
+                                            border: `1px solid ${isCompleted ? '#bbf7d0' : '#e2e8f0'}`,
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                <div style={{
+                                                    width: 24, height: 24, borderRadius: 6,
+                                                    background: isCompleted ? '#16a34a' : '#cbd5e1',
+                                                    color: '#fff',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    fontWeight: 900, fontSize: 12
+                                                }}>
+                                                    {isCompleted ? '✓' : ' '}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontSize: 15, fontWeight: 800, color: isCompleted ? '#166534' : '#1e293b' }}>
+                                                        {dept.department_name} Coordinated Recovery
+                                                    </div>
+                                                    {!isCompleted && (
+                                                        <div style={{ fontSize: 11, color: '#ea580c', fontWeight: 600, marginTop: 2 }}>
+                                                            Coordinated SLA: {new Date(dept.sla_deadline).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800,
+                                                color: isCompleted ? '#16a34a' : '#64748b',
+                                                background: isCompleted ? '#dcfce7' : '#f1f5f9',
+                                                padding: '4px 10px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.05em'
+                                            }}>
+                                                {isCompleted ? 'Completed' : 'Coordinated'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Neighboring Issues */}
+                        <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)' }}>
+                            <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, color: '#1e3a8a' }}>
+                                <MapPin size={18} style={{ color: '#2563eb' }} /> Clustered Area Tickets ({data.cci.complaints.length})
+                            </h3>
+                            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+                                The following local grievances have been mapped to this recovery event. They are scheduled for repair in a single deployment to prevent duplicate field visits.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+                                {data.cci.complaints.map((comp, idx) => {
+                                    const isThisTicket = comp.ticket_number === complaint.ticket_number;
+                                    return (
+                                        <div key={idx} style={{
+                                            background: isThisTicket ? '#eff6ff' : '#f8fafc',
+                                            border: `1px solid ${isThisTicket ? '#bfdbfe' : '#e2e8f0'}`,
+                                            borderRadius: 14, padding: '12px 16px',
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                        }}>
+                                            <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                    <span style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>{comp.ticket_number}</span>
+                                                    {isThisTicket && (
+                                                        <span style={{ fontSize: 9, fontWeight: 800, color: '#2563eb', background: '#dbeafe', padding: '1px 6px', borderRadius: 4 }}>
+                                                            Your Ticket
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                                    {comp.subject || comp.category} ({comp.department})
+                                                </div>
+                                            </div>
+                                            <span style={{
+                                                fontSize: 10, fontWeight: 800,
+                                                color: comp.status === 'resolved' || comp.status === 'closed' ? '#16a34a' : '#d97706',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                {comp.status}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        {/* Status Card */}
+                        <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', marginBottom: 20, border: `2px solid ${statusCfg.bg}` }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+                                <div>
+                                    <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 6 }}>Current Status</div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <div style={{ background: statusCfg.bg, color: statusCfg.color, borderRadius: 10, padding: 8 }}>{statusCfg.icon}</div>
+                                        <span style={{ fontSize: 26, fontWeight: 900, color: statusCfg.color }}>{statusCfg.label}</span>
+                                    </div>
+                                </div>
+                                <div style={{ background: statusCfg.bg, borderRadius: 16, padding: '6px 14px' }}>
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: statusCfg.color, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                        {complaint.priority}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Meta grid */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                {[
+                                    { icon: <Tag size={13} />, label: 'Category', value: complaint.category },
+                                    { icon: <Building2 size={13} />, label: 'Department', value: complaint.department || '—' },
+                                    ...(isService && (complaint as any).assigned_to_name ? [{ icon: <User size={13} />, label: 'Assigned Technician', value: (complaint as any).assigned_to_name }] : []),
+                                    ...(isService && (complaint as any).scheduled_at ? [{ icon: <Calendar size={13} />, label: 'Scheduled Date & Time', value: fmt((complaint as any).scheduled_at) }] : []),
+                                    { icon: <MapPin size={13} />, label: 'Ward', value: complaint.ward || '—' },
+                                    { icon: <Calendar size={13} />, label: 'Last Updated', value: fmt(complaint.updated_at) },
+                                ].map(({ icon, label, value }) => (
+                                    <div key={label} style={{ background: '#f8fafc', borderRadius: 12, padding: '10px 14px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#94a3b8', marginBottom: 4 }}>{icon}<span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase' }}>{label}</span></div>
+                                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{value}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Subject */}
+                            {complaint.subject && (
+                                <div style={{ marginTop: 14, padding: '12px 16px', background: '#f8fafc', borderRadius: 12 }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Subject</div>
+                                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{complaint.subject}</div>
+                                </div>
+                            )}
+
+                            {/* Resolution / rejection note */}
+                            {complaint.resolution_note && (
+                                <div style={{ marginTop: 14, padding: '14px 16px', background: '#f0fdf4', borderRadius: 12, borderLeft: '4px solid #16a34a' }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Resolution Note</div>
+                                    <div style={{ fontSize: 13, color: '#166534' }}>{complaint.resolution_note}</div>
+                                </div>
+                            )}
+                            {complaint.rejection_reason && (
+                                <div style={{ marginTop: 14, padding: '14px 16px', background: '#fef2f2', borderRadius: 12, borderLeft: '4px solid #dc2626' }}>
+                                    <div style={{ fontSize: 9, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 4 }}>Rejection Reason</div>
+                                    <div style={{ fontSize: 13, color: '#991b1b' }}>{complaint.rejection_reason}</div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Timeline Card */}
+                        <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', marginBottom: 20 }}>
+                            <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <Clock size={18} style={{ color: '#2563eb' }} /> {isService ? 'Service Timeline' : 'Complaint Timeline'}
+                            </h3>
+                            <div style={{ position: 'relative' }}>
+                                {/* Vertical line */}
+                                <div style={{ position: 'absolute', left: 19, top: 10, bottom: 20, width: 2, background: '#e2e8f0', borderRadius: 4 }} />
+
+                                {stageList.map((stage, idx) => {
+                                    const cfg = getStatusCfg(stage.stage);
+                                    const isDone = stage.status === 'completed';
+                                    const isCurrent = stage.status === 'current';
+                                    return (
+                                        <div key={idx} style={{ display: 'flex', gap: 16, paddingBottom: 24, position: 'relative' }}>
+                                            <div style={{
+                                                width: 40, height: 40, borderRadius: 12, flexShrink: 0, zIndex: 1,
+                                                background: isDone ? '#dcfce7' : isCurrent ? cfg.bg : '#f1f5f9',
+                                                color: isDone ? '#16a34a' : isCurrent ? cfg.color : '#cbd5e1',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                border: isCurrent ? `2px solid ${cfg.color}` : '2px solid transparent',
+                                                boxShadow: isCurrent ? `0 0 0 4px ${cfg.bg}` : 'none',
+                                                transition: 'all 0.3s',
+                                            }}>
+                                                {isDone ? <CheckCircle size={18} /> : cfg.icon}
+                                            </div>
+                                            <div style={{ flex: 1, paddingTop: 8 }}>
+                                                <div style={{ fontWeight: 800, fontSize: 14, color: isDone || isCurrent ? '#1e293b' : '#94a3b8', textTransform: 'capitalize' }}>
+                                                    {stage.stage.replace(/_/g, ' ')}
+                                                    {isCurrent && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 800, color: cfg.color, background: cfg.bg, padding: '2px 8px', borderRadius: 20 }}>CURRENT</span>}
+                                                </div>
+                                                {stage.updated_at && (
+                                                    <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, marginTop: 2 }}>{fmt(stage.updated_at)}</div>
+                                                )}
+                                                {stage.notes && (
+                                                    <div style={{ fontSize: 12, color: '#475569', marginTop: 6, padding: '8px 12px', background: '#f8fafc', borderRadius: 8 }}>{stage.notes}</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
 
                 {/* Messages */}
                 {messages.length > 0 && (

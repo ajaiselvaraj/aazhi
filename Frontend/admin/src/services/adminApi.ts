@@ -231,6 +231,50 @@ export const adminApi = {
     const json = await request('/admin/ml/diagnostics');
     return json.data;
   },
+
+  // ── CCI Cross-Complaint Cascade Intelligence ──
+  getCCIClusters: async () => {
+    const json = await request('/cci/clusters');
+    return json.data;
+  },
+
+  getCCIClusterDetails: async (id: string) => {
+    const json = await request(`/cci/clusters/${id}`);
+    return json.data;
+  },
+
+  updateCCIDepartmentStatus: async (clusterId: string, deptName: string, status: string) => {
+    const json = await request(`/cci/clusters/${clusterId}/departments/${deptName}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+    return json.data;
+  },
+
+  getCCIAnalytics: async () => {
+    const json = await request('/cci/analytics');
+    return json.data;
+  },
+
+  createCCIPlannedActivity: async (activity: any) => {
+    const json = await request('/cci/planned-activities', {
+      method: 'POST',
+      body: JSON.stringify(activity),
+    });
+    return json.data;
+  },
+
+  getCCIPlannedActivities: async () => {
+    const json = await request('/cci/planned-activities');
+    return json.data;
+  },
+
+  acknowledgeCCIAlert: async (id: string) => {
+    const json = await request(`/cci/proactive-alerts/${id}/acknowledge`, {
+      method: 'PUT',
+    });
+    return json.data;
+  },
 };
 
 export { request as apiRequest };
