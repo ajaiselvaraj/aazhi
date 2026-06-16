@@ -121,11 +121,11 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
       container: mapContainerRef.current,
       style: mapStyle,
       center: [91.7362, 26.1445], // Assam center [lng, lat]
-      zoom: 11.2,
+      zoom: isVertical ? 10.6 : 11.2,
       minZoom: 10.0,
       maxZoom: 14.5,
-      pitch: is3DMode ? 50 : 0,
-      bearing: is3DMode ? -15 : 0,
+      pitch: isVertical ? 15 : (is3DMode ? 50 : 0),
+      bearing: isVertical ? 0 : (is3DMode ? -15 : 0),
       attributionControl: false
     });
 
@@ -161,13 +161,13 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
           ],
           'fill-extrusion-height': [
             'case',
-            ['==', ['get', 'severity'], 'Critical'], is3DModeRef.current ? 450 : 0,
-            ['==', ['get', 'severity'], 'Warning'], is3DModeRef.current ? 250 : 0,
-            ['==', ['get', 'severity'], 'Info'], is3DModeRef.current ? 120 : 0,
-            is3DModeRef.current ? 20 : 0
+            ['==', ['get', 'severity'], 'Critical'], is3DModeRef.current ? (isVertical ? 30 : 450) : 0,
+            ['==', ['get', 'severity'], 'Warning'], is3DModeRef.current ? (isVertical ? 15 : 250) : 0,
+            ['==', ['get', 'severity'], 'Info'], is3DModeRef.current ? (isVertical ? 8 : 120) : 0,
+            is3DModeRef.current ? (isVertical ? 2 : 20) : 0
           ],
           'fill-extrusion-base': 0,
-          'fill-extrusion-opacity': 0.65
+          'fill-extrusion-opacity': isVertical ? 0.35 : 0.65
         }
       });
 
@@ -185,7 +185,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             '#06b6d4'
           ],
           'line-width': 4.5,
-          'line-opacity': 0.4
+          'line-opacity': isVertical ? 0.2 : 0.4
         }
       });
 
@@ -196,7 +196,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         paint: {
           'line-color': '#475569',
           'line-width': 1.5,
-          'line-opacity': 0.8
+          'line-opacity': isVertical ? 0.45 : 0.8
         }
       });
 
@@ -251,7 +251,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         source: 'ai-risks',
         paint: {
           'fill-extrusion-color': '#3b82f6', // Soothing blue
-          'fill-extrusion-height': is3DModeRef.current ? 180 : 0,
+          'fill-extrusion-height': is3DModeRef.current ? (isVertical ? 12 : 180) : 0,
           'fill-extrusion-base': 0,
           'fill-extrusion-opacity': aiRisksEnabledRef.current ? 0.35 : 0
         }
@@ -270,12 +270,16 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
 
           // Pulse Wards Opacity and border glow widths
           if (m.getLayer('ward-fills')) {
-            const baseOpacity = 0.55 + Math.sin(step * 0.4) * 0.15;
+            const baseOpacity = isVertical
+              ? (0.3 + Math.sin(step * 0.4) * 0.08)
+              : (0.55 + Math.sin(step * 0.4) * 0.15);
             m.setPaintProperty('ward-fills', 'fill-extrusion-opacity', baseOpacity);
           }
           if (m.getLayer('ward-borders-glow')) {
-            const glowOpacity = 0.3 + Math.sin(step * 0.5) * 0.2;
-            m.setPaintProperty('ward-borders-glow', 'line-opacity', Math.max(0.1, glowOpacity));
+            const glowOpacity = isVertical
+              ? (0.15 + Math.sin(step * 0.5) * 0.08)
+              : (0.3 + Math.sin(step * 0.5) * 0.2);
+            m.setPaintProperty('ward-borders-glow', 'line-opacity', Math.max(0.05, glowOpacity));
           }
         } catch (e) {}
         animationFrameRef.current = requestAnimationFrame(animateDash);
@@ -365,7 +369,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
     if (!map || !mapReady) return;
 
     if (is3DMode) {
-      map.easeTo({ pitch: 50, bearing: -15, duration: 800 });
+      map.easeTo({ pitch: isVertical ? 15 : 50, bearing: isVertical ? 0 : -15, zoom: isVertical ? 10.6 : 11.2, duration: 800 });
       setup3DBuildings(map);
       setup3DTerrain(map);
       setupAtmosphere(map, mapStyle.includes('dark'));
@@ -374,15 +378,15 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
       try {
         map.setPaintProperty('ward-fills', 'fill-extrusion-height', [
           'case',
-          ['==', ['get', 'severity'], 'Critical'], 450,
-          ['==', ['get', 'severity'], 'Warning'], 250,
-          ['==', ['get', 'severity'], 'Info'], 120,
-          20
+          ['==', ['get', 'severity'], 'Critical'], isVertical ? 30 : 450,
+          ['==', ['get', 'severity'], 'Warning'], isVertical ? 15 : 250,
+          ['==', ['get', 'severity'], 'Info'], isVertical ? 8 : 120,
+          isVertical ? 2 : 20
         ]);
-        map.setPaintProperty('ai-risks-layer', 'fill-extrusion-height', 180);
+        map.setPaintProperty('ai-risks-layer', 'fill-extrusion-height', isVertical ? 12 : 180);
       } catch (e) {}
     } else {
-      map.easeTo({ pitch: 0, bearing: 0, duration: 800 });
+      map.easeTo({ pitch: 0, bearing: 0, zoom: isVertical ? 10.6 : 11.2, duration: 800 });
       remove3DBuildings(map);
       remove3DTerrain(map);
       removeAtmosphere(map);
@@ -393,7 +397,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         map.setPaintProperty('ai-risks-layer', 'fill-extrusion-height', 0);
       } catch (e) {}
     }
-  }, [is3DMode, mapReady]);
+  }, [is3DMode, mapReady, isVertical]);
 
   // 4. Toggle Overlay layers visibility
   useEffect(() => {
@@ -446,11 +450,16 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         return;
       }
 
+      // Determine sizes based on orientation
+      const markerSize = isVertical ? 28 : 24;
+      const innerBulletSize = isVertical ? 18 : 14;
+      const innerTextSize = isVertical ? '10px' : '8px';
+
       // Create Custom HTML element for marker
       const el = document.createElement('div');
       el.className = 'custom-neon-incident-marker';
-      el.style.width = '24px';
-      el.style.height = '24px';
+      el.style.width = `${markerSize}px`;
+      el.style.height = `${markerSize}px`;
       el.style.cursor = 'pointer';
 
       const color =
@@ -460,8 +469,28 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
           ? '#f59e0b' // Amber
           : '#3b82f6'; // Professional Blue
 
-      el.innerHTML = `
-        <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+      const isCritical = incident.severity === 'Critical' || incident.status === 'Critical';
+      const pulsingRings = isCritical
+        ? `
+          <span style="
+            position: absolute; 
+            inset: -6px; 
+            border-radius: 50%; 
+            background-color: ${color}; 
+            opacity: 0.4; 
+            animation: pulseGlow 1.8s infinite ease-out;
+          "></span>
+          <span style="
+            position: absolute; 
+            inset: -6px; 
+            border-radius: 50%; 
+            background-color: ${color}; 
+            opacity: 0.25; 
+            animation: pulseGlow 1.8s infinite ease-out;
+            animation-delay: 0.9s;
+          "></span>
+        `
+        : `
           <span style="
             position: absolute; 
             inset: -4px; 
@@ -470,29 +499,26 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             opacity: 0.3; 
             animation: pulseGlow 2s infinite ease-out;
           "></span>
-          <span style="
-            position: relative;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: ${color};
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            z-index: 10;
-          "></span>
+        `;
+
+      el.innerHTML = `
+        <div style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+          ${pulsingRings}
           <div style="
-            position: absolute;
-            inset: 3px;
+            position: relative;
+            width: ${innerBulletSize}px;
+            height: ${innerBulletSize}px;
             border-radius: 50%;
             background-color: ${color};
             border: 2px solid #ffffff;
-            box-shadow: 0 0 10px ${color};
+            box-shadow: 0 0 8px ${color};
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 8px;
+            font-size: ${innerTextSize};
             font-weight: 950;
+            z-index: 10;
           ">${incident.type.slice(0, 1)}</div>
         </div>
       `;
@@ -558,7 +584,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
   const activeCount = mockIncidents.filter((i) => i.status !== 'Resolved').length;
 
   return (
-    <div className="flex flex-col gap-5 w-full h-[500px] lg:h-[600px] xl:h-[780px] relative font-sans text-white select-none">
+    <div className={`flex flex-col gap-5 w-full ${isVertical ? 'h-[38vh] min-h-[320px] max-h-[420px]' : 'h-[500px] lg:h-[600px] xl:h-[780px]'} relative font-sans text-white select-none`}>
       <style>{`
         @keyframes pulseGlow {
           0% { transform: scale(0.6); opacity: 1; }
@@ -618,11 +644,11 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         .mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: rgba(15, 23, 42, 0.88) !important; }
       `}</style>
 
-      {/* Top Metrics Row */}
-      <LiveMetricsOverlay activeCount={activeCount} />
+      {/* Top Metrics Row (Hidden in vertical/mobile view to prevent duplication with DashboardHome) */}
+      {!isVertical && <LiveMetricsOverlay activeCount={activeCount} />}
 
       {/* Main Panel Content Area */}
-      <div className="flex-1 flex gap-5 w-full h-full min-h-0 relative overflow-hidden">
+      <div className={`flex-1 flex ${isVertical ? 'flex-col' : 'flex-row'} gap-5 w-full h-full min-h-0 relative overflow-hidden`}>
         {/* Map Column */}
         <div className="flex-1 h-full bg-slate-950/80 rounded-[2.5rem] border border-white/5 relative overflow-hidden shadow-2xl">
           {/* Map canvas or Fallback */}
@@ -649,7 +675,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
           {aiRisksEnabled && <div className="radar-scan-line" />}
 
           {/* Floating controls panel */}
-          <div className="absolute top-4 left-4 z-10">
+          <div className={`absolute top-4 left-4 ${isVertical ? 'bottom-4' : 'bottom-20'} z-10 flex flex-col pointer-events-none`}>
             <SmartCityControls
               is3DMode={is3DMode}
               setIs3DMode={setIs3DMode}
@@ -664,29 +690,31 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             />
           </div>
 
-          {/* Top Right Floating HUD Widgets */}
-          <div className="absolute top-4 right-16 z-10 flex gap-2.5 pointer-events-none">
-            {/* Weather mini-widget */}
-            <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl px-3.5 py-2 text-slate-300 shadow-xl flex items-center gap-2.5 border-l-cyan-500/50 border-l-[3px]">
-              <CloudSun size={13} className="text-cyan-400 animate-pulse" />
-              <div className="text-left leading-none">
-                <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">assam weather</span>
-                <span className="font-extrabold text-xs text-white">31°C • Storm Alert</span>
+          {/* Top Right Floating HUD Widgets (Hidden on vertical/mobile layouts to avoid UI clutter) */}
+          {!isVertical && (
+            <div className="absolute top-4 right-16 z-10 flex flex-row gap-2.5 pointer-events-none">
+              {/* Weather mini-widget */}
+              <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl px-3.5 py-2 text-slate-300 shadow-xl flex items-center gap-2.5 border-l-cyan-500/50 border-l-[3px]">
+                <CloudSun size={13} className="text-cyan-400 animate-pulse" />
+                <div className="text-left leading-none">
+                  <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">assam weather</span>
+                  <span className="font-extrabold text-xs text-white">31°C • Storm Alert</span>
+                </div>
               </div>
-            </div>
 
-            {/* IoT Telemetry status */}
-            <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl px-3.5 py-2 text-slate-300 shadow-xl flex items-center gap-2.5 border-l-emerald-500/50 border-l-[3px]">
-              <div className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </div>
-              <div className="text-left leading-none">
-                <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">IoT gateway mesh</span>
-                <span className="font-extrabold text-xs text-white">99.8% Online</span>
+              {/* IoT Telemetry status */}
+              <div className="bg-slate-950/80 backdrop-blur-xl border border-white/10 rounded-2xl px-3.5 py-2 text-slate-300 shadow-xl flex items-center gap-2.5 border-l-emerald-500/50 border-l-[3px]">
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+                <div className="text-left leading-none">
+                  <span className="text-[7.5px] uppercase text-slate-500 font-extrabold block tracking-wider">IoT gateway mesh</span>
+                  <span className="font-extrabold text-xs text-white">99.8% Online</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Floating Sidebar Toggle Button */}
           <button
@@ -697,8 +725,8 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             <Sidebar size={16} />
           </button>
 
-          {/* Bottom Left AI Predictor Status */}
-          {aiRisksEnabled && (
+          {/* Bottom Left AI Predictor Status (Hidden on vertical/mobile layouts) */}
+          {aiRisksEnabled && !isVertical && (
             <div className="absolute bottom-4 left-4 z-10 bg-slate-950/80 backdrop-blur-xl border border-purple-500/20 rounded-2xl px-3 py-2 text-purple-300 shadow-lg flex items-center gap-2.5 border-l-purple-500/50 border-l-[3px]">
               <ShieldCheck size={13} className="text-purple-400" />
               <div className="text-left leading-none">
@@ -737,30 +765,25 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             )}
           </AnimatePresence>
         ) : (
-          /* Tablet/Kiosk Mode: Floating slide-over panel on top of map */
+          /* Vertical Mode: Floating bottom slide-up overlay panel */
           <AnimatePresence>
             {isFeedOpen && (
               <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                className="absolute top-0 right-0 h-full w-[320px] max-w-[90%] z-20 shadow-2xl p-4 bg-slate-950/80 backdrop-blur-xl border-l border-white/10 rounded-l-[2.5rem]"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed inset-x-0 bottom-0 h-[85%] bg-slate-950/95 backdrop-blur-2xl rounded-t-[2.5rem] border-t border-white/10 z-[100] shadow-2xl flex flex-col overflow-hidden"
               >
-                <div className="w-full h-full relative">
-                  <button
-                    onClick={() => setIsFeedOpen(false)}
-                    className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-slate-900/80 border border-white/5 text-slate-400 hover:text-white flex items-center justify-center transition"
-                  >
-                    ×
-                  </button>
-                  <div className="h-full pt-10">
-                    <LiveIncidentFeed
-                      incidents={mockIncidents}
-                      onIncidentClick={handleIncidentClick}
-                      selectedIncidentId={selectedIncidentId}
-                    />
-                  </div>
+                {/* Drag handle decoration */}
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
+                <div className="flex-1 min-h-0">
+                  <LiveIncidentFeed
+                    incidents={mockIncidents}
+                    onIncidentClick={handleIncidentClick}
+                    selectedIncidentId={selectedIncidentId}
+                    onClose={() => setIsFeedOpen(false)}
+                  />
                 </div>
               </motion.div>
             )}

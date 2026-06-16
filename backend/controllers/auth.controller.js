@@ -8,6 +8,7 @@ import { blacklistToken } from "../middleware/tokenBlacklist.js";
 import { success, fail, error as serverError } from "../utils/response.js";
 import logger from "../utils/logger.js";
 import { pool } from "../config/db.js";
+import bcrypt from "bcrypt";
 
 const setTokenCookies = (res, accessToken, refreshToken) => {
     const isProd = process.env.NODE_ENV === "production";
@@ -227,40 +228,64 @@ export const adminLogin = async (req, res, next) => {
             return fail(res, "Admin ID, password, and department are required.", 400);
         }
 
-        // Check if ANY admin exists
-        let result = await pool.query("SELECT * FROM citizens WHERE role = 'admin' LIMIT 1");
-        
-        if (result.rows.length === 0) {
-            logger.info("[Auth Controller] No admin found. Ensuring dummy admin exists...");
-            // Check if our dummy mobile already exists as a citizen
-            const checkMobile = await pool.query("SELECT * FROM citizens WHERE mobile = '0000000000'");
-            
-            if (checkMobile.rows.length > 0) {
-                // Promote existing citizen to admin
-                result = await pool.query(`
-                    UPDATE citizens 
-                    SET role = 'admin', name = 'Admin Officer' 
-                    WHERE mobile = '0000000000' 
-                    RETURNING *
-                `);
-                logger.info(`[Auth Controller] Promoted existing user 0000000000 to admin.`);
-            } else {
-                // Insert new admin
-                result = await pool.query(`
-                    INSERT INTO citizens (mobile, name, role) 
-                    VALUES ('0000000000', 'Admin Officer', 'admin') 
-                    RETURNING *
-                `);
-                logger.info(`[Auth Controller] Created new dummy admin.`);
+        // Check if Integrity Office login is requested
+        let admin;
+        if (department === "Integrity Office") {
+            const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", [adminId]);
+            if (officerRes.rows.length === 0) {
+                logger.warn(`[Auth Controller] Integrity login attempt failed: Officer account ${adminId} not found.`);
+                return fail(res, "Invalid Admin ID, password, or department.", 401);
             }
+            
+            const officer = officerRes.rows[0];
+            const isMatch = bcrypt.compareSync(password, officer.password_hash);
+            if (!isMatch) {
+                logger.warn(`[Auth Controller] Integrity login attempt failed: Password mismatch for ${adminId}.`);
+                return fail(res, "Invalid Admin ID, password, or department.", 401);
+            }
+            
+            admin = {
+                id: officer.id,
+                mobile: "1111111111", // Compatibility mapping
+                name: officer.username,
+                role: officer.role,
+                department: officer.department
+            };
+        } else {
+            // Check if ANY admin exists
+            let result = await pool.query("SELECT * FROM citizens WHERE role = 'admin' LIMIT 1");
+            
+            if (result.rows.length === 0) {
+                logger.info("[Auth Controller] No admin found. Ensuring dummy admin exists...");
+                // Check if our dummy mobile already exists as a citizen
+                const checkMobile = await pool.query("SELECT * FROM citizens WHERE mobile = '0000000000'");
+                
+                if (checkMobile.rows.length > 0) {
+                    // Promote existing citizen to admin
+                    result = await pool.query(`
+                        UPDATE citizens 
+                        SET role = 'admin', name = 'Admin Officer' 
+                        WHERE mobile = '0000000000' 
+                        RETURNING *
+                    `);
+                    logger.info(`[Auth Controller] Promoted existing user 0000000000 to admin.`);
+                } else {
+                    // Insert new admin
+                    result = await pool.query(`
+                        INSERT INTO citizens (mobile, name, role) 
+                        VALUES ('0000000000', 'Admin Officer', 'admin') 
+                        RETURNING *
+                    `);
+                    logger.info(`[Auth Controller] Created new dummy admin.`);
+                }
+            }
+            admin = result.rows[0];
         }
-
-        const admin = result.rows[0];
         admin.department = department;
 
         const { accessToken, refreshToken } = generateTokens(admin);
 
-        logger.info(`[Auth Controller] Admin login success for ${adminId} in ${department}`);
+        logger.info(`[Auth Controller] Admin login success for ${adminId} in ${department} (role: ${admin.role})`);
 
         setTokenCookies(res, accessToken, refreshToken);
 
@@ -268,9 +293,9 @@ export const adminLogin = async (req, res, next) => {
             admin: {
                 id: admin.id,
                 adminId,
-                name: admin.name || "Admin Officer",
+                name: admin.name || (department === "Integrity Office" ? "Integrity Officer" : "Admin Officer"),
                 department,
-                role: "admin"
+                role: admin.role
             },
             tokens: {
                 accessToken,
@@ -304,13 +329,29 @@ export const refreshTokenController = async (req, res, next) => {
         const decoded = verifyRefreshToken(refreshToken);
         
         // Ensure user still exists
-        const result = await pool.query("SELECT * FROM citizens WHERE id = $1", [decoded.id]);
-        if (result.rows.length === 0) {
-            return fail(res, "User not found.", 404);
+        let user;
+        if (decoded.role === "integrity_officer") {
+            const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE id = $1", [decoded.id]);
+            if (officerRes.rows.length === 0) {
+                return fail(res, "Officer account not found.", 404);
+            }
+            const officer = officerRes.rows[0];
+            user = {
+                id: officer.id,
+                mobile: "1111111111",
+                name: officer.username,
+                role: officer.role,
+                department: officer.department
+            };
+        } else {
+            const result = await pool.query("SELECT * FROM citizens WHERE id = $1", [decoded.id]);
+            if (result.rows.length === 0) {
+                return fail(res, "User not found.", 404);
+            }
+            user = result.rows[0];
         }
 
-        const user = result.rows[0];
-        // Retain department if it exists in decoded token for admin
+        // Retain department if it exists in decoded token for admin/officer
         if (decoded.department) {
             user.department = decoded.department;
         }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Wifi, WifiOff, Battery, BatteryCharging, Clock, Search } from 'lucide-react';
+import { Home, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Wifi, WifiOff, Battery, BatteryCharging, Clock, Search, ShieldCheck } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
 import cdacLogo from '../assets/cdac_logo.png';
 
@@ -216,6 +216,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'tracker', label: t('trackApp'), icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
+        { id: 'integrity', label: 'Civic Integrity', icon: ShieldCheck },
     ];
 
     return (

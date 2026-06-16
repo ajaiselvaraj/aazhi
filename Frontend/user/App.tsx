@@ -13,6 +13,7 @@ import { useOrientation } from './contexts/OrientationContext';
 const KioskUI = lazy(() => import('./components/KioskUI'));
 const Documentation = lazy(() => import('./components/Documentation'));
 const Admin = lazy(() => import('./components/Admin'));
+const WhistleblowerPortal = lazy(() => import('./components/WhistleblowerPortal'));
 
 import { authService } from './services/authService';
 import { Persistence } from './utils/persistence';
@@ -693,9 +694,15 @@ const App: React.FC = () => {
         </button>
       </div>
 
-      <button onClick={handleBackToLanding} className="mt-10 text-slate-400 font-bold uppercase tracking-widest hover:text-red-500 transition z-10 text-xs flex items-center gap-2">
+      <button onClick={handleBackToLanding} className="mt-10 mb-6 text-slate-400 font-bold uppercase tracking-widest hover:text-red-500 transition z-10 text-xs flex items-center gap-2">
         <ArrowLeft size={16} /> {t('sel_cancel')}
       </button>
+
+      <footer className="w-full py-4 mt-auto z-10 text-center opacity-70 flex flex-col items-center gap-1 text-slate-500 text-[10px] font-medium tracking-wide border-t border-slate-200/50">
+        <div className="flex items-center gap-4 uppercase tracking-[0.2em]">
+          <button onClick={() => setView(ViewState.DOCUMENTATION)} className="hover:text-blue-600 transition font-bold">{t('documentation')}</button>
+        </div>
+      </footer>
     </div>
   );
 
@@ -944,6 +951,15 @@ const App: React.FC = () => {
               <div className="min-h-screen bg-slate-100 p-8 overflow-auto">
                 <Documentation onBack={() => setView(ViewState.LANDING)} />
               </div>
+            )}
+            {view === ViewState.WHISTLEBLOWER && (
+              <WhistleblowerPortal 
+                onBack={() => {
+                  const user = localStorage.getItem('aazhi_user');
+                  setView(user ? ViewState.DASHBOARD : ViewState.LANDING);
+                }} 
+                language={language} 
+              />
             )}
             {view === ViewState.ADMIN && (
               <Admin

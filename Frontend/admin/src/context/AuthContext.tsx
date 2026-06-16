@@ -6,6 +6,7 @@ interface AuthUser {
   adminId: string
   department: string
   name: string
+  role?: string
 }
 
 interface AuthContextType {

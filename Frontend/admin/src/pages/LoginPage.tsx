@@ -145,7 +145,8 @@ export default function LoginPage() {
       login({ 
         adminId: json.admin.adminId, 
         department: json.admin.department, 
-        name: json.admin.name 
+        name: json.admin.name,
+        role: json.admin.role
       })
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.')
@@ -454,6 +455,7 @@ export default function LoginPage() {
                 <option value="Water Supply Department">{t('login.dept_water') || 'Water Supply Department'}</option>
                 <option value="Gas Distribution">{t('login.dept_gas') || 'Gas Distribution'}</option>
                 <option value="Municipal Services">{t('login.dept_municipal') || 'Municipal Services'}</option>
+                <option value="Integrity Office">Integrity Office (Integrity Officer)</option>
                 <option value="ALL">{t('login.dept_all') || 'All Departments (Super Admin)'}</option>
               </select>
             </div>

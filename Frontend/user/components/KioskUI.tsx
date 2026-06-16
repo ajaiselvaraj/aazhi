@@ -474,6 +474,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     <KioskShell
       activeTab={activeTab}
       onNavigate={(id) => {
+        if (id === 'integrity') {
+          onNavigate(ViewState.WHISTLEBLOWER);
+          return;
+        }
         setActiveTab(id as any);
         if (id === 'billing') setBillingStep('select');
       }}

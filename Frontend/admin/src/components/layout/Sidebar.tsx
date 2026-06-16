@@ -6,6 +6,7 @@ import {
   Layers, Heart, Megaphone
 } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
+import { useAuth } from '../../context/AuthContext'
 
 const navGroups = [
   {
@@ -71,6 +72,20 @@ interface SidebarProps {
 
 export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
   const { t } = useLanguage()
+  const { user } = useAuth()
+
+  const isIntegrity = user?.role === 'integrity_officer'
+
+  const groupsToRender = isIntegrity ? [
+    {
+      label_key: 'nav.grp_integrity',
+      label_default: 'Civic Integrity Board',
+      items: [
+        { id: 'integrity-dashboard', icon: ShieldAlert, trans_key: 'nav.integrity_dashboard', default_label: 'Integrity Dashboard' }
+      ]
+    }
+  ] : navGroups;
+
   return (
     <aside className="sidebar">
       {/* Logo */}
@@ -93,7 +108,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {navGroups.map(group => (
+        {groupsToRender.map(group => (
           <div key={group.label_key}>
             <div className="nav-section-label">{t(group.label_key) || group.label_default}</div>
             {group.items.map(item => (
@@ -112,14 +127,16 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
 
       {/* Footer */}
       <div className="sidebar-footer">
-        <button 
-          className={`nav-item${active === 'settings' ? ' active' : ''}`} 
-          onClick={() => onNav('settings')}
-          style={{ color: active === 'settings' ? '#fff' : 'rgba(255,255,255,.4)', marginBottom: '.25rem' }}
-        >
-          <Settings size={16} />
-          <span>{t('nav.settings') || 'Settings'}</span>
-        </button>
+        {!isIntegrity && (
+          <button 
+            className={`nav-item${active === 'settings' ? ' active' : ''}`} 
+            onClick={() => onNav('settings')}
+            style={{ color: active === 'settings' ? '#fff' : 'rgba(255,255,255,.4)', marginBottom: '.25rem' }}
+          >
+            <Settings size={16} />
+            <span>{t('nav.settings') || 'Settings'}</span>
+          </button>
+        )}
         <button className="nav-item" onClick={onLogout} style={{ color: 'rgba(255,77,79,.7)' }}>
           <LogOut size={16} />
           <span>{t('nav.logout') || 'Logout'}</span>

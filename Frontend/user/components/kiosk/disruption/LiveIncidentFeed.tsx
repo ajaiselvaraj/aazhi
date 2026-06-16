@@ -7,12 +7,14 @@ interface Props {
   incidents: Incident[];
   onIncidentClick: (incident: Incident) => void;
   selectedIncidentId: string | null;
+  onClose?: () => void;
 }
 
 const LiveIncidentFeed: React.FC<Props> = ({
   incidents,
   onIncidentClick,
-  selectedIncidentId
+  selectedIncidentId,
+  onClose
 }) => {
   const getSeverityColor = (severity: string) => {
     if (severity === 'Critical') return '#ef4444'; // Red
@@ -39,9 +41,19 @@ const LiveIncidentFeed: React.FC<Props> = ({
           <h4 className="text-sm font-black text-white tracking-wide uppercase">Operations log</h4>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Live IoT Diagnostic telemetry</p>
         </div>
-        <span className="flex items-center gap-1.5 bg-blue-500/15 text-blue-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border border-blue-500/30">
-          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" /> connected
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 bg-blue-500/15 text-blue-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border border-blue-500/30">
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" /> connected
+          </span>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white flex items-center justify-center transition font-bold text-lg leading-none pb-0.5"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Timeline Feed Container */}

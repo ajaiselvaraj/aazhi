@@ -4,6 +4,13 @@
 
 import { pool } from "../config/db.js";
 import logger from "./logger.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import bcrypt from "bcrypt";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export const initializeAuthTables = async () => {
     try {
@@ -131,6 +138,43 @@ export const initializeAuthTables = async () => {
         await pool.query("UPDATE service_requests SET request_category = 'civic' WHERE request_category IS NULL OR request_category NOT IN ('power', 'gas', 'municipal')");
         
         logger.info("✅ Database request_category migration complete.");
+
+        // 🚀 ANONYMOUS INTEGRITY REPORTS MIGRATIONS V2 (Government-Grade Security Standard)
+        logger.info("📡 Applying Anonymous Integrity Reports V2 migrations (Government-Grade)...");
+        
+        try {
+            const auditSqlPath = path.resolve(__dirname, "..", "models", "audit_chain_schema.sql");
+            if (fs.existsSync(auditSqlPath)) {
+                const migrationSql = fs.readFileSync(auditSqlPath, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ audit_chain_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${auditSqlPath}`);
+            }
+
+            const sqlPath = path.resolve(__dirname, "..", "models", "integrity_v2_schema.sql");
+            if (fs.existsSync(sqlPath)) {
+                const migrationSql = fs.readFileSync(sqlPath, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ integrity_v2_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${sqlPath}`);
+            }
+
+            // Seed default integrity officer in officer_accounts
+            const checkOfficer = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", ["integrity_admin"]);
+            if (checkOfficer.rows.length === 0) {
+                const passHash = bcrypt.hashSync("integrity_pass", 10);
+                await pool.query(`
+                    INSERT INTO officer_accounts (username, password_hash, department, role)
+                    VALUES ($1, $2, $3, $4)
+                `, ["integrity_admin", passHash, "Integrity Office", "integrity_officer"]);
+                logger.info("👤 Seeded default integrity officer (username: integrity_admin).");
+            }
+        } catch (e) {
+            logger.error(`❌ Failed to run Integrity V2 migrations / seeding: ${e.message}`);
+            throw e;
+        }
 
         logger.info("✅ DB Optimization complete: Performance indexes verified/created.");
     } catch (err) {

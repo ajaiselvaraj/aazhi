@@ -18,6 +18,7 @@ import SentimentPulsePanel from '../components/panels/SentimentPulsePanel'
 import CivicAlertPanel from '../components/panels/CivicAlertPanel' // ⭐ ADD-ON: Civic Alert Management
 import AICommandCenter from './AICommandCenter'
 import AIModelMetrics from './AIModelMetrics'
+import IntegrityDashboardPanel from '../components/panels/IntegrityDashboardPanel' // ⭐ ADD-ON: Integrity Queue
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -39,20 +40,25 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   'civic-alerts':   CivicAlertPanel,  // ⭐ ADD-ON: Admin Civic Alert Management
   'ai-command-center': AICommandCenter,
   'ai-model-metrics': AIModelMetrics,
+  'integrity-dashboard': IntegrityDashboardPanel
 }
 
 export default function DashboardPage() {
-  const [activeNav, setActiveNav] = useState('overview')
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+  const isIntegrity = user?.role === 'integrity_officer'
+  const [activeNav, setActiveNav] = useState(isIntegrity ? 'integrity-dashboard' : 'overview')
 
-  const Panel = PANEL_MAP[activeNav] || DashboardOverview
+  // Enforce strict role-based panel rendering
+  const Panel = isIntegrity 
+    ? IntegrityDashboardPanel 
+    : (activeNav === 'integrity-dashboard' ? DashboardOverview : (PANEL_MAP[activeNav] || DashboardOverview))
 
   return (
     <div className="app-shell">
-      <Sidebar active={activeNav} onNav={setActiveNav} onLogout={logout} />
+      <Sidebar active={isIntegrity ? 'integrity-dashboard' : activeNav} onNav={setActiveNav} onLogout={logout} />
       <div className="main-area">
         <TopBar />
-        <main className="page-content" key={activeNav}>
+        <main className="page-content" key={isIntegrity ? 'integrity-dashboard' : activeNav}>
           <Panel />
         </main>
       </div>
