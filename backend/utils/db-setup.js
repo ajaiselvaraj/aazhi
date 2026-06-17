@@ -220,6 +220,52 @@ export const initializeAuthTables = async () => {
             } else {
                 logger.warn(`⚠️ Migration file not found at ${subSqlPath}`);
             }
+
+            // 🚀 DIRECT NOTIFICATION SYSTEM MIGRATIONS
+            logger.info("📡 Applying direct notification columns to complaints table...");
+            await pool.query(`
+                ALTER TABLE complaints 
+                ADD COLUMN IF NOT EXISTS notification_enabled BOOLEAN DEFAULT FALSE,
+                ADD COLUMN IF NOT EXISTS notification_channel VARCHAR(20) CHECK (notification_channel IN ('SMS', 'WHATSAPP', 'BOTH')),
+                ADD COLUMN IF NOT EXISTS notification_phone VARCHAR(20),
+                ADD COLUMN IF NOT EXISTS last_notification_sent_at TIMESTAMP;
+            `).catch(e => {
+                logger.warn(`Migration complaints direct notification columns failed or already applied: ${e.message}`);
+            });
+
+            // Apply updated status check constraint on complaints table to support additional statuses
+            await pool.query(`
+                ALTER TABLE complaints DROP CONSTRAINT IF EXISTS complaints_status_check;
+                ALTER TABLE complaints ADD CONSTRAINT complaints_status_check 
+                CHECK (status IN ('pending', 'submitted', 'active', 'acknowledged', 'assigned', 'under_review', 'field_team_assigned', 'in_progress', 'resolved', 'closed', 'reopened', 'rejected', 'open'));
+            `).catch(e => {
+                logger.warn(`Failed to update complaints_status_check constraint: ${e.message}`);
+            });
+
+            logger.info("📡 Creating notification_logs table if not exists...");
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS notification_logs (
+                    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                    complaint_id UUID NOT NULL REFERENCES complaints(id) ON DELETE CASCADE,
+                    phone_number VARCHAR(20) NOT NULL,
+                    channel VARCHAR(20) NOT NULL CHECK (channel IN ('SMS', 'WHATSAPP')),
+                    status_sent VARCHAR(50) NOT NULL,
+                    message_body TEXT NOT NULL,
+                    delivery_status VARCHAR(20) NOT NULL CHECK (delivery_status IN ('queued', 'sent', 'failed')),
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    retry_count INTEGER DEFAULT 0,
+                    error_message TEXT
+                );
+            `).catch(e => {
+                logger.warn(`Creating notification_logs table failed: ${e.message}`);
+            });
+            
+            await pool.query(`
+                CREATE INDEX IF NOT EXISTS idx_notif_logs_complaint_id ON notification_logs(complaint_id);
+                CREATE INDEX IF NOT EXISTS idx_notif_logs_created_at ON notification_logs(created_at DESC);
+            `).catch(e => {
+                logger.warn(`Creating indexes on notification_logs failed: ${e.message}`);
+            });
         } catch (e) {
             logger.error(`❌ Failed to run Integrity V2/V3/V4/CCI/Subscription migrations / seeding: ${e.message}`);
             throw e;

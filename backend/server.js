@@ -26,6 +26,7 @@ import cron from "node-cron";
 import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
 import { sweepQueuedNotifications } from "./services/subscription.service.js";
+import { retryFailedNotification } from "./services/notification.service.js";
 
 
 
@@ -67,6 +68,15 @@ async function startServer() {
             await sweepQueuedNotifications();
         } catch (err) {
             logger.error(`[CRON] Subscription sweep failed: ${err.message}`);
+        }
+    });
+
+    // Sweep and retry failed notifications every 5 minutes
+    cron.schedule("*/5 * * * *", async () => {
+        try {
+            await retryFailedNotification();
+        } catch (err) {
+            logger.error(`[CRON] Notification retry sweep failed: ${err.message}`);
         }
     });
 

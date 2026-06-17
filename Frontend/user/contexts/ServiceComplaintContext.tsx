@@ -51,6 +51,9 @@ export interface Complaint {
     stages: TrackingStage[];
     createdAt: string;
     request_category?: string;
+    notification_enabled?: boolean;
+    notification_channel?: 'SMS' | 'WHATSAPP' | 'BOTH';
+    notification_phone?: string;
 }
 
 export interface AreaAlert {
@@ -432,7 +435,10 @@ export const ServiceComplaintProvider: React.FC<{ children: ReactNode }> = ({ ch
                 priority: priority.toLowerCase(),
                 name: data.name,
                 phone: data.phone,
-                request_category: data.request_category
+                request_category: data.request_category,
+                notification_enabled: data.notification_enabled,
+                notification_channel: data.notification_channel,
+                notification_phone: data.notification_phone
             });
             finalId = (apiRes as any).ticket_number || apiRes.id;
             // ✅ Use the server-returned created_at as the definitive timestamp

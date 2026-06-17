@@ -11,6 +11,7 @@ import axios from "axios";
 import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
 import { checkAndClusterComplaint, syncClusterCompletionStatus } from "../services/cascadeDetection.service.js"; // ⭐ ADD-ON: CCI Integration
 import { triggerStatusNotifications } from "../services/subscription.service.js";
+import { sendStatusUpdate } from "../services/notification.service.js";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
@@ -67,7 +68,7 @@ const WARD_COORDS = {
 export const registerComplaint = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude, notification_enabled, notification_channel, notification_phone } = req.body;
 
         // Validation for mandatory fields
         if (!subject || subject.trim() === '') {
@@ -163,10 +164,10 @@ export const registerComplaint = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13, $14)
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category, notification_enabled, notification_channel, notification_phone)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13, $14, $15, $16, $17)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, finalLat, finalLng, requestCategory]
+            [ticketNumber, citizenId, citizenName, citizenMobile, category, issue_category || null, classifiedDepartment, subject, description, ward || null, classifiedPriority, finalLat, finalLng, requestCategory, notification_enabled || false, notification_channel || null, notification_phone || null]
         );
 
         // ─── Dynamic stages from workflow_definitions (Single Source of Truth) ───
@@ -216,6 +217,14 @@ export const registerComplaint = async (req, res, next) => {
             }
         } catch (cciErr) {
             logger.error(`⚠️ [CCI Integration] Failed to run cascade matching: ${cciErr.message}`);
+        }
+
+        if (result.rows[0].notification_enabled) {
+            try {
+                await sendStatusUpdate(result.rows[0].id, "registered");
+            } catch (notifErr) {
+                logger.error(`[Notification Service] Failed to trigger registration notification: ${notifErr.message}`);
+            }
         }
 
         return success(res, "Complaint registered successfully", {
@@ -480,6 +489,13 @@ export const updateComplaintStatus = async (req, res, next) => {
             logger.warn(`⚠️ [Subscription Notification] Failed to trigger notifications: ${subErr.message}`);
         }
 
+        // 🚀 NEW: Direct Status Subscription Notifications
+        try {
+            await sendStatusUpdate(actualId, finalStatus);
+        } catch (notifErr) {
+            logger.error(`⚠️ [Notification Service] Failed to trigger status update: ${notifErr.message}`);
+        }
+
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {
         next(err);
@@ -604,7 +620,7 @@ export const createComplaintDebug = async (req, res, next) => {
             citizenId = '9eb3f201-174d-48e9-a061-b88093fe58dc'; // Demo Citizen UUID
         }
 
-        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude } = req.body;
+        let { category, issue_category, department, subject, description, ward, priority, name, phone, latitude, longitude, notification_enabled, notification_channel, notification_phone } = req.body;
         
         // Fallback for subject if missing in debug route
         if (!subject || subject.trim() === '') {
@@ -636,10 +652,10 @@ export const createComplaintDebug = async (req, res, next) => {
 
         const result = await pool.query(
             `INSERT INTO complaints 
-             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category)
-             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted', $12, $13, $14)
+             (ticket_number, citizen_id, citizen_name, citizen_mobile, category, issue_category, department, subject, description, ward, priority, status, latitude, longitude, request_category, notification_enabled, notification_channel, notification_phone)
+             VALUES ($1, $2, COALESCE($3, (SELECT name FROM citizens WHERE id = $2), 'No Name Provided'), $4, $5, $6, $7, $8, $9, $10, $11, 'submitted', $12, $13, $14, $15, $16, $17)
              RETURNING *`,
-            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium", finalLat, finalLng, requestCategory]
+            [ticketNumber, citizenId, citizenName, phone || req.body.citizen_mobile || null, category, issue_category || null, department, subject, description, ward || null, priority || "medium", finalLat, finalLng, requestCategory, notification_enabled || false, notification_channel || null, notification_phone || null]
         );
 
         const stages = [
@@ -669,6 +685,14 @@ export const createComplaintDebug = async (req, res, next) => {
             logger.error(`⚠️ [CCI Integration Debug] Failed to run cascade matching: ${cciErr.message}`);
         }
 
+        if (result.rows[0].notification_enabled) {
+            try {
+                await sendStatusUpdate(result.rows[0].id, "registered");
+            } catch (notifErr) {
+                logger.error(`[Notification Service] Failed to trigger registration notification (debug): ${notifErr.message}`);
+            }
+        }
+
         return success(res, "Complaint registered (DEBUG)", {
             ...result.rows[0],
             stages: stages.map((s) => ({ stage: s.stage, status: s.status })),
@@ -688,7 +712,7 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
             return fail(res, "Invalid complaint identifier format.", 400);
         }
         const { status, notes, assigned_to, resolution_note } = req.body;
-        const updatedBy = 1; // dummy admin ID
+        const updatedBy = '9eb3f201-174d-48e9-a061-b88093fe58dc'; // dummy admin ID (valid UUID)
 
         const updateFields = ["status = $2", "updated_at = NOW()"];
         const updateParams = [id, status];
@@ -744,6 +768,13 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
             await triggerStatusNotifications(id, previousStatus, status);
         } catch (subErr) {
             logger.warn(`⚠️ [Subscription Notification Debug] Failed to trigger notifications: ${subErr.message}`);
+        }
+
+        // 🚀 NEW: Direct Status Subscription Notifications
+        try {
+            await sendStatusUpdate(id, status);
+        } catch (notifErr) {
+            logger.error(`⚠️ [Notification Service] Failed to trigger status update (debug): ${notifErr.message}`);
         }
 
         return success(res, "Complaint updated (DEBUG)", result.rows[0]);

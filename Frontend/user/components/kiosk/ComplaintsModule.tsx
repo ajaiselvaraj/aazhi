@@ -65,74 +65,14 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
     // If departmentId is provided, start at details step, otherwise category
     const [step, setStep] = useState<'category' | 'details' | 'success'>(departmentId ? 'details' : 'category');
 
-    // Subscription States
-    const [subContact, setSubContact] = useState('');
-    const [subChannel, setSubChannel] = useState<'sms' | 'whatsapp'>('sms');
-    const [otpSent, setOtpSent] = useState(false);
-    const [otpCode, setOtpCode] = useState('');
-    const [submittingSub, setSubmittingSub] = useState(false);
-    const [subMessage, setSubMessage] = useState<string | null>(null);
-    const [subError, setSubError] = useState<string | null>(null);
-    const [subSuccess, setSubSuccess] = useState(false);
+    // Direct Subscription States
+    const sessionStr = localStorage.getItem('aazhi_user');
+    const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+    const userPhone = sessionUser?.mobile || '';
 
-    const handleRequestSubscription = async () => {
-        if (!subContact || subContact.trim().length < 10) {
-            setSubError("Please enter a valid 10-digit mobile number.");
-            return;
-        }
-        setSubmittingSub(true);
-        setSubError(null);
-        setSubMessage(null);
-        try {
-            const res = await fetch(`${API_BASE}/subscriptions/request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    complaintId: ticketId,
-                    contact: subContact,
-                    channel: subChannel
-                })
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message || "Failed to request subscription.");
-            setOtpSent(true);
-            setSubMessage("Verification code sent! Please enter the OTP below.");
-        } catch (err: any) {
-            setSubError(err.message || "Something went wrong.");
-        } finally {
-            setSubmittingSub(false);
-        }
-    };
-
-    const handleVerifySubscription = async () => {
-        if (!otpCode || otpCode.trim().length < 6) {
-            setSubError("Please enter the 6-digit OTP code.");
-            return;
-        }
-        setSubmittingSub(true);
-        setSubError(null);
-        setSubMessage(null);
-        try {
-            const res = await fetch(`${API_BASE}/subscriptions/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    complaintId: ticketId,
-                    contact: subContact,
-                    channel: subChannel,
-                    otp: otpCode
-                })
-            });
-            const json = await res.json();
-            if (!res.ok) throw new Error(json.message || "OTP verification failed.");
-            setSubSuccess(true);
-            setSubMessage("Subscribed successfully! You will receive push notifications when status updates.");
-        } catch (err: any) {
-            setSubError(err.message || "Verification failed.");
-        } finally {
-            setSubmittingSub(false);
-        }
-    };
+    const [notificationEnabled, setNotificationEnabled] = useState(true);
+    const [notificationChannel, setNotificationChannel] = useState<'SMS' | 'WHATSAPP' | 'BOTH'>('BOTH');
+    const [notificationPhone, setNotificationPhone] = useState(userPhone);
     const [selectedDept, setSelectedDept] = useState<string>(departmentId || '');
     const [issueType, setIssueType] = useState<string>('');
     const [description, setDescription] = useState('');
@@ -181,7 +121,10 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                 complaintType: t(issueType),
                 description: description || t(issueType),
                 location: sessionUser?.ward || 'Unknown',
-                area: sessionUser?.ward || 'Unknown'
+                area: sessionUser?.ward || 'Unknown',
+                notification_enabled: notificationEnabled,
+                notification_channel: notificationEnabled ? notificationChannel : undefined,
+                notification_phone: notificationEnabled ? notificationPhone : undefined
             });
 
             setTicketId(newId);
@@ -345,6 +288,59 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 </button>
                             </div>
                         </div>
+                            <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col mb-8 w-full text-left">
+                            <h4 className="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
+                                🔔 Ping Me When Done
+                            </h4>
+                            <p className="text-xs font-bold text-slate-500 mb-4 leading-relaxed">
+                                Would you like to receive automatic status updates about your complaint?
+                            </p>
+                            
+                            <label className="flex items-center gap-3 cursor-pointer mb-4">
+                                <input
+                                    type="checkbox"
+                                    checked={notificationEnabled}
+                                    onChange={(e) => setNotificationEnabled(e.target.checked)}
+                                    className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+                                />
+                                <span className="text-sm font-bold text-slate-700">Yes, send me automatic updates</span>
+                            </label>
+
+                            {notificationEnabled && (
+                                <div className="flex flex-col gap-4 border-t border-slate-200 pt-4 animate-in fade-in duration-200">
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                            Preferred Channel
+                                        </label>
+                                        <div className="flex gap-2">
+                                            {(['SMS', 'WHATSAPP', 'BOTH'] as const).map(ch => (
+                                                <button
+                                                    key={ch}
+                                                    type="button"
+                                                    onClick={() => setNotificationChannel(ch)}
+                                                    className={`flex-1 py-3 rounded-xl text-sm font-bold border transition ${notificationChannel === ch ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                                >
+                                                    {ch === 'SMS' ? 'SMS' : ch === 'WHATSAPP' ? 'WhatsApp' : 'Both Channels'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">
+                                            Mobile Number
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={notificationPhone}
+                                            onChange={(e) => setNotificationPhone(e.target.value)}
+                                            placeholder="Enter 10-digit mobile number"
+                                            className="w-full bg-white border-2 border-slate-200 rounded-xl p-4 text-slate-800 font-bold focus:border-blue-500 outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="w-full border-t border-slate-200 pt-6 flex justify-between gap-4">
                             <button
@@ -396,81 +392,23 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             <p className="text-3xl font-black text-slate-800 tracking-tight">{ticketId}</p>
                         </div>
 
-                        {/* Status Subscription Panel */}
-                        {!subSuccess ? (
-                            <div className="bg-slate-50 rounded-[1.5rem] border border-slate-200 p-6 w-full max-w-sm mb-8 text-left shadow-sm">
-                                <h3 className="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
-                                    🔔 Ping Me When Done
-                                </h3>
-                                <p className="text-xs font-medium text-slate-500 mb-4 leading-relaxed">
-                                    Receive automatic real-time push alerts on your phone whenever there is progress or area recovery updates.
-                                </p>
-
-                                <div className="flex gap-2 mb-4">
-                                    {(['sms', 'whatsapp'] as const).map(ch => (
-                                        <button
-                                            key={ch}
-                                            type="button"
-                                            onClick={() => setSubChannel(ch)}
-                                            className={`flex-1 py-2 rounded-lg text-xs font-bold border transition ${subChannel === ch ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'}`}
-                                        >
-                                            {ch === 'sms' ? 'SMS Alert' : 'WhatsApp'}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {!otpSent ? (
-                                    <div className="flex flex-col gap-2">
-                                        <input
-                                            type="tel"
-                                            value={subContact}
-                                            onChange={(e) => setSubContact(e.target.value)}
-                                            placeholder="Enter 10-digit mobile number"
-                                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold text-slate-800 focus:border-slate-800 outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleRequestSubscription}
-                                            disabled={submittingSub}
-                                            className="w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition"
-                                        >
-                                            {submittingSub ? 'Sending...' : 'Notify Me'}
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col gap-2">
-                                        <input
-                                            type="text"
-                                            value={otpCode}
-                                            onChange={(e) => setOtpCode(e.target.value)}
-                                            placeholder="Enter 6-digit OTP code"
-                                            className="w-full bg-white border border-slate-200 rounded-lg p-3 text-sm font-bold text-slate-800 text-center tracking-widest focus:border-slate-800 outline-none"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleVerifySubscription}
-                                            disabled={submittingSub}
-                                            className="w-full bg-green-600 text-white py-3 rounded-lg text-sm font-bold hover:bg-green-700 transition"
-                                        >
-                                            {submittingSub ? 'Verifying...' : 'Verify & Subscribe'}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {subMessage && (
-                                    <p className="mt-3 text-xs font-bold text-green-600 text-center">{subMessage}</p>
-                                )}
-                                {subError && (
-                                    <p className="mt-3 text-xs font-bold text-red-600 text-center">⚠️ {subError}</p>
-                                )}
-                            </div>
-                        ) : (
+                        {/* Status Subscription Confirmation Panel */}
+                        {notificationEnabled ? (
                             <div className="bg-green-50 border-2 border-green-200 rounded-[1.5rem] p-6 w-full max-w-sm mb-8 text-center animate-in zoom-in-95">
                                 <p className="text-sm font-bold text-green-700">
-                                    🎉 Subscribed Successfully!
+                                    🎉 Automatic Updates Enabled!
                                 </p>
-                                <p className="text-xs text-green-600 mt-1 font-semibold">
-                                    You will receive real-time push updates via {subChannel === 'sms' ? 'SMS' : 'WhatsApp'} on {subContact}.
+                                <p className="text-xs text-green-600 mt-1 font-semibold leading-relaxed">
+                                    You will receive proactive push alerts via {notificationChannel === 'BOTH' ? 'SMS and WhatsApp' : notificationChannel} on {notificationPhone}.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="bg-slate-100 border border-slate-200 rounded-[1.5rem] p-6 w-full max-w-sm mb-8 text-center">
+                                <p className="text-sm font-bold text-slate-700">
+                                    Updates Disabled
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1 font-semibold leading-relaxed">
+                                    You opted out of automatic alerts. You can check status manually using your Ticket ID.
                                 </p>
                             </div>
                         )}

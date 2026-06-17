@@ -283,7 +283,7 @@ export const adminApi = {
   },
 
   getSubscriptionLogs: async () => {
-    const json = await request('/subscriptions/logs');
+    const json = await request('/notifications/logs');
     return json.data;
   },
 };

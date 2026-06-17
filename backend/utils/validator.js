@@ -74,11 +74,14 @@ export const createComplaintSchema = Joi.object({
     description: Joi.string().min(10).max(2000).required(),
     ward: Joi.string().max(10).allow("", null),
     priority: Joi.string().valid("low", "medium", "high", "critical").default("medium"),
+    notification_enabled: Joi.boolean().default(false),
+    notification_channel: Joi.string().valid("SMS", "WHATSAPP", "BOTH").allow("", null),
+    notification_phone: Joi.string().allow("", null),
 });
 
 export const updateComplaintStatusSchema = Joi.object({
-    status: Joi.string().valid(
-        "pending", "assigned", "in_progress", "resolved", "rejected", "closed"
+    status: Joi.string().trim().lowercase().valid(
+        "pending", "assigned", "in_progress", "resolved", "rejected", "closed", "open", "under_review", "field_team_assigned", "submitted", "active"
     ).default("pending"),
     notes: Joi.string().max(1000).allow("", null),
     assigned_to: Joi.string().uuid().allow(null),

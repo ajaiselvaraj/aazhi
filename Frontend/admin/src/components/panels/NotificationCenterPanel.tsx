@@ -52,11 +52,12 @@ export default function NotificationCenterPanel() {
 
   // Filter logs based on search and filters
   const filteredLogs = logs.filter(log => {
-    const ticketMatch = log.ticket_number?.toLowerCase().includes(logSearch.toLowerCase()) ||
-                        log.citizen_name?.toLowerCase().includes(logSearch.toLowerCase()) ||
-                        log.message?.toLowerCase().includes(logSearch.toLowerCase())
-    const channelMatch = channelFilter === 'all' || log.channel === channelFilter
-    const statusMatch = statusFilter === 'all' || log.delivery_status === statusFilter
+    const ticketMatch = (log.ticket_number || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+                        (log.citizen_name || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+                        (log.message_body || log.message || '').toLowerCase().includes(logSearch.toLowerCase()) ||
+                        (log.phone_number || '').includes(logSearch)
+    const channelMatch = channelFilter === 'all' || log.channel?.toLowerCase() === channelFilter.toLowerCase()
+    const statusMatch = statusFilter === 'all' || log.delivery_status?.toLowerCase() === statusFilter.toLowerCase()
     return ticketMatch && channelMatch && statusMatch
   })
 
@@ -597,31 +598,26 @@ export default function NotificationCenterPanel() {
               <table className="table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Ticket</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Citizen</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Complaint ID</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Recipient Number</th>
                     <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Channel</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Event Type</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Message Sent</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Status Sent</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Message Body</th>
                     <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center' }}>Delivery Status</th>
-                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Dispatched At</th>
+                    <th style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredLogs.map((log: any, i: number) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border)', verticalAlign: 'top' }}>
-                      {/* Ticket */}
+                      {/* Complaint ID */}
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.82rem', fontWeight: 700 }}>
-                        {log.ticket_number}
+                        {log.ticket_number || 'N/A'}
                       </td>
                       
-                      {/* Citizen */}
+                      {/* Recipient Number */}
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        <span style={{ fontWeight: 600, display: 'block', color: 'var(--text-primary)' }}>
-                          {log.citizen_name || 'Anonymous'}
-                        </span>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                          {log.department || 'General'}
-                        </span>
+                        {log.phone_number}
                       </td>
                       
                       {/* Channel */}
@@ -634,7 +630,7 @@ export default function NotificationCenterPanel() {
                         </div>
                       </td>
                       
-                      {/* Event Type */}
+                      {/* Status Sent */}
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.82rem' }}>
                         <span style={{
                           fontSize: '0.7rem',
@@ -642,13 +638,14 @@ export default function NotificationCenterPanel() {
                           borderRadius: 4,
                           background: 'rgba(255, 255, 255, 0.05)',
                           color: 'var(--text-secondary)',
-                          fontFamily: 'monospace'
+                          fontFamily: 'monospace',
+                          textTransform: 'uppercase'
                         }}>
-                          {log.notification_type}
+                          {log.status_sent}
                         </span>
                       </td>
                       
-                      {/* Message */}
+                      {/* Message Body */}
                       <td style={{
                         padding: '0.75rem 0.5rem',
                         fontSize: '0.8rem',
@@ -657,7 +654,7 @@ export default function NotificationCenterPanel() {
                         whiteSpace: 'pre-wrap',
                         lineHeight: 1.4
                       }}>
-                        {log.message}
+                        {log.message_body || log.message}
                       </td>
                       
                       {/* Delivery Status */}
@@ -665,9 +662,9 @@ export default function NotificationCenterPanel() {
                         {renderStatusBadge(log.delivery_status)}
                       </td>
                       
-                      {/* Dispatched At */}
+                      {/* Timestamp */}
                       <td style={{ padding: '0.75rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {new Date(log.sent_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                        {log.created_at ? new Date(log.created_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : 'N/A'}
                       </td>
                     </tr>
                   ))}
