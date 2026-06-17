@@ -255,6 +255,7 @@ const App: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // ── Location & Alert Banner state ──
@@ -427,23 +428,27 @@ const App: React.FC = () => {
     setIsProcessing(true);
 
     try {
-      // 🛡️ [DEV BYPASS] Treat EVERY OTP as a success and enter "Offline Mode"
-      // This matches the behavior of '123' by ensuring no token is stored,
-      // which forces civicService.ts to use the /debug endpoints.
-      localStorage.removeItem('aazhi_token');
-      localStorage.setItem('aazhi_user', JSON.stringify({
-        id: loginMethod === 'MOBILE' ? 'dev_mobile_user' : 'dev_aadhaar_user',
-        name: 'Developer Citizen',
-        mobile: loginMethod === 'MOBILE' ? identifier : '9999999999',
-        role: 'citizen',
-        aadhaar_masked: loginMethod === 'AADHAAR' ? 'XXXX-XXXX-' + identifier.slice(-4) : undefined
-      }));
+      if (loginMethod === 'MOBILE') {
+        await authService.verifyOtp(identifier, otp);
+        setSuccessMessage("Mobile number verified successfully.");
+        setTimeout(() => setSuccessMessage(''), 4000);
+      } else {
+        // Aadhaar: keep original bypass logic
+        localStorage.removeItem('aazhi_token');
+        localStorage.setItem('aazhi_user', JSON.stringify({
+          id: 'dev_aadhaar_user',
+          name: 'Developer Citizen',
+          mobile: '9999999999',
+          role: 'citizen',
+          aadhaar_masked: 'XXXX-XXXX-' + identifier.slice(-4)
+        }));
+        console.log("🛡️ [Dev] Global OTP bypass triggered for Aadhaar. Session set to Offline.");
+      }
 
-      console.log("🛡️ [Dev] Global OTP bypass triggered. Session set to Offline.");
       setView(ViewState.SELECTION);
     } catch (e: any) {
       console.error("Login submission error", e);
-      setError(e.message || "Authentication failed. Invalid OTP.");
+      setError(e.message || "Invalid OTP. Please enter the OTP sent to your mobile number.");
     } finally {
       setIsProcessing(false);
     }
@@ -893,7 +898,7 @@ const App: React.FC = () => {
                       <button
                         id="mobile-verify-btn"
                         onClick={handleLoginSubmit}
-                        disabled={isProcessing || (otp.length !== 6 && otp !== '123')}
+                        disabled={isProcessing || otp.length !== 6}
                         className="w-full bg-green-600 text-white p-5 rounded-2xl font-bold text-lg hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-2"
                       >
                         {isProcessing ? <RefreshCw className="animate-spin" /> : <>{t('verifyLogin')} <ShieldCheck size={20} /></>}
@@ -911,6 +916,13 @@ const App: React.FC = () => {
         {error && (
           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-3 rounded-xl font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-10 flex items-center gap-3 text-sm">
             <AlertTriangle size={18} /> {error}
+          </div>
+        )}
+
+        {/* Success Toast */}
+        {successMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-10 flex items-center gap-3 text-sm">
+            <CheckCircle size={18} /> {successMessage}
           </div>
         )}
       </div>

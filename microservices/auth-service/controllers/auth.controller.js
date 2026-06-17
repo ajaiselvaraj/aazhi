@@ -54,7 +54,7 @@ export const verifyOtpController = async (req, res, next) => {
 
         logger.info(`[Auth Controller] Successful login mapping to Citizen ID: ${citizen.id}`);
 
-        return success(res, "Logged in successfully", {
+        return success(res, "Mobile number verified successfully.", {
             citizen: {
                 id: citizen.id,
                 mobile: citizen.mobile,

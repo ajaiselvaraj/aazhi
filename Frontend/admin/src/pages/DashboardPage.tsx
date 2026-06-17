@@ -21,6 +21,7 @@ import AIModelMetrics from './AIModelMetrics'
 import IntegrityDashboardPanel from '../components/panels/IntegrityDashboardPanel' // ⭐ ADD-ON: Integrity Queue
 import ExecutiveOversightPanel from '../components/panels/ExecutiveOversightPanel'
 import CCICommandCenterPanel from '../components/panels/CCICommandCenterPanel' // ⭐ ADD-ON: CCI Command Center
+import NotificationCenterPanel from '../components/panels/NotificationCenterPanel'
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -44,7 +45,8 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   'ai-model-metrics': AIModelMetrics,
   'integrity-dashboard': IntegrityDashboardPanel,
   'executive-oversight': ExecutiveOversightPanel,
-  'cci-command': CCICommandCenterPanel
+  'cci-command': CCICommandCenterPanel,
+  'notification-center': NotificationCenterPanel
 }
 
 export default function DashboardPage() {

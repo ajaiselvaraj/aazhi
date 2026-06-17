@@ -210,8 +210,18 @@ export const initializeAuthTables = async () => {
             } else {
                 logger.warn(`⚠️ Migration file not found at ${cciSqlPath}`);
             }
+
+            // 🚀 STATUS SUBSCRIPTION MIGRATIONS
+            const subSqlPath = path.resolve(__dirname, "..", "models", "status_subscription_schema.sql");
+            if (fs.existsSync(subSqlPath)) {
+                const migrationSql = fs.readFileSync(subSqlPath, "utf8");
+                await pool.query(migrationSql);
+                logger.info("✅ status_subscription_schema.sql applied successfully.");
+            } else {
+                logger.warn(`⚠️ Migration file not found at ${subSqlPath}`);
+            }
         } catch (e) {
-            logger.error(`❌ Failed to run Integrity V2/V3/V4/CCI migrations / seeding: ${e.message}`);
+            logger.error(`❌ Failed to run Integrity V2/V3/V4/CCI/Subscription migrations / seeding: ${e.message}`);
             throw e;
         }
 

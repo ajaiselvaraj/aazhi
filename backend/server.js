@@ -25,6 +25,7 @@ import { initSocketIO } from "./socket.js";            // ⭐ PLUG-IN: QR Tracki
 import cron from "node-cron";
 import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
+import { sweepQueuedNotifications } from "./services/subscription.service.js";
 
 
 
@@ -57,6 +58,15 @@ async function startServer() {
             }
         } catch (error) {
             logger.error(`[CRON] Failed to clean up expired OTPs: ${error.message}`);
+        }
+    });
+
+    // Sweep queued quiet-hours notifications (runs every minute to check/send)
+    cron.schedule("* * * * *", async () => {
+        try {
+            await sweepQueuedNotifications();
+        } catch (err) {
+            logger.error(`[CRON] Subscription sweep failed: ${err.message}`);
         }
     });
 

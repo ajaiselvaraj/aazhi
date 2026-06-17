@@ -275,6 +275,17 @@ export const adminApi = {
     });
     return json.data;
   },
+
+  // ── Status Subscription – "Ping Me When Done" ──
+  getSubscriptionAnalytics: async () => {
+    const json = await request('/subscriptions/analytics');
+    return json.data;
+  },
+
+  getSubscriptionLogs: async () => {
+    const json = await request('/subscriptions/logs');
+    return json.data;
+  },
 };
 
 export { request as apiRequest };

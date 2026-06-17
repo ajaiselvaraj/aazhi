@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Smartphone, ShieldCheck, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react';
+import { User, Smartphone, ShieldCheck, ArrowRight, ArrowLeft, RefreshCw, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Language } from '../../types';
 import { authService } from '../../services/authService';
@@ -21,6 +21,7 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleVerify = async () => {
     setError('');
@@ -62,19 +63,24 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
     setIsLoading(true);
 
     try {
-      // 🛡️ [DEV BYPASS] Allow ANY OTP and use "Offline" flow (No Token)
-      // This ensures complaints use the /debug endpoint.
-      localStorage.removeItem('aazhi_token');
-      localStorage.setItem('aazhi_user', JSON.stringify({
-        id: authMethod === 'MOBILE' ? 'dev_mobile_user' : 'dev_aadhaar_user',
-        name: 'Developer Citizen',
-        mobile: authMethod === 'MOBILE' ? inputValue : '9999999999',
-        role: 'citizen'
-      }));
+      if (authMethod === 'MOBILE') {
+        await authService.verifyOtp(inputValue, otp);
+        setSuccessMessage("Mobile number verified successfully.");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      } else {
+        // Aadhaar: keep original bypass logic
+        localStorage.removeItem('aazhi_token');
+        localStorage.setItem('aazhi_user', JSON.stringify({
+          id: 'dev_aadhaar_user',
+          name: 'Developer Citizen',
+          mobile: '9999999999',
+          role: 'citizen'
+        }));
+      }
       
       onSuccess();
     } catch (e: any) {
-      setError(e.message || "Authentication failed. Invalid OTP.");
+      setError(e.message || "Invalid OTP. Please enter the OTP sent to your mobile number.");
     } finally {
       setIsLoading(false);
     }
@@ -194,7 +200,7 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
               {error && <p className="text-red-500 text-sm font-bold text-left px-2">{error}</p>}
               <button
                 onClick={handleLoginSubmit}
-                disabled={isLoading || (otp.length !== 6 && otp !== '123')}
+                disabled={isLoading || otp.length !== 6}
                 className="w-full bg-green-600 text-white p-6 rounded-2xl font-black text-2xl hover:bg-green-700 shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-3"
               >
                 {isLoading ? (
@@ -215,6 +221,13 @@ const SecureAuth: React.FC<SecureAuthProps> = ({ onSuccess, onBack, language }) 
           )}
         </div>
         
+        {/* Success Toast */}
+        {successMessage && (
+          <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-xl font-bold shadow-2xl z-50 animate-in slide-in-from-bottom-10 flex items-center gap-3 text-sm">
+            <CheckCircle size={18} /> {successMessage}
+          </div>
+        )}
+
         {/* Subtle Decorative Line (blue accent on top) */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-1.5 bg-blue-500 rounded-b-full"></div>
       </div>

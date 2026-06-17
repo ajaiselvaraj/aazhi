@@ -10,6 +10,7 @@ import logger from "../utils/logger.js";
 import axios from "axios";
 import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
 import { checkAndClusterComplaint, syncClusterCompletionStatus } from "../services/cascadeDetection.service.js"; // ⭐ ADD-ON: CCI Integration
+import { triggerStatusNotifications } from "../services/subscription.service.js";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
 
@@ -472,6 +473,13 @@ export const updateComplaintStatus = async (req, res, next) => {
             logger.warn(`⚠️ [CCI Coordinated SLA] Sync failed: ${cciErr.message}`);
         }
 
+        // ⭐ INTEGRATION: Status Subscription Notifications
+        try {
+            await triggerStatusNotifications(actualId, current.rows[0].status, finalStatus);
+        } catch (subErr) {
+            logger.warn(`⚠️ [Subscription Notification] Failed to trigger notifications: ${subErr.message}`);
+        }
+
         return success(res, "Complaint status updated", result.rows[0]);
     } catch (err) {
         next(err);
@@ -700,6 +708,9 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
             updateFields.push("closed_at = NOW()");
         }
 
+        const currentRes = await pool.query("SELECT status FROM complaints WHERE id = $1", [id]);
+        const previousStatus = currentRes.rows.length > 0 ? currentRes.rows[0].status : null;
+
         const result = await pool.query(
             `UPDATE complaints SET ${updateFields.join(", ")} WHERE id = $1 RETURNING *`,
             updateParams
@@ -726,6 +737,13 @@ export const updateComplaintStatusDebug = async (req, res, next) => {
             await syncClusterCompletionStatus(id);
         } catch (cciErr) {
             logger.warn(`⚠️ [CCI Coordinated SLA Debug] Sync failed: ${cciErr.message}`);
+        }
+
+        // ⭐ INTEGRATION: Status Subscription Notifications
+        try {
+            await triggerStatusNotifications(id, previousStatus, status);
+        } catch (subErr) {
+            logger.warn(`⚠️ [Subscription Notification Debug] Failed to trigger notifications: ${subErr.message}`);
         }
 
         return success(res, "Complaint updated (DEBUG)", result.rows[0]);

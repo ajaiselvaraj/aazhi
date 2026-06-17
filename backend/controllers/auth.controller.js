@@ -79,7 +79,7 @@ export const verifyOtpController = async (req, res, next) => {
 
         setTokenCookies(res, accessToken, refreshToken);
 
-        return success(res, "Logged in successfully", {
+        return success(res, "Mobile number verified successfully.", {
             citizen: {
                 id: citizen.id,
                 mobile: citizen.mobile,

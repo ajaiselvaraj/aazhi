@@ -128,6 +128,110 @@ const ComplaintTrackingPage: React.FC = () => {
 
     const isService = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || (data?.complaint && (data.complaint as any).type === 'service_request') || false;
 
+    // Subscription states
+    const [subContact, setSubContact] = useState('');
+    const [subChannel, setSubChannel] = useState<'sms' | 'whatsapp' | 'email'>('sms');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [submittingSub, setSubmittingSub] = useState(false);
+    const [subMessage, setSubMessage] = useState<string | null>(null);
+    const [subError, setSubError] = useState<string | null>(null);
+    const [subSuccess, setSubSuccess] = useState(false);
+
+    // Feedback states
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+    const [submittingFeedback, setSubmittingFeedback] = useState(false);
+    const [feedbackError, setFeedbackError] = useState<string | null>(null);
+
+    const handleRequestSubscription = async () => {
+        const isEmail = subChannel === 'email';
+        if (isEmail) {
+            if (!subContact.includes('@') || !subContact.includes('.')) {
+                setSubError("Please enter a valid email address.");
+                return;
+            }
+        } else {
+            if (subContact.trim().length < 10) {
+                setSubError("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+        }
+        setSubmittingSub(true);
+        setSubError(null);
+        setSubMessage(null);
+        try {
+            const res = await fetch(`${API_BASE}/api/subscriptions/request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    complaintId: data?.complaint?.id,
+                    contact: subContact,
+                    channel: subChannel
+                })
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message || "Failed to request subscription.");
+            setOtpSent(true);
+            setSubMessage("Verification code sent! Please check your contact and enter the OTP below.");
+        } catch (err: any) {
+            setSubError(err.message || "Something went wrong.");
+        } finally {
+            setSubmittingSub(false);
+        }
+    };
+
+    const handleVerifySubscription = async () => {
+        if (!otpCode || otpCode.trim().length < 6) {
+            setSubError("Please enter the 6-digit OTP code.");
+            return;
+        }
+        setSubmittingSub(true);
+        setSubError(null);
+        setSubMessage(null);
+        try {
+            const res = await fetch(`${API_BASE}/api/subscriptions/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    complaintId: data?.complaint?.id,
+                    contact: subContact,
+                    channel: subChannel,
+                    otp: otpCode
+                })
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message || "OTP verification failed.");
+            setSubSuccess(true);
+            setSubMessage("Subscribed successfully! You will receive push notifications when status updates.");
+        } catch (err: any) {
+            setSubError(err.message || "Verification failed.");
+        } finally {
+            setSubmittingSub(false);
+        }
+    };
+
+    const handleConfirmResolution = async (score: number) => {
+        setSubmittingFeedback(true);
+        setFeedbackError(null);
+        try {
+            const res = await fetch(`${API_BASE}/api/subscriptions/confirm-resolution`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticketNumber: data?.complaint?.ticket_number,
+                    score
+                })
+            });
+            const json = await res.json();
+            if (!res.ok) throw new Error(json.message || "Failed to submit feedback.");
+            setFeedbackSubmitted(true);
+        } catch (err: any) {
+            setFeedbackError(err.message || "Failed to submit resolution feedback.");
+        } finally {
+            setSubmittingFeedback(false);
+        }
+    };
+
     // ── Fetch complaint data ───────────────────────────────────
     const fetchData = useCallback(async () => {
         try {
@@ -558,6 +662,123 @@ const ComplaintTrackingPage: React.FC = () => {
                             </div>
                         </div>
                     </>
+                )}
+
+                {/* Citizen Satisfaction Feedback */}
+                {!isService && complaint && (complaint.status === 'resolved' || complaint.status === 'closed') && (
+                    <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', marginBottom: 20, border: '2px solid #16a34a' }}>
+                        <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, color: '#166534' }}>
+                            🤝 Citizen Resolution Confirmation
+                        </h3>
+                        <p style={{ fontSize: 13, color: '#475569', marginBottom: 20 }}>
+                            Your grievance has been marked as resolved. Please confirm if the issue is fixed to your satisfaction.
+                        </p>
+
+                        {!feedbackSubmitted && !(complaint as any).satisfaction_response ? (
+                            <div>
+                                <div style={{ display: 'flex', gap: 14 }}>
+                                    <button
+                                        onClick={() => handleConfirmResolution(1)}
+                                        disabled={submittingFeedback}
+                                        style={{ flex: 1, padding: '14px 0', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(22,163,74,0.2)' }}
+                                    >
+                                        Yes, Resolved
+                                      </button>
+                                    <button
+                                        onClick={() => handleConfirmResolution(2)}
+                                        disabled={submittingFeedback}
+                                        style={{ flex: 1, padding: '14px 0', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.2)' }}
+                                    >
+                                        No, Unresolved
+                                      </button>
+                                </div>
+                                {feedbackError && <p style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', textAlign: 'center', marginTop: 10 }}>⚠️ {feedbackError}</p>}
+                            </div>
+                        ) : (
+                            <div style={{ background: '#f0fdf4', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
+                                <p style={{ fontSize: 14, fontWeight: 900, color: '#166534' }}>Thank you for your response!</p>
+                                <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>Your confirmation has been saved and will feed into municipal analytics.</p>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Status Subscription Panel */}
+                {!isService && complaint && (complaint.status !== 'resolved' && complaint.status !== 'closed') && (
+                    <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', marginBottom: 20 }}>
+                        <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            🔔 Ping Me When Done
+                        </h3>
+                        <p style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>
+                            Subscribe to get real-time automatic push alerts (SMS/WhatsApp/Email) when status changes or area recovery events occur.
+                        </p>
+                        {!subSuccess ? (
+                            <div>
+                                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                                    {(['sms', 'whatsapp', 'email'] as const).map(ch => (
+                                        <button
+                                            key={ch}
+                                            type="button"
+                                            onClick={() => setSubChannel(ch)}
+                                            style={{
+                                                flex: 1, padding: '10px 0', borderRadius: 12, fontSize: 12, fontWeight: 800,
+                                                border: `1px solid ${subChannel === ch ? '#1e293b' : '#cbd5e1'}`,
+                                                background: subChannel === ch ? '#1e293b' : '#fff',
+                                                color: subChannel === ch ? '#fff' : '#475569',
+                                                cursor: 'pointer', transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            {ch.toUpperCase()}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {!otpSent ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <input
+                                            type={subChannel === 'email' ? 'email' : 'tel'}
+                                            value={subContact}
+                                            onChange={(e) => setSubContact(e.target.value)}
+                                            placeholder={subChannel === 'email' ? 'Enter email address' : 'Enter mobile number'}
+                                            style={{ width: '100%', padding: 12, border: '1px solid #cbd5e1', borderRadius: 12, fontSize: 13, fontWeight: 700, outline: 'none' }}
+                                        />
+                                        <button
+                                            onClick={handleRequestSubscription}
+                                            disabled={submittingSub}
+                                            style={{ width: '100%', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                                        >
+                                            {submittingSub ? 'Processing...' : 'Subscribe'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        <input
+                                            type="text"
+                                            value={otpCode}
+                                            onChange={(e) => setOtpCode(e.target.value)}
+                                            placeholder="Enter 6-digit OTP code"
+                                            style={{ width: '100%', padding: 12, border: '1px solid #cbd5e1', borderRadius: 12, fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', textAlign: 'center', outline: 'none' }}
+                                        />
+                                        <button
+                                            onClick={handleVerifySubscription}
+                                            disabled={submittingSub}
+                                            style={{ width: '100%', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 0', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                                        >
+                                            {submittingSub ? 'Verifying...' : 'Verify OTP & Activate'}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {subMessage && <p style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textAlign: 'center', marginTop: 10 }}>{subMessage}</p>}
+                                {subError && <p style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', textAlign: 'center', marginTop: 10 }}>⚠️ {subError}</p>}
+                            </div>
+                        ) : (
+                            <div style={{ background: '#f0fdf4', border: '2px solid #bcf0da', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
+                                <p style={{ fontSize: 13, fontWeight: 800, color: '#166534' }}>🎉 Subscription Activated Successfully!</p>
+                                <p style={{ fontSize: 11, color: '#15803d', marginTop: 4 }}>You will be updated via {subChannel} at {subContact}.</p>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Messages */}
