@@ -22,6 +22,8 @@ import IntegrityDashboardPanel from '../components/panels/IntegrityDashboardPane
 import ExecutiveOversightPanel from '../components/panels/ExecutiveOversightPanel'
 import CCICommandCenterPanel from '../components/panels/CCICommandCenterPanel' // ⭐ ADD-ON: CCI Command Center
 import NotificationCenterPanel from '../components/panels/NotificationCenterPanel'
+import EscalationQueuePanel from '../components/panels/EscalationQueuePanel'         // ⭐ ADD-ON: Escalation Queue
+import OfficerAccountabilityPanel from '../components/panels/OfficerAccountabilityPanel' // ⭐ ADD-ON: Officer Accountability
 import { useAuth } from '../context/AuthContext'
 
 const PANEL_MAP: Record<string, React.ComponentType> = {
@@ -46,7 +48,9 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   'integrity-dashboard': IntegrityDashboardPanel,
   'executive-oversight': ExecutiveOversightPanel,
   'cci-command': CCICommandCenterPanel,
-  'notification-center': NotificationCenterPanel
+  'notification-center': NotificationCenterPanel,
+  'escalation-queue':       EscalationQueuePanel,       // ⭐ ADD-ON
+  'officer-accountability': OfficerAccountabilityPanel, // ⭐ ADD-ON
 }
 
 export default function DashboardPage() {

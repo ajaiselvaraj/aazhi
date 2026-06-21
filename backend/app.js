@@ -24,6 +24,8 @@ import integrityRoutes from "./routes/integrity.routes.js"; // ⭐ ADD-ON: Anony
 import cciRoutes from "./routes/cci.routes.js"; // ⭐ ADD-ON: Cross-Complaint Cascade Intelligence (CCI)
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import escalationRoutes from "./routes/escalation.routes.js"; // ⭐ ADD-ON: Complaint Escalation & Accountability Engine
+import { startEscalationCron } from "./services/escalationCron.js"; // ⭐ ADD-ON: SLA breach background cron
 
 import { pool, getPoolStatus } from "./config/db.js";
 
@@ -177,6 +179,8 @@ app.use("/api/integrity", integrityRoutes);     // ⭐ ADD-ON: Anonymous Civic W
 app.use("/api/cci", cciRoutes);                 // ⭐ ADD-ON: Cross-Complaint Cascade Intelligence (CCI)
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api", escalationRoutes);             // ⭐ ADD-ON: Escalation & Accountability API
+startEscalationCron();                           // ⭐ ADD-ON: Start 30-min SLA breach cron
 
 
 // ─── 404 ───────────────────────────────────────────────

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Map, MessageSquare, Cpu, Copy,
   AlertTriangle, ListOrdered, BarChart2, TrendingUp,
   BellRing, ShieldAlert, Settings, LogOut, Zap, Brain, History,
-  Layers, Heart, Megaphone, Bell
+  Layers, Heart, Megaphone, Bell, ClipboardList, Award
 } from 'lucide-react'
 import { useLanguage } from '../../context/LanguageContext'
 import { useAuth } from '../../context/AuthContext'
@@ -62,6 +62,14 @@ const navGroups = [
       { id: 'risk',          icon: AlertTriangle,  trans_key: 'nav.risk_det',     default_label: 'Risk Detector' },
       { id: 'civic-alerts',  icon: Megaphone,      trans_key: 'nav.civic_alerts', default_label: 'Alerts' }, // ⭐ ADD-ON
       { id: 'notification-center', icon: Bell,     trans_key: 'nav.notification_center', default_label: 'Notification Center' },
+    ],
+  },
+  {
+    label_key: 'nav.grp_accountability',
+    label_default: '⭐ Accountability', // ⭐ ADD-ON: Escalation & Accountability Engine
+    items: [
+      { id: 'escalation-queue',       icon: ClipboardList, trans_key: 'nav.escalation_queue',       default_label: 'Escalation Queue'   },
+      { id: 'officer-accountability', icon: Award,         trans_key: 'nav.officer_accountability', default_label: 'Officer Scores'     },
     ],
   },
 ]

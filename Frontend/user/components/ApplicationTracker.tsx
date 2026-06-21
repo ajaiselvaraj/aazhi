@@ -5,6 +5,18 @@ import { useTranslation } from 'react-i18next';
 import { GrievanceService } from '../services/civicService';
 import { MOCK_USER_PROFILE } from '../constants';
 import { useWorkflow } from '../hooks/useWorkflow';
+import SLACountdownWidget from './escalation/SLACountdownWidget';
+import AccountabilityThread from './escalation/AccountabilityThread';
+
+const getBackendUrl = () => {
+    const envUrl = import.meta.env.VITE_API_URL;
+    if (envUrl) return envUrl.replace(/\/api$/, '');
+    const host = window.location.hostname;
+    const isProd = host !== 'localhost' && !host.startsWith('192.168.') && !host.startsWith('10.');
+    if (isProd) return 'https://aazhi-9gj2.onrender.com';
+    return `http://${host}:5000`;
+};
+const API_BASE = getBackendUrl();
 
 type ActivityItem =
     | (ServiceRequest & { type: 'Request' })
@@ -504,6 +516,29 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                                     </div>
                                 )}
                             </div>
+
+                            {/* ⭐ ADD-ON: SLA & Accountability Section */}
+                            {item.type === 'Complaint' && !['resolved', 'closed', 'rejected'].includes(derivedStage) && (
+                                <div className="p-6 md:p-8 pt-0 border-t border-slate-100">
+                                    <div className="flex items-center gap-4 mb-6 mt-6">
+                                        <div className="flex-1 h-px bg-slate-200" />
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] whitespace-nowrap">
+                                            📋 SLA & Accountability
+                                        </span>
+                                        <div className="flex-1 h-px bg-slate-200" />
+                                    </div>
+                                    <SLACountdownWidget
+                                        complaintId={item.id}
+                                        apiBase={API_BASE}
+                                        token={localStorage.getItem('aazhi_token') || undefined}
+                                    />
+                                    <AccountabilityThread
+                                        complaintId={item.id}
+                                        apiBase={API_BASE}
+                                        token={localStorage.getItem('aazhi_token') || undefined}
+                                    />
+                                </div>
+                            )}
                         </div>
                     );
                 })}

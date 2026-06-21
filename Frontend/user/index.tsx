@@ -8,7 +8,7 @@ if (!import.meta.env.VITE_MAPBOX_ACCESS_TOKEN) {
 
 
 import App from "./App";
-import TrackingApp from "./TrackingApp";
+import ComplaintTrackingPage from "./components/ComplaintTrackingPage";
 import { OrientationProvider } from "./contexts/OrientationContext";
 import './index.css';
 import './i18n';
@@ -18,7 +18,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     <OrientationProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/track/:complaintId" element={<TrackingApp />} />
+          <Route path="/track/:complaintId" element={<ComplaintTrackingPage />} />
           <Route path="/*" element={<App />} />
         </Routes>
       </BrowserRouter>

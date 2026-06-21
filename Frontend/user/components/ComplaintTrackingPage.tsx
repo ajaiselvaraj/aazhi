@@ -14,6 +14,11 @@ import {
     MessageSquare, User, Building2, MapPin, Tag, Calendar, Info
 } from 'lucide-react';
 
+// ⭐ ADD-ON: Escalation & Accountability components (additive — no existing code changed)
+import SLACountdownWidget from './escalation/SLACountdownWidget';
+import AccountabilityThread from './escalation/AccountabilityThread';
+import RequestEscalationButton from './escalation/RequestEscalationButton';
+
 // ⭐ FIX: Derive backend URL dynamically from the current page's hostname.
 // - On kiosk (localhost): resolves to http://localhost:8000
 // - On mobile via WiFi (192.168.x.x:3000): resolves to http://192.168.x.x:8000
@@ -662,6 +667,45 @@ const ComplaintTrackingPage: React.FC = () => {
                             </div>
                         </div>
                     </>
+                )}
+
+                {/* ⭐ ADD-ON: SLA & Accountability Section (additive — rendered below existing timeline) */}
+                {!isService && complaint && !['resolved', 'closed', 'rejected'].includes(complaint.status.toLowerCase()) && (
+                    <div style={{ marginBottom: 4 }}>
+                        {/* Section label */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 8,
+                            marginBottom: 14, marginTop: 4,
+                        }}>
+                            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                            <span style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>
+                                📋 SLA &amp; Accountability
+                            </span>
+                            <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
+                        </div>
+
+                        {/* SLA Countdown Widget */}
+                        <SLACountdownWidget
+                            complaintId={complaint.id}
+                            apiBase={API_BASE}
+                            token={localStorage.getItem('aazhi_token') || undefined}
+                        />
+
+                        {/* Accountability Thread */}
+                        <AccountabilityThread
+                            complaintId={complaint.id}
+                            apiBase={API_BASE}
+                            token={localStorage.getItem('aazhi_token') || undefined}
+                        />
+
+                        {/* Request Escalation Button */}
+                        <RequestEscalationButton
+                            complaintId={complaint.id}
+                            apiBase={API_BASE}
+                            token={localStorage.getItem('aazhi_token') || undefined}
+                            complaintStatus={complaint.status}
+                        />
+                    </div>
                 )}
 
                 {/* Citizen Satisfaction Feedback */}
