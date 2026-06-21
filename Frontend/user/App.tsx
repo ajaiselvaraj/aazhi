@@ -14,6 +14,7 @@ const KioskUI = lazy(() => import('./components/KioskUI'));
 const Documentation = lazy(() => import('./components/Documentation'));
 const Admin = lazy(() => import('./components/Admin'));
 const WhistleblowerPortal = lazy(() => import('./components/WhistleblowerPortal'));
+import { EmergencySOS } from './components/municipal/EmergencySOS';
 
 import { authService } from './services/authService';
 import { Persistence } from './utils/persistence';
@@ -546,6 +547,16 @@ const App: React.FC = () => {
       {/* Main Grid: Language Selection */}
       <div className="flex-1 min-h-0 w-full overflow-y-auto px-4 md:px-8 flex flex-col items-center justify-start custom-scrollbar">
         <div className="w-full max-w-[1600px] my-auto py-6 flex flex-col items-center">
+          
+          {/* URGENT SERVICE FAST LANE */}
+          <button 
+            onClick={() => setView(ViewState.EMERGENCY_FAST_LANE)}
+            className="w-full max-w-2xl bg-red-600 text-white p-5 rounded-[2rem] font-black text-xl md:text-3xl hover:bg-red-700 shadow-xl shadow-red-500/30 flex items-center justify-center gap-4 animate-pulse mb-8 border-4 border-red-500 hover:border-red-400 transition-all tracking-tighter"
+          >
+            <AlertTriangle size={36} />
+            URGENT — Need Emergency Help
+          </button>
+
           {/* ── Orientation Toggle Banner (inside the panel) ── */}
           <div className={`w-full ${isVertical ? 'mb-4' : 'mb-3'} flex items-center justify-between gap-3`}>
             <p className={`${isVertical ? 'text-base' : 'text-xs'} font-black text-slate-500 uppercase tracking-widest`}>
@@ -944,6 +955,9 @@ const App: React.FC = () => {
         <KioskKeyboardWrapper language={language}>
           <ServiceComplaintProvider>
             {view === ViewState.LANDING && renderLanding()}
+            {view === ViewState.EMERGENCY_FAST_LANE && (
+              <EmergencySOS onBack={() => setView(ViewState.LANDING)} isPrivacyOn={isPrivacyShieldOn} />
+            )}
             {view === ViewState.LOGIN && renderLogin()}
             {view === ViewState.SELECTION && renderSelection()}
             {view === ViewState.DASHBOARD && (
