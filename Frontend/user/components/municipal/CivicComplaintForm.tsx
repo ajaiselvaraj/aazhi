@@ -12,6 +12,7 @@ import { LANGUAGES_CONFIG } from '../../constants';
 import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { useOrientation } from '../../contexts/OrientationContext';
+import StatusSubscription from '../kiosk/StatusSubscription';
 
 // Icon + color mapping per category key
 const CIVIC_ISSUE_META: Record<string, { icon: any; circleColor: string }> = {
@@ -397,6 +398,18 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                         <p className="text-xl text-slate-500 font-medium mb-12">
                             {t("civic_officerNotified")}
                         </p>
+
+                        <div className="mb-8 w-full flex justify-center">
+                            <StatusSubscription 
+                                complaintId={submittedTicket} 
+                                defaultMobile={(() => {
+                                    const sessionStr = localStorage.getItem('aazhi_user');
+                                    const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+                                    return sessionUser?.mobile || '';
+                                })()} 
+                            />
+                        </div>
+
                         <AccessibleButton
                             label={t("returnMainMenu")}
                             speakLabel={t("goBackBtn")}

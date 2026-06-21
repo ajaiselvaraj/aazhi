@@ -4,6 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 import ComplaintQRModal from '../../ComplaintQRModal';
+import StatusSubscription from '../StatusSubscription';
 
 interface Props {
   onBack: () => void;
@@ -131,6 +132,19 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             </p>
             <p className="text-3xl font-black text-slate-800">{ticketNumber}</p>
           </div>
+
+          {/* Status Subscription Feature */}
+          <div className="mb-8 w-full flex justify-center">
+            <StatusSubscription 
+              complaintId={ticketNumber} 
+              defaultMobile={formData.mobile || (() => {
+                  const sessionStr = localStorage.getItem('aazhi_user');
+                  const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+                  return sessionUser?.mobile || '';
+              })()} 
+            />
+          </div>
+
           <button
             onClick={() => setShowQR(true)}
             className="w-full bg-cyan-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-cyan-700 transition flex items-center justify-center gap-2"

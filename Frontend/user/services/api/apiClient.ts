@@ -135,7 +135,14 @@ export const apiClient = {
     request<T>(() => axiosInstance.delete<any, T>(endpoint, config), `DELETE ${endpoint}`),
   
   // Expose the raw instance if needed for special cases
-  instance: axiosInstance
+  instance: axiosInstance,
+
+  // ── Subscription API (Status Updates) ──────────────────────────────────
+  requestSubscription: <T>(body: { complaintId: string; contact: string; channel: 'sms' | 'whatsapp' | 'email' }) =>
+    request<T>(() => axiosInstance.post<any, T>('/subscriptions/request', body), `POST /subscriptions/request`),
+
+  verifySubscription: <T>(body: { complaintId: string; contact: string; channel: 'sms' | 'whatsapp' | 'email'; otp: string }) =>
+    request<T>(() => axiosInstance.post<any, T>('/subscriptions/verify', body), `POST /subscriptions/verify`),
 };
 
 export default apiClient;
