@@ -7,6 +7,7 @@ import twilio from "twilio";
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+const whatsappFromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
 // Helper to format WhatsApp/SMS phone numbers
 const formatPhoneNumber = (phone, isWhatsApp = false) => {
@@ -69,7 +70,7 @@ export const requestSubscriptionOtp = async (complaintId, contact, channel) => {
             try {
                 const client = twilio(accountSid, authToken);
                 const to = formatPhoneNumber(contact, channel === "whatsapp");
-                const from = channel === "whatsapp" ? `whatsapp:${fromNumber}` : fromNumber;
+                const from = channel === "whatsapp" ? `whatsapp:${whatsappFromNumber}` : fromNumber;
 
                 await client.messages.create({
                     body: `Your OTP for SUVIDHA status subscription is ${otpCode}. Valid for 5 minutes.`,
@@ -197,7 +198,7 @@ export const dispatchMessage = async (complaintId, contact, channel, type, messa
             try {
                 const client = twilio(accountSid, authToken);
                 const to = formatPhoneNumber(contact, channel === "whatsapp");
-                const from = channel === "whatsapp" ? `whatsapp:${fromNumber}` : fromNumber;
+                const from = channel === "whatsapp" ? `whatsapp:${whatsappFromNumber}` : fromNumber;
 
                 await client.messages.create({
                     body: messageText,
@@ -363,7 +364,7 @@ export const sweepQueuedNotifications = async () => {
         for (const log of queuedLogs) {
             let deliveryStatus = "sent";
             const to = formatPhoneNumber(log.citizen_contact, log.channel === "whatsapp");
-            const from = log.channel === "whatsapp" ? `whatsapp:${fromNumber}` : fromNumber;
+            const from = log.channel === "whatsapp" ? `whatsapp:${whatsappFromNumber}` : fromNumber;
 
             if (log.channel === "sms" || log.channel === "whatsapp") {
                 if (!accountSid || accountSid.includes("YOUR") || !fromNumber || fromNumber.includes("YOUR")) {
