@@ -9,12 +9,13 @@
 import express from "express";
 import { pool } from "../config/db.js";
 import { success, fail } from "../utils/response.js";
+import { trackingLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
 // ─── GET /api/track/:trackingId ─────────────────────────────
 // Accepts both ticket numbers (CMP-XXXXXX, SRQ-XXXXXX) and UUIDs
-router.get("/:trackingId", async (req, res, next) => {
+router.get("/:trackingId", trackingLimiter, async (req, res, next) => {
     try {
         const { trackingId } = req.params;
 

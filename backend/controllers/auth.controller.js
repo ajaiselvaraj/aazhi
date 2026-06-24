@@ -19,7 +19,7 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     const cookieOptions = {
         httpOnly: true,
         secure: isProd,
-        sameSite: isProd ? "strict" : "lax"
+        sameSite: "strict"
     };
 
     if (accessToken) {
@@ -162,6 +162,14 @@ export const mockAadhaarLogin = async (req, res, next) => {
 export const kioskLoginController = async (req, res, next) => {
     try {
         const { consumerId } = req.body;
+        const kioskSecret = req.headers["x-kiosk-secret"];
+
+        // Secure kiosk authentication
+        const expectedSecret = process.env.KIOSK_SECRET || "default_kiosk_secret_for_dev";
+        if (kioskSecret !== expectedSecret) {
+            logger.warn(`[Auth Controller] Unauthorized Kiosk Login Attempt. Invalid KIOSK_SECRET.`);
+            return fail(res, "Unauthorized kiosk terminal.", 401);
+        }
 
         if (!consumerId) {
             return fail(res, "Consumer ID is required for Kiosk login.", 400);
@@ -526,6 +534,9 @@ export const refreshTokenController = async (req, res, next) => {
 
         const tokens = generateTokens(user);
 
+        // Blacklist the old refresh token (7 days)
+        await blacklistToken(refreshToken, 7 * 24 * 3600);
+
         setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
 
         return success(res, "Token refreshed successfully", {
@@ -544,10 +555,20 @@ export const refreshTokenController = async (req, res, next) => {
 export const logoutController = async (req, res, next) => {
     try {
         const token = req.token;
+        let refreshToken = req.body.refreshToken || null;
         
+        if (!refreshToken && req.headers.cookie) {
+            const match = req.headers.cookie.match(new RegExp('(^| )refreshToken=([^;]+)'));
+            if (match) refreshToken = match[2];
+        }
         if (token) {
             // Blacklist the token so it can't be used again
             await blacklistToken(token, 3600); // 1 hour corresponding to JWT_EXPIRY
+        }
+        
+        if (refreshToken) {
+            // Blacklist the refresh token (7 days)
+            await blacklistToken(refreshToken, 7 * 24 * 3600);
         }
 
         res.clearCookie("accessToken");
@@ -576,16 +597,38 @@ export const updateProfileController = async (req, res, next) => {
         // Ensure email/address columns exist (safe migration)
         await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS email TEXT`).catch(() => {});
         await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS address TEXT`).catch(() => {});
+        await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`).catch(() => {});
+        await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(255)`).catch(() => {});
+        await pool.query(`ALTER TABLE citizens ADD COLUMN IF NOT EXISTS email_verification_expiry BIGINT`).catch(() => {});
+
+        // Check if email changed
+        const currentRes = await pool.query(`SELECT email, email_verified FROM citizens WHERE id = $1`, [citizenId]);
+        const currentEmail = currentRes.rows[0]?.email;
+        let requiresVerification = false;
+        let verificationToken = null;
+        let verificationExpiry = null;
+        let emailVerified = currentRes.rows[0]?.email_verified || false;
+
+        if (email && email !== currentEmail) {
+            requiresVerification = true;
+            emailVerified = false;
+            verificationToken = crypto.randomBytes(32).toString('hex');
+            verificationExpiry = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+            logger.info(`[Auth Controller] MOCK EMAIL VERIFICATION for ${email}: ${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/verify-email?token=${verificationToken}`);
+        }
 
         const result = await pool.query(
             `UPDATE citizens
              SET name = $1,
                  email = COALESCE($2, email),
                  address = COALESCE($3, address),
+                 email_verified = $4,
+                 email_verification_token = COALESCE($5, email_verification_token),
+                 email_verification_expiry = COALESCE($6, email_verification_expiry),
                  updated_at = NOW()
-             WHERE id = $4
-             RETURNING id, name, mobile, email, address, role, created_at`,
-            [name.trim(), email || null, address || null, citizenId]
+             WHERE id = $7
+             RETURNING id, name, mobile, email, email_verified, address, role, created_at`,
+            [name.trim(), email || null, address || null, emailVerified, verificationToken, verificationExpiry, citizenId]
         );
 
         if (result.rows.length === 0) {
@@ -606,6 +649,7 @@ export const updateProfileController = async (req, res, next) => {
                 name: updated.name,
                 mobile: updated.mobile,
                 email: updated.email,
+                email_verified: updated.email_verified,
                 address: updated.address,
                 role: updated.role
             },
@@ -614,5 +658,142 @@ export const updateProfileController = async (req, res, next) => {
     } catch (error) {
         logger.error(`[Auth Controller] Update Profile Error: ${error.message}`);
         return serverError(res, "Failed to update profile.", 500);
+    }
+};
+
+/**
+ * VERIFY EMAIL
+ * Route: GET /api/auth/verify-email
+ */
+export const verifyEmailController = async (req, res) => {
+    try {
+        const { token } = req.query;
+        if (!token) return fail(res, "Verification token is required.", 400);
+
+        const result = await pool.query(
+            `SELECT id, email_verification_expiry FROM citizens WHERE email_verification_token = $1`, 
+            [token]
+        );
+
+        if (result.rows.length === 0) {
+            return fail(res, "Invalid verification token.", 400);
+        }
+
+        const citizen = result.rows[0];
+        if (Date.now() > citizen.email_verification_expiry) {
+            return fail(res, "Verification token has expired.", 400);
+        }
+
+        await pool.query(
+            `UPDATE citizens 
+             SET email_verified = TRUE, email_verification_token = NULL, email_verification_expiry = NULL 
+             WHERE id = $1`,
+            [citizen.id]
+        );
+
+        logger.info(`[Auth Controller] Email successfully verified for citizen: ${citizen.id}`);
+        return success(res, "Email verified successfully.", null, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Verify Email Error: ${error.message}`);
+        return serverError(res, "Failed to verify email.", 500);
+    }
+};
+
+/**
+ * FORGOT PASSWORD
+ * Route: POST /api/auth/forgot-password
+ */
+export const forgotPasswordController = async (req, res) => {
+    try {
+        const { adminId } = req.body;
+        if (!adminId) return fail(res, "Admin ID is required.", 400);
+
+        // Safe migration for officer accounts
+        await pool.query(`ALTER TABLE officer_accounts ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255)`).catch(() => {});
+        await pool.query(`ALTER TABLE officer_accounts ADD COLUMN IF NOT EXISTS reset_token_expiry BIGINT`).catch(() => {});
+
+        const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", [adminId]);
+        if (officerRes.rows.length === 0) {
+            // Return success anyway to prevent user enumeration
+            return success(res, "If the account exists, a password reset token has been generated.", null, 200);
+        }
+
+        const officer = officerRes.rows[0];
+        
+        // Generate a 15-minute secure token
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+        const resetTokenExpiry = Date.now() + 15 * 60 * 1000;
+
+        await pool.query(
+            `UPDATE officer_accounts SET reset_token_hash = $1, reset_token_expiry = $2 WHERE id = $3`,
+            [resetTokenHash, resetTokenExpiry, officer.id]
+        );
+
+        // In a real system, send this via email/SMS. Logging for demonstration.
+        logger.info(`[Auth Controller] MOCK PASSWORD RESET for ${adminId}: Token is ${resetToken}`);
+
+        return success(res, "If the account exists, a password reset token has been generated.", null, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Forgot Password Error: ${error.message}`);
+        return serverError(res, "Failed to process forgot password.", 500);
+    }
+};
+
+/**
+ * RESET PASSWORD
+ * Route: POST /api/auth/reset-password
+ */
+export const resetPasswordController = async (req, res) => {
+    try {
+        const { adminId, token, newPassword } = req.body;
+
+        if (!adminId || !token || !newPassword) {
+            return fail(res, "Admin ID, token, and new password are required.", 400);
+        }
+
+        const officerRes = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", [adminId]);
+        if (officerRes.rows.length === 0) {
+            return fail(res, "Invalid request.", 400);
+        }
+
+        const officer = officerRes.rows[0];
+
+        if (!officer.reset_token_hash || !officer.reset_token_expiry) {
+            return fail(res, "Invalid or expired reset token.", 400);
+        }
+
+        if (Date.now() > officer.reset_token_expiry) {
+            return fail(res, "Reset token has expired.", 400);
+        }
+
+        const inputTokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        if (inputTokenHash !== officer.reset_token_hash) {
+            return fail(res, "Invalid or expired reset token.", 400);
+        }
+
+        // Validate strong password
+        if (newPassword.length < 12) {
+            return fail(res, "Password must be at least 12 characters long.", 400);
+        }
+
+        // Hash new password and clear reset tokens
+        const salt = await bcrypt.genSalt(12);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        await pool.query(
+            `UPDATE officer_accounts 
+             SET password_hash = $1, reset_token_hash = NULL, reset_token_expiry = NULL 
+             WHERE id = $2`,
+            [hashedPassword, officer.id]
+        );
+
+        await logSecurityIncident("Password Reset Successful", "Low", { username: adminId, officerId: officer.id });
+
+        logger.info(`[Auth Controller] Password successfully reset for ${adminId}`);
+        return success(res, "Password reset successfully.", null, 200);
+    } catch (error) {
+        logger.error(`[Auth Controller] Reset Password Error: ${error.message}`);
+        return serverError(res, "Failed to reset password.", 500);
     }
 };

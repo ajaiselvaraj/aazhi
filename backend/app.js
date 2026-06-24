@@ -25,6 +25,7 @@ import cciRoutes from "./routes/cci.routes.js"; // ⭐ ADD-ON: Cross-Complaint C
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import escalationRoutes from "./routes/escalation.routes.js"; // ⭐ ADD-ON: Complaint Escalation & Accountability Engine
+import aiRoutes from "./routes/ai.routes.js"; // ⭐ AI Proxy Routes
 import { startEscalationCron } from "./services/escalationCron.js"; // ⭐ ADD-ON: SLA breach background cron
 
 import { pool, getPoolStatus } from "./config/db.js";
@@ -35,6 +36,17 @@ import auditLogger from "./middleware/audit.middleware.js";
 import { SecurityEngine } from "./middleware/SecurityEngine.js";
 
 const app = express();
+
+// ─── Trust Cloud Proxies ──────────────────────────────
+app.set('trust proxy', 1);
+
+// ─── HTTPS Redirect (Production Only) ──────────────────
+app.use((req, res, next) => {
+    if (process.env.NODE_ENV === "production" && !req.secure && req.get("x-forwarded-proto") !== "https") {
+        return res.redirect(`https://${req.get("host")}${req.url}`);
+    }
+    next();
+});
 
 // ─── Enable gzip/brotli Compression ───────────────────
 app.use(compression());
@@ -63,8 +75,8 @@ app.use(cors({
             return callback(null, true);
         }
 
-        // Allow localhost and local network IPs (for WiFi testing)
-        if (origin.startsWith('http://localhost') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.')) {
+        // Allow localhost and local network IPs (only in development)
+        if (process.env.NODE_ENV !== 'production' && (origin.startsWith('http://localhost') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.'))) {
             return callback(null, true);
         }
 
@@ -97,9 +109,26 @@ app.use((req, res, next) => {
     next();
 });
 
-// ─── Body Parsing ─────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ─── Body Parsing & XSS Protection ──────────────────────
+import xssClean from "xss-clean";
+
+app.use((req, res, next) => {
+    if (req.path === '/api/integrity/report') {
+        express.json({ limit: '10mb' })(req, res, next);
+    } else {
+        express.json({ limit: '10kb' })(req, res, next);
+    }
+});
+
+app.use((req, res, next) => {
+    if (req.path === '/api/integrity/report') {
+        express.urlencoded({ extended: true, limit: '10mb' })(req, res, next);
+    } else {
+        express.urlencoded({ extended: true, limit: '10kb' })(req, res, next);
+    }
+});
+
+app.use(xssClean()); // Strip malicious scripts and tags globally
 
 
 // ─── Logging ──────────────────────────────────────────
@@ -180,6 +209,7 @@ app.use("/api/cci", cciRoutes);                 // ⭐ ADD-ON: Cross-Complaint C
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api", escalationRoutes);             // ⭐ ADD-ON: Escalation & Accountability API
+app.use("/api/ai", aiRoutes);                    // ⭐ AI Proxy Routes
 startEscalationCron();                           // ⭐ ADD-ON: Start 30-min SLA breach cron
 
 

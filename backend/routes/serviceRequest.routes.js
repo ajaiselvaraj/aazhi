@@ -18,21 +18,17 @@ import authMiddleware from "../middleware/auth.middleware.js";
 import { optionalAuth } from "../middleware/auth.middleware.js";
 import { staffOnly } from "../middleware/role.middleware.js";
 import { validate, createServiceRequestSchema, updateServiceRequestStatusSchema } from "../utils/validator.js";
+import { trackingLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-// --- DEBUG ROUTES ---
-router.get("/admin/debug", getAllRequestsAdminDebug);
-router.get("/debug", getMyServiceRequestsDebug);
-router.post("/debug", createRequestDebug);
-router.put("/debug/:id/status", updateRequestStatusDebug);
-// --------------------
+// --- DEBUG ROUTES REMOVED FOR PRODUCTION SECURITY ---
 router.post("/", authMiddleware, validate(createServiceRequestSchema), createServiceRequest);
 router.get("/", authMiddleware, getMyServiceRequests);
 router.get("/admin", authMiddleware, staffOnly, getAllServiceRequestsAdmin);
-router.get("/search", optionalAuth, searchRequests);
-router.get("/track/:ticketNumber", optionalAuth, trackServiceRequest);
+router.get("/search", authMiddleware, searchRequests); // SEARCH requires auth to prevent data leak
+router.get("/track/:ticketNumber", trackingLimiter, optionalAuth, trackServiceRequest);
 router.put("/:id/status", authMiddleware, staffOnly, validate(updateServiceRequestStatusSchema), updateServiceRequestStatus);
-router.post("/:id/messages", optionalAuth, addMessageToRequest);
+router.post("/:id/messages", authMiddleware, addMessageToRequest);
 
 export default router;

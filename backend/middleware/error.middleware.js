@@ -64,10 +64,25 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // ── Log the error ─────────────────────────────────────────
+  const redactSensitiveFields = (body) => {
+    if (!body || typeof body !== 'object') return body;
+    const redacted = { ...body };
+    const sensitiveKeys = ['password', 'newPassword', 'confirmPassword', 'otp', 'token', 'resetToken', 'emailVerificationToken'];
+    
+    for (const key of Object.keys(redacted)) {
+      if (sensitiveKeys.includes(key)) {
+        redacted[key] = '[REDACTED]';
+      } else if (typeof redacted[key] === 'object' && redacted[key] !== null) {
+        redacted[key] = redactSensitiveFields(redacted[key]);
+      }
+    }
+    return redacted;
+  };
+
   if (statusCode >= 500) {
     logger.error(`[${req.method}] ${req.originalUrl} — ${message}`, {
       stack: err.stack,
-      body: req.body,
+      body: redactSensitiveFields(req.body),
       params: req.params,
     });
   } else {

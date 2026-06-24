@@ -97,6 +97,8 @@ export const registerComplaint = async (req, res, next) => {
             const analysisResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/analyze`, {
                 text: `${subject || ''} ${description}`,
                 existing_complaints: existing_complaints_raw
+            }, {
+                headers: { 'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret' }
             });
 
             const analysis = analysisResponse.data?.data;
@@ -513,10 +515,14 @@ export const addMessage = async (req, res, next) => {
         const senderId = req.user.id;
         const senderType = req.user.role === "citizen" ? "citizen" : "authority";
 
-        // Verify complaint exists
-        const complaint = await pool.query("SELECT id FROM complaints WHERE id = $1", [id]);
+        // Verify complaint exists and check ownership for citizens
+        const complaint = await pool.query("SELECT id, citizen_id FROM complaints WHERE id = $1", [id]);
         if (complaint.rows.length === 0) {
             return fail(res, "Complaint not found.", 404);
+        }
+
+        if (req.user.role === "citizen" && complaint.rows[0].citizen_id !== req.user.id) {
+            return fail(res, "Forbidden: You do not own this complaint.", 403);
         }
 
         const result = await pool.query(

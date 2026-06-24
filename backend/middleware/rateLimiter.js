@@ -53,4 +53,20 @@ export const paymentLimiter = rateLimit({
   },
 });
 
+/**
+ * AI limiter — prevents abuse of expensive AI endpoints.
+ * 10 requests per 15 minutes per IP.
+ */
+export const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: "Too many AI generation requests. Please slow down.",
+    data: {},
+  },
+});
+
 export default generalLimiter;

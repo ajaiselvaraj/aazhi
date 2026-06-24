@@ -983,7 +983,10 @@ export const getMLComplaintClusters = async (req, res, next) => {
 
         const aiRes = await fetch(targetUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret'
+            },
             body: JSON.stringify({ complaints, threshold: 0.40 }),
             signal: abortController.signal
         });
@@ -1024,7 +1027,10 @@ export const getMLForecast = async (req, res, next) => {
 
         const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/forecast`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret'
+            },
             body: JSON.stringify({ daily_counts: dailyCounts, forecast_days: 7 }),
         });
         const aiData = await aiRes.json();
@@ -1060,7 +1066,10 @@ export const getMLSentimentPulse = async (req, res, next) => {
 
         const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/sentiment-pulse`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret'
+            },
             body: JSON.stringify({ complaints: formatted }),
         });
         const aiData = await aiRes.json();
@@ -1077,7 +1086,10 @@ export const getMLDiagnostics = async (req, res, next) => {
     try {
         const aiRes = await fetch(`${AI_SERVICE_URL}/api/ai/diagnostics`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret'
+            },
             body: JSON.stringify({ run_full: true }),
         });
         const aiData = await aiRes.json();

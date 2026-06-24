@@ -3,7 +3,20 @@
 // ═══════════════════════════════════════════════════════════════
 
 import express from "express";
-import { sendOtpController, verifyOtpController, mockAadhaarLogin, adminLogin, verifyMfaLogin, refreshTokenController, logoutController, updateProfileController, kioskLoginController } from "../controllers/auth.controller.js";
+import { 
+    sendOtpController, 
+    verifyOtpController, 
+    mockAadhaarLogin, 
+    adminLogin, 
+    verifyMfaLogin, 
+    refreshTokenController, 
+    logoutController, 
+    updateProfileController, 
+    kioskLoginController,
+    forgotPasswordController,
+    resetPasswordController,
+    verifyEmailController
+} from "../controllers/auth.controller.js";
 import { authLimiter } from "../middleware/rateLimiter.js";
 import authMiddleware from "../middleware/auth.middleware.js";
 
@@ -28,7 +41,7 @@ router.post("/verify-otp", authLimiter, verifyOtpController);
  * @route   POST /api/auth/mock-aadhaar
  * @access  Public
  */
-router.post("/mock-aadhaar", mockAadhaarLogin);
+router.post("/mock-aadhaar", authLimiter, mockAadhaarLogin);
 
 /**
  * @desc    Kiosk Citizen Login via Consumer ID
@@ -42,14 +55,35 @@ router.post("/kiosk/login", authLimiter, kioskLoginController);
  * @route   POST /api/auth/admin-login
  * @access  Public
  */
-router.post("/admin-login", adminLogin);
+router.post("/admin-login", authLimiter, adminLogin);
 
 /**
  * @desc    Verify MFA token and code
  * @route   POST /api/auth/verify-mfa
  * @access  Public
  */
-router.post("/verify-mfa", verifyMfaLogin);
+router.post("/verify-mfa", authLimiter, verifyMfaLogin);
+
+/**
+ * @desc    Forgot Password (Admin/Officer)
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+router.post("/forgot-password", authLimiter, forgotPasswordController);
+
+/**
+ * @desc    Reset Password (Admin/Officer)
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+router.post("/reset-password", authLimiter, resetPasswordController);
+
+/**
+ * @desc    Verify Email
+ * @route   GET /api/auth/verify-email
+ * @access  Public
+ */
+router.get("/verify-email", verifyEmailController);
 
 /**
  * @desc    Refresh access token using refresh token

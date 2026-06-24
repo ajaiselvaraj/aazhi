@@ -7,6 +7,9 @@
 
 import { Server as SocketIOServer } from "socket.io";
 import logger from "./utils/logger.js";
+import { verifyToken } from "./services/jwt.service.js";
+import { isTokenBlacklisted } from "./middleware/tokenBlacklist.js";
+import { pool } from "./config/db.js";
 
 let io = null;
 
@@ -19,25 +22,89 @@ export function initSocketIO(httpServer, allowedOrigins = []) {
         cors: {
             // Allow all origins in local/kiosk mode so phones on same WiFi can connect.
             // In production, restrict by setting FRONTEND_URL env var.
-            origin: allowedOrigins.length > 0 ? true : true,
+            origin: allowedOrigins.length > 0 ? allowedOrigins : true,
             methods: ["GET", "POST"],
             credentials: true,
         },
         transports: ["websocket", "polling"],
     });
 
+    // ─── Socket.IO Authentication Middleware ───
+    io.use(async (socket, next) => {
+        try {
+            let token = null;
+            // 1. Try to get token from socket auth payload
+            if (socket.handshake.auth && socket.handshake.auth.token) {
+                token = socket.handshake.auth.token;
+            } 
+            // 2. Try to get token from cookies
+            else if (socket.handshake.headers.cookie) {
+                const match = socket.handshake.headers.cookie.match(new RegExp('(^| )accessToken=([^;]+)'));
+                if (match) token = match[2];
+            }
+
+            if (!token) {
+                return next(new Error("Authentication error: No token provided."));
+            }
+
+            const decoded = verifyToken(token);
+            if (!decoded) {
+                return next(new Error("Authentication error: Invalid token."));
+            }
+
+            const blacklisted = await isTokenBlacklisted(token);
+            if (blacklisted) {
+                return next(new Error("Authentication error: Session expired or terminated."));
+            }
+
+            socket.user = decoded; // Attach user info to socket
+            next();
+        } catch (err) {
+            logger.warn(`[Socket.IO] Authentication failed: ${err.message}`);
+            return next(new Error("Authentication error."));
+        }
+    });
+
     io.on("connection", (socket) => {
-        logger.info(`[Socket.IO] Client connected: ${socket.id}`);
+        logger.info(`[Socket.IO] Authenticated Client connected: ${socket.id} (User ID: ${socket.user.id})`);
 
         // Client subscribes to a specific tracking room (complaint or service request)
-        socket.on("track:join", (id) => {
+        socket.on("track:join", async (id) => {
             if (id) {
-                const room1 = `complaint:${id}`;
-                const room2 = `service_request:${id}`;
-                socket.join(room1);
-                socket.join(room2);
-                logger.info(`[Socket.IO] ${socket.id} joined tracking rooms for ${id}`);
-                socket.emit("track:joined", { id, room: room1 });
+                try {
+                    // Bypass check for admins and staff
+                    if (socket.user.role !== "admin" && socket.user.role !== "staff" && socket.user.role !== "integrity_officer" && socket.user.role !== "executive_oversight") {
+                        // Check Complaint ownership
+                        const complaintRes = await pool.query("SELECT citizen_id FROM complaints WHERE id = $1", [id]);
+                        if (complaintRes.rows.length > 0) {
+                            if (complaintRes.rows[0].citizen_id !== socket.user.id) {
+                                logger.warn(`[Socket.IO] Unauthorized tracking attempt for complaint ${id} by user ${socket.user.id}`);
+                                return;
+                            }
+                        } else {
+                            // If not a complaint, check Service Request ownership
+                            const srRes = await pool.query("SELECT citizen_id FROM service_requests WHERE id = $1", [id]);
+                            if (srRes.rows.length > 0) {
+                                if (srRes.rows[0].citizen_id !== socket.user.id) {
+                                    logger.warn(`[Socket.IO] Unauthorized tracking attempt for SR ${id} by user ${socket.user.id}`);
+                                    return;
+                                }
+                            } else {
+                                // Record not found
+                                return;
+                            }
+                        }
+                    }
+
+                    const room1 = `complaint:${id}`;
+                    const room2 = `service_request:${id}`;
+                    socket.join(room1);
+                    socket.join(room2);
+                    logger.info(`[Socket.IO] ${socket.id} (User: ${socket.user.id}) joined tracking rooms for ${id}`);
+                    socket.emit("track:joined", { id, room: room1 });
+                } catch (err) {
+                    logger.error(`[Socket.IO] Error joining tracking room: ${err.message}`);
+                }
             }
         });
 
@@ -57,7 +124,7 @@ export function initSocketIO(httpServer, allowedOrigins = []) {
         });
     });
 
-    logger.info("[Socket.IO] Server initialised and attached to HTTP server.");
+    logger.info("[Socket.IO] Server initialised with JWT Auth.");
     return io;
 }
 

@@ -119,6 +119,43 @@ export class SecurityEngine {
       });
     }
 
+    // ── 4. CSRF Protection (Origin / Referer Check) ───────────
+    if (["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) {
+      const origin = req.headers.origin;
+      const referer = req.headers.referer;
+      const host = req.headers.host;
+      
+      const allowedOrigins = (process.env.FRONTEND_URL ||
+        "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:5173,http://localhost:5174,http://localhost:5175")
+        .split(",")
+        .map(o => o.trim());
+
+      // If neither origin nor referer is present, and it's not a server-to-server or kiosk call (which should have WAF secret), block it
+      if (!origin && !referer && !req.headers["x-waf-secret"] && !req.headers["x-kiosk-secret"]) {
+          return res.status(403).json({ success: false, message: "CSRF Protection: Missing Origin or Referer." });
+      }
+
+      let isValidOrigin = false;
+      
+      if (origin) {
+        isValidOrigin = allowedOrigins.includes(origin);
+      } else if (referer) {
+        isValidOrigin = allowedOrigins.some(allowed => referer.startsWith(allowed));
+      }
+
+      // Allow Postman / cURL if they have valid WAF or KIOSK secrets
+      if (!isValidOrigin && (req.headers["x-waf-secret"] || req.headers["x-kiosk-secret"])) {
+          isValidOrigin = true;
+      }
+
+      if (!isValidOrigin) {
+        return res.status(403).json({
+          success: false,
+          message: "CSRF Protection: Invalid Origin/Referer."
+        });
+      }
+    }
+
     next();
   }
 }

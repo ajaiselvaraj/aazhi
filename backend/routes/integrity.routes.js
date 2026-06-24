@@ -70,12 +70,14 @@ const captchaLimiter = rateLimit({
     }
 });
 
+import { trackingLimiter } from "../middleware/rateLimiter.js";
+
 // ─── PUBLIC ENDPOINTS ───
 router.get("/captcha", captchaLimiter, getCaptcha);
 router.post("/report", reportLimiter, lodgeReport);
-router.get("/track/:caseCode", trackReport);
-router.get("/track/:caseCode/messages", getCitizenMessages);
-router.post("/track/:caseCode/messages", postCitizenMessage);
+router.get("/track/:caseCode", trackingLimiter, trackReport);
+router.get("/track/:caseCode/messages", trackingLimiter, getCitizenMessages);
+router.post("/track/:caseCode/messages", trackingLimiter, postCitizenMessage);
 router.get("/public/transparency", getPublicTransparencyMetrics); // V4 Public transparency aggregation
 
 // ─── ENFORCED RBAC ENDPOINTS ───

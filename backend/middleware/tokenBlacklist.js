@@ -27,6 +27,23 @@ if (!useMemoryFallback) {
     console.warn("⚠️ [Redis] No REDIS_URL provided. Using in-memory blacklist fallback.");
 }
 
+export const isTokenBlacklisted = async (token) => {
+    if (!token) return false;
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    
+    if (useMemoryFallback) {
+        return memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
+    } else if (redisClient) {
+        try {
+            return await redisClient.get(`bl_${hashedToken}`) !== null;
+        } catch (err) {
+            useMemoryFallback = true;
+            return memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
+        }
+    }
+    return false;
+};
+
 /**
  * Middleware to check if the current JWT token is blacklisted.
  * Drop this into your routes directly AFTER your JWT verification middleware.
@@ -37,21 +54,10 @@ export const checkTokenBlacklist = async (req, res, next) => {
         if (!token) {
             return next();
         }
-        const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
         
-        let isBlacklisted = false;
-        if (useMemoryFallback) {
-            isBlacklisted = memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
-        } else if (redisClient) {
-            try {
-                isBlacklisted = await redisClient.get(`bl_${hashedToken}`);
-            } catch (err) {
-                useMemoryFallback = true;
-                isBlacklisted = memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
-            }
-        }
+        const blacklisted = await isTokenBlacklisted(token);
 
-        if (isBlacklisted) {
+        if (blacklisted) {
             return res.status(401).json({
                 success: false,
                 message: "Session expired or terminated. Please log in again.",

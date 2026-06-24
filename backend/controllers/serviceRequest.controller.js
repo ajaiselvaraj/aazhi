@@ -77,6 +77,8 @@ export const createServiceRequest = async (req, res, next) => {
             const analysisResponse = await axios.post(`${AI_SERVICE_URL}/api/ai/analyze`, {
                 text: description,
                 existing_complaints: existing_complaints_raw
+            }, {
+                headers: { 'x-ai-secret': process.env.AI_INTERNAL_SECRET || 'dev_ai_secret' }
             });
 
             const analysis = analysisResponse.data?.data;
@@ -852,6 +854,10 @@ export const addMessageToRequest = async (req, res, next) => {
 
         if (current.rows.length === 0) {
             return fail(res, "Service request not found.", 404);
+        }
+
+        if (req.user && req.user.role === "citizen" && current.rows[0].citizen_id !== req.user.id) {
+            return fail(res, "Forbidden: You do not own this service request.", 403);
         }
 
         const actualId = current.rows[0].id;

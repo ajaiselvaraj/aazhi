@@ -39,6 +39,27 @@ export const initializeAuthTables = async () => {
             // Ignore if columns don't exist or already nullable, this is a best-effort migration
         });
 
+        // 🚀 SECURITY & AUTHENTICATION MIGRATIONS
+        logger.info("📡 Applying authentication schema columns for email verification & password resets...");
+        await pool.query(`
+            ALTER TABLE citizens 
+            ADD COLUMN IF NOT EXISTS email TEXT,
+            ADD COLUMN IF NOT EXISTS address TEXT,
+            ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS email_verification_token VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS email_verification_expiry BIGINT;
+        `).catch(e => {
+            logger.warn(`Migration citizens auth columns failed: ${e.message}`);
+        });
+
+        await pool.query(`
+            ALTER TABLE officer_accounts
+            ADD COLUMN IF NOT EXISTS reset_token_hash VARCHAR(255),
+            ADD COLUMN IF NOT EXISTS reset_token_expiry BIGINT;
+        `).catch(e => {
+            logger.warn(`Migration officer_accounts auth columns failed: ${e.message}`);
+        });
+
         // 🚀 TRANSACTION MODULE REDESIGN MIGRATIONS
         logger.info("📡 Applying migrations to transactions table for guest support & failure tracking...");
         

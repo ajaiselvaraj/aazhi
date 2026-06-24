@@ -380,30 +380,22 @@ class SuvidhaIntelligence {
           return this.renderWelcome(voiceEnabled, t);
         }
         try {
-          const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-          if (!API_KEY) {
-            return {
-              text: `Analyzing your question regarding "${query}"... \n\n(Note: Set VITE_GEMINI_API_KEY to see real AI). This is a simulated response to: '${query}'. If you have more questions, keep asking! Type 'home' to exit.`,
-              voice: voiceEnabled ? "I have analyzed your query." : undefined
-            };
-          }
-          
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
+          const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${API_BASE}/ai/gemini`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `You are SUVIDHA, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}` }] }]
-            })
+            body: JSON.stringify({ query })
           });
           
           const data = await response.json();
-          if (data.error) {
+          if (!data.success) {
             return {
-              text: `AI Error: ${data.error.message || "Unknown error"}. Please check your API key.`,
+              text: data.message || "AI Error occurred. Please try again.",
               voice: voiceEnabled ? "AI error occurred." : undefined
             };
           }
-          let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response from the AI.";
+          
+          let answerText = data.data?.text || "I'm sorry, I couldn't generate a response from the AI.";
           
           return {
             text: `${answerText}\n\nType 'home' to exit Queries mode.`,

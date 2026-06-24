@@ -36,7 +36,7 @@ function verifyJwt(req, res, next) {
         // Attach token for downstream middlewares (like blacklist)
         req.token = token;
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
         req.user = {
             id: decoded.id,
             role: decoded.role,
@@ -67,7 +67,7 @@ export function optionalAuth(req, res, next) {
     try {
         const token = extractToken(req);
         if (token) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ["HS256"] });
             req.user = {
                 id: decoded.id,
                 role: decoded.role,

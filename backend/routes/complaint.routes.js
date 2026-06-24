@@ -20,17 +20,13 @@ import { optionalAuth } from "../middleware/auth.middleware.js";
 import { staffOnly } from "../middleware/role.middleware.js";
 import { checkServiceEnabled } from "../middleware/serviceCheck.middleware.js";
 import { validate, createComplaintSchema, updateComplaintStatusSchema } from "../utils/validator.js";
+import { trackingLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
 router.use(checkServiceEnabled("complaints"));
 
-// --- DEBUG ROUTES ---
-router.get("/admin/debug", getAllComplaintsAdminDebug);
-router.get("/debug", getMyComplaintsDebug);
-router.post("/debug", createComplaintDebug);
-router.put("/debug/:id/status", updateComplaintStatusDebug);
-// --------------------
+// --- DEBUG ROUTES REMOVED FOR PRODUCTION SECURITY ---
 
 // --- PUBLIC: Workflow Definition (no auth — used by user-side hook) ---
 // GET /api/complaints/workflow/complaint        - complaint stages
@@ -41,7 +37,7 @@ router.get("/workflow/:type", getPublicWorkflow);
 router.post("/", authMiddleware, validate(createComplaintSchema), registerComplaint);
 router.get("/", authMiddleware, getMyComplaints);
 router.get("/admin", authMiddleware, staffOnly, getAllComplaintsAdmin);
-router.get("/track/:ticketNumber", optionalAuth, trackComplaint);
+router.get("/track/:ticketNumber", trackingLimiter, optionalAuth, trackComplaint);
 router.put("/:id/status", authMiddleware, staffOnly, validate(updateComplaintStatusSchema), updateComplaintStatus);
 router.post("/:id/messages", authMiddleware, addMessage);
 
