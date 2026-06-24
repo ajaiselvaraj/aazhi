@@ -19,12 +19,18 @@ build/
 out/
 coverage/
 
-# ─── Logs ─────────────────────────────────────────────────
+# ─── Logs & Temp Files ──────────────────────────────────────
 logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.tmp
+*.cache
+tsc_output*.txt
+ts_errors*.txt
+slow_log.txt
 
 # ─── OS Generated Files ───────────────────────────────────
 .DS_Store
