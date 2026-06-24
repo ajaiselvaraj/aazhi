@@ -19,6 +19,15 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 function loadSession(): AuthUser | null {
   try {
+    const isSessionActive = sessionStorage.getItem('admin_session_initialized')
+    if (!isSessionActive) {
+      console.log("🚀 [Admin Boot] Fresh tab detected. Forcing login.");
+      localStorage.removeItem(SESSION_KEY)
+      localStorage.removeItem('adminToken')
+      sessionStorage.setItem('admin_session_initialized', 'true')
+      return null
+    }
+
     const raw = localStorage.getItem(SESSION_KEY)
     return raw ? (JSON.parse(raw) as AuthUser) : null
   } catch {
