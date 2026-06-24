@@ -659,7 +659,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
               <div className="p-4 bg-purple-500/10 rounded-full border border-purple-500/20 mb-4 animate-pulse">
                 <MapPin className="h-8 w-8 text-purple-400" />
               </div>
-              <h3 className="text-lg font-bold text-slate-200 mb-2">Live Outage Map Disabled</h3>
+              <h3 className="text-lg font-bold text-slate-200 mb-2">{t('liveOutageMapDisabled') || 'Live Outage Map Disabled'}</h3>
               <p className="text-xs text-slate-400 max-w-sm mb-6 leading-relaxed">
                 The interactive map requires a Mapbox API token. Please configure the 
                 <code className="mx-1.5 px-1.5 py-0.5 rounded bg-slate-900 text-purple-300 font-mono text-[10px] border border-purple-500/25">VITE_MAPBOX_ACCESS_TOKEN</code> 

@@ -142,8 +142,8 @@ const WaterBillCalculator: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                             <Calculator size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">Water Bill Calculator</h2>
-                        <p className="text-slate-500 font-medium mb-8">Estimate your monthly water bill for Assam urban areas.</p>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('waterCalculator') || 'Water Bill Calculator'}</h2>
+                        <p className="text-slate-500 font-medium mb-8">{t('calculateWaterCharges') || 'Estimate your monthly water bill for Assam urban areas.'}</p>
 
                         <div className="space-y-6">
                             {/* Category Selection */}
@@ -151,10 +151,10 @@ const WaterBillCalculator: React.FC<Props> = ({ onBack, language }) => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Consumer Category</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[
-                                        { id: 'DOMESTIC', icon: Home, label: 'Domestic' },
-                                        { id: 'COMMERCIAL', icon: Building2, label: 'Commercial' },
+                                        { id: 'DOMESTIC', icon: Home, label: t('domestic') || 'Domestic' },
+                                        { id: 'COMMERCIAL', icon: Building2, label: t('commercial') || 'Commercial' },
                                         { id: 'INSTITUTIONAL', icon: School, label: 'Institutional' },
-                                        { id: 'INDUSTRIAL', icon: Factory, label: 'Industrial' }
+                                        { id: 'INDUSTRIAL', icon: Factory, label: t('industrial') || 'Industrial' }
                                     ].map((cat) => (
                                         <button
                                             key={cat.id}
@@ -170,7 +170,7 @@ const WaterBillCalculator: React.FC<Props> = ({ onBack, language }) => {
 
                             {/* Consumption Input */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Consumption Amount</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{t('consumption') || 'Consumption Amount'}</label>
                                 <div className="flex gap-2">
                                     <div className="relative flex-1">
                                         <input
@@ -277,7 +277,7 @@ const WaterBillCalculator: React.FC<Props> = ({ onBack, language }) => {
                             <div className="p-10 space-y-8 flex-1">
                                 {/* Slab Breakdown */}
                                 <div>
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Slab Breakdown</h4>
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{t('slabBreakdown') || 'Slab Breakdown'}</h4>
                                     <div className="space-y-2">
                                         {result.slabBreakdown.map((s: any, idx: number) => (
                                             <div key={idx} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100 transition">

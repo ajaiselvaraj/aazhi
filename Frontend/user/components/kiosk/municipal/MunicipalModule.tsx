@@ -191,13 +191,13 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       </div>
 
       {/* Consumer Services Grid */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('consumerServices') || 'Consumer Services'}</h3>
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
-          { id: 'WATER', icon: Droplet, label: 'Water Services', desc: 'New connection / Upgrade' },
-          { id: 'TAXES', icon: FileText, label: 'Property Tax', desc: 'Pay property tax' },
-          { id: 'COMPLAINTS', icon: AlertCircle, label: 'Complaints', desc: 'Report civic issues' },
-          { id: 'PROFILE', icon: UserCog, label: 'My Profile', desc: 'Update details' },
+          { id: 'WATER', icon: Droplet, label: t('waterServices') || 'Water Services', desc: t('descNewConnection') || 'New connection / Upgrade' },
+          { id: 'TAXES', icon: FileText, label: t('propertyTax') || 'Property Tax', desc: t('descPayPropertyTax') || 'Pay property tax' },
+          { id: 'COMPLAINTS', icon: AlertCircle, label: t('complaints') || 'Complaints', desc: t('descReportCivic') || 'Report civic issues' },
+          { id: 'PROFILE', icon: UserCog, label: t('myProfile') || 'My Profile', desc: t('descUpdateDetails') || 'Update details' },
         ].map((item) => (
           <button
             key={item.id}
@@ -214,15 +214,15 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       </div>
 
       {/* Secondary Tools */}
-      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
+      <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('otherTools') || 'Other Tools'}</h3>
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
-          { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace application status' },
-          { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
-          { id: 'CALCULATOR', icon: Calculator, label: 'Water Calculator', desc: 'Estimate water charges' },
-          { id: 'TARIFF', icon: FileText, label: 'Water Tariffs', desc: 'View water charge slabs' },
-          { id: 'PT_CALCULATOR', icon: Calculator, label: 'Tax Calculator', desc: 'Estimate property tax' },
-          { id: 'PT_TARIFF', icon: FileText, label: 'Tax Tariffs', desc: 'View property tax rates' },
+          { id: 'TRACKER', icon: SearchCode, label: t('trackRequest') || 'Track Request', desc: t('descTraceApplication') || 'Trace application status' },
+          { id: 'TRANSACTIONS', icon: CreditCard, label: t('myTransactions') || 'My Transactions', desc: t('descPaymentHistory') || 'View payment history' },
+          { id: 'CALCULATOR', icon: Calculator, label: t('waterCalculator') || 'Water Calculator', desc: t('descEstimateWater') || 'Estimate water charges' },
+          { id: 'TARIFF', icon: FileText, label: t('waterTariffs') || 'Water Tariffs', desc: t('descViewWaterSlabs') || 'View water charge slabs' },
+          { id: 'PT_CALCULATOR', icon: Calculator, label: t('taxCalculator') || 'Tax Calculator', desc: t('descEstimateTax') || 'Estimate property tax' },
+          { id: 'PT_TARIFF', icon: FileText, label: t('taxTariffs') || 'Tax Tariffs', desc: t('descViewTaxRates') || 'View property tax rates' },
         ].map((item) => (
           <button
             key={item.id}

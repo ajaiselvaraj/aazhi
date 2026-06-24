@@ -156,8 +156,8 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
             </div>
 
             <div className="space-y-4">
-              <label className="block text-sm font-black text-slate-400 uppercase tracking-widest">
-                {t('propertyType') || 'Property Type'}
+              <label className="block text-sm font-black text-slate-400 uppercase tracking-widest mb-3">
+                {t('muni_propertyType') || 'Property Type'}
               </label>
               <div className="flex flex-wrap gap-4">
                 {propertyTypes.map(type => (
@@ -247,7 +247,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
               </div>
 
               <div className="space-y-3">
-                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Requested Pipe Size *</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('muni_pipeSize') || 'Required Pipe Size'}</label>
                  <select
                   value={formData.pipeSize}
                   onChange={(e) => handleInputChange('pipeSize', e.target.value)}
@@ -265,7 +265,7 @@ const WaterConnectionForm: React.FC<Props> = ({ onBack, language }) => {
                 onClick={() => validateDetails() && handleSubmit()}
                 className="bg-green-600 text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-green-700 transition flex items-center gap-3 shadow-xl hover:-translate-y-1"
               >
-                Submit Application <CheckCircle size={24} />
+                {t('muni_submitRequest') || 'Submit Request'} <CheckCircle size={24} />
               </button>
             </div>
           </div>

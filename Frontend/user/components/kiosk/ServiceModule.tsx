@@ -203,7 +203,7 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
                                             type="text"
                                             className="w-full bg-slate-50 p-4 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none font-bold text-slate-900 privacy-sensitive placeholder:text-slate-300"
                                             value={applicantName}
-                                            placeholder="Your Full Name"
+                                            placeholder={t('sf_enterFullName') || 'Your Full Name'}
                                             onChange={e => setApplicantName(e.target.value)}
                                         />
                                     </div>
@@ -214,7 +214,7 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
                                             type="text"
                                             className="w-full bg-slate-50 p-4 rounded-xl border-2 border-slate-100 focus:border-indigo-600 outline-none font-bold text-slate-900 privacy-sensitive placeholder:text-slate-300"
                                             value={contactNumber}
-                                            placeholder="Mobile Number"
+                                            placeholder={t('mobileNumberPlaceholder') || 'Mobile Number'}
                                             onChange={e => setContactNumber(e.target.value)}
                                         />
                                     </div>

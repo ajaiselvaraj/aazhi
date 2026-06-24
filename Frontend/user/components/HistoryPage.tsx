@@ -115,7 +115,7 @@ const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem)
           title="Download Receipt PDF"
         >
           <Download size={18} />
-          <span>Download Receipt</span>
+          <span>{t('hist_downloadReceipt') || 'Download Receipt'}</span>
         </button>
       </div>
 
@@ -410,8 +410,8 @@ const HistoryPage: React.FC = () => {
             <Archive size={isVertical ? 32 : 26} />
           </div>
           <div>
-            <h2 className={`font-black text-slate-900 tracking-tight ${isVertical ? 'text-4xl' : 'text-3xl'}`}>Records & History</h2>
-            <p className="text-slate-500 font-bold text-sm mt-1">Download receipt logs and view application details</p>
+            <h2 className={`font-black text-slate-900 tracking-tight ${isVertical ? 'text-4xl' : 'text-3xl'}`}>{t('hist_recordsTitle') || 'Records & History'}</h2>
+            <p className="text-slate-500 font-bold text-sm mt-1">{t('hist_recordsDesc') || 'Download receipt logs and view application details'}</p>
           </div>
         </div>
       </div>
@@ -428,7 +428,7 @@ const HistoryPage: React.FC = () => {
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          My Submissions
+          {t('hist_mySubmissions') || 'My Submissions'}
         </button>
         <button
           onClick={() => setActiveTab('transactions')}
@@ -440,7 +440,7 @@ const HistoryPage: React.FC = () => {
               : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          Transactions
+          {t('hist_transactions') || 'Transactions'}
         </button>
       </div>
 
@@ -458,9 +458,9 @@ const HistoryPage: React.FC = () => {
           {allItems.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 animate-in fade-in zoom-in-95">
               <Archive size={56} className="text-slate-300 mb-6" />
-              <p className="text-2xl font-black text-slate-800 mb-2">No Submissions Found</p>
+              <p className="text-2xl font-black text-slate-800 mb-2">{t('hist_noSubmissions') || 'No Submissions Found'}</p>
               <p className="text-slate-500 font-medium max-w-sm">
-                You haven't submitted any service requests or complaints yet. When you do, they will appear here.
+                {t('hist_noSubmissionsDesc') || "You haven't submitted any service requests or complaints yet. When you do, they will appear here."}
               </p>
             </div>
           ) : (
@@ -483,11 +483,11 @@ const HistoryPage: React.FC = () => {
               <div className={`bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 ${isVertical ? 'w-20 h-20' : 'w-16 h-16'}`}>
                 <Receipt size={isVertical ? 40 : 32} />
               </div>
-              <h3 className={`font-black text-slate-900 mb-2 ${isVertical ? 'text-3xl' : 'text-2xl'}`}>Guest Payment Lookup</h3>
-              <p className={`text-slate-500 font-medium mb-8 ${isVertical ? 'text-base' : 'text-sm'}`}>Enter your Consumer Number, Account Number, or Assessment Number to view your payment history and receipts.</p>
+              <h3 className={`font-black text-slate-900 mb-2 ${isVertical ? 'text-3xl' : 'text-2xl'}`}>{t('hist_guestLookup') || 'Guest Payment Lookup'}</h3>
+              <p className={`text-slate-500 font-medium mb-8 ${isVertical ? 'text-base' : 'text-sm'}`}>{t('hist_guestLookupDesc') || 'Enter your Consumer Number, Account Number, or Assessment Number to view your payment history and receipts.'}</p>
               
               <div className="text-left mb-6">
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">Consumer ID / Account No</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">{t('hist_consumerIdLabel') || 'Consumer ID / Account No'}</label>
                 <KioskInput
                   inputMode="numeric"
                   formatType="consumer"
@@ -509,7 +509,7 @@ const HistoryPage: React.FC = () => {
                   isVertical ? 'p-7 text-xl' : 'p-6 text-lg'
                 }`}
               >
-                {isLoading ? <RefreshCw className="animate-spin" /> : 'Search Transactions'}
+                {isLoading ? <RefreshCw className="animate-spin" /> : t('hist_searchTxn') || 'Search Transactions'}
               </button>
             </div>
           ) : (
@@ -521,7 +521,7 @@ const HistoryPage: React.FC = () => {
                   onClick={() => { setGuestTransactions([]); setGuestLookupInput(''); }} 
                   className={`font-black text-blue-600 hover:text-blue-700 flex items-center gap-1.5 mb-6 self-start uppercase tracking-wider ${isVertical ? 'text-sm' : 'text-xs'}`}
                 >
-                  <ArrowLeft size={16} /> Lookup Another Account
+                  <ArrowLeft size={16} /> {t('hist_lookupAnother') || 'Lookup Another Account'}
                 </button>
               )}
 
@@ -583,9 +583,9 @@ const HistoryPage: React.FC = () => {
               ) : filteredTransactions.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center py-20 bg-white rounded-[3rem] border border-slate-100 shadow-sm">
                   <Receipt size={56} className="text-slate-300 mb-6" />
-                  <p className="text-2xl font-black text-slate-800 mb-2">No Transactions Found</p>
+                  <p className="text-2xl font-black text-slate-800 mb-2">{t('hist_noTxn') || 'No Transactions Found'}</p>
                   <p className="text-slate-500 font-medium max-w-sm">
-                    No payment attempts matched your filter criteria.
+                    {t('hist_noTxnDesc') || 'No payment attempts matched your filter criteria.'}
                   </p>
                 </div>
               ) : (
@@ -627,7 +627,7 @@ const HistoryPage: React.FC = () => {
             
             {/* Modal Header */}
             <div className={`border-b flex justify-between items-center bg-slate-50 ${isVertical ? 'p-8' : 'p-6'}`}>
-              <h3 className={`font-black text-slate-900 ${isVertical ? 'text-2xl' : 'text-xl'}`}>Transaction Details</h3>
+              <h3 className={`font-black text-slate-900 ${isVertical ? 'text-2xl' : 'text-xl'}`}>{t('hist_txnDetails') || 'Transaction Details'}</h3>
               <button 
                 onClick={() => setSelectedTransaction(null)}
                 className={`hover:bg-slate-200 rounded-xl transition border bg-white shadow-sm ${isVertical ? 'p-3' : 'p-2'}`}

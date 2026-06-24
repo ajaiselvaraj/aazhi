@@ -130,10 +130,10 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Consumer Services')}</h3>
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
-          { id: 'NEW_CONNECTION', icon: Flame, label: 'Gas Services', desc: 'New connection / meter' },
-          { id: 'BILLS', icon: FileText, label: 'Manage Bills', desc: 'Check / View bills' },
-          { id: 'COMPLAINTS', icon: AlertTriangle, label: 'Complaints', desc: 'Report gas issue' },
-          { id: 'PROFILE', icon: UserCog, label: 'My Profile', desc: 'Update details' },
+          { id: 'NEW_CONNECTION', icon: Flame, label: t('gasServices') || 'Gas Services', desc: 'New connection / meter' },
+          { id: 'BILLS', icon: FileText, label: t('manageBills') || 'Manage Bills', desc: 'Check / View bills' },
+          { id: 'COMPLAINTS', icon: AlertTriangle, label: t('complaints') || 'Complaints', desc: 'Report gas issue' },
+          { id: 'PROFILE', icon: UserCog, label: t('myProfile') || 'My Profile', desc: 'Update details' },
         ].map((item) => (
           <button
             key={item.id}
@@ -153,10 +153,10 @@ const GasLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
       <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4 mt-6">{t('Other Tools')}</h3>
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
-          { id: 'TRACKER', icon: SearchCode, label: 'Track Request', desc: 'Trace status' },
-          { id: 'CALCULATOR', icon: Calculator, label: 'Bill Calculator', desc: 'Estimate usage' },
-          { id: 'TARIFF', icon: FileText, label: 'Tariff Details', desc: 'View gas charge slabs' },
-          { id: 'TRANSACTIONS', icon: CreditCard, label: 'My Transactions', desc: 'View payment history' },
+          { id: 'TRACKER', icon: SearchCode, label: t('trackRequest') || 'Track Request', desc: 'Trace status' },
+          { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator') || 'Bill Calculator', desc: 'Estimate usage' },
+          { id: 'TARIFF', icon: FileText, label: t('tariffDetails') || 'Tariff Details', desc: 'View gas charge slabs' },
+          { id: 'TRANSACTIONS', icon: CreditCard, label: t('myTransactions') || 'My Transactions', desc: 'View payment history' },
         ].map((item) => (
           <button
             key={item.id}

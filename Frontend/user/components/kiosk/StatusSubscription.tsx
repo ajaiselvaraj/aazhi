@@ -99,13 +99,13 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Mobile Number</label>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('mobileNumber') || 'Mobile Number'}</label>
                         <input
                             type="tel"
                             value={contact}
                             onChange={(e) => setContact(e.target.value)}
                             className="w-full bg-white border-none p-4 rounded-xl font-bold text-base text-slate-800 shadow-inner focus:ring-2 focus:ring-blue-100 outline-none transition"
-                            placeholder="Enter 10 digit number"
+                            placeholder={t('enterTenDigit') || 'Enter 10 digit number'}
                             maxLength={10}
                         />
                     </div>
@@ -117,7 +117,7 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
                         disabled={loading}
                         className="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                        {loading ? "Sending..." : "Subscribe"} <ChevronRight size={16} />
+                        {loading ? (t('sending') || 'Sending...') : (t('subscribe') || 'Subscribe')} <ChevronRight size={16} />
                     </button>
                 </div>
             )}
@@ -125,7 +125,7 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
             {subStep === 'otp' && (
                 <div className="flex flex-col space-y-5 animate-in slide-in-from-right fade-in relative z-10">
                     <div className="bg-white p-5 rounded-2xl shadow-sm space-y-3">
-                        <h4 className="font-black text-slate-800 text-base">Verify Subscription</h4>
+                        <h4 className="font-black text-slate-800 text-base">{t('verifySubscription') || 'Verify Subscription'}</h4>
                         <p className="text-slate-500 text-xs font-medium">
                             Enter the 4-digit PIN sent via {channel.toUpperCase()} to +91 {contact}
                         </p>
@@ -146,14 +146,14 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
                             onClick={() => setSubStep('idle')}
                             className="px-4 py-3 bg-white text-slate-500 font-bold text-sm rounded-xl hover:bg-slate-50 transition border border-slate-100 shadow-sm"
                         >
-                            Back
+                            {t('backBtn') || 'Back'}
                         </button>
                         <button
                             onClick={handleVerifyOtp}
                             disabled={loading}
                             className="flex-1 bg-blue-600 text-white p-3 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
                         >
-                            {loading ? "Verifying..." : "Verify"}
+                            {loading ? (t('verifying') || 'Verifying...') : (t('verify') || 'Verify')}
                         </button>
                     </div>
                 </div>

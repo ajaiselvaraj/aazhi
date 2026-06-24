@@ -7,6 +7,7 @@
 import React, { useCallback } from 'react';
 import QRCode from 'react-qr-code';
 import { X, Download, Share2, Smartphone, CheckCircle, Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
     ticketNumber: string;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 const ComplaintQRModal: React.FC<Props> = ({ ticketNumber, complaintId, onClose }) => {
+    const { t } = useTranslation();
     // ⭐ FIX: Use VITE_APP_URL env var — set to production domain in Vercel, localhost in dev.
     // This ensures QR codes ALWAYS contain the correct domain, never a local IP.
     const BASE_URL = import.meta.env.VITE_APP_URL || window.location.origin;
@@ -23,7 +25,7 @@ const ComplaintQRModal: React.FC<Props> = ({ ticketNumber, complaintId, onClose 
     const handleCopy = useCallback(async () => {
         try {
             await navigator.clipboard.writeText(trackingUrl);
-            alert('Tracking link copied! Share it or scan the QR code with any phone.');
+            alert(t('trackingLinkCopied') || 'Tracking link copied! Share it or scan the QR code with any phone.');
         } catch {
             prompt('Copy this link:', trackingUrl);
         }

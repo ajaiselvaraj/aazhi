@@ -37,7 +37,7 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
   return (
     <div className="max-w-xl mx-auto py-10">
       <button onClick={onBack} className="flex items-center gap-2 text-slate-500 font-bold mb-8 hover:text-slate-900 transition-colors">
-        <ArrowLeft size={20} /> Back
+        <ArrowLeft size={20} /> {t('back') || 'Back'}
       </button>
 
       <div className="bg-white rounded-[3rem] shadow-xl p-12 border border-slate-100 text-center relative overflow-hidden">
@@ -47,8 +47,8 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
             <KeySquare size={36} />
         </div>
 
-        <h2 className="text-3xl font-black mb-2 text-slate-900">Citizen Secure Login</h2>
-        <p className="text-slate-500 font-bold mb-10">Access your water billing history and service requests.</p>
+        <h2 className="text-3xl font-black mb-2 text-slate-900">{t('citizenSecureLogin') || 'Citizen Secure Login'}</h2>
+        <p className="text-slate-500 font-bold mb-10">{t('accessWaterBilling') || 'Access your water billing history and service requests.'}</p>
 
         {error && (
             <div className="p-4 bg-red-50 text-red-600 font-bold rounded-2xl mb-8 border border-red-100 text-sm">
@@ -59,7 +59,7 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
         <form onSubmit={handleLogin} className="space-y-6">
             <div className="text-left space-y-4">
                 <div>
-                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Water Consumer ID</label>
+                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">{t('waterConsumerId') || 'Water Consumer ID'}</label>
                     <KioskInput
                         formatType="consumer"
                         type="text"
@@ -72,7 +72,7 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">Secure PIN</label>
+                    <label className="block text-sm font-black text-slate-700 uppercase tracking-widest mb-2 ml-1">{t('securePin') || 'Secure PIN'}</label>
                     <KioskInput
                         formatType="pin"
                         type="password"
@@ -91,12 +91,12 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
                 disabled={loading || consumerId.replace(/\D/g, '').length < 12 || pin.length < 6}
                 className="w-full py-5 bg-cyan-600 hover:bg-cyan-700 active:scale-[0.98] text-white rounded-2xl font-black text-xl shadow-xl shadow-cyan-500/30 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:active:scale-100"
             >
-                {loading ? 'Authenticating...' : 'Access My Profile'} {!loading && <ChevronRight size={24} />}
+                {loading ? (t('authenticating') || 'Authenticating...') : (t('accessMyProfile') || 'Access My Profile')} {!loading && <ChevronRight size={24} />}
             </button>
         </form>
 
         <div className="mt-8 flex items-center justify-center gap-2 text-slate-400 text-sm font-bold">
-            <ShieldCheck size={16} /> 256-bit encrypted secure terminal session
+            <ShieldCheck size={16} /> {t('encryptedSession') || '256-bit encrypted secure terminal session'}
         </div>
       </div>
     </div>

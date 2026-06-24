@@ -1,32 +1,34 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   activeCount: number;
 }
 
 const LiveMetricsOverlay: React.FC<Props> = ({ activeCount }) => {
+  const { t } = useTranslation();
   const metrics = [
     {
-      label: 'Active Incidents',
+      label: t('activeIncidents') || 'Active Incidents',
       value: activeCount,
       icon: AlertTriangle,
       color: activeCount > 2 ? 'text-red-500 bg-red-50' : 'text-amber-500 bg-amber-50',
     },
     {
-      label: 'Resolved Today',
+      label: t('resolvedToday') || 'Resolved Today',
       value: 18,
       icon: CheckCircle,
       color: 'text-emerald-500 bg-emerald-50',
     },
     {
-      label: 'Avg Response',
+      label: t('avgResponse') || 'Avg Response',
       value: '28m',
       icon: Clock,
       color: 'text-blue-500 bg-blue-50',
     },
     {
-      label: 'Response Teams',
+      label: t('responseTeams') || 'Response Teams',
       value: 6,
       icon: Users,
       color: 'text-purple-500 bg-purple-50',

@@ -7,6 +7,7 @@ import { MOCK_USER_PROFILE } from '../constants';
 import { useWorkflow } from '../hooks/useWorkflow';
 import SLACountdownWidget from './escalation/SLACountdownWidget';
 import AccountabilityThread from './escalation/AccountabilityThread';
+import RequestEscalationButton from './escalation/RequestEscalationButton';
 
 const getBackendUrl = () => {
     const envUrl = import.meta.env.VITE_API_URL;
@@ -431,7 +432,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                                         {getLeftIcon()}
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-800">{translateDynamic(item.serviceType) || 'Service Request'}</h3>
+                                        <h3 className="text-xl font-bold text-slate-800">{translateDynamic(item.serviceType) || t('serviceRequest') || 'Service Request'}</h3>
                                         <p className="text-slate-500 font-medium text-sm mt-1">ID: {item.id} • {translateDynamic(item.category)}</p>
                                     </div>
                                 </div>
@@ -502,7 +503,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                                     </div>
                                 ) : (
                                     <div className="bg-[#1e293b] rounded-2xl p-6 text-white">
-                                        <h4 className="font-bold mb-4">Operation Log</h4>
+                                        <h4 className="font-bold mb-4">{t('operationsLog') || 'Operation Log'}</h4>
                                         <div className="flex gap-4">
                                             <div className="flex flex-col items-center mt-1.5">
                                                 <div className="w-2.5 h-2.5 rounded-full bg-white ring-4 ring-[#334155]"></div>
@@ -522,8 +523,8 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                                 <div className="p-6 md:p-8 pt-0 border-t border-slate-100">
                                     <div className="flex items-center gap-4 mb-6 mt-6">
                                         <div className="flex-1 h-px bg-slate-200" />
-                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] whitespace-nowrap">
-                                            📋 SLA & Accountability
+                                        <span style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>
+                                            📋 {t('accountabilityEscalation') || 'SLA & Accountability'}
                                         </span>
                                         <div className="flex-1 h-px bg-slate-200" />
                                     </div>

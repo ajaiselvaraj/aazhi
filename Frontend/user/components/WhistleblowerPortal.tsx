@@ -1,35 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, FileText, CheckCircle, Info, Upload, Key, RefreshCw, ArrowLeft, Calendar, MapPin, Eye } from 'lucide-react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onBack: () => void;
   language: string;
 }
 
-const CATEGORIES = [
-  "Staff Misconduct",
-  "Corruption / Bribe Demand",
-  "Fake Meter Reading",
-  "Service Fraud",
-  "Abuse of Authority",
-  "Financial Irregularities",
-  "Contractor Misconduct",
-  "Other"
+const CATEGORY_KEYS = [
+  'wb_staffMisconduct',
+  'wb_corruptionBribe',
+  'wb_fakeMeterReading',
+  'wb_serviceFraud',
+  'wb_abuseOfAuthority',
+  'wb_financialIrregularities',
+  'wb_contractorMisconduct',
+  'wb_other',
 ];
 
-const TRACKING_STAGES = [
-  "Submitted",
-  "Under Review",
-  "Evidence Verification",
-  "Investigation Started",
-  "Action Initiated",
-  "Closed"
+const TRACKING_STAGE_KEYS = [
+  'wb_trackingSubmitted',
+  'wb_trackingUnderReview',
+  'wb_trackingEvidenceVerify',
+  'wb_trackingInvestigation',
+  'wb_trackingActionInitiated',
+  'wb_trackingClosed',
 ];
 
 const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api") + "/integrity";
 
 export default function WhistleblowerPortal({ onBack, language }: Props) {
+  const { t } = useTranslation();
+  const CATEGORIES = CATEGORY_KEYS.map(k => t(k));
+  const TRACKING_STAGES = TRACKING_STAGE_KEYS.map(k => t(k));
   const [activeTab, setActiveTab] = useState<'report' | 'track' | 'transparency'>('report');
   
   // Transparency Portal State
@@ -390,15 +394,15 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
               <ShieldAlert size={26} />
             </div>
             <div>
-              <h1 className="text-xl font-black tracking-tight leading-none text-slate-900">CIVIC INTEGRITY CHANNEL</h1>
-              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1">Sovereign Anonymous Whistleblower Portal</p>
+              <h1 className="text-xl font-black tracking-tight leading-none text-slate-900">{t('wb_civicIntegrity')}</h1>
+              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mt-1">{t('wb_sovereignPortal')}</p>
             </div>
           </div>
         </div>
         
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 px-4 py-2 rounded-2xl text-[11px] font-black uppercase tracking-wider text-blue-600">
-            🔒 Government-Grade Security Encrypted
+            🔒 {t('wb_govtSecurity')}
           </div>
         </div>
       </header>
@@ -412,19 +416,19 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
             onClick={() => { setActiveTab('report'); setError(''); }}
             className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'report' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <ShieldAlert size={16} /> File Report
+            <ShieldAlert size={16} /> {t('wb_fileReport')}
           </button>
           <button
             onClick={() => { setActiveTab('track'); setTrackingError(''); }}
             className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'track' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <Key size={16} /> Track Case
+            <Key size={16} /> {t('wb_trackCase')}
           </button>
           <button
             onClick={() => { setActiveTab('transparency'); }}
             className={`flex-1 py-3 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${activeTab === 'transparency' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-500 hover:text-slate-700'}`}
           >
-            <Eye size={16} /> Transparency
+            <Eye size={16} /> {t('wb_transparency')}
           </button>
         </div>
 
@@ -436,9 +440,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
             <div className="bg-gradient-to-r from-blue-50 to-slate-50/50 border border-blue-100/70 rounded-3xl p-6 shadow-sm flex items-start gap-4">
               <Info className="text-blue-600 shrink-0 mt-0.5" size={24} />
               <div className="space-y-2">
-                <h3 className="font-bold text-slate-900 text-base">Whistleblower Protection Notice</h3>
+                <h3 className="font-bold text-slate-900 text-base">{t('wb_whistleblowerNotice')}</h3>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  This channel is fully anonymous by design. No logins, Aadhaar identity, mobile phone numbers, or IP logs are collected. In accordance with the Civic Integrity Act, all submitted evidence files undergo metadata scrubbing (removal of GPS coordinates, camera models, and device IDs) before database encryption to safeguard your identity.
+                  {t('wb_anonymityDesc')}
                 </p>
               </div>
             </div>
@@ -450,12 +454,12 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 <div className="w-20 h-20 bg-green-50 border border-green-200 text-green-600 rounded-full flex items-center justify-center mx-auto shadow-inner animate-bounce">
                   <CheckCircle size={40} />
                 </div>
-                <h2 className="text-2xl font-black tracking-tight text-slate-900">Report Securely Lodged</h2>
+                <h2 className="text-2xl font-black tracking-tight text-slate-900">{t('wb_reportSecureLodged')}</h2>
                 <p className="text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-                  Your anonymous report has been securely submitted to the Integrity Board. Write down or save the case code below. It is the only way to track progress, as no notification will be sent.
+                  {t('wb_reportSuccessDesc')}
                 </p>
                 <div className="bg-slate-50 border border-slate-200/60 p-6 rounded-3xl inline-block max-w-md w-full relative group">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">ANONYMOUS CASE CODE</span>
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest block mb-2">{t('wb_anonymousCaseCode')}</span>
                   <span className="text-2xl sm:text-3xl font-black text-blue-600 tracking-wider font-mono select-all select-text">{successCode}</span>
                 </div>
                 <div className="pt-4">
@@ -463,7 +467,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     onClick={() => { setSuccessCode(''); fetchCaptcha(); }}
                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold py-3.5 px-8 rounded-2xl transition shadow-sm active:scale-95 text-xs uppercase tracking-widest"
                   >
-                    File Another Report
+                    {t('wb_fileAnotherReport')}
                   </button>
                 </div>
               </div>
@@ -476,14 +480,14 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {/* Category Selection */}
                   <div className="space-y-2 col-span-1 sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Incident Category <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">{t('wb_incidentCategory')} <span className="text-red-500">*</span></label>
                     <select
                       required
                       value={category}
                       onChange={(e) => setCategory(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-slate-800 font-bold focus:border-blue-500 focus:bg-white outline-none transition"
                     >
-                      <option value="" disabled>Select Category</option>
+                      <option value="" disabled>{t('wb_selectCategory')}</option>
                       {CATEGORIES.map(c => (
                         <option key={c} value={c} className="bg-white text-slate-800">{c}</option>
                       ))}
@@ -492,32 +496,32 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
 
                   {/* Description */}
                   <div className="space-y-2 col-span-1 sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Detailed Description <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">{t('wb_detailedDescription')} <span className="text-red-500">*</span></label>
                     <textarea
                       required
                       rows={5}
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Provide all relevant details: specific names, dates, times, locations, and facts. Do not mention your own name or contact details."
+                      placeholder={t('wb_descriptionPlaceholder')}
                       className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-slate-800 font-medium focus:border-blue-500 focus:bg-white outline-none transition resize-none placeholder:text-slate-400"
                     />
                   </div>
 
                   {/* Location */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1 flex items-center gap-1"><MapPin size={12}/> Location <span className="text-slate-400">(Optional)</span></label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1 flex items-center gap-1"><MapPin size={12}/> {t('wb_location')} <span className="text-slate-400">{t('wb_optional')}</span></label>
                     <input
                       type="text"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      placeholder="Department office, ward or street name"
+                      placeholder={t('wb_locationPlaceholder')}
                       className="w-full bg-slate-50 border border-slate-200 p-4 rounded-2xl text-slate-800 font-bold focus:border-blue-500 focus:bg-white outline-none transition placeholder:text-slate-400"
                     />
                   </div>
 
                   {/* Incident Date */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1 flex items-center gap-1"><Calendar size={12}/> Date of Incident <span className="text-slate-400">(Optional)</span></label>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1 flex items-center gap-1"><Calendar size={12}/> {t('wb_dateOfIncident')} <span className="text-slate-400">{t('wb_optional')}</span></label>
                     <input
                       type="date"
                       value={incidentDate}
@@ -537,21 +541,21 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 bg-slate-50 shrink-0 mt-0.5 cursor-pointer"
                   />
                   <label htmlFor="retaliationRisk" className="text-xs text-slate-700 font-bold select-none cursor-pointer leading-tight">
-                    <span className="text-red-600 font-black">⚠ Witness Protection:</span> This report involves potential retaliation risk. Enabling this increases confidentiality protocols, redacts location details from general lists, and flags witness protection guidelines.
+                    <span className="text-red-600 font-black">⚠ {t('wb_witnessProtection')}</span> {t('wb_retaliationDesc')}
                   </label>
                 </div>
 
                 {/* Upload Fields Container */}
                 <div className="border-t border-slate-200/60 pt-6">
-                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-4">Attachments & Evidence (Max 5MB per file)</h3>
+                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-4">{t('wb_attachmentsEvidence')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Image Upload */}
                     <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col items-center justify-between text-center min-h-[140px] relative hover:border-slate-305 hover:bg-slate-50 transition">
                       <Upload size={20} className="text-blue-550" />
                       <div className="mt-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">Image Upload</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">{t('wb_imageUpload')}</p>
                         <p className="text-[9px] text-slate-400 font-medium mt-1 truncate max-w-[150px]">
-                          {imageFile ? imageFile.filename : "Stripped of EXIF metadata"}
+                          {imageFile ? imageFile.filename : t('wb_strippedMetadata')}
                         </p>
                       </div>
                       <input
@@ -567,9 +571,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col items-center justify-between text-center min-h-[140px] relative hover:border-slate-305 hover:bg-slate-50 transition">
                       <Upload size={20} className="text-purple-500" />
                       <div className="mt-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">Voice Recording</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">{t('wb_voiceRecording')}</p>
                         <p className="text-[9px] text-slate-400 font-medium mt-1 truncate max-w-[150px]">
-                          {voiceFile ? voiceFile.filename : "Upload audio evidence"}
+                          {voiceFile ? voiceFile.filename : t('wb_uploadAudio')}
                         </p>
                       </div>
                       <input
@@ -585,9 +589,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col items-center justify-between text-center min-h-[140px] relative hover:border-slate-305 hover:bg-slate-50 transition">
                       <Upload size={20} className="text-orange-500" />
                       <div className="mt-2">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">Supporting Docs</p>
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-700">{t('wb_supportingDocs')}</p>
                         <p className="text-[9px] text-slate-400 font-medium mt-1 truncate max-w-[150px]">
-                          {docFile ? docFile.filename : "PDF and documents"}
+                          {docFile ? docFile.filename : t('wb_pdfDocs')}
                         </p>
                       </div>
                       <input
@@ -607,7 +611,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     {loadingCaptcha ? (
                       <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     ) : (
-                      <span className="font-mono font-bold text-slate-800 text-base tracking-wider">{captcha?.question || "CAPTCHA Challenge"}</span>
+                      <span className="font-mono font-bold text-slate-800 text-base tracking-wider">{captcha?.question || t('wb_captchaChallenge')}</span>
                     )}
                     <button
                       type="button"
@@ -622,7 +626,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                     type="text"
                     required
                     inputMode="numeric"
-                    placeholder="Enter answer"
+                    placeholder={t('wb_answerPlaceholder')}
                     value={captchaAnswer}
                     onChange={(e) => setCaptchaAnswer(e.target.value.replace(/\D/g, ''))}
                     className="w-full sm:w-40 bg-slate-50 border border-slate-200 p-4 rounded-2xl text-center font-bold focus:border-blue-500 focus:bg-white outline-none transition"
@@ -643,9 +647,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition shadow-lg active:scale-95 disabled:opacity-50 text-xs uppercase tracking-widest flex items-center justify-center gap-2"
                 >
                   {submitting ? (
-                    <><RefreshCw className="animate-spin" size={16} /> Submitting secure report...</>
+                    <><RefreshCw className="animate-spin" size={16} /> {t('wb_submittingReport')}</>
                   ) : (
-                    "Submit Report Anonymously"
+                    t('wb_submitReportAnon')
                   )}
                 </button>
               </form>
@@ -657,12 +661,12 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
           /* Track status page */
           <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
             <form onSubmit={handleTrackReport} className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">Enter Anonymous Case Code</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest pl-1">{t('wb_enterCaseCode')}</label>
               <div className="flex flex-col sm:flex-row gap-4">
                 <input
                   type="text"
                   required
-                  placeholder="e.g. CIV-X7A9-KQ2M"
+                  placeholder={t('wb_caseCodePlaceholder')}
                   value={trackCode}
                   onChange={(e) => setTrackCode(e.target.value.toUpperCase())}
                   className="flex-1 bg-slate-50 border border-slate-200 p-4 rounded-2xl text-slate-800 font-bold focus:border-blue-500 focus:bg-white outline-none transition font-mono tracking-wider"
@@ -672,7 +676,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                   disabled={trackingLoading}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 text-xs uppercase tracking-widest"
                 >
-                  {trackingLoading ? <RefreshCw className="animate-spin" size={16} /> : "Query Status"}
+                  {trackingLoading ? <RefreshCw className="animate-spin" size={16} /> : t('wb_queryStatus')}
                 </button>
               </div>
               
@@ -688,11 +692,11 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 sm:p-10 shadow-xl space-y-8 animate-in zoom-in-95 duration-200">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4 flex-wrap gap-2">
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">REPORT CATEGORY</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">{t('wb_reportCategory')}</span>
                     <span className="text-base font-bold text-slate-900">{trackingData.category}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">DATE SUBMITTED</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('wb_dateSubmitted')}</span>
                     <span className="text-sm font-bold text-slate-600">
                       {new Date(trackingData.created_at).toLocaleDateString("en-GB", { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
@@ -701,7 +705,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
 
                 {/* Vertical Timeline */}
                 <div>
-                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-6">Investigation Timeline</h3>
+                  <h3 className="text-xs font-black uppercase text-slate-500 tracking-widest mb-6">{t('wb_investigationTimeline')}</h3>
                   <div className="space-y-6">
                     {TRACKING_STAGES.map((stage, i) => {
                       const activeIndex = getActiveStageIndex(trackingData.status);
@@ -732,7 +736,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                             </h4>
                             {isCurrent && (
                               <span className="inline-block bg-blue-50 border border-blue-100/80 text-blue-600 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md mt-1 animate-pulse">
-                                Current Status
+                                {t('wb_currentStatus')}
                               </span>
                             )}
                           </div>
@@ -746,8 +750,8 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 <div className="border-t border-slate-200/80 pt-8 space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-black uppercase text-slate-500 tracking-widest">Two-Way Secure Communication</h3>
-                      <p className="text-[10px] text-slate-450 font-bold uppercase mt-1">Communicate with your assigned investigator anonymously</p>
+                      <h3 className="text-sm font-black uppercase text-slate-500 tracking-widest">{t('wb_twoWayComm')}</h3>
+                      <p className="text-[10px] text-slate-450 font-bold uppercase mt-1">{t('wb_communicateAnon')}</p>
                     </div>
                     <button 
                       type="button" 
@@ -768,8 +772,8 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                   <div className="bg-slate-50 border border-slate-200/60 rounded-3xl p-6 h-80 overflow-y-auto space-y-4 shadow-inner">
                     {messages.length === 0 ? (
                       <div className="h-full flex flex-col items-center justify-center text-slate-400 text-xs font-bold uppercase tracking-wider gap-2">
-                        <span>No messages exchanged yet.</span>
-                        <span className="text-[10px] text-slate-500">Investigators will post clarification requests here if needed.</span>
+                        <span>{t('wb_noMessages')}</span>
+                        <span className="text-[10px] text-slate-500">{t('wb_investigatorsPost')}</span>
                       </div>
                     ) : (
                       messages.map((m) => {
@@ -815,7 +819,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                       disabled={messagesLoading || !newMessage.trim()}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-bold transition flex items-center justify-center disabled:opacity-50 text-xs uppercase tracking-widest shrink-0"
                     >
-                      Send
+                      {t('wb_send')}
                     </button>
                   </form>
                 </div>
@@ -831,9 +835,9 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
             <div className="bg-gradient-to-r from-blue-50 to-slate-50/50 border border-blue-100/70 rounded-3xl p-6 shadow-sm flex items-start gap-4">
               <Eye className="text-blue-600 shrink-0 mt-0.5" size={24} />
               <div className="space-y-2">
-                <h3 className="font-bold text-slate-900 text-base">Public Transparency Dashboard</h3>
+                <h3 className="font-bold text-slate-900 text-base">{t('wb_publicTransparency')}</h3>
                 <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                  This dashboard shows anonymised, aggregated metrics to ensure transparency while strictly preserving citizen anonymity. No individual report descriptions, witness locations, chat logs, or uploaded evidence are exposed here.
+                  {t('wb_transparencyDesc')}
                 </p>
               </div>
             </div>
@@ -841,7 +845,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
             {transparencyLoading ? (
               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-16 text-center flex flex-col items-center justify-center space-y-4 shadow-xl">
                 <RefreshCw className="animate-spin text-blue-500" size={32} />
-                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Fetching transparency statistics...</p>
+                <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">{t('wb_fetchingStats')}</p>
               </div>
             ) : transparencyError ? (
               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 text-center space-y-4 shadow-xl">
@@ -852,7 +856,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                   onClick={fetchTransparencyData}
                   className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider transition"
                 >
-                  Retry
+                  {t('wb_retry')}
                 </button>
               </div>
             ) : transparencyData ? (
@@ -860,19 +864,19 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="bg-white border border-slate-200/60 p-5 rounded-2xl text-center space-y-1 hover:border-slate-300 transition shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Total Reports</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">{t('wb_totalReports')}</span>
                     <p className="text-2xl font-black text-slate-900">{transparencyData.totalReports}</p>
                   </div>
                   <div className="bg-white border border-slate-200/60 p-5 rounded-2xl text-center space-y-1 hover:border-slate-300 transition shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Active Cases</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">{t('wb_activeCases')}</span>
                     <p className="text-2xl font-black text-blue-600">{transparencyData.activeInvestigations}</p>
                   </div>
                   <div className="bg-white border border-slate-200/60 p-5 rounded-2xl text-center space-y-1 hover:border-slate-300 transition shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Resolved Cases</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">{t('wb_resolvedCases')}</span>
                     <p className="text-2xl font-black text-green-600">{transparencyData.closedCases}</p>
                   </div>
                   <div className="bg-white border border-slate-200/60 p-5 rounded-2xl text-center space-y-1 hover:border-slate-300 transition shadow-sm">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Resolution SLA</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">{t('wb_resolutionSLA')}</span>
                     <p className="text-2xl font-black text-purple-600">{transparencyData.averageResolutionDays} Days</p>
                   </div>
                 </div>
@@ -880,8 +884,8 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                 {/* Department Stats */}
                 <div className="bg-white border border-slate-100 rounded-[2.5rem] p-8 shadow-xl space-y-6">
                   <div>
-                    <h3 className="text-sm font-black uppercase text-slate-500 tracking-widest">Reports by Department Sector</h3>
-                    <p className="text-[10px] text-slate-450 font-bold uppercase mt-1">Aggregated category breakdown of submitted integrity reports</p>
+                    <h3 className="text-sm font-black uppercase text-slate-500 tracking-widest">{t('wb_reportsByDept')}</h3>
+                    <p className="text-[10px] text-slate-450 font-bold uppercase mt-1">{t('wb_aggregatedBreakdown')}</p>
                   </div>
 
                   <div className="space-y-4">
@@ -905,16 +909,16 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
                         );
                       })
                     ) : (
-                      <p className="text-xs text-slate-500 text-center py-6 font-bold uppercase">No category statistics available.</p>
+                      <p className="text-xs text-slate-500 text-center py-6 font-bold uppercase">{t('wb_noCategoryStats')}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Certification stamp */}
                 <div className="bg-white border border-slate-200/60 rounded-3xl p-6 text-center space-y-2 shadow-sm">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">🛡️ Cryptographic Ledger Certification</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">🛡️ {t('wb_cryptoLedger')}</p>
                   <p className="text-xs text-slate-600 leading-relaxed max-w-lg mx-auto font-medium">
-                    All compliance verification events are written into a tamper-evident cryptographic audit ledger. Citizen credentials are never stored.
+                    {t('wb_cryptoDesc')}
                   </p>
                 </div>
               </div>
@@ -924,7 +928,7 @@ export default function WhistleblowerPortal({ onBack, language }: Props) {
       </div>
 
       <footer className="py-4 text-center text-[9px] font-bold text-slate-500 uppercase tracking-widest border-t border-slate-200/60 bg-white shrink-0">
-        🛡️ Civic Integrity Channel · End-to-End Encrypted Data Ledger
+        🛡️ {t('wb_footerTagline')}
       </footer>
     </div>
   );

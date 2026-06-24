@@ -106,10 +106,10 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
             <h3 className="font-bold text-slate-800 text-lg max-w-4xl mx-auto -mb-4">{t('Consumer Services')}</h3>
             <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
                 {[
-                    { id: 'NEW_CONNECTION', icon: Bolt, label: 'New Connection', desc: 'Apply for connection' },
-                    { id: 'METER_SERVICE', icon: Gauge, label: 'Meter Services', desc: 'Replace or shift meter' },
-                    { id: 'COMPLAINTS', icon: AlertCircle, label: 'Complaints', desc: 'Report an issue' },
-                    { id: 'PROFILE', icon: UserCog, label: 'My Profile', desc: 'Manage credentials' },
+                    { id: 'NEW_CONNECTION', icon: Bolt, label: t('newConnection') || 'New Connection', desc: 'Apply for connection' },
+                    { id: 'METER_SERVICE', icon: Gauge, label: t('meterServices') || 'Meter Services', desc: 'Replace or shift meter' },
+                    { id: 'COMPLAINTS', icon: AlertCircle, label: t('complaints') || 'Complaints', desc: 'Report an issue' },
+                    { id: 'PROFILE', icon: UserCog, label: t('myProfile') || 'My Profile', desc: 'Manage credentials' },
                 ].map((item) => (
                     <button
                         key={item.id}
@@ -131,8 +131,8 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                 {[
                     { id: 'CALCULATOR', icon: Calculator, label: t('billCalculator') || 'Bill Calculator', desc: t('calcSub') || 'Estimate bill' },
                     { id: 'TARIFF', icon: FileText, label: t('tariffDetails') || 'Tariff Details', desc: t('viewRates') || 'View rates & slabs' },
-                    { id: 'TRANSACTIONS', icon: CreditCard, label: "My Transactions", desc: "View Payment History" },
-                    { id: 'TRACK_REQUEST', icon: Smartphone, label: "Track Request", desc: "Status & Timelines" },
+                    { id: 'TRANSACTIONS', icon: CreditCard, label: t('myTransactions') || "My Transactions", desc: "View Payment History" },
+                    { id: 'TRACK_REQUEST', icon: Smartphone, label: t('trackRequest') || "Track Request", desc: "Status & Timelines" },
                 ].map((item) => (
                     <button
                         key={item.id}

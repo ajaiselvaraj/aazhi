@@ -62,6 +62,12 @@ i18n
         interpolation: {
             escapeValue: false,
         },
+        saveMissing: true,
+        missingKeyHandler: (lngs, ns, key) => {
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn(`[i18n] Missing key: "${key}" for language: "${lngs.join(', ')}"`);
+            }
+        },
     });
 
 export default i18n;

@@ -13,6 +13,7 @@ import {
     RefreshCw, ArrowLeft, Share2, Download, ExternalLink, Loader2,
     MessageSquare, User, Building2, MapPin, Tag, Calendar, Info
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // ⭐ ADD-ON: Escalation & Accountability components (additive — no existing code changed)
 import SLACountdownWidget from './escalation/SLACountdownWidget';
@@ -94,21 +95,36 @@ interface TrackingData {
     messages: Message[];
     cci?: CCI;
 }
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode }> = {
-    pending:     { label: 'Pending',     color: '#d97706', bg: '#fef3c7', icon: <Clock size={18} /> },
-    submitted:   { label: 'Submitted',   color: '#2563eb', bg: '#dbeafe', icon: <CheckCircle size={18} /> },
-    assigned:    { label: 'Assigned',    color: '#7c3aed', bg: '#ede9fe', icon: <User size={18} /> },
-    in_progress: { label: 'In Progress', color: '#0891b2', bg: '#cffafe', icon: <RefreshCw size={18} /> },
-    on_hold:     { label: 'On Hold',     color: '#ea580c', bg: '#ffedd5', icon: <Clock size={18} /> },
-    completed:   { label: 'Completed',   color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
-    resolved:    { label: 'Resolved',    color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
-    closed:      { label: 'Closed',      color: '#64748b', bg: '#f1f5f9', icon: <CheckCircle size={18} /> },
-    cancelled:   { label: 'Cancelled',   color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
-    rejected:    { label: 'Rejected',    color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
+const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+    pending:     { color: '#d97706', bg: '#fef3c7', icon: <Clock size={18} /> },
+    submitted:   { color: '#2563eb', bg: '#dbeafe', icon: <CheckCircle size={18} /> },
+    assigned:    { color: '#7c3aed', bg: '#ede9fe', icon: <User size={18} /> },
+    in_progress: { color: '#0891b2', bg: '#cffafe', icon: <RefreshCw size={18} /> },
+    on_hold:     { color: '#ea580c', bg: '#ffedd5', icon: <Clock size={18} /> },
+    completed:   { color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
+    resolved:    { color: '#16a34a', bg: '#dcfce7', icon: <CheckCircle size={18} /> },
+    closed:      { color: '#64748b', bg: '#f1f5f9', icon: <CheckCircle size={18} /> },
+    cancelled:   { color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
+    rejected:    { color: '#dc2626', bg: '#fee2e2', icon: <XCircle size={18} /> },
 };
 
-const getStatusCfg = (s: string) =>
-    STATUS_CONFIG[s?.toLowerCase()] ?? { label: s, color: '#64748b', bg: '#f1f5f9', icon: <Info size={18} /> };
+const getStatusCfg = (s: string, t?: (key: string) => string) => {
+    const cfg = STATUS_CONFIG[s?.toLowerCase()];
+    if (!cfg) return { label: s, color: '#64748b', bg: '#f1f5f9', icon: <Info size={18} /> };
+    const labelMap: Record<string, string> = {
+        pending: t ? t('pending') : 'Pending',
+        submitted: t ? t('submitted') : 'Submitted',
+        assigned: t ? t('assigned') : 'Assigned',
+        in_progress: t ? t('inProgress') : 'In Progress',
+        on_hold: t ? t('onHold') : 'On Hold',
+        completed: t ? t('completed') : 'Completed',
+        resolved: t ? t('resolved') : 'Resolved',
+        closed: t ? t('closed') : 'Closed',
+        cancelled: t ? t('cancelled') : 'Cancelled',
+        rejected: t ? t('rejected') : 'Rejected',
+    };
+    return { ...cfg, label: labelMap[s?.toLowerCase()] || s };
+};
 
 const fmt = (iso?: string) => {
     if (!iso) return '—';
@@ -123,6 +139,7 @@ import { useParams } from 'react-router-dom';
 
 // ── Main Component ─────────────────────────────────────────────
 const ComplaintTrackingPage: React.FC = () => {
+    const { t } = useTranslation();
     const { complaintId } = useParams();
     const [data, setData] = useState<TrackingData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -325,7 +342,7 @@ const ComplaintTrackingPage: React.FC = () => {
             await navigator.share({ title: isService ? 'Track My Service Request' : 'Track My Complaint', url });
         } else {
             await navigator.clipboard.writeText(url);
-            alert('Tracking link copied to clipboard!');
+            alert(t('trackingLinkCopied') || 'Tracking link copied to clipboard!');
         }
     };
 
@@ -354,7 +371,7 @@ const ComplaintTrackingPage: React.FC = () => {
             <div style={{ textAlign: 'center' }}>
                 <Loader2 size={48} style={{ color: '#2563eb', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
                 <p style={{ color: '#64748b', fontWeight: 700, fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    Loading tracking data…
+                    {t('loadingTrackingData') || 'Loading tracking data…'}
                 </p>
             </div>
         </div>
@@ -364,10 +381,10 @@ const ComplaintTrackingPage: React.FC = () => {
         <div className="min-h-screen flex items-center justify-center p-6" style={{ background: '#f0f4ff' }}>
             <div style={{ background: '#fff', borderRadius: 24, padding: 40, maxWidth: 400, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(0,0,0,0.1)' }}>
                 <XCircle size={48} style={{ color: '#dc2626', margin: '0 auto 16px' }} />
-                <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8, color: '#1e293b' }}>Not Found</h2>
+                <h2 style={{ fontWeight: 900, fontSize: 22, marginBottom: 8, color: '#1e293b' }}>{t('notFound') || 'Not Found'}</h2>
                 <p style={{ color: '#64748b', fontSize: 15, marginBottom: 24 }}>{error}</p>
                 <button onClick={fetchData} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 12, padding: '12px 28px', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
-                    Try Again
+                    {t('tryAgain') || 'Try Again'}
                 </button>
             </div>
         </div>
@@ -376,7 +393,7 @@ const ComplaintTrackingPage: React.FC = () => {
     if (!data) return null;
 
     const { complaint, stages, messages } = data;
-    const statusCfg = getStatusCfg(complaint.status);
+    const statusCfg = getStatusCfg(complaint.status, t);
     const stageList = orderedStages(stages);
 
     return (
@@ -679,7 +696,7 @@ const ComplaintTrackingPage: React.FC = () => {
                         }}>
                             <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
                             <span style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.12em', whiteSpace: 'nowrap' }}>
-                                📋 SLA &amp; Accountability
+                                📋 {t('accountabilityEscalation') || 'SLA & Accountability'}
                             </span>
                             <div style={{ flex: 1, height: 1, background: '#e2e8f0' }} />
                         </div>
@@ -712,10 +729,10 @@ const ComplaintTrackingPage: React.FC = () => {
                 {!isService && complaint && (complaint.status === 'resolved' || complaint.status === 'closed') && (
                     <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.1)', marginBottom: 20, border: '2px solid #16a34a' }}>
                         <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, color: '#166534' }}>
-                            🤝 Citizen Resolution Confirmation
+                            🤝 {t('citizenResolutionConfirmation') || 'Citizen Resolution Confirmation'}
                         </h3>
                         <p style={{ fontSize: 13, color: '#475569', marginBottom: 20 }}>
-                            Your grievance has been marked as resolved. Please confirm if the issue is fixed to your satisfaction.
+                            {t('citizenResolutionDesc') || 'Your grievance has been marked as resolved. Please confirm if the issue is fixed to your satisfaction.'}
                         </p>
 
                         {!feedbackSubmitted && !(complaint as any).satisfaction_response ? (
@@ -726,22 +743,22 @@ const ComplaintTrackingPage: React.FC = () => {
                                         disabled={submittingFeedback}
                                         style={{ flex: 1, padding: '14px 0', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(22,163,74,0.2)' }}
                                     >
-                                        Yes, Resolved
+                                        {t('yesResolved') || 'Yes, Resolved'}
                                       </button>
                                     <button
                                         onClick={() => handleConfirmResolution(2)}
                                         disabled={submittingFeedback}
                                         style={{ flex: 1, padding: '14px 0', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(220,38,38,0.2)' }}
                                     >
-                                        No, Unresolved
+                                        {t('noUnresolved') || 'No, Unresolved'}
                                       </button>
                                 </div>
                                 {feedbackError && <p style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', textAlign: 'center', marginTop: 10 }}>⚠️ {feedbackError}</p>}
                             </div>
                         ) : (
                             <div style={{ background: '#f0fdf4', borderRadius: 16, padding: '16px 20px', textAlign: 'center' }}>
-                                <p style={{ fontSize: 14, fontWeight: 900, color: '#166534' }}>Thank you for your response!</p>
-                                <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>Your confirmation has been saved and will feed into municipal analytics.</p>
+                                <p style={{ fontSize: 14, fontWeight: 900, color: '#166534' }}>{t('thankYouResponse') || 'Thank you for your response!'}</p>
+                                <p style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>{t('confirmationSaved') || 'Your confirmation has been saved and will feed into municipal analytics.'}</p>
                             </div>
                         )}
                     </div>
@@ -751,10 +768,10 @@ const ComplaintTrackingPage: React.FC = () => {
                 {!isService && complaint && (complaint.status !== 'resolved' && complaint.status !== 'closed') && (
                     <div style={{ background: '#fff', borderRadius: 24, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.07)', marginBottom: 20 }}>
                         <h3 style={{ fontWeight: 900, fontSize: 16, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                            🔔 Ping Me When Done
+                            🔔 {t('pingMeWhenDone') || 'Ping Me When Done'}
                         </h3>
                         <p style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>
-                            Subscribe to get real-time automatic push alerts (SMS/WhatsApp/Email) when status changes or area recovery events occur.
+                            {t('pingMeDesc') || 'Subscribe to get real-time automatic push alerts (SMS/WhatsApp/Email) when status changes or area recovery events occur.'}
                         </p>
                         {!subSuccess ? (
                             <div>

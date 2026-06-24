@@ -149,7 +149,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             onClick={() => setShowQR(true)}
             className="w-full bg-cyan-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-cyan-700 transition flex items-center justify-center gap-2"
           >
-            📱 Scan QR to Track on Mobile
+            📱 {t('scanQRToTrack') || 'Scan QR to Track on Mobile'}
           </button>
           <button
             onClick={() => { setStep('form'); setFormData({ priority: 'medium' }); }}
@@ -216,7 +216,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
                 type="text"
                 value={formData.consumer_number || ''}
                 onChange={(e) => handleInputChange('consumer_number', e.target.value)}
-                placeholder="123456789012"
+                placeholder={t('water_consumerNumberPlaceholder') || '123456789012'}
                 className="w-full bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition"
               />
             </div>
@@ -229,7 +229,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
                 maxLength={10}
                 value={formData.mobile || ''}
                 onChange={(e) => handleInputChange('mobile', e.target.value.replace(/\D/g, ''))}
-                placeholder="98765 43210"
+                placeholder={t('sf_mobilePlaceholder') || '98765 43210'}
                 className={`w-full bg-slate-50 border-2 ${errors.mobile ? 'border-red-400' : 'border-slate-200'} p-4 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition`}
               />
               {errors.mobile && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.mobile}</p>}
@@ -269,7 +269,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
               type="text"
               value={formData.subject || ''}
               onChange={(e) => handleInputChange('subject', e.target.value)}
-              placeholder="e.g. Broken pipe in street"
+              placeholder={t('water_descPlaceholder') || 'Describe the issue in detail...'}
               className={`w-full bg-slate-50 border-2 ${errors.subject ? 'border-red-400' : 'border-slate-200'} p-4 rounded-2xl font-bold outline-none focus:border-cyan-500 focus:bg-white transition`}
             />
             {errors.subject && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.subject}</p>}
@@ -277,7 +277,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
 
           <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col">
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
-              {t('water_description') || 'Complaint Description'} <span className="text-red-500">*</span>
+              {t('water_description') || 'Detailed Description'} <span className="text-red-500">*</span>
             </label>
             <textarea
               className={`flex-1 w-full bg-white border-2 ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-2xl p-4 text-slate-800 font-bold focus:border-cyan-500 outline-none resize-none placeholder:text-slate-300 placeholder:font-normal`}
@@ -308,7 +308,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             {step === 'submitting' ? (
                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <>{t('water_submitComplaint') || 'Submit Complaint'} <Send size={20} /></>
+              <>{step === 'submitting' ? t('submitting') || 'Submitting...' : t('water_submitComplaint') || 'Submit Complaint'} <Send size={20} /></>
             )}
           </button>
         </div>

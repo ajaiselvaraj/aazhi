@@ -693,7 +693,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                 <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
                   {[
                     { id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' },
-                    { id: 'water', name: 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' },
+                    { id: 'water', name: t('muniOtherServices') || 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' },
                     { id: 'gas', name: t('gas') || 'Gas', icon: Flame, color: 'orange', consumerLabel: t('customerId') || 'Customer ID', providerLabel: t('deptGas') || 'Gas Provider / PNG' }
                   ].map((item) => (
                     <button

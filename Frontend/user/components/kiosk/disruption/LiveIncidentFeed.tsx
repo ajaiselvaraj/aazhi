@@ -2,6 +2,7 @@ import React from 'react';
 import { Incident } from './mockIncidentData';
 import { AlertCircle, Clock, CheckCircle2, Navigation, Eye, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   incidents: Incident[];
@@ -16,6 +17,7 @@ const LiveIncidentFeed: React.FC<Props> = ({
   selectedIncidentId,
   onClose
 }) => {
+  const { t } = useTranslation();
   const getSeverityColor = (severity: string) => {
     if (severity === 'Critical') return '#ef4444'; // Red
     if (severity === 'Warning') return '#f97316'; // Orange
@@ -33,17 +35,27 @@ const LiveIncidentFeed: React.FC<Props> = ({
     return 'bg-emerald-50 text-emerald-600 border border-emerald-200';
   };
 
+  const translateStatus = (val: string) => {
+    if (val === 'Critical') return t('criticalUpper') || val;
+    if (val === 'Warning') return t('warningUpper') || val;
+    if (val === 'Info') return t('infoUpper') || val;
+    if (val === 'Service') return t('navServices') || val;
+    if (val === 'In Progress') return t('inProgress') || val;
+    if (val === 'Resolved') return t('resolved') || val;
+    return val;
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-950/80 backdrop-blur-xl border border-white/5 rounded-3xl p-5 overflow-hidden shadow-2xl">
       {/* Feed Header */}
       <div className="flex items-center justify-between pb-4 mb-2 shrink-0 border-b border-white/5">
         <div className="text-left">
-          <h4 className="text-sm font-black text-white tracking-wide uppercase">Operations log</h4>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Live IoT Diagnostic telemetry</p>
+          <h4 className="text-sm font-black text-white tracking-wide uppercase">{t('operationsLog') || 'Operations log'}</h4>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{t('iotDiagnosticTelemetry') || 'Live IoT Diagnostic Telemetry'}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 bg-blue-500/15 text-blue-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border border-blue-500/30">
-            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" /> connected
+            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" /> {t('connected') || 'connected'}
           </span>
           {onClose && (
             <button
@@ -80,7 +92,7 @@ const LiveIncidentFeed: React.FC<Props> = ({
                     {/* Header info */}
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: severityColor }}>
-                        {incident.id} • {incident.severity}
+                        {incident.id} • {translateStatus(incident.severity)}
                       </span>
                       <span className="text-[10px] font-bold text-slate-400">
                         {incident.timestamp}
@@ -105,24 +117,24 @@ const LiveIncidentFeed: React.FC<Props> = ({
                           <div className="pt-3 mt-3 border-t border-slate-100 space-y-2 text-[10px] text-slate-500 font-medium leading-relaxed">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">reporter</span>
+                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">{t('reporter') || 'reporter'}</span>
                                 <span className="text-slate-700">{incident.reporter}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">dispatch team</span>
+                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">{t('dispatchTeam') || 'dispatch team'}</span>
                                 <span className="text-slate-700">{incident.responseTeam}</span>
                               </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 pt-1">
                               <div>
-                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">eta restoration</span>
+                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">{t('etaRestoration') || 'ETA Restoration'}</span>
                                 <span className="text-slate-700 flex items-center gap-1">
                                   <Clock size={10} /> {incident.estimatedRestore}
                                 </span>
                               </div>
                               <div>
-                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">coordinates</span>
+                                <span className="text-[9px] uppercase text-slate-400 font-bold block mb-0.5">{t('coordinates') || 'coordinates'}</span>
                                 <span className="text-slate-700 flex items-center gap-1 font-mono">
                                   <MapPin size={10} /> {incident.coordinates.join(', ')}
                                 </span>
@@ -131,7 +143,7 @@ const LiveIncidentFeed: React.FC<Props> = ({
 
                             <div className="flex justify-between items-center pt-3 mt-2 border-t border-slate-100">
                               <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${getStatusBadgeStylesLight(incident.status)}`}>
-                                {incident.status}
+                                {translateStatus(incident.status)}
                               </span>
                               
                               <button 
@@ -141,7 +153,7 @@ const LiveIncidentFeed: React.FC<Props> = ({
                                   onIncidentClick(incident);
                                 }}
                               >
-                                <Navigation size={10} /> Fly to
+                                <Navigation size={10} /> {t('flyTo') || 'Fly to'}
                               </button>
                             </div>
                           </div>

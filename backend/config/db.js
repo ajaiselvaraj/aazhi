@@ -11,11 +11,11 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Explicitly load back.env from the project root.
+// Explicitly load .env from the project root.
 // In ES Modules, import statements are hoisted above synchronous code, so
 // a dotenv.config() call in server.js would run *after* this module evaluates.
 // Loading it here makes the Pool self-contained regardless of import order.
-const envPath = path.resolve(__dirname, "..", "back.env");
+const envPath = path.resolve(__dirname, "..", ".env");
 dotenv.config({ path: envPath });
 
 // ─── Force UTC output for ALL timestamp columns ──────────────────

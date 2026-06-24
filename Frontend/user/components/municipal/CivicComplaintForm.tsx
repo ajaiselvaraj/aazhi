@@ -286,13 +286,13 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             );
                         })()}
                         <h3 className="text-xl font-bold text-[#1e293b] mb-6">
-                            2. Geo-Tag & Priority
+                            {t('geoTagPriority') || '2. Geo-Tag & Priority'}
                         </h3>
 
                         <div className="bg-[#f8fafc] rounded-xl p-8 border border-slate-200 w-full mb-8 flex flex-col items-center text-center shadow-sm">
                             <MapPin size={32} className="text-red-600 mb-4" />
                             <p className="text-slate-500 font-medium mb-6 max-w-xs">
-                                {location ? location.address : "Location required to route directly to local ward officer."}
+                                {location ? location.address : (t('locationRequired') || "Location required to route directly to local ward officer.")}
                             </p>
                             {!location ? (
                                 <button
@@ -300,35 +300,35 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                     disabled={isTrackingLoc}
                                     className="w-full sm:w-3/4 bg-[#1e293b] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition disabled:opacity-50"
                                 >
-                                    <Locate size={18} /> {isTrackingLoc ? t("civic_locatingBtn") : "Auto-Detect My Location"}
+                                    <Locate size={18} /> {isTrackingLoc ? t("civic_locatingBtn") : (t('autoDetectLocation') || "Auto-Detect My Location")}
                                 </button>
                             ) : (
                                 <div className="w-full sm:w-3/4 bg-green-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2">
-                                    <CheckCircle size={18} /> Location Detected!
+                                    <CheckCircle size={18} /> {t('locationDetected') || 'Location Detected!'}
                                 </div>
                             )}
                         </div>
 
                         <div className="w-full flex flex-col items-center">
-                            <label className="block text-sm font-bold text-slate-700 mb-4">Select Issue Priority</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-4">{t('selectIssuePriority') || 'Select Issue Priority'}</label>
                             <div className="flex flex-col gap-4 w-full mb-10">
                                 <button
                                     onClick={() => setPriority('High')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'High' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronsUp size={20} /> High
+                                    <ChevronsUp size={20} /> {t('priorityHigh') || 'High'}
                                 </button>
                                 <button
                                     onClick={() => setPriority('Medium')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <Minus size={20} /> Medium
+                                    <Minus size={20} /> {t('priorityMedium') || 'Medium'}
                                 </button>
                                 <button
                                     onClick={() => setPriority('Low')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronsDown size={20} /> Low
+                                    <ChevronsDown size={20} /> {t('priorityLow') || 'Low'}
                                 </button>
                             </div>
                         </div>
@@ -338,14 +338,14 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                 onClick={() => setStep(1)}
                                 className="flex-1 bg-[#1e293b] text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm"
                             >
-                                Back
+                                {t('backBtn') || 'Back'}
                             </button>
                             <button
                                 disabled={!location}
                                 onClick={() => { setStep(3); }}
                                 className={`flex-1 py-4 rounded-xl font-bold transition shadow-sm ${location ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-[#e2e8f0] text-slate-400'}`}
                             >
-                                Next
+                                {t('nextBtn') || 'Next'}
                             </button>
                         </div>
                     </div>

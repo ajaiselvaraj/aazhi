@@ -171,12 +171,12 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             </button>
                             <div>
                                 <h2 className="text-3xl sm:text-4xl font-black !text-[#1e293b] uppercase tracking-tighter">
-                                    REPORT CIVIC ISSUE
+                                    {t('civic_title') || 'REPORT CIVIC ISSUE'}
                                 </h2>
                             </div>
                         </div>
                         <p className="text-center font-bold !text-slate-600 mb-8 uppercase tracking-widest text-sm">
-                            1. What is the issue?
+                            {t('civic_whatIssue') || '1. What is the issue?'}
                         </p>
 
                         <div className="flex flex-wrap justify-center gap-4 sm:gap-6 pb-12 overflow-y-auto">
@@ -221,20 +221,20 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                         <IconComp size={24} className="text-white" strokeWidth={2.5} />
                                     </div>
                                     <div className="text-left flex-1">
-                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Selected Issue</p>
-                                        <p className="text-lg font-black text-slate-800 leading-tight">{issueType}</p>
+                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">{t('selectedIssue') || 'Selected Issue'}</p>
+                                        <p className="text-lg font-black text-slate-800 leading-tight">{t(issueType) || issueType}</p>
                                     </div>
                                 </div>
                             );
                         })()}
                         <h3 className="text-xl font-bold text-[#1e293b] mb-6">
-                            2. Geo-Tag & Priority
+                            {t('geoTagPriority') || '2. Geo-Tag & Priority'}
                         </h3>
 
                         <div className="bg-[#f8fafc] rounded-xl p-8 border border-slate-200 w-full mb-8 flex flex-col items-center text-center shadow-sm">
                             <MapPin size={32} className="text-red-600 mb-4" />
                             <p className="text-slate-500 font-medium mb-6 max-w-xs">
-                                Location required to route directly to local ward officer.
+                                {t('locationRequired') || 'Location required to route directly to local ward officer.'}
                             </p>
                             <button 
                                 onClick={() => {
@@ -243,7 +243,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 }}
                                 className="w-full sm:w-3/4 bg-[#1e293b] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition"
                             >
-                                <Locate size={18} /> {locationDetected ? 'Location Detected!' : 'Auto-Detect My Location'}
+                                <Locate size={18} /> {locationDetected ? (t('locationDetected') || 'Location Detected!') : (t('autoDetectLocation') || 'Auto-Detect My Location')}
                             </button>
                         </div>
 
@@ -264,25 +264,25 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                         </div>
                             
                         <div className="w-full flex flex-col items-center mb-8">
-                            <label className="block text-sm font-bold text-slate-700 mb-4">Select Issue Priority</label>
+                            <label className="block text-sm font-bold text-slate-700 mb-4">{t('selectIssuePriority') || 'Select Issue Priority'}</label>
                             <div className="flex flex-col gap-4 w-full">
                                 <button
                                     onClick={() => setPriority('High')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'High' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronUp size={20} /> High
+                                    <ChevronUp size={20} /> {t('priorityHigh') || 'High'}
                                 </button>
                                 <button
                                     onClick={() => setPriority('Medium')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Medium' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <Minus size={20} /> Medium
+                                    <Minus size={20} /> {t('priorityMedium') || 'Medium'}
                                 </button>
                                 <button
                                     onClick={() => setPriority('Low')}
                                     className={`py-4 rounded-xl flex items-center justify-center gap-3 font-bold transition-all border ${priority === 'Low' ? 'bg-[#1e293b] text-white border-[#1e293b]' : 'bg-[#f0f4f8] text-[#1e293b] border-slate-200 hover:bg-slate-100'}`}
                                 >
-                                    <ChevronDown size={20} /> Low
+                                    <ChevronDown size={20} /> {t('priorityLow') || 'Low'}
                                 </button>
                             </div>
                         </div>
@@ -293,14 +293,14 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                                 onClick={() => departmentId ? onBack() : setStep('category')}
                                 className="flex-1 bg-[#1e293b] text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition shadow-sm"
                             >
-                                Back
+                                {t('backBtn') || 'Back'}
                             </button>
                             <button
                                 disabled={!locationDetected || isSubmitting}
                                 onClick={handleSubmit}
                                 className={`flex-1 py-4 rounded-xl font-bold transition shadow-sm ${locationDetected && !isSubmitting ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-[#e2e8f0] text-slate-400'}`}
                             >
-                                {isSubmitting ? 'Registering...' : 'Next'}
+                                {isSubmitting ? (t('civic_submitting') || 'Registering...') : (t('nextBtn') || 'Next')}
                             </button>
                         </div>
                     </div>

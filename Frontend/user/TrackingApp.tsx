@@ -11,6 +11,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Routes, Route, useParams, useNavigate } from "react-router-dom";
 import { io as socketIO, Socket } from "socket.io-client";
+import { useTranslation } from 'react-i18next';
 
 // ── Dynamic backend URL detection ─────────────────────────────
 const getBackendUrl = () => {
@@ -70,26 +71,26 @@ interface TrackingData {
 }
 
 // ── Default workflow (used when API has no stage data) ─────────
-const DEFAULT_WORKFLOW: Stage[] = [
-  { stage: "Complaint Created", status: "done" },
-  { stage: "Submitted to System", status: "done" },
-  { stage: "Assigned to Officer", status: "done" },
-  { stage: "In Progress", status: "current" },
-  { stage: "Resolved", status: "pending" },
-  { stage: "Closed", status: "pending" },
+const buildDefaultWorkflow = (t: (k: string) => string): Stage[] => [
+  { stage: t('track_complaintCreated'), status: "done" },
+  { stage: t('track_submittedToSystem'), status: "done" },
+  { stage: t('track_assignedToOfficer'), status: "done" },
+  { stage: t('track_inProgress'), status: "current" },
+  { stage: t('track_resolved'), status: "pending" },
+  { stage: t('track_closed'), status: "pending" },
 ];
 
 // ── Map a complaint or service status to workflow stage states ────────────
-function buildWorkflowFromStatus(status: string, isService: boolean): Stage[] {
+function buildWorkflowFromStatus(status: string, isService: boolean, t: (k: string) => string): Stage[] {
   if (isService) {
     const statusOrder = ["pending", "assigned", "in_progress", "on_hold", "completed", "cancelled"];
     const labels: Record<string, string> = {
-      pending: "Service Submitted",
-      assigned: "Technician Assigned",
-      in_progress: "In Progress",
-      on_hold: "On Hold",
-      completed: "Service Completed",
-      cancelled: "Service Cancelled",
+      pending: t('track_serviceSubmitted'),
+      assigned: t('track_technicianAssigned'),
+      in_progress: t('track_inProgress'),
+      on_hold: t('track_onHold'),
+      completed: t('track_serviceCompleted'),
+      cancelled: t('track_serviceCancelled'),
     };
     const currentIdx = statusOrder.indexOf(status?.toLowerCase());
     return statusOrder.map((key, i) => ({
@@ -100,12 +101,12 @@ function buildWorkflowFromStatus(status: string, isService: boolean): Stage[] {
   } else {
     const statusOrder = ["pending", "submitted", "assigned", "in_progress", "resolved", "closed"];
     const labels: Record<string, string> = {
-      pending: "Complaint Created",
-      submitted: "Submitted to System",
-      assigned: "Assigned to Officer",
-      in_progress: "In Progress",
-      resolved: "Resolved",
-      closed: "Closed",
+      pending: t('track_complaintCreated'),
+      submitted: t('track_submittedToSystem'),
+      assigned: t('track_assignedToOfficer'),
+      in_progress: t('track_inProgress'),
+      resolved: t('track_resolved'),
+      closed: t('track_closed'),
     };
     const currentIdx = statusOrder.indexOf(status?.toLowerCase());
     return statusOrder.map((key, i) => ({
@@ -131,9 +132,10 @@ const fmt = (iso?: string) => {
 function ComplaintTrackingPage() {
   const { complaintId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [complaint, setComplaint] = useState<Complaint | null>(null);
-  const [workflow, setWorkflow] = useState<Stage[]>(DEFAULT_WORKFLOW);
+  const [workflow, setWorkflow] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
@@ -152,7 +154,7 @@ function ComplaintTrackingPage() {
       const json = await res.json();
       if (!res.ok || !json.success) {
         setError(json.message || "Tracking ID not found.");
-        setWorkflow(DEFAULT_WORKFLOW);
+        setWorkflow(buildDefaultWorkflow(t));
         return;
       }
       const data: TrackingData = json.data;
@@ -168,15 +170,15 @@ function ComplaintTrackingPage() {
         }));
         setWorkflow(mapped as Stage[]);
       } else {
-        setWorkflow(buildWorkflowFromStatus(data.complaint.status, isServiceReq));
+        setWorkflow(buildWorkflowFromStatus(data.complaint.status, isServiceReq, t));
       }
     } catch {
       setError("Unable to reach the server. Showing default timeline.");
-      setWorkflow(DEFAULT_WORKFLOW);
+      setWorkflow(buildDefaultWorkflow(t));
     } finally {
       setLoading(false);
     }
-  }, [complaintId]);
+  }, [complaintId, t]);
 
   // ── Socket.IO real-time updates ───────────────────────────
   useEffect(() => {
@@ -212,7 +214,7 @@ function ComplaintTrackingPage() {
               }
             : prev;
           const isServiceReq = /^SRQ-/i.test(complaintId || "") || /^TKT-/i.test(complaintId || "") || nextComplaint?.type === 'service_request';
-          setWorkflow(buildWorkflowFromStatus(payload.newStatus, isServiceReq));
+          setWorkflow(buildWorkflowFromStatus(payload.newStatus, isServiceReq, t));
           return nextComplaint;
         });
       }
@@ -247,7 +249,7 @@ function ComplaintTrackingPage() {
     return (
       <div style={styles.pageCenter}>
         <div style={styles.spinner} />
-        <p style={styles.loadingText}>Loading tracking data…</p>
+        <p style={styles.loadingText}>{t('track_loadingData')}</p>
       </div>
     );
   }
@@ -278,9 +280,9 @@ function ComplaintTrackingPage() {
             </button>
             <div style={styles.logoBox}>🏛️</div>
             <div>
-              <div style={styles.headerTitle}>SUVIDHA TRACKING</div>
+              <div style={styles.headerTitle}>{t('track_suvidhaTracking')}</div>
               <div style={styles.headerSub}>
-                {isService ? "Citizen Service Request Tracker" : "Citizen Complaint Tracker"}
+                {isService ? t('track_citizenServiceTracker') : t('track_citizenComplaintTracker')}
               </div>
             </div>
           </div>
@@ -301,7 +303,7 @@ function ComplaintTrackingPage() {
                 textTransform: "uppercase" as const,
                 color: connected ? "#4ade80" : "#f87171",
               }}>
-                {connected ? "Live" : "Offline"}
+                {connected ? t('track_live') : t('track_offline')}
               </span>
             </div>
           </div>
@@ -309,10 +311,10 @@ function ComplaintTrackingPage() {
 
         {/* Reference number */}
         <div style={styles.ticketArea}>
-          <div style={styles.ticketLabel}>Reference Number</div>
+          <div style={styles.ticketLabel}>{t('track_referenceNumber')}</div>
           <div style={styles.ticketId}>{complaint?.ticket_number || complaintId}</div>
           {complaint && (
-            <div style={styles.ticketDate}>Submitted {fmt(complaint.created_at)}</div>
+            <div style={styles.ticketDate}>{t('track_submitted')} {fmt(complaint.created_at)}</div>
           )}
         </div>
 
@@ -335,7 +337,7 @@ function ComplaintTrackingPage() {
           <div style={styles.card}>
             <div style={styles.statusRow}>
               <div>
-                <div style={styles.sectionLabel}>Current Status</div>
+                <div style={styles.sectionLabel}>{t('track_currentStatus')}</div>
                 <div style={{
                   fontSize: 24, fontWeight: 900,
                   color: complaint.status === "completed" || complaint.status === "resolved" ? "#16a34a" :
@@ -357,12 +359,12 @@ function ComplaintTrackingPage() {
             {/* Meta grid */}
             <div style={styles.metaGrid}>
               {[
-                { label: "Category", value: complaint.category },
-                { label: "Department", value: complaint.department || "—" },
-                ...(isService && (complaint as any).assigned_to_name ? [{ label: "Assigned Technician", value: (complaint as any).assigned_to_name }] : []),
-                ...(isService && (complaint as any).scheduled_at ? [{ label: "Scheduled Date & Time", value: fmt((complaint as any).scheduled_at) }] : []),
-                { label: "Ward", value: complaint.ward || "—" },
-                { label: "Last Updated", value: fmt(complaint.updated_at) },
+                { label: t('track_category'), value: complaint.category },
+                { label: t('track_department'), value: complaint.department || "—" },
+                ...(isService && (complaint as any).assigned_to_name ? [{ label: t('track_assignedTechnician'), value: (complaint as any).assigned_to_name }] : []),
+                ...(isService && (complaint as any).scheduled_at ? [{ label: t('track_scheduledDateTime'), value: fmt((complaint as any).scheduled_at) }] : []),
+                { label: t('track_ward'), value: complaint.ward || "—" },
+                { label: t('track_lastUpdated'), value: fmt(complaint.updated_at) },
               ].map((m) => (
                 <div key={m.label} style={styles.metaItem}>
                   <div style={styles.metaLabel}>{m.label}</div>
@@ -374,13 +376,13 @@ function ComplaintTrackingPage() {
             {/* Resolution note */}
             {complaint.resolution_note && (
               <div style={styles.resolutionBox}>
-                <div style={styles.resolutionLabel}>Resolution Note</div>
+                <div style={styles.resolutionLabel}>{t('track_resolutionNote')}</div>
                 <div style={{ fontSize: 13, color: "#166534" }}>{complaint.resolution_note}</div>
               </div>
             )}
             {complaint.rejection_reason && (
               <div style={{ ...styles.resolutionBox, background: "#fef2f2", borderLeftColor: "#dc2626" }}>
-                <div style={{ ...styles.resolutionLabel, color: "#dc2626" }}>Rejection Reason</div>
+                <div style={{ ...styles.resolutionLabel, color: "#dc2626" }}>{t('track_rejectionReason')}</div>
                 <div style={{ fontSize: 13, color: "#991b1b" }}>{complaint.rejection_reason}</div>
               </div>
             )}
@@ -390,7 +392,7 @@ function ComplaintTrackingPage() {
         {/* ── PROCESS HIERARCHY / TIMELINE ─────────────── */}
         <div style={styles.card}>
           <h3 style={styles.timelineTitle}>
-            {isService ? "📋 Service Process Hierarchy" : "📋 Complaint Process Hierarchy"}
+            {isService ? `📋 ${t('track_serviceProcessHierarchy')}` : `📋 ${t('track_complaintProcessHierarchy')}`}
           </h3>
           <div style={styles.timeline}>
             {workflow.map((step, idx) => {
@@ -430,7 +432,7 @@ function ComplaintTrackingPage() {
                     }}>
                       {step.stage?.replace(/_/g, " ")}
                       {isCurrent && (
-                        <span style={styles.currentTag}>CURRENT</span>
+                        <span style={styles.currentTag}>{t('track_current')}</span>
                       )}
                     </div>
                     {step.updated_at && (
@@ -448,12 +450,12 @@ function ComplaintTrackingPage() {
 
         {/* ── REFRESH BUTTON ─────────────────────────────── */}
         <button onClick={fetchData} style={styles.refreshBtn}>
-          🔄 Refresh Status
+          🔄 {t('track_refreshStatus')}
         </button>
 
         {/* Footer */}
         <p style={styles.footer}>
-          Digital India Initiative • SUVIDHA / AAZHI Platform
+          {t('track_digitalIndia')}
         </p>
       </main>
 

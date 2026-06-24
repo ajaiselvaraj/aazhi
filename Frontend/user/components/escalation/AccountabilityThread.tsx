@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════════════
 import React, { useState, useEffect } from 'react';
 import { User, ArrowUpCircle, FileText, Building2, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface EscalationEvent {
     event: string;
@@ -44,6 +45,7 @@ function fmtDate(iso?: string) {
 }
 
 const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) => {
+    const { t } = useTranslation();
     const [data, setData] = useState<EscalationData | null>(null);
     const [loading, setLoading] = useState(true);
     const [expanded, setExpanded] = useState(true);
@@ -92,7 +94,7 @@ const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) 
                     </div>
                     <div>
                         <div style={{ fontWeight: 900, fontSize: 15, color: '#1e293b' }}>
-                            Accountability & Escalation
+                            {t('accountabilityEscalation') || 'Accountability & Escalation'}
                         </div>
                         <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginTop: 1 }}>
                             {hasEscalation ? `${escalation_history.length} escalation(s) on record` : 'No escalations yet'}
@@ -122,10 +124,10 @@ const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) 
                             </div>
                             <div>
                                 <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: 3 }}>
-                                    Current Responsible Officer
+                                    {t('currentResponsibleOfficer') || 'Current Responsible Officer'}
                                 </div>
                                 <div style={{ fontWeight: 900, fontSize: 17, color: '#fff' }}>
-                                    {current_officer.name || 'Officer Assigned'}
+                                    {current_officer.name || t('officerAssigned') || 'Officer Assigned'}
                                 </div>
                                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600, marginTop: 2 }}>
                                     <Building2 size={11} style={{ display: 'inline', marginRight: 4 }} />
@@ -140,13 +142,13 @@ const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) 
                             border: '1px dashed #cbd5e1',
                         }}>
                             <User size={18} style={{ color: '#94a3b8' }} />
-                            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>No officer currently assigned</span>
+                            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>{t('noOfficerAssigned') || 'No officer currently assigned'}</span>
                         </div>
                     )}
 
                     {/* Timeline */}
                     <div style={{ fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>
-                        Escalation Timeline
+                        {t('escalationTimeline') || 'Escalation Timeline'}
                     </div>
 
                     <div style={{ position: 'relative' }}>
@@ -181,7 +183,12 @@ const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) 
                                     {/* Content */}
                                     <div style={{ flex: 1, paddingTop: 6 }}>
                                         <div style={{ fontWeight: 800, fontSize: 14, color: '#1e293b' }}>
-                                            {event.event}
+                                            {event.event === 'Complaint Created' ? (t('complaintCreated') || 'Complaint Created') :
+                                             event.event === 'Escalated to Field Officer' ? (t('escalatedFieldOfficer') || 'Escalated to Field Officer') :
+                                             event.event === 'Escalated to Ward Commissioner' ? (t('escalatedWardCommissioner') || 'Escalated to Ward Commissioner') :
+                                             event.event === 'Escalated to Municipal Commissioner' ? (t('escalatedMunicipalCommissioner') || 'Escalated to Municipal Commissioner') :
+                                             event.event === 'Escalated to District Collector' ? (t('escalatedDistrictCollector') || 'Escalated to District Collector') :
+                                             event.event}
                                         </div>
                                         {event.officer_name && (
                                             <div style={{ fontSize: 12, color: '#475569', fontWeight: 600, marginTop: 2 }}>
@@ -215,7 +222,7 @@ const AccountabilityThread: React.FC<Props> = ({ complaintId, apiBase, token }) 
                     {/* Empty state */}
                     {accountability_timeline.length <= 1 && (
                         <div style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12, fontStyle: 'italic' }}>
-                            No escalations have occurred. Your complaint is being handled normally.
+                            {t('noEscalationsOccurred') || 'No escalations have occurred. Your complaint is being handled normally.'}
                         </div>
                     )}
                 </div>

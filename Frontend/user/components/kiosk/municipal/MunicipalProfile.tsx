@@ -130,7 +130,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
             <p className="text-slate-500 font-bold mb-4">{profileData.citizen_id}</p>
             
             <div className="bg-indigo-50 text-indigo-700 px-4 py-3 rounded-xl text-sm font-bold w-full mb-6 flex flex-col items-start gap-1 text-left">
-              <span className="text-[10px] uppercase opacity-70">Primary PTIN</span>
+              <span className="text-[10px] uppercase opacity-70">{t('primaryPtin') || 'Primary PTIN'}</span>
               <span className="font-mono">{profileData.property_tax_id}</span>
             </div>
 
@@ -148,8 +148,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
             
             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                <User size={20} className="text-indigo-600" />
-                {t('citizenDetails') || 'Citizen Details'}
+                <Settings size={20} className="text-indigo-500" /> {t('personalDetails') || 'Personal Details'}
               </h3>
               {!isEditing && (
                 <button 
@@ -193,7 +192,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Name */}
                   <div className={`col-span-2 md:col-span-1 ${isEditing ? 'bg-indigo-50/30 p-2 rounded-2xl -m-2' : ''}`}>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('sf_fullName') || 'Name'}</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('fullName') || 'Full Name'}</label>
                     <input 
                       type="text" 
                       value={isEditing ? editData.name : profileData.name}
@@ -220,7 +219,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
 
                   {/* Mobile */}
                   <div className={`col-span-2 md:col-span-1 ${isEditing ? 'bg-indigo-50/30 p-2 rounded-2xl -m-2' : ''}`}>
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Phone size={12}/> {t('sf_mobileNumber') || 'Mobile'}</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{t('residentialAddress') || 'Residential Address'}</label>
                     <input 
                       type="tel" 
                       value={isEditing ? editData.mobile : profileData.mobile}

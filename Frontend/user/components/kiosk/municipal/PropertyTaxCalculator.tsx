@@ -92,8 +92,8 @@ const PropertyTaxCalculator: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                             <Calculator size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">Tax Calculator</h2>
-                        <p className="text-slate-500 font-medium mb-8">Estimate your annual or half-yearly property tax in Assam.</p>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('propertyTaxCalculator') || 'Tax Calculator'}</h2>
+                        <p className="text-slate-500 font-medium mb-8">{t('calculateTax') || 'Estimate your annual property tax for Assam municipalities.'}</p>
 
                         <div className="space-y-6">
                             {/* Area Input */}
@@ -230,7 +230,7 @@ const PropertyTaxCalculator: React.FC<Props> = ({ onBack, language }) => {
                                 <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex items-start gap-4">
                                     <AlertCircle className="text-blue-500 shrink-0 mt-1" size={20} />
                                     <div>
-                                        <h5 className="text-[10px] font-black text-blue-900 uppercase tracking-widest mb-1">Calculation Logic</h5>
+                                        <h3 className="font-black text-slate-900 uppercase tracking-widest text-[10px]">{t('taxAmount') || 'Estimated Annual Tax'}</h3>
                                         <p className="text-[11px] font-medium text-blue-800 leading-relaxed">
                                             Base Value = Area ({result.area}) × Rate ({result.baseRate}). Applied multipliers: Construction (x{result.multipliers.constFactor}), Usage (x{result.multipliers.usageFactor}).
                                         </p>

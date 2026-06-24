@@ -132,7 +132,7 @@ const TransactionReceipt: React.FC<Props> = ({ data, onClose }) => {
                                 {header.icon}
                             </div>
                             <div>
-                                <h3 className="font-black text-slate-900 leading-tight">Payment Receipt</h3>
+                                <h3 className="font-black text-slate-900 leading-tight">{t('receipt') || 'Payment Receipt'}</h3>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{serviceName}</p>
                             </div>
                         </div>
@@ -155,7 +155,7 @@ const TransactionReceipt: React.FC<Props> = ({ data, onClose }) => {
                                 <p className="text-[10px] font-bold border-b border-dashed border-slate-300 pb-2 mb-4 uppercase tracking-tighter">----------------------------------------------------</p>
                                 <h4 className="font-black uppercase text-center leading-snug mb-2">{header.title}</h4>
                                 <p className="text-[10px] font-bold border-t border-dashed border-slate-300 pt-2 mb-2 uppercase tracking-tighter">----------------------------------------------------</p>
-                                <h5 className="font-bold border border-slate-900 inline-block px-4 py-1 my-2">PAYMENT RECEIPT</h5>
+                                <h5 className="font-bold border border-slate-900 inline-block px-4 py-1 my-2">{t('receipt')?.toUpperCase() || 'PAYMENT RECEIPT'}</h5>
                                 <p className="text-[10px] font-bold border-b border-dashed border-slate-300 pb-2 mb-4 uppercase tracking-tighter">----------------------------------------------------</p>
                             </div>
 

@@ -45,6 +45,7 @@ const SmartTip = ({ text }: { text: string }) => (
 );
 
 const CustomTooltip = ({ active, payload, label, billData, serviceType }: any) => {
+    const { t } = useTranslation();
     if (active && payload && payload.length) {
         const fullMonthName = (() => {
             const map: Record<string, string> = {
@@ -71,7 +72,7 @@ const CustomTooltip = ({ active, payload, label, billData, serviceType }: any) =
                     {(serviceType === 'all' || serviceType === 'electricity') && (
                         <div className="flex justify-between items-center gap-6">
                             <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                                <Zap size={10} className="text-blue-500" /> Power Bill
+                                <Zap size={10} className="text-blue-500" /> {t('powerBill') || 'Power Bill'}
                             </span>
                             <span className="text-sm font-black text-slate-800">₹{bills.electricityBill.toLocaleString('en-IN')}</span>
                         </div>
@@ -79,7 +80,7 @@ const CustomTooltip = ({ active, payload, label, billData, serviceType }: any) =
                     {(serviceType === 'all' || serviceType === 'water') && (
                         <div className="flex justify-between items-center gap-6">
                             <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                                <Droplets size={10} className="text-cyan-500" /> Water Bill
+                                <Droplets size={10} className="text-cyan-500" /> {t('waterBill') || 'Water Bill'}
                             </span>
                             <span className="text-sm font-black text-slate-800">₹{bills.waterBill.toLocaleString('en-IN')}</span>
                         </div>
@@ -87,14 +88,14 @@ const CustomTooltip = ({ active, payload, label, billData, serviceType }: any) =
                     {(serviceType === 'all' || serviceType === 'gas') && (
                         <div className="flex justify-between items-center gap-6">
                             <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
-                                <Flame size={10} className="text-orange-500" /> Gas Bill
+                                <Flame size={10} className="text-orange-500" /> {t('gasBill') || 'Gas Bill'}
                             </span>
                             <span className="text-sm font-black text-slate-800">₹{bills.gasBill.toLocaleString('en-IN')}</span>
                         </div>
                     )}
                     <div className="border-t border-slate-100 pt-2 mt-2">
                         <div className="flex justify-between items-center gap-6">
-                            <span className="text-[11px] font-bold text-slate-400">Total</span>
+                            <span className="text-[11px] font-bold text-slate-400">{t('total') || 'Total'}</span>
                             <span className="text-sm font-black text-blue-600">₹{total.toLocaleString('en-IN')}</span>
                         </div>
                     </div>
@@ -252,7 +253,7 @@ const ConsumptionAnalytics: React.FC<Props> = ({ language = Language.ENGLISH, se
                         {(serviceType === 'all' || serviceType === 'gas') && (
                             <span className="flex items-center gap-1 text-orange-500">
                                 <span className="w-2 h-2 rounded-full bg-orange-500" />
-                                Gas
+                                {t('gas') || 'Gas'}
                             </span>
                         )}
                     </div>

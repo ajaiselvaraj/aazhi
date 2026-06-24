@@ -93,7 +93,7 @@ const WaterTariff: React.FC<Props> = ({ onBack, language }) => {
                         <div className="w-16 h-16 bg-cyan-50 text-cyan-600 rounded-2xl flex items-center justify-center mb-6 shadow-inner">
                             <Droplets size={32} />
                         </div>
-                        <h2 className="text-3xl font-black text-slate-900 mb-2">Water Tariff</h2>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2">{t('waterTariffsTitle') || 'Water Tariff'}</h2>
                         <p className="text-slate-500 font-medium leading-relaxed mb-6">
                             Assam Urban Water Supply rates for FY 2026-27. Rates are calculated based on monthly consumption in Kilolitres (KL).
                         </p>

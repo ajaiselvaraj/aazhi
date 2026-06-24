@@ -216,7 +216,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
         { id: 'tracker', label: t('trackApp'), icon: Search },
         { id: 'status', label: t('navHistory') || 'History', icon: FileCheck },
         { id: 'ai', label: t('navAssistant') || 'Assistant', icon: HelpCircle },
-        { id: 'integrity', label: 'Civic Integrity', icon: ShieldCheck },
+        { id: 'integrity', label: t('civicIntegrity') || 'Civic Integrity', icon: ShieldCheck },
     ];
 
     return (
@@ -307,7 +307,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
                     <div className={`${isVertical ? 'w-full flex justify-between items-start' : ''}`}>
                         <div>
                             <h1 className={`${isVertical ? 'text-3xl' : 'text-2xl'} font-black text-slate-800 tracking-tight flex items-center gap-3 transition-all duration-300`}>
-                                {activeTab === 'home' ? 'Welcome, Citizen' : NAV_ITEMS.find(n => n.id === activeTab)?.label}
+                                {activeTab === 'home' ? t('welcomeCitizen') || 'Welcome, Citizen' : NAV_ITEMS.find(n => n.id === activeTab)?.label}
                             </h1>
                             <div className="flex items-center gap-3 text-xs font-medium text-slate-500 mt-2">
                                 <span>{t('loginSubtitle')}</span>
