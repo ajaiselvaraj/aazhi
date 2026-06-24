@@ -10,20 +10,20 @@ export const Persistence = {
      * Save current route/view state
      */
     saveRoute: (view: string, subView?: any) => {
-        localStorage.setItem(`${APP_PREFIX}last_view`, JSON.stringify({ view, subView, timestamp: Date.now() }));
+        sessionStorage.setItem(`${APP_PREFIX}last_view`, JSON.stringify({ view, subView, timestamp: Date.now() }));
     },
 
     /**
      * Load last saved route
      */
     loadRoute: () => {
-        const saved = localStorage.getItem(`${APP_PREFIX}last_view`);
+        const saved = sessionStorage.getItem(`${APP_PREFIX}last_view`);
         if (!saved) return null;
         try {
             const data = JSON.parse(saved);
             // Expire after 30 minutes for security
             if (Date.now() - data.timestamp > 30 * 60 * 1000) {
-                localStorage.removeItem(`${APP_PREFIX}last_view`);
+                sessionStorage.removeItem(`${APP_PREFIX}last_view`);
                 return null;
             }
             return data;
@@ -36,7 +36,7 @@ export const Persistence = {
      * Save form data with unique key
      */
     saveFormData: (formKey: string, data: any) => {
-        localStorage.setItem(`${APP_PREFIX}form_${formKey}`, JSON.stringify({
+        sessionStorage.setItem(`${APP_PREFIX}form_${formKey}`, JSON.stringify({
             data,
             timestamp: Date.now()
         }));
@@ -46,13 +46,13 @@ export const Persistence = {
      * Load form data for a unique key
      */
     loadFormData: (formKey: string) => {
-        const saved = localStorage.getItem(`${APP_PREFIX}form_${formKey}`);
+        const saved = sessionStorage.getItem(`${APP_PREFIX}form_${formKey}`);
         if (!saved) return null;
         try {
             const parsed = JSON.parse(saved);
             // Expire form data after 1 hour
             if (Date.now() - parsed.timestamp > 60 * 60 * 1000) {
-                localStorage.removeItem(`${APP_PREFIX}form_${formKey}`);
+                sessionStorage.removeItem(`${APP_PREFIX}form_${formKey}`);
                 return null;
             }
             return parsed.data;
@@ -65,16 +65,16 @@ export const Persistence = {
      * Clear specific form data
      */
     clearFormData: (formKey: string) => {
-        localStorage.removeItem(`${APP_PREFIX}form_${formKey}`);
+        sessionStorage.removeItem(`${APP_PREFIX}form_${formKey}`);
     },
 
     /**
      * Clear all non-essential persistence data
      */
     clearAll: () => {
-        Object.keys(localStorage).forEach(key => {
+        Object.keys(sessionStorage).forEach(key => {
             if (key.startsWith(APP_PREFIX) && !key.includes('token') && !key.includes('user')) {
-                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
             }
         });
     }

@@ -330,14 +330,33 @@ const App: React.FC = () => {
   useEffect(() => {
     handleAutoDetectLocation();
 
-    // ─── ROUTE PERSISTENCE: Restore last view ───
-    const savedRoute = Persistence.loadRoute();
-    if (savedRoute && savedRoute.view) {
-      console.log("♻️ Restoring last session view:", savedRoute.view);
-      setView(savedRoute.view as ViewState);
+    // ─── STRICT FIRST-TIME BOOT CHECK ───
+    const isSessionActive = sessionStorage.getItem('session_initialized');
+    if (!isSessionActive) {
+      console.log("🚀 [Boot] Fresh tab detected. Strictly routing to Language Selection.");
+      localStorage.removeItem('aazhi_user');
+      localStorage.removeItem('aazhi_token');
+      sessionStorage.setItem('session_initialized', 'true');
+      setView(ViewState.LANDING);
+    } else {
+      // ─── ROUTE PERSISTENCE: Restore last view on reload ───
+      const savedRoute = Persistence.loadRoute();
+      if (savedRoute && savedRoute.view) {
+        console.log("♻️ Restoring last session view:", savedRoute.view);
+        setView(savedRoute.view as ViewState);
+        if (savedRoute.subView) {
+          setDashboardInitialTab(savedRoute.subView);
+        }
+      }
     }
-
   }, [handleAutoDetectLocation]);
+
+  // ─── AUTO-SAVE ROUTE STATE ───
+  useEffect(() => {
+    if (view !== ViewState.LANDING) {
+      Persistence.saveRoute(view, dashboardInitialTab);
+    }
+  }, [view, dashboardInitialTab]);
 
   // Handle inactivity auto-logout
   useEffect(() => {

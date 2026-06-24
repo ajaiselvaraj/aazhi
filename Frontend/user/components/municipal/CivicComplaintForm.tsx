@@ -13,6 +13,7 @@ import { Priority } from '../../types/municipal';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { useOrientation } from '../../contexts/OrientationContext';
 import StatusSubscription from '../kiosk/StatusSubscription';
+import { Persistence, debounceSaveForm } from '../../utils/persistence';
 
 // Icon + color mapping per category key
 const CIVIC_ISSUE_META: Record<string, { icon: any; circleColor: string }> = {
@@ -70,14 +71,23 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
     const language = i18n.language as any;
     const { isVertical } = useOrientation();
     const { addComplaint } = useServiceComplaint();
-    const [step, setStep] = useState(1);
-    const [category, setCategory] = useState('');
-    const [priority, setPriority] = useState<Priority>('Medium');
-    const [desc, setDesc] = useState('');
+    
+    // Load cached data
+    const savedForm = Persistence.loadFormData('civic_form') || {};
+    const [step, setStep] = useState(savedForm.step || 1);
+    const [category, setCategory] = useState(savedForm.category || '');
+    const [priority, setPriority] = useState<Priority>(savedForm.priority || 'Medium');
+    const [desc, setDesc] = useState(savedForm.desc || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
+    const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(savedForm.location || null);
+    
     const [isTrackingLoc, setIsTrackingLoc] = useState(false);
     const [submittedTicket, setSubmittedTicket] = useState('');
+
+    // Auto-save form data on change
+    useEffect(() => {
+        debounceSaveForm('civic_form', { step, category, priority, desc, location });
+    }, [step, category, priority, desc, location]);
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);
@@ -162,8 +172,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
 
             console.log("✅ [Civic] Submission success. Ticket received:", ticketId);
             setSubmittedTicket(ticketId);
-
-
+            Persistence.clearFormData('civic_form');
 
             setStep(4); // Success screen
         } catch (e: any) {
