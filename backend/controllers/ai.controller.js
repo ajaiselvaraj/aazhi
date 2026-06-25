@@ -21,15 +21,29 @@ export const handleGeminiQuery = async (req, res, next) => {
             });
         }
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `You are SUVIDHA, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}` }] }]
-            })
-        });
+        // Model Selection & Fallback Logic
+        const primaryModel = 'gemini-3.5-flash';
+        const fallbackModel = 'gemini-flash-lite-latest';
+        
+        const fetchGemini = async (modelName) => {
+            return await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. If the user asks what model you are using, say that you are powered by the gemini-3.5-flash model. User question: ${query}` }] }]
+                })
+            });
+        };
 
-        const data = await response.json();
+        let response = await fetchGemini(primaryModel);
+        let data = await response.json();
+
+        // If primary model fails due to high demand (503) or not found (404), fallback
+        if (!response.ok && (response.status === 503 || response.status === 404)) {
+            logger.warn(`[AI Controller] Primary model ${primaryModel} failed (${response.status}). Falling back to ${fallbackModel}.`);
+            response = await fetchGemini(fallbackModel);
+            data = await response.json();
+        }
         
         if (!response.ok || data.error) {
             logger.error(`[AI Controller] Gemini Error: ${data.error?.message || response.statusText}`);

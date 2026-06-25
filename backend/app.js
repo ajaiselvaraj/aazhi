@@ -42,7 +42,7 @@ app.set('trust proxy', 1);
 
 // ─── HTTPS Redirect (Production Only) ──────────────────
 app.use((req, res, next) => {
-    if (process.env.NODE_ENV === "production" && !req.secure && req.get("x-forwarded-proto") !== "https") {
+    if (process.env.NODE_ENV === "production" && !req.secure && req.get("x-forwarded-proto") !== "https" && req.method !== "OPTIONS" && req.hostname !== "localhost") {
         return res.redirect(`https://${req.get("host")}${req.url}`);
     }
     next();
@@ -67,47 +67,28 @@ console.log("🔒 [CORS] Allowed Origins:", allowedOrigins);
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like Postman, mobile apps, curl)
+        // Allow requests with no origin (like server-to-server or mobile apps)
         if (!origin) return callback(null, true);
-        
-        // In development or if explicitly allowed, permit all
-        if (process.env.NODE_ENV !== 'production' || process.env.FRONTEND_URL === '*') {
-            return callback(null, true);
-        }
 
-        // Allow localhost and local network IPs (only in development)
-        if (process.env.NODE_ENV !== 'production' && (origin.startsWith('http://localhost') || origin.startsWith('http://192.168.') || origin.startsWith('http://10.'))) {
-            return callback(null, true);
-        }
-
-        // Check against allowed origins list
+        // Check against explicitly allowed origins
         if (allowedOrigins.indexOf(origin) !== -1) {
             return callback(null, true);
         }
 
-        // Fallback for strict production
+        // Allow localhost in development mode
+        if (process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(origin)) {
+            return callback(null, true);
+        }
+
+        // Block unauthorized origins
         console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-waf-secret', 'Accept'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-waf-secret', 'x-kiosk-secret', 'Accept'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    optionsSuccessStatus: 204
 }));
-
-
-// ⭐⭐⭐ VERY IMPORTANT FIX ⭐⭐⭐
-// Allow PREFLIGHT to PASS before security engine
-// A manual short-circuit here protects against strict proxies stripping headers.
-app.use((req, res, next) => {
-    if (req.method === "OPTIONS") {
-        res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
-        res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH");
-        res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, x-waf-secret, Accept");
-        res.header("Access-Control-Allow-Credentials", "true");
-        return res.status(200).end();
-    }
-    next();
-});
 
 // ─── Body Parsing & XSS Protection ──────────────────────
 import xssClean from "xss-clean";
