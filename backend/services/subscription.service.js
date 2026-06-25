@@ -93,7 +93,7 @@ export const requestSubscriptionOtp = async (complaintId, contact, channel) => {
 /**
  * 2. Verify Subscription OTP and Create Subscription
  */
-export const verifySubscriptionOtp = async (complaintId, contact, channel, otpCode) => {
+export const verifySubscriptionOtp = async (complaintId, contact, channel, otpCode, isServiceRequest = false) => {
     // Check if the latest OTP matches
     const { rows: otpRows } = await pool.query(
         `SELECT * FROM otp_table WHERE mobile = $1 ORDER BY created_at DESC LIMIT 1`,
@@ -118,11 +118,13 @@ export const verifySubscriptionOtp = async (complaintId, contact, channel, otpCo
     // OTP matches, delete from DB
     await pool.query("DELETE FROM otp_table WHERE mobile = $1", [contact]);
 
+    const colName = isServiceRequest ? 'service_request_id' : 'complaint_id';
+
     // Upsert subscription
     const { rows: subs } = await pool.query(
-        `INSERT INTO notification_subscriptions (complaint_id, citizen_contact, channel, verified)
+        `INSERT INTO notification_subscriptions (${colName}, citizen_contact, channel, verified)
          VALUES ($1, $2, $3, TRUE)
-         ON CONFLICT (complaint_id, citizen_contact, channel) 
+         ON CONFLICT (${colName}, citizen_contact, channel) WHERE ${colName} IS NOT NULL
          DO UPDATE SET verified = TRUE
          RETURNING *`,
         [complaintId, contact, channel]
@@ -131,11 +133,20 @@ export const verifySubscriptionOtp = async (complaintId, contact, channel, otpCo
     logger.info(`✅ [Subscription Service] Verified subscription for ticket/complaint: ${complaintId} on ${channel}`);
 
     // Send immediate "Registered" notification confirm
-    const { rows: complaints } = await pool.query("SELECT * FROM complaints WHERE id = $1", [complaintId]);
-    if (complaints.length > 0) {
-        const ticket = complaints[0];
-        const msg = `Complaint received.\n\nTicket:\n${ticket.ticket_number}\n\nDepartment:\n${ticket.department || 'General'}`;
-        await dispatchMessage(complaintId, contact, channel, "complaint_registered", msg);
+    if (!isServiceRequest) {
+        const { rows: complaints } = await pool.query("SELECT * FROM complaints WHERE id = $1", [complaintId]);
+        if (complaints.length > 0) {
+            const ticket = complaints[0];
+            const msg = `Complaint received.\n\nTicket:\n${ticket.ticket_number}\n\nDepartment:\n${ticket.department || 'General'}`;
+            await dispatchMessage(complaintId, contact, channel, "complaint_registered", msg, isServiceRequest);
+        }
+    } else {
+        const { rows: requests } = await pool.query("SELECT * FROM service_requests WHERE id = $1", [complaintId]);
+        if (requests.length > 0) {
+            const ticket = requests[0];
+            const msg = `Service Request received.\n\nTicket:\n${ticket.ticket_number}\n\nDepartment:\n${ticket.department || 'General'}`;
+            await dispatchMessage(complaintId, contact, channel, "request_registered", msg, isServiceRequest);
+        }
     }
 
     return subs[0];
@@ -168,7 +179,7 @@ export const processFeedbackResponse = async (ticketNumber, score) => {
 /**
  * 4. Dispatch a Single Message (evaluates Quiet-Hours)
  */
-export const dispatchMessage = async (complaintId, contact, channel, type, messageText) => {
+export const dispatchMessage = async (complaintId, contact, channel, type, messageText, isServiceRequest = false) => {
     // Quiet-hours check
     const startHour = parseInt(process.env.NOTIFICATION_START_HOUR || "8");
     const endHour = parseInt(process.env.NOTIFICATION_END_HOUR || "21");
@@ -177,10 +188,12 @@ export const dispatchMessage = async (complaintId, contact, channel, type, messa
     const currentHour = new Date().getHours();
     const isQuietHour = currentHour < startHour || currentHour >= endHour;
 
+    const colName = isServiceRequest ? 'service_request_id' : 'complaint_id';
+
     if (isQuietHour) {
         // Queue notification instead of sending
         await pool.query(
-            `INSERT INTO notification_log (complaint_id, notification_type, channel, message, delivery_status)
+            `INSERT INTO notification_log (${colName}, notification_type, channel, message, delivery_status)
              VALUES ($1, $2, $3, $4, 'queued')`,
             [complaintId, type, channel, messageText]
         );
@@ -220,7 +233,7 @@ export const dispatchMessage = async (complaintId, contact, channel, type, messa
 
     // Log in DB
     await pool.query(
-        `INSERT INTO notification_log (complaint_id, notification_type, channel, message, delivery_status)
+        `INSERT INTO notification_log (${colName}, notification_type, channel, message, delivery_status)
          VALUES ($1, $2, $3, $4, $5)`,
         [complaintId, type, channel, messageText, deliveryStatus]
     );

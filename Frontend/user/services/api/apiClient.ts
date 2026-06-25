@@ -14,14 +14,15 @@ const getBaseUrl = () => {
                      window.location.hostname !== 'localhost' && 
                      window.location.hostname !== '127.0.0.1';
 
-  // If we are on production but the env var points to localhost (often due to committed .env),
-  // fallback to the production API URL.
-  if (isProdSite && envUrl?.includes('localhost')) {
-    console.info('🌐 [apiClient] Production environment detected with localhost API URL — falling back to Render API.');
-    return 'https://aazhi-9gj2.onrender.com/api';
-  }
+  // Trust the provided environment variable in all cases (allows LAN testing)
+  // Fall back to local first, then production if needed, but here we just use envUrl.
+  let url = envUrl || 'http://localhost:5000/api';
 
-  let url = envUrl || 'https://aazhi-9gj2.onrender.com/api';
+  // If accessing via LAN IP, rewrite localhost to that LAN IP so the mobile device
+  // hits the PC's backend instead of its own localhost.
+  if (url.includes('localhost') && typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    url = url.replace('localhost', window.location.hostname);
+  }
   if (url.endsWith('/')) {
     url = url.slice(0, -1);
   }

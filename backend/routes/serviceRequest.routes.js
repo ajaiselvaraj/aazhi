@@ -22,7 +22,11 @@ import { trackingLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-// --- DEBUG ROUTES REMOVED FOR PRODUCTION SECURITY ---
+// --- RESTORED DEBUG ROUTES FOR KIOSK GUEST ACCESS ---
+router.post("/debug", createRequestDebug);
+router.get("/debug", getMyServiceRequestsDebug);
+router.get("/admin/debug", getAllRequestsAdminDebug);
+router.put("/:id/status/debug", updateRequestStatusDebug);
 router.post("/", authMiddleware, validate(createServiceRequestSchema), createServiceRequest);
 router.get("/", authMiddleware, getMyServiceRequests);
 router.get("/admin", authMiddleware, staffOnly, getAllServiceRequestsAdmin);

@@ -19,11 +19,16 @@ export const requestSubscription = async (req, res, next) => {
         // Resolve ticket number to UUID if necessary
         let actualComplaintId = complaintId;
         if (typeof complaintId === 'string' && (complaintId.startsWith('CMP-') || complaintId.startsWith('TKT-') || complaintId.startsWith('SRQ-'))) {
-            const { rows } = await pool.query("SELECT id FROM complaints WHERE ticket_number = $1", [complaintId]);
+            let { rows } = await pool.query("SELECT id FROM complaints WHERE ticket_number = $1", [complaintId]);
             if (rows.length === 0) {
-                return fail(res, "Complaint ticket not found.", 404);
+                const srRes = await pool.query("SELECT id FROM service_requests WHERE ticket_number = $1", [complaintId]);
+                if (srRes.rows.length === 0) {
+                    return fail(res, "Complaint or Service Request ticket not found.", 404);
+                }
+                actualComplaintId = srRes.rows[0].id;
+            } else {
+                actualComplaintId = rows[0].id;
             }
-            actualComplaintId = rows[0].id;
         }
 
         const result = await requestSubscriptionOtp(actualComplaintId, contact, channel);
@@ -45,15 +50,22 @@ export const verifySubscription = async (req, res, next) => {
 
         // Resolve ticket number to UUID if necessary
         let actualComplaintId = complaintId;
+        let isServiceRequest = false;
         if (typeof complaintId === 'string' && (complaintId.startsWith('CMP-') || complaintId.startsWith('TKT-') || complaintId.startsWith('SRQ-'))) {
-            const { rows } = await pool.query("SELECT id FROM complaints WHERE ticket_number = $1", [complaintId]);
+            let { rows } = await pool.query("SELECT id FROM complaints WHERE ticket_number = $1", [complaintId]);
             if (rows.length === 0) {
-                return fail(res, "Complaint ticket not found.", 404);
+                const srRes = await pool.query("SELECT id FROM service_requests WHERE ticket_number = $1", [complaintId]);
+                if (srRes.rows.length === 0) {
+                    return fail(res, "Complaint or Service Request ticket not found.", 404);
+                }
+                actualComplaintId = srRes.rows[0].id;
+                isServiceRequest = true;
+            } else {
+                actualComplaintId = rows[0].id;
             }
-            actualComplaintId = rows[0].id;
         }
 
-        const subscription = await verifySubscriptionOtp(actualComplaintId, contact, channel, otp);
+        const subscription = await verifySubscriptionOtp(actualComplaintId, contact, channel, otp, isServiceRequest);
         return success(res, "Subscribed successfully.", subscription, 201);
     } catch (err) {
         return fail(res, err.message, 400);

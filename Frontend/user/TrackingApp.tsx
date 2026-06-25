@@ -15,10 +15,15 @@ import { useTranslation } from 'react-i18next';
 
 // ── Dynamic backend URL detection ─────────────────────────────
 const getBackendUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
+  let envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
-    return envUrl.replace(/\/api$/, '');
+    let url = envUrl.replace(/\/api$/, '');
+    if (url.includes('localhost') && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      url = url.replace('localhost', window.location.hostname);
+    }
+    return url;
   }
+  
   const host = window.location.hostname;
   const isProd = host !== 'localhost' && !host.startsWith('192.168.') && !host.startsWith('10.');
   

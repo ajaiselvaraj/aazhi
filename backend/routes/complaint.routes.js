@@ -26,7 +26,11 @@ const router = express.Router();
 
 router.use(checkServiceEnabled("complaints"));
 
-// --- DEBUG ROUTES REMOVED FOR PRODUCTION SECURITY ---
+// --- RESTORED DEBUG ROUTES FOR KIOSK GUEST ACCESS ---
+router.post("/debug", createComplaintDebug);
+router.get("/debug", getMyComplaintsDebug);
+router.get("/admin/debug", getAllComplaintsAdminDebug);
+router.put("/:id/status/debug", updateComplaintStatusDebug);
 
 // --- PUBLIC: Workflow Definition (no auth — used by user-side hook) ---
 // GET /api/complaints/workflow/complaint        - complaint stages

@@ -171,8 +171,8 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                     if (!isMounted) break;
                     try {
                         const fresh = item.type === 'Complaint'
-                            ? await GrievanceService.trackComplaint(item.id)
-                            : await GrievanceService.trackRequest(item.id);
+                            ? await GrievanceService.trackComplaint((item as any).ticket_number || item.id)
+                            : await GrievanceService.trackRequest((item as any).ticket_number || item.id);
 
                         if (fresh) {
                             console.log(`🌐 [Tracker] Sync success for ${item.id}:`, fresh.current_stage || fresh.status);
