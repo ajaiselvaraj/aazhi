@@ -30,7 +30,7 @@ export const handleGeminiQuery = async (req, res, next) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. If the user asks what model you are using, say that you are powered by the gemini-3.5-flash model. User question: ${query}` }] }]
+                    contents: [{ parts: [{ text: `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}` }] }]
                 })
             });
         };
