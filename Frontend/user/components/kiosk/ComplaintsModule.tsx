@@ -20,6 +20,8 @@ import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
 import { useTranslation } from 'react-i18next';
 import { AccessibleButton } from '../AccessibleButton';
 import StatusSubscription from './StatusSubscription';
+import { VoiceInputField } from '../accessibility/VoiceInputField';
+import { useAnnouncer } from '../accessibility/AriaLiveAnnouncer';
 
 const CIVIC_ISSUES = [
   { id: 'garbage', label: 'Garbage not collected', icon: Trash2, circleColor: 'bg-[#0f766e]', iconColor: 'text-white' },
@@ -62,6 +64,7 @@ const API_BASE = import.meta.env.VITE_API_URL || `http://${_host}:5000/api`;
 const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, departmentId }) => {
     const { t } = useTranslation();
     const { addComplaint, latestCci, clearLatestCci } = useServiceComplaint();
+    const { announce } = useAnnouncer();
 
     // If departmentId is provided, start at details step, otherwise category
     const [step, setStep] = useState<'category' | 'details' | 'success'>(departmentId ? 'details' : 'category');
@@ -127,6 +130,7 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
 
             setTicketId(newId);
             setStep('success');
+            announce(t('comp_complaintRegistered') || 'Complaint Registered!');
         } catch (error) {
             console.error("Complaint generation failed", error);
         } finally {
@@ -249,11 +253,13 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
 
                         <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex flex-col mb-8 w-full">
                             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">{t('comp_additionalDetails')}</label>
-                            <textarea
-                                className="flex-1 w-full bg-white border-2 border-slate-200 rounded-xl p-4 text-slate-800 font-bold focus:border-blue-500 outline-none resize-none placeholder:text-slate-300 placeholder:font-normal"
-                                placeholder={t('comp_describeProblem')}
+                            <VoiceInputField
+                                className="border-slate-200"
+                                placeholder={t('comp_describeProblem') || 'Explain the issue...'}
+                                rows={4}
+                                multiline={true}
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                onChange={(val) => setDescription(val)}
                             />
 
                             <div className="mt-4 flex gap-3">

@@ -10,6 +10,8 @@ import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
 import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
 import { AccessibleButton } from '../../AccessibleButton';
 import StatusSubscription from '../StatusSubscription';
+import { VoiceInputField } from '../../accessibility/VoiceInputField';
+import { useAnnouncer } from '../../accessibility/AriaLiveAnnouncer';
 
 interface Props {
   onBack: () => void;
@@ -56,6 +58,7 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [showQR, setShowQR] = useState(false); // ⭐ PLUG-IN: QR modal state
+  const { announce } = useAnnouncer();
 
   const handleCategorySelect = (categoryLabel: string) => {
     handleInputChange('category', categoryLabel);
@@ -110,10 +113,12 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
       setTicketNumber(ticketId);
       setShowQR(true);
       setStep('success');
+      announce(t('muni_complaintRegistered') || 'Complaint Registered!');
     } catch (err: any) {
       console.error('Municipal complaint submission failed:', err);
       setSubmitError(err.message || 'Failed to submit complaint');
       setStep('form');
+      announce('Failed to submit complaint');
     }
   };
 
@@ -328,12 +333,13 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
             <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3">
               {t('comp_additionalDetails') || 'Detailed Description'} <span className="text-red-500">*</span>
             </label>
-            <textarea
-              className={`flex-1 w-full bg-white border-2 ${errors.description ? 'border-red-400' : 'border-slate-200'} rounded-2xl p-4 text-slate-800 font-bold focus:border-blue-500 outline-none resize-none placeholder:text-slate-300 placeholder:font-normal`}
+            <VoiceInputField
+              className={`${errors.description ? 'border-red-400' : 'border-slate-200'}`}
               placeholder={t('comp_describeProblem') || 'Explain the issue...'}
               rows={4}
+              multiline={true}
               value={formData.description || ''}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(val) => handleInputChange('description', val)}
             />
             {errors.description && <p className="text-red-500 text-sm font-bold mt-1 flex items-center gap-1"><AlertCircle size={14}/> {errors.description}</p>}
 

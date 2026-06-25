@@ -14,6 +14,7 @@ const KioskUI = lazy(() => import('./components/KioskUI'));
 const Documentation = lazy(() => import('./components/Documentation'));
 const Admin = lazy(() => import('./components/Admin'));
 const WhistleblowerPortal = lazy(() => import('./components/WhistleblowerPortal'));
+const VoiceProvider = lazy(() => import('./src/voice/VoiceProvider'));
 import { EmergencySOS } from './components/municipal/EmergencySOS';
 
 import { authService } from './services/authService';
@@ -378,6 +379,90 @@ const App: React.FC = () => {
   }, [view]);
 
   const resetTimer = () => setTimer(LOGOUT_TIME);
+
+  // ── VOICE ACTION LISTENER ──
+  useEffect(() => {
+    const handleVoiceAction = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const action = customEvent.detail?.action;
+      
+      resetTimer(); // Reset timer on voice action
+
+      switch (action) {
+        case 'GO_HOME':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('home');
+          break;
+        case 'OPEN_SERVICES':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('services');
+          break;
+        case 'OPEN_SCHEMES':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('ai'); // AI assistant handles schemes
+          break;
+        case 'OPEN_HELP':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('ai'); // Assistant for help
+          break;
+        case 'OPEN_HISTORY':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('status'); // Status tab handles history
+          break;
+        case 'OPEN_DOCUMENTS':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('certificates'); // Certificates tab handles documents
+          break;
+        case 'OPEN_COMPLAINTS':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('complaints');
+          break;
+        case 'OPEN_FEEDBACK':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('participation');
+          break;
+        case 'OPEN_BILLING':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('billing');
+          break;
+        case 'OPEN_TRACKER':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('tracker');
+          break;
+        case 'OPEN_WHISTLEBLOWER':
+          setView(ViewState.WHISTLEBLOWER);
+          break;
+        case 'OPEN_AI_ASSISTANT':
+          setView(ViewState.DASHBOARD);
+          setDashboardInitialTab('ai');
+          break;
+        case 'ASK_AI':
+          const payload = customEvent.detail?.payload;
+          if (payload) {
+            setView(ViewState.DASHBOARD);
+            setDashboardInitialTab('ai');
+            // Append timestamp so identical queries still trigger state update
+            setDashboardInitialAiQuery(`${payload}|${Date.now()}`);
+          }
+          break;
+        case 'EXIT':
+          handleBackToLanding();
+          break;
+        case 'BACK':
+          if (view === ViewState.DASHBOARD) {
+            setView(ViewState.SELECTION);
+          }
+          break;
+        case 'RESET_TIMER':
+        case 'EXTEND_SESSION':
+          resetTimer();
+          break;
+      }
+    };
+
+    window.addEventListener('VOICE_ACTION', handleVoiceAction);
+    return () => window.removeEventListener('VOICE_ACTION', handleVoiceAction);
+  }, [view]);
 
   // Logic for Login Navigation
   const handleLanguageSelect = (lang: Language) => {
@@ -768,6 +853,7 @@ const App: React.FC = () => {
         <div className="flex items-center gap-4">
 
           <div className="flex items-center gap-2 px-4 py-2 bg-green-100/50 border border-green-200 rounded-full shadow-sm">
+            <div id="voice-button-target" className="flex items-center"></div>
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">{t('systemOnline')}</span>
           </div>
@@ -972,6 +1058,7 @@ const App: React.FC = () => {
         onKeyDown={resetTimer}
       >
         <KioskKeyboardWrapper language={language}>
+          <VoiceProvider appLanguage={language}>
           <ServiceComplaintProvider>
             {view === ViewState.LANDING && renderLanding()}
             {view === ViewState.EMERGENCY_FAST_LANE && (
@@ -1015,6 +1102,7 @@ const App: React.FC = () => {
             )}
 
           </ServiceComplaintProvider>
+          </VoiceProvider>
         </KioskKeyboardWrapper>
 
 

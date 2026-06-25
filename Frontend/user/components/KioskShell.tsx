@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SystemService } from '../services/systemService';
 import { useOrientation } from '../contexts/OrientationContext';
 import OrientationToggle from './OrientationToggle';
+import { AudioGuidanceButton } from './accessibility/AudioGuidanceButton';
 
 interface KioskShellProps {
     children: React.ReactNode;
@@ -345,29 +346,35 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             </div>
                         </div>
 
-                        {/* Session Timer & Privacy Shield */}
-                        <div className={`flex items-center gap-4 ${isVertical ? '' : 'pl-6 border-l border-slate-200'}`}>
-                            {/* Timer */}
-                            <div className={`flex items-center gap-2 px-4 py-3 bg-white shadow-sm border border-slate-200 rounded-xl`}>
-                                <Clock size={isVertical ? 20 : 16} className={timer < 30 ? 'text-red-500 animate-pulse' : 'text-slate-500'} />
-                                <span className={`${isVertical ? 'text-lg' : 'text-sm'} font-black ${timer < 30 ? 'text-red-600' : 'text-slate-900'}`}>
-                                    {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
-                                </span>
-                            </div>
-
-                            {/* Orientation Toggle */}
-                            <div className={`${isVertical ? 'scale-110 origin-right' : ''}`}>
-                                <OrientationToggle variant="icon" />
-                            </div>
-
-                            {/* CDAC Logo Section (Horizontal Only) */}
-                            {!isVertical && (
-                                <div className="flex items-center pl-6 border-l border-slate-200">
-                                    <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                            {/* Session Timer & Privacy Shield */}
+                            <div className={`flex items-center gap-4 ${isVertical ? '' : 'pl-6 border-l border-slate-200'}`}>
+                                <div id="voice-button-target"></div>
+                                {/* Timer */}
+                                <div className={`flex items-center gap-2 px-4 py-3 bg-white shadow-sm border border-slate-200 rounded-xl`}>
+                                    <Clock size={isVertical ? 20 : 16} className={timer < 30 ? 'text-red-500 animate-pulse' : 'text-slate-500'} />
+                                    <span className={`${isVertical ? 'text-lg' : 'text-sm'} font-black ${timer < 30 ? 'text-red-600' : 'text-slate-900'}`}>
+                                        {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
+                                    </span>
                                 </div>
-                            )}
+
+                                {/* Audio Guidance Button */}
+                                <div className={`${isVertical ? 'scale-110' : ''}`}>
+                                    <AudioGuidanceButton text={t(`guidance_${activeTab}`) || t('guidance_default') || "Welcome. Please follow the instructions on the screen."} className="bg-white border border-slate-200 w-12 h-12" />
+                                </div>
+
+                                {/* Orientation Toggle */}
+                                <div className={`${isVertical ? 'scale-110 origin-right' : ''}`}>
+                                    <OrientationToggle variant="icon" />
+                                </div>
+
+                                {/* CDAC Logo Section (Horizontal Only) */}
+                                {!isVertical && (
+                                    <div className="flex items-center pl-6 border-l border-slate-200">
+                                        <img src={cdacLogo} alt="CDAC Logo" style={{ height: '40px' }} className="w-auto object-contain" />
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </div>
                 </header>
 
 

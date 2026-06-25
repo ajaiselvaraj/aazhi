@@ -101,12 +101,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     setActiveTab(initialTab);
   }, [initialTab]);
 
+  const consumedQueryRef = useRef<string | null>(null);
+
   // Inject Natural Language Queries sent directly from Global Voice Handler
   useEffect(() => {
-    if (initialAiQuery && activeTab === 'ai') {
-      setTimeout(() => handleAiSearch(initialAiQuery), 300);
+    if (initialAiQuery && activeTab === 'ai' && consumedQueryRef.current !== initialAiQuery) {
+      consumedQueryRef.current = initialAiQuery;
+      const actualQuery = initialAiQuery.split('|')[0];
+      setTimeout(() => handleAiSearch(actualQuery), 300);
     }
   }, [initialAiQuery, activeTab]);
+
 
   const [isLargeText, setIsLargeText] = useState(false);
 
