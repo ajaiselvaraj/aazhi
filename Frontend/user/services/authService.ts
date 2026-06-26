@@ -23,7 +23,11 @@ export const authService = {
     },
 
     kioskLogin: async (consumerId: string, pin?: string): Promise<AuthResponse> => {
-        const data = await apiClient.post<any>('/auth/kiosk/login', { consumerId, pin });
+        const data = await apiClient.post<any>('/auth/kiosk/login', { consumerId, pin }, {
+            headers: {
+                'x-kiosk-secret': (import.meta as any).env.VITE_KIOSK_SECRET || 'default_kiosk_secret_for_dev'
+            }
+        });
         const { citizen, tokens } = data;
         const authData: AuthResponse = {
             user: citizen,

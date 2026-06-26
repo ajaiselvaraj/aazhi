@@ -10,12 +10,13 @@ import ElectricityComplaints from './ElectricityComplaints';
 import ElectricityProfile from './ElectricityProfile';
 import ElectricityTracker from './ElectricityTracker';
 import TariffDetails from './TariffDetails';
+import CitizenProfile from './CitizenProfile';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 
 
-type ElectricityView = 'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST' | 'TARIFF';
+type ElectricityView = 'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST' | 'TARIFF' | 'CONSUMER_DASHBOARD';
 
 interface Props {
     onBack: () => void;
@@ -53,14 +54,15 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate
         <div className="h-full">
             {view === 'HOME' && <ElectricityLanding onNavigate={handleNavigate} onExit={onBack} language={language} />}
             {view === 'QUICK_PAY' && <QuickPay onBack={handleInternalBack} language={language} />}
-            {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />}
+            {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('CONSUMER_DASHBOARD')} language={language} />}
             {view === 'CALCULATOR' && <BillCalculator onBack={handleInternalBack} language={language} />}
             {view === 'TRANSACTIONS' && <MyTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />}
             
             {view === 'NEW_CONNECTION' && <ElectricityNewConnectionForm onBack={handleInternalBack} language={language} />}
             {view === 'METER_SERVICE' && <ElectricityMeterServiceForm onBack={handleInternalBack} language={language} />}
             {view === 'COMPLAINTS' && <ElectricityComplaints onBack={handleInternalBack} language={language} />}
-            {view === 'PROFILE' && <ElectricityProfile onBack={handleInternalBack} language={language} />}
+            {view === 'PROFILE' && <CitizenProfile onBack={handleInternalBack} language={language} />}
+            {view === 'CONSUMER_DASHBOARD' && <ElectricityProfile onBack={handleInternalBack} language={language} />}
             {view === 'TRACK_REQUEST' && <ElectricityTracker onBack={handleInternalBack} language={language} />}
 
             {view === 'TARIFF' && <TariffDetails onBack={handleInternalBack} language={language} />}

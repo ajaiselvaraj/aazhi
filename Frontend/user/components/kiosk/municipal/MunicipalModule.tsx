@@ -6,6 +6,7 @@ import { useOrientation } from '../../../contexts/OrientationContext';
 import WaterConnectionForm from './WaterConnectionForm';
 import MunicipalProfile from './MunicipalProfile';
 import MunicipalComplaints from './MunicipalComplaints';
+import WaterComplaints from './WaterComplaints';
 import MunicipalTracker from './MunicipalTracker';
 import MunicipalQuickPay from './MunicipalQuickPay';
 import WaterLogin from './WaterLogin';
@@ -15,6 +16,7 @@ import WaterBillCalculator from './WaterBillCalculator';
 import PropertyTaxTariff from './PropertyTaxTariff';
 import PropertyTaxCalculator from './PropertyTaxCalculator';
 import ConsumptionAnalytics from '../ConsumptionAnalytics';
+import CitizenProfile from '../electricity/CitizenProfile';
 
 interface Props {
   onBack: () => void;
@@ -25,7 +27,7 @@ interface Props {
 const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
   const { t } = useTranslation();
   const { isVertical } = useOrientation();
-  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR'>('HOME');
+  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'WATER_COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR' | 'MUNICIPAL_DASHBOARD'>('HOME');
 
   const handleInternalBack = () => {
     setView('HOME');
@@ -40,8 +42,10 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
   };
 
   if (view === 'WATER') return <WaterConnectionForm onBack={handleInternalBack} language={language} />;
-  if (view === 'PROFILE') return <MunicipalProfile onBack={handleInternalBack} language={language} />;
+  if (view === 'PROFILE') return <CitizenProfile onBack={handleInternalBack} language={language} />;
+  if (view === 'MUNICIPAL_DASHBOARD') return <MunicipalProfile onBack={handleInternalBack} language={language} />;
   if (view === 'COMPLAINTS') return <MunicipalComplaints onBack={handleInternalBack} language={language} />;
+  if (view === 'WATER_COMPLAINTS') return <WaterComplaints onBack={handleInternalBack} language={language} />;
   if (view === 'TRACKER') return <MunicipalTracker onBack={handleInternalBack} language={language} />;
   if (view === 'QUICK_PAY') return <MunicipalQuickPay onBack={handleInternalBack} language={language} />;
   if (view === 'TRANSACTIONS') return <MunicipalTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />;
@@ -49,7 +53,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
   if (view === 'CALCULATOR') return <WaterBillCalculator onBack={handleInternalBack} language={language} />;
   if (view === 'PT_TARIFF') return <PropertyTaxTariff onBack={handleInternalBack} language={language} />;
   if (view === 'PT_CALCULATOR') return <PropertyTaxCalculator onBack={handleInternalBack} language={language} />;
-  if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('PROFILE')} language={language} />;
+  if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('MUNICIPAL_DASHBOARD')} language={language} />;
   if (view === 'TAXES') {
       return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
@@ -195,20 +199,21 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }
       <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'} gap-4 max-w-4xl mx-auto`}>
         {[
           { id: 'WATER', icon: Droplet, label: t('waterServices') || 'Water Services', desc: t('descNewConnection') || 'New connection / Upgrade' },
+          { id: 'WATER_COMPLAINTS', icon: Droplet, label: t('waterComplaints') || 'Water Complaints', desc: t('descReportWater') || 'Report water issues' },
           { id: 'TAXES', icon: FileText, label: t('propertyTax') || 'Property Tax', desc: t('descPayPropertyTax') || 'Pay property tax' },
-          { id: 'COMPLAINTS', icon: AlertCircle, label: t('complaints') || 'Complaints', desc: t('descReportCivic') || 'Report civic issues' },
+          { id: 'COMPLAINTS', icon: AlertCircle, label: t('civicComplaints') || 'Civic Complaints', desc: t('descReportCivic') || 'Report civic issues' },
           { id: 'PROFILE', icon: UserCog, label: t('myProfile') || 'My Profile', desc: t('descUpdateDetails') || 'Update details' },
         ].map((item) => (
           <button
             key={item.id}
             onClick={() => handleNavigate(item.id)}
-            className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-cyan-300 transition text-left group"
+            className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-cyan-300 transition text-left group flex flex-col items-start"
           >
              <div className="w-10 h-10 bg-cyan-50 text-cyan-600 rounded-xl flex items-center justify-center mb-3 group-hover:bg-cyan-600 group-hover:text-white transition">
                <item.icon size={20} />
              </div>
              <h3 className="font-bold text-slate-900">{item.label}</h3>
-             <p className="text-xs text-slate-400 font-medium truncate">{item.desc}</p>
+             <p className="text-xs text-slate-400 font-medium truncate w-full">{item.desc}</p>
           </button>
         ))}
       </div>
