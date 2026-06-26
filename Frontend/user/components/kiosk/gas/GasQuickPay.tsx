@@ -45,6 +45,23 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
             txnId: paymentId,
             refId: paymentId 
         });
+        
+        // Save demo transaction
+        if (billData) {
+            import('../../../services/civicService').then(({ BillingService }) => {
+                BillingService.addDemoTransaction('gas', {
+                    transaction_id: paymentId,
+                    amount: billData.total_amount || billData.amount,
+                    bill_amount: billData.total_amount || billData.amount,
+                    bill_number: billData.bill_number,
+                    consumer_name: billData.consumer_name || 'Consumer',
+                    account_number: consumerNo,
+                    payment_method: paymentMode,
+                    service_type: 'gas',
+                });
+            });
+        }
+        
         setStep('SUCCESS');
     };
 
@@ -68,7 +85,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         </div>
                         <h2 className="text-3xl font-black text-slate-900 mb-2">{t('gasConsumerPrompt') || 'Enter Gas Consumer ID'}</h2>
                         <p className="text-slate-500 font-medium mb-1">Enter your gas consumer number or account ID.</p>
-                        <p className="text-orange-600 font-black text-sm">Example: 1234567890</p>
+                        <p className="text-orange-600 font-black text-sm">Example: 123456789012</p>
                     </div>
 
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 mb-2">Consumer ID</label>

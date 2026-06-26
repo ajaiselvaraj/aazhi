@@ -45,6 +45,27 @@ export const BillingService = {
         return order;
     },
 
+    getOutstandingBills: async (serviceType: string, consumerId: string): Promise<any> => {
+        return await apiClient.get<any>(`/${serviceType}/bills?consumerId=${encodeURIComponent(consumerId.trim())}`);
+    },
+
+    addDemoTransaction: (serviceType: string, transaction: any) => {
+        try {
+            const key = `aazhi_demo_txns_${serviceType}`;
+            const existingStr = localStorage.getItem(key);
+            const existing = existingStr ? JSON.parse(existingStr) : [];
+            const enrichedTxn = {
+                ...transaction,
+                created_at: transaction.created_at || new Date().toISOString(),
+                status: 'SUCCESS'
+            };
+            const updated = [enrichedTxn, ...existing].slice(0, 20); // Keep max 20
+            localStorage.setItem(key, JSON.stringify(updated));
+        } catch (e) {
+            console.error('Failed to save demo transaction', e);
+        }
+    },
+
     verifyPayment: async (paymentData: any) => {
         return await apiClient.post<any>('/payment/verify', paymentData);
     },
@@ -59,19 +80,39 @@ export const BillingService = {
 
         console.log('[BillingService] getTransactionHistory — hasValidJwt:', hasValidJwt, '| consumerId:', consumerId);
 
-        if (hasValidJwt) {
-            // Authenticated path — backend resolves user from JWT, no query param needed
-            return await apiClient.get<any[]>(`/${serviceType}/history`);
+        const getLocalDemoTxns = () => {
+            try {
+                const key = `aazhi_demo_txns_${serviceType}`;
+                const existingStr = localStorage.getItem(key);
+                return existingStr ? JSON.parse(existingStr) : [];
+            } catch {
+                return [];
+            }
+        };
+
+        let apiTxns: any[] = [];
+        try {
+            if (hasValidJwt) {
+                apiTxns = await apiClient.get<any[]>(`/${serviceType}/history`);
+            } else if (consumerId && consumerId.trim().length > 0) {
+                apiTxns = await apiClient.get<any[]>(`/${serviceType}/history?consumerId=${encodeURIComponent(consumerId.trim())}`);
+            } else {
+                console.warn('[BillingService] getTransactionHistory API skipped: no JWT and no consumerId provided.');
+            }
+        } catch (error) {
+            console.warn(`[BillingService] API failed for ${serviceType} history, falling back to local demo txns.`);
         }
 
-        if (consumerId && consumerId.trim().length > 0) {
-            // Guest/kiosk path — explicit consumer number provided
-            return await apiClient.get<any[]>(`/${serviceType}/history?consumerId=${encodeURIComponent(consumerId.trim())}`);
-        }
+        const localTxns = getLocalDemoTxns();
+        // Prepend local demo txns that match the consumerId (if provided)
+        const relevantLocalTxns = consumerId 
+            ? localTxns.filter((txn: any) => txn.account_number === consumerId || txn.consumerId === consumerId || txn.consumer_id === consumerId || txn.serviceNo === consumerId)
+            : localTxns;
 
-        // No auth and no consumerId — abort cleanly instead of making a doomed request
-        console.warn('[BillingService] getTransactionHistory aborted: no JWT and no consumerId provided.');
-        return [];
+        // Merge, avoiding strict duplicates by ID
+        const merged = [...relevantLocalTxns, ...apiTxns];
+        const unique = Array.from(new Map(merged.map(item => [item.transaction_id || item.transactionId || item.txnId || item.id, item])).values());
+        return unique;
     }
 };
 

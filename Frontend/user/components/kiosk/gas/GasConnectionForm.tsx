@@ -23,7 +23,7 @@ const REQUEST_TYPES: { value: RequestType; label: string; i18nKey: string }[] = 
 ];
 
 const GasConnectionForm: React.FC<Props> = ({ onBack, language }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { addServiceRequest } = useServiceComplaint();
   const [step, setStep] = useState<'type' | 'form' | 'submitting' | 'success'>('type');
   const [selectedType, setSelectedType] = useState<RequestType | null>(null);
@@ -154,7 +154,7 @@ const GasConnectionForm: React.FC<Props> = ({ onBack, language }) => {
                 <FileText size={24} />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-slate-900 text-lg">{t(type.i18nKey) || type.label}</h3>
+                <h3 className="font-bold text-slate-900 text-lg">{i18n.exists(type.i18nKey) ? t(type.i18nKey) : type.label}</h3>
               </div>
               <ArrowRight size={20} className="text-slate-300 group-hover:text-orange-600 transition" />
             </button>

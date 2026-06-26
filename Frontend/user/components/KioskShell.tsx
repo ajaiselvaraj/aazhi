@@ -418,17 +418,27 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 )}
             </main>
 
-            {/* Security: Full Screen Network Disconnect Overlay */}
+            {/* Network Disconnect Overlay */}
             {!isOnline && (
                 <div className="fixed inset-0 z-[9999] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center text-white select-none">
                     <WifiOff size={100} className="text-red-500 mb-8 animate-pulse" />
-                    <h1 className="text-5xl font-black mb-4 uppercase tracking-wider">{t('offlineTitle') || 'Terminal Offline'}</h1>
+                    <h1 className="text-5xl font-black mb-4 uppercase tracking-wider">{t('offlineTitle') || 'No internet connection detected.'}</h1>
                     <p className="text-2xl text-slate-300 max-w-2xl text-center mb-8">
-                        {t('offlineDesc') || 'Network connection has been lost. The system will automatically resume when the connection is restored.'}
+                        {t('offlineDesc') || 'Please check your connection and try again.'}
                     </p>
-                    <div className="flex items-center gap-3 text-slate-400">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
-                        <span className="text-lg font-bold tracking-widest uppercase">{t('offlineWait') || 'Waiting for connection...'}</span>
+                    <div className="flex items-center gap-6">
+                        <button 
+                            onClick={() => setIsOnline(navigator.onLine)}
+                            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xl transition-all shadow-lg shadow-blue-200/20"
+                        >
+                            Retry Connection
+                        </button>
+                        <button 
+                            onClick={() => onNavigate('home')}
+                            className="px-8 py-4 bg-transparent border-2 border-slate-600 hover:bg-slate-800 text-white rounded-2xl font-bold text-xl transition-all"
+                        >
+                            Return Home
+                        </button>
                     </div>
                 </div>
             )}

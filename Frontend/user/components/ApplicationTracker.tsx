@@ -362,7 +362,7 @@ const ApplicationTracker: React.FC<ApplicationTrackerProps> = ({ category = 'civ
                             {lastSyncTime && <span className="text-[9px] font-bold opacity-70">Updated {lastSyncTime}</span>}
                         </div>
                     </div>
-                    <button onClick={() => window.location.reload()} className="px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                    <button onClick={() => { setRealTimeData({}); setErrorCount(0); }} className="px-6 py-3 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
                         <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
                         {t('refresh')}
                     </button>

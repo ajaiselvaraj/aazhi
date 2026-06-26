@@ -77,18 +77,13 @@ axiosInstance.interceptors.response.use(
     const message = data?.message || error.message || 'Something went wrong';
 
     if (status === 401 || status === 403) {
-      console.warn('🔓 [Auth] Server rejected session (401/403) — clearing session and redirecting.');
+      console.warn('🔓 [Auth] Server rejected session (401/403) — clearing session.');
       
-      const lang = localStorage.getItem('selectedLanguage');
-      const appLang = localStorage.getItem('app_lang');
+      localStorage.removeItem('aazhi_token');
+      localStorage.removeItem('aazhi_user');
 
-      localStorage.clear();
-      sessionStorage.clear();
-
-      if (lang) localStorage.setItem('selectedLanguage', lang);
-      if (appLang) localStorage.setItem('app_lang', appLang);
-
-      window.location.href = '/choose-language';
+      // Do NOT forcefully redirect via window.location.href as it causes a white page flash
+      // Components should handle the rejection gracefully (e.g., showing a login prompt or demo data)
       return Promise.reject(error);
     }
 

@@ -737,7 +737,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
                 />
               ) : selectedBillService.id === 'water' ? (
-                <MunicipalModule onBack={resetBilling} language={language} onGlobalNavigate={(tab) => setActiveTab(tab as any)} />
+                <MunicipalModule 
+                  onBack={resetBilling} 
+                  language={language} 
+                  onGlobalNavigate={(tab) => setActiveTab(tab as any)} 
+                />
               ) : selectedBillService.id === 'gas' ? (
                 <GasModule
                   onBack={resetBilling}

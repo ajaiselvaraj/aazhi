@@ -23,15 +23,8 @@ class KioskErrorBoundary extends Component<Props, State> {
     }
 
     private handleReset = () => {
-        // Aggressively clear state on crash to prevent data leak
-        const lang = localStorage.getItem('selectedLanguage');
-        
-        localStorage.clear();
-        sessionStorage.clear();
-
-        if (lang) localStorage.setItem('selectedLanguage', lang);
-
-        window.location.reload();
+        // Clear error boundary state to allow a local retry without page reload
+        this.setState({ hasError: false });
     };
 
     public render() {
@@ -39,18 +32,18 @@ class KioskErrorBoundary extends Component<Props, State> {
             return (
                 <div className="flex flex-col items-center justify-center h-full w-full bg-slate-50 rounded-3xl border-2 border-red-200 text-slate-800 p-8 text-center select-none">
                     <div className="bg-red-100 p-6 rounded-full mb-6">
-                        <AlertTriangle size={64} className="text-red-600 animate-pulse" />
+                        <AlertTriangle size={64} className="text-red-600" />
                     </div>
-                    <h1 className="text-3xl font-black mb-4 text-slate-900">Terminal Recovering</h1>
+                    <h1 className="text-3xl font-black mb-4 text-slate-900">Something went wrong.</h1>
                     <p className="text-xl text-slate-600 mb-8 max-w-xl">
-                        The system encountered an unexpected error. For your security, all active session data has been cleared.
+                        Please try again.
                     </p>
                     <button 
                         onClick={this.handleReset}
                         className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xl transition-all active:scale-95 shadow-lg shadow-blue-200"
                     >
                         <RefreshCw size={24} />
-                        Restart Session
+                        Retry
                     </button>
                 </div>
             );

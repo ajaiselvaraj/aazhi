@@ -47,6 +47,23 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
             txnId: paymentId,
             refId: paymentId // Store the Razorpay payment ID as reference
         });
+
+        // Save demo transaction
+        if (billData) {
+            import('../../../services/civicService').then(({ BillingService }) => {
+                BillingService.addDemoTransaction('elec', {
+                    transaction_id: paymentId,
+                    amount: billData.total_amount || billData.amount,
+                    bill_amount: billData.total_amount || billData.amount,
+                    bill_number: billData.bill_number,
+                    consumer_name: billData.consumer_name || 'Consumer',
+                    account_number: consumerNo,
+                    payment_method: paymentMode,
+                    service_type: 'elec',
+                });
+            });
+        }
+
         setStep('SUCCESS');
     };
 

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Delete, Check, ChevronDown, GripHorizontal, ArrowBigUp, CornerDownLeft } from 'lucide-react';
+import { Delete, Check, ChevronDown, GripHorizontal, ArrowBigUp, CornerDownLeft, Mic } from 'lucide-react';
 import { Language } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../contexts/OrientationContext';
+import { useSpeechRecognition } from '../../hooks/useSpeechRecognition';
 
 export type KeyboardType = 'NUMERIC' | 'TEXT' | 'ALPHANUMERIC';
 
@@ -64,9 +65,20 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
     const [isShift, setIsShift] = useState(false);
     const [isCaps, setIsCaps] = useState(false);
     const [mode, setMode] = useState<KeyboardMode>('ALPHA');
+    const [interimText, setInterimText] = useState('');
     const lastShiftTap = useRef<number>(0);
     const deleteInterval = useRef<NodeJS.Timeout | null>(null);
     const deleteTimeout = useRef<NodeJS.Timeout | null>(null);
+
+    const { isListening, isProcessing, error, startListening, stopListening, supported } = useSpeechRecognition({
+        language,
+        onResult: (text) => {
+            onKeyPress(text);
+        },
+        onInterim: (text) => {
+            setInterimText(text);
+        }
+    });
 
     useEffect(() => {
         return () => {
@@ -299,14 +311,36 @@ const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({ isOpen, type, languag
                         ,
                     </button>
 
+                    {supported && (
+                        <button
+                            onMouseDown={(e) => e.preventDefault()}
+                            onTouchStart={(e) => e.preventDefault()}
+                            onClick={isListening ? stopListening : startListening}
+                            className={`flex-[1] flex items-center justify-center rounded-xl shadow-[0_2px_0_0_rgba(156,163,175,1)] active:translate-y-[2px] active:shadow-none transition-all ${
+                                isListening ? 'bg-red-500 text-white shadow-[0_2px_0_0_rgba(220,38,38,1)] animate-pulse' : 'bg-white text-slate-800'
+                            }`}
+                            style={{ height: isVertical ? '64px' : '56px' }}
+                            aria-label="Voice typing"
+                        >
+                            <Mic size={24} />
+                        </button>
+                    )}
+
                     <button
                         onMouseDown={(e) => e.preventDefault()}
                         onTouchStart={(e) => e.preventDefault()}
                         onClick={() => handleKeyClick(' ')}
-                        className="flex-[5] flex items-center justify-center bg-white rounded-xl shadow-[0_2px_0_0_rgba(156,163,175,1)] text-slate-800 active:translate-y-[2px] active:shadow-none transition-all text-xl font-bold"
+                        className={`flex items-center justify-center rounded-xl shadow-[0_2px_0_0_rgba(156,163,175,1)] active:translate-y-[2px] active:shadow-none transition-all text-xl font-bold ${supported ? 'flex-[4]' : 'flex-[5]'} ${
+                            isListening || interimText ? 'bg-red-50 text-red-600 truncate px-4' :
+                            error ? 'bg-orange-50 text-orange-600 text-sm' : 'bg-white text-slate-800'
+                        }`}
                         style={{ height: isVertical ? '64px' : '56px' }}
                     >
-                        {mode === 'ALPHA' ? (t('kb_space') || 'space') : 'space'}
+                        {error ? error :
+                         interimText ? interimText :
+                         isProcessing ? 'Processing...' :
+                         isListening ? 'Listening...' :
+                         (mode === 'ALPHA' ? (t('kb_space') || 'space') : 'space')}
                     </button>
 
                     <button

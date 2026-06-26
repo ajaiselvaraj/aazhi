@@ -22,12 +22,13 @@ interface Props {
   onBack: () => void;
   language: Language;
   onGlobalNavigate?: (tab: string) => void;
+  initialSubView?: 'HOME' | 'WATER' | 'COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR';
 }
 
-const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate }) => {
+const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initialSubView }) => {
   const { t } = useTranslation();
   const { isVertical } = useOrientation();
-  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'WATER_COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR' | 'MUNICIPAL_DASHBOARD'>('HOME');
+  const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'WATER_COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR' | 'MUNICIPAL_DASHBOARD'>(initialSubView ?? 'HOME');
 
   const handleInternalBack = () => {
     setView('HOME');

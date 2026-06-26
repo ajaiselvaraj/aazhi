@@ -42,12 +42,9 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
 
     // Intercept Quick Pay and Login for brand selection
     if (target === 'QUICK_PAY' || target === 'LOGIN') {
-      const storedBrand = localStorage.getItem('selectedGasBrand');
-      if (!storedBrand) {
-        setPendingView(target);
-        setView('BRAND_SELECTION');
-        return;
-      }
+      setPendingView(target);
+      setView('BRAND_SELECTION');
+      return;
     }
 
     setView(target);

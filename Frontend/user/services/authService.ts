@@ -87,14 +87,8 @@ export const authService = {
         try {
             await apiClient.post('/auth/logout');
         } finally {
-            const lang = localStorage.getItem('selectedLanguage');
-            const appLang = localStorage.getItem('app_lang');
-
-            localStorage.clear();
-            sessionStorage.clear();
-
-            if (lang) localStorage.setItem('selectedLanguage', lang);
-            if (appLang) localStorage.setItem('app_lang', appLang);
+            localStorage.removeItem('aazhi_token');
+            localStorage.removeItem('aazhi_user');
 
             window.location.href = '/choose-language';
         }
