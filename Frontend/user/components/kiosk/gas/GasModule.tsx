@@ -40,12 +40,24 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
       return;
     }
 
-    // Intercept Quick Pay and Login for brand selection
-    if (target === 'QUICK_PAY' || target === 'LOGIN') {
+    // Intercept for brand selection
+    const needsBrandSelection = ['QUICK_PAY', 'LOGIN', 'BILLS', 'COMPLAINTS', 'PROFILE', 'TRANSACTIONS'];
+    if (needsBrandSelection.includes(target)) {
       const storedBrand = localStorage.getItem('selectedGasBrand');
       if (!storedBrand) {
         setPendingView(target);
         setView('BRAND_SELECTION');
+        return;
+      }
+    }
+
+    // Intercept protected views for authentication
+    const protectedViews: GasView[] = ['BILLS', 'COMPLAINTS', 'PROFILE', 'TRANSACTIONS'];
+    if (protectedViews.includes(target)) {
+      const token = localStorage.getItem('aazhi_token');
+      if (!token || token === 'null' || token === 'undefined') {
+        setPendingView(target);
+        setView('LOGIN');
         return;
       }
     }
@@ -55,8 +67,9 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
 
   const handleBrandSelect = (brand: string) => {
     if (pendingView) {
-      setView(pendingView);
+      const target = pendingView;
       setPendingView(null);
+      handleNavigate(target);
     } else {
       setView('HOME');
     }
@@ -108,7 +121,15 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
       {view === 'LOGIN' && (
         <GasLogin 
           onBack={handleInternalBack}
-          onLoginSuccess={() => handleNavigate('BILLS')}
+          onLoginSuccess={() => {
+            if (pendingView && pendingView !== 'LOGIN') {
+              const target = pendingView;
+              setPendingView(null);
+              handleNavigate(target);
+            } else {
+              handleNavigate('BILLS');
+            }
+          }}
           language={language}
         />
       )}
