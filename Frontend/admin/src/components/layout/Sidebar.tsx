@@ -120,7 +120,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
           </div>
           <div>
             <div className="sidebar-logo-title">AAZHI</div>
-            <div className="sidebar-logo-sub">{t('nav.admin_portal') || 'Admin Portal'}</div>
+            <div className="sidebar-logo-sub">{t('nav.admin_portal', 'Admin Portal')}</div>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
       <nav className="sidebar-nav">
         {groupsToRender.map(group => (
           <div key={group.label_key}>
-            <div className="nav-section-label">{t(group.label_key) || group.label_default}</div>
+            <div className="nav-section-label">{t(group.label_key, group.label_default)}</div>
             {group.items.map(item => (
               <button
                 key={item.id}
@@ -137,7 +137,7 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
                 onClick={() => onNav(item.id)}
               >
                 <item.icon size={16} />
-                <span>{t(item.trans_key) || item.default_label}</span>
+                <span>{t(item.trans_key, item.default_label)}</span>
               </button>
             ))}
           </div>
@@ -153,12 +153,12 @@ export default function Sidebar({ active, onNav, onLogout }: SidebarProps) {
             style={{ color: active === 'settings' ? '#fff' : 'rgba(255,255,255,.4)', marginBottom: '.25rem' }}
           >
             <Settings size={16} />
-            <span>{t('nav.settings') || 'Settings'}</span>
+            <span>{t('nav.settings', 'Settings')}</span>
           </button>
         )}
         <button className="nav-item" onClick={onLogout} style={{ color: 'rgba(255,77,79,.7)' }}>
           <LogOut size={16} />
-          <span>{t('nav.logout') || 'Logout'}</span>
+          <span>{t('nav.logout', 'Logout')}</span>
         </button>
       </div>
     </aside>
