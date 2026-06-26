@@ -344,22 +344,16 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             <p className="text-3xl font-black text-slate-800 tracking-tight">{ticketId}</p>
                         </div>
 
-                        {/* Status Subscription Confirmation Panel */}
                         {/* Status Subscription Feature - Proactive Push Updates */}
                         <div className="mb-8 w-full">
-                            <StatusSubscription complaintId={ticketId} defaultMobile={userPhone} />
-                        </div>
-
-                        <div className="flex gap-4">
-                            <button 
-                                onClick={() => {
+                            <StatusSubscription 
+                                complaintId={ticketId} 
+                                defaultMobile={userPhone} 
+                                onClose={() => {
                                     clearLatestCci?.();
                                     onBack();
-                                }} 
-                                className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition"
-                            >
-                                {t('returnHome')}
-                            </button>
+                                }}
+                            />
                         </div>
                     </div>
                 )}

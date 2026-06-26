@@ -6,9 +6,10 @@ import apiClient from '../../services/api/apiClient';
 interface Props {
     complaintId: string;
     defaultMobile: string;
+    onClose?: () => void;
 }
 
-const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => {
+const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile, onClose }) => {
     const { t } = useTranslation();
     const [subStep, setSubStep] = useState<'idle' | 'otp' | 'success'>('idle');
     const [channel, setChannel] = useState<'sms' | 'whatsapp'>('whatsapp');
@@ -112,13 +113,23 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
 
                     {error && <p className="text-red-500 text-xs font-bold bg-red-50 p-2 rounded-lg">{error}</p>}
 
-                    <button
-                        onClick={handleSubscribeRequest}
-                        disabled={loading}
-                        className="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                        {loading ? (t('sending') || 'Sending...') : (t('subscribe') || 'Subscribe')} <ChevronRight size={16} />
-                    </button>
+                    <div className="flex gap-2">
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-4 bg-white text-slate-500 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-slate-50 transition border border-slate-100 shadow-sm"
+                            >
+                                {t('close') || 'Close'}
+                            </button>
+                        )}
+                        <button
+                            onClick={handleSubscribeRequest}
+                            disabled={loading}
+                            className="flex-1 bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+                        >
+                            {loading ? (t('sending') || 'Sending...') : (t('subscribe') || 'Subscribe')} {(!loading && !onClose) && <ChevronRight size={16} />}
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -170,9 +181,18 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile }) => 
                             We'll proactively send you updates via {channel.toUpperCase()} on +91 {contact} whenever your complaint status changes.
                         </p>
                     </div>
-                    <div className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 shadow-sm text-xs mt-2 inline-flex">
-                        Subscription Active
-                    </div>
+                    {onClose ? (
+                        <button
+                            onClick={onClose}
+                            className="mt-4 w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition shadow-sm"
+                        >
+                            {t('close') || 'Close'}
+                        </button>
+                    ) : (
+                        <div className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold border border-blue-100 shadow-sm text-xs mt-2 inline-flex">
+                            Subscription Active
+                        </div>
+                    )}
                 </div>
             )}
         </div>

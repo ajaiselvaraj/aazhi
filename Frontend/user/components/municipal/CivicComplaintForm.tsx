@@ -174,7 +174,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
             setSubmittedTicket(ticketId);
             Persistence.clearFormData('civic_form');
 
-            setStep(4); // Success screen
+            setStep(3); // Success screen
         } catch (e: any) {
             console.error("❌ [Civic] Critical submission failure:", e?.message || e);
 
@@ -260,12 +260,8 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             label={`← ${t("goBackBtn")}`}
                             speakLabel={t("goBackBtn")}
                             language={getLanguageName()}
-                            onClick={() => {
-                                if (step === 2) setStep(1);
-                                else if (step === 3) setStep(2);
-                                else if (step === 4) onBack();
-                            }}
-                            className="text-xl px-8 py-4 bg-[#1e293b] text-white shadow-sm hover:bg-slate-800 border-none rounded-xl font-bold"
+                            onClick={() => setStep(step - 1)}
+                            className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
                         />
                         <h2 className="text-4xl font-black text-slate-800 tracking-tight">{t("civic_title")}</h2>
                     </div>
@@ -344,52 +340,8 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             >
                                 {t('backBtn') || 'Back'}
                             </button>
-                            <button
-                                disabled={!location}
-                                onClick={() => { setStep(3); }}
-                                className={`flex-1 py-4 rounded-xl font-bold transition shadow-sm ${location ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-[#e2e8f0] text-slate-400'}`}
-                            >
-                                {t('nextBtn') || 'Next'}
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {step === 3 && (
-                    <div className="animate-in slide-in-from-right-8 duration-500 max-w-2xl mx-auto text-center">
-                        {(() => {
-                            const meta = CIVIC_ISSUE_META[category] || { icon: AlertCircle, circleColor: 'bg-blue-100' };
-                            const IconComp = meta.icon;
-                            return (
-                                <div className="mb-8 flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 w-full max-w-sm mx-auto justify-center">
-                                    <div className={`w-12 h-12 rounded-full ${meta.circleColor} flex items-center justify-center shadow-md`}>
-                                        <IconComp size={24} className="text-white" strokeWidth={2.5} />
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <p className="text-[10px] uppercase tracking-wider font-black text-slate-400">Selected Issue</p>
-                                        <p className="text-lg font-black text-slate-800 leading-tight">{t(category)}</p>
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                        <h3 className="text-2xl font-bold mb-8 text-slate-700">{t("civic_attachPhoto")}</h3>
-
-                        <div 
-                            className="bg-slate-100 border-4 border-dashed border-slate-300 rounded-[2rem] h-64 flex flex-col justify-center items-center cursor-pointer hover:bg-slate-200 transition mb-8"
-                        >
-                            <Camera size={64} className="text-slate-400 mb-4" />
                             <AccessibleButton
-                                label={t("civic_takePhoto")}
-                                language={getLanguageName()}
-                                className="bg-blue-600 text-white hover:bg-blue-700 pointer-events-none"
-                            />
-                        </div>
-
-                        <div className="flex justify-between w-full mt-12 gap-6">
-                            <AccessibleButton label={t("backBtn")} language={getLanguageName()} onClick={() => setStep(2)} className="flex-1 bg-slate-200 border-none" />
-
-                            <AccessibleButton
-                                label={isSubmitting ? t("civic_submitting") : t("civic_submitComplaint")}
+                                label={isSubmitting ? t("civic_submitting") || "Submitting..." : t("civic_submitComplaint") || "Submit Complaint"}
                                 language={getLanguageName()}
                                 onClick={handleSubmit}
                                 disabled={isSubmitting || !location}
@@ -399,7 +351,7 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                     </div>
                 )}
 
-                {step === 4 && (
+                {step === 3 && (
                     <div className="animate-in zoom-in-95 duration-700 pt-20 max-w-lg mx-auto text-center">
                         <div className="w-32 h-32 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
                             <CheckCircle size={64} />
@@ -420,16 +372,9 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                     const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
                                     return sessionUser?.mobile || '';
                                 })()} 
+                                onClose={onBack}
                             />
                         </div>
-
-                        <AccessibleButton
-                            label={t("returnMainMenu")}
-                            speakLabel={t("goBackBtn")}
-                            language={getLanguageName()}
-                            onClick={onBack}
-                            className="w-full bg-blue-600 text-white"
-                        />
                     </div>
                 )}
 
