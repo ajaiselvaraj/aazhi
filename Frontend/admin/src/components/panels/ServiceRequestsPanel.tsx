@@ -128,6 +128,9 @@ export default function ServiceRequestsPanel() {
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
+      if (myDept && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
+        params.department = myDept;
+      }
       
       console.log('📡 [Admin] Fetching service requests...', params)
       const res = await adminApi.getAllServiceRequests(params)
@@ -172,12 +175,15 @@ export default function ServiceRequestsPanel() {
        ? ACTIVE_STATUSES.includes(r.status)
        : r.status === statusFilter;
 
+    const isDeptMatch = !myDept || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
+      (r.department || '').toLowerCase().includes(myDept.toLowerCase());
+
     const tkt = (r.ticket_number || '').toLowerCase();
     const name = (r.citizen_name || '').toLowerCase();
     const type = (r.request_type || '').toLowerCase();
     const s = search.toLowerCase();
 
-    return matchesStatus && (tkt.includes(s) || name.includes(s) || type.includes(s));
+    return isDeptMatch && matchesStatus && (tkt.includes(s) || name.includes(s) || type.includes(s));
   })
 
   async function handleUpdateStage(id: string, newStage: string) {

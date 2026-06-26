@@ -133,6 +133,9 @@ export default function TriagePanel() {
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
+      if (myDept && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
+        params.department = myDept;
+      }
       
       console.log('📡 [Admin] Fetching complaints...', params)
       const res = await adminApi.getAllComplaints(params)
@@ -155,7 +158,10 @@ export default function TriagePanel() {
        ? (c.status !== 'resolved' && c.status !== 'rejected') 
        : c.status === statusFilter;
 
-    return matchesStatus &&
+    const isDeptMatch = !myDept || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
+      (c.department || '').toLowerCase().includes(myDept.toLowerCase());
+
+    return isDeptMatch && matchesStatus &&
     (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
      c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
      c.description?.toLowerCase().includes(search.toLowerCase()) ||
