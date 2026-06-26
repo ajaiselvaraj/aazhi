@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, CreditCard, Printer, Droplet } from 'lucide-react';
 import PaymentReceipt from '../PaymentReceipt';
 import OfficialReceipt from '../electricity/OfficialReceipt';
@@ -6,6 +6,7 @@ import ConsumptionAnalytics from '../ConsumptionAnalytics';
 import { Language } from '../../../types';
 import { MunicipalAPI } from '../../../services/municipalApi';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import RazorpayCheckout from '../../RazorpayCheckout';
 
 interface Props {
@@ -25,12 +26,52 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [error, setError] = useState<string>('');
     const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
+    // Clean start: ensure no stale state is carried from a previous session
+    useEffect(() => {
+        setConsumerNo('');
+        setBillData(null);
+        setError('');
+        setStep('INPUT');
+    }, []);
+
+    const navigate = useNavigate();
+
+    const handleReturnToBills = () => {
+        window.dispatchEvent(new Event('aazhi_reset_billing'));
+        navigate('/pay-bills', { replace: true });
+    };
+
+    // Step 3 & Step 4: Auto-redirect to Pay Bills page after 4 seconds on receipt
+    useEffect(() => {
+        if (step === 'SUCCESS') {
+            const timer = setTimeout(() => {
+                handleReturnToBills();
+            }, 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [step]);
+
     const handleFetch = async () => {
-        if (!consumerNo) return;
+        // Requirement 4: Validate before API call
+        if (!consumerNo.trim()) {
+            setError('Please enter a valid Assessment / Consumer Number.');
+            return;
+        }
+        if (consumerNo.trim().length < 6) {
+            setError('Assessment Number must be at least 6 characters.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
         try {
+            const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+            if (paid.includes(consumerNo)) {
+                setError('No pending bills found for this assessment number.');
+                setIsLoading(false);
+                return;
+            }
             const fetchedBill = await MunicipalAPI.getWaterQuickPayBill(consumerNo);
             setBillData(fetchedBill);
             setStep('DETAILS');
@@ -46,6 +87,9 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
             refId: paymentId // Store the Razorpay payment ID as reference
         });
 
+        const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+        localStorage.setItem('aazhi_paid_bills', JSON.stringify([...paid, consumerNo]));
+
         // Save demo transaction
         if (billData) {
             import('../../../services/civicService').then(({ BillingService }) => {
@@ -55,7 +99,7 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     bill_amount: billData.total_amount || billData.amount,
                     bill_number: billData.bill_number,
                     consumer_name: billData.consumer_name || 'Consumer',
-                    account_number: propertyNo,
+                    account_number: consumerNo,
                     payment_method: paymentMode,
                     service_type: 'municipal',
                 });
@@ -237,7 +281,7 @@ const MunicipalQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-cyan-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-200">
                             <Printer size={18} /> {t('printReceipt')}
                         </button>
-                        <button onClick={onBack} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
+                        <button onClick={handleReturnToBills} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
                             {t('back') || "Done"}
                         </button>
                     </div>

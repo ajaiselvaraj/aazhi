@@ -314,7 +314,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             {step === 'submitting' ? (
                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <>{step === 'submitting' ? t('submitting') || 'Submitting...' : t('water_submitComplaint') || 'Submit Complaint'} <Send size={20} /></>
+              <>{t('water_submitComplaint') || 'Submit Complaint'} <Send size={20} /></>
             )}
           </button>
         </div>

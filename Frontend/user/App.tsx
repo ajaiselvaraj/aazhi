@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor, Bot } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor, Bot, Check, Accessibility, HeartHandshake } from 'lucide-react';
 import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
 import { Language, ViewState } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
@@ -15,6 +15,7 @@ const Documentation = lazy(() => import('./components/Documentation'));
 const Admin = lazy(() => import('./components/Admin'));
 const WhistleblowerPortal = lazy(() => import('./components/WhistleblowerPortal'));
 const VoiceProvider = lazy(() => import('./src/voice/VoiceProvider'));
+const ElderlyHome = lazy(() => import('./components/ElderlyHome'));
 import { EmergencySOS } from './components/municipal/EmergencySOS';
 
 import { authService } from './services/authService';
@@ -199,22 +200,32 @@ const App: React.FC = () => {
   const { isVertical, toggleOrientation } = useOrientation();
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
+  const [isElderlyMode, setIsElderlyMode] = useState(() => sessionStorage.getItem('elderlyMode') === 'true');
 
   // ─── ROUTE PATH SYNCHRONIZATION ───
   useEffect(() => {
     const path = location.pathname;
     console.log("[RouteSync] Synchronizing view/tab with path:", path);
     const user = localStorage.getItem('aazhi_user');
+    const isElderly = sessionStorage.getItem('elderlyMode') === 'true';
 
     if (path === '/choose-language') {
       if (user) {
-        setView(ViewState.SELECTION);
+        setView(isElderly ? ViewState.ELDERLY_HOME : ViewState.SELECTION);
       } else {
         setView(ViewState.LANDING);
       }
+    } else if (path === '/elderly-home') {
+      if (isElderly && user) {
+        setView(ViewState.ELDERLY_HOME);
+      } else {
+        setView(ViewState.LANDING);
+        navigate('/choose-language', { replace: true });
+        return;
+      }
     } else if (path === '/') {
       if (user) {
-        setView(ViewState.SELECTION);
+        setView(isElderly ? ViewState.ELDERLY_HOME : ViewState.SELECTION);
       } else {
         setView(ViewState.LANDING);
         navigate('/choose-language', { replace: true });
@@ -333,11 +344,15 @@ const App: React.FC = () => {
 
     // ─── STRICT FIRST-TIME BOOT CHECK ───
     const isSessionActive = sessionStorage.getItem('session_initialized');
-    if (!isSessionActive) {
-      console.log("🚀 [Boot] Fresh tab detected. Strictly routing to Language Selection.");
+    const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+    const isReload = navEntries.length > 0 && navEntries[0].type === 'reload';
+    if (!isSessionActive || isReload) {
+      console.log("🚀 [Boot/Refresh] Strictly routing to Language Selection and resetting Elderly Mode.");
       localStorage.removeItem('aazhi_user');
       localStorage.removeItem('aazhi_token');
+      sessionStorage.clear();
       sessionStorage.setItem('session_initialized', 'true');
+      setIsElderlyMode(false);
       setView(ViewState.LANDING);
     } else {
       // ─── ROUTE PERSISTENCE: Restore last view on reload ───
@@ -361,7 +376,7 @@ const App: React.FC = () => {
 
   // Handle inactivity auto-logout
   useEffect(() => {
-    if (view === ViewState.DASHBOARD || view === ViewState.ADMIN || view === ViewState.SELECTION) {
+    if (view === ViewState.DASHBOARD || view === ViewState.ADMIN || view === ViewState.SELECTION || view === ViewState.ELDERLY_HOME) {
       timerRef.current = window.setInterval(() => {
         setTimer((prev) => {
           if (prev <= 1) {
@@ -483,7 +498,14 @@ const App: React.FC = () => {
       role: 'citizen'
     }));
 
-    setView(ViewState.SELECTION);
+    if (isElderlyMode) {
+      sessionStorage.setItem('elderlyMode', 'true');
+      setView(ViewState.ELDERLY_HOME);
+      navigate('/elderly-home');
+    } else {
+      sessionStorage.setItem('elderlyMode', 'false');
+      setView(ViewState.SELECTION);
+    }
     setError('');
   };
 
@@ -550,7 +572,13 @@ const App: React.FC = () => {
         console.log("🛡️ [Dev] Global OTP bypass triggered for Aadhaar. Session set to Offline.");
       }
 
-      setView(ViewState.SELECTION);
+      setView(ViewState.DASHBOARD);
+      if (dashboardInitialTab === 'ai') {
+        navigate('/assistant');
+      } else {
+        setDashboardInitialTab('billing');
+        navigate('/pay-bills');
+      }
     } catch (e: any) {
       console.error("Login submission error", e);
       setError(e.message || "Invalid OTP. Please enter the OTP sent to your mobile number.");
@@ -588,6 +616,7 @@ const App: React.FC = () => {
     if (lang) localStorage.setItem('selectedLanguage', lang);
     if (appLang) localStorage.setItem('app_lang', appLang);
 
+    setIsElderlyMode(false);
     setView(ViewState.LANDING);
     resetLoginState();
     setIsPrivacyShieldOn(false);
@@ -596,7 +625,7 @@ const App: React.FC = () => {
 
   const handleSelection = (target: 'ai' | 'billing') => {
     setDashboardInitialTab(target);
-    setView(ViewState.DASHBOARD);
+    setView(ViewState.LOGIN);
   };
 
 
@@ -615,13 +644,193 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Top-right Location Selector & CDAC Logo */}
+      {/* Top-right Controls: Location Selector, CDAC Logo & Elderly Mode Switch */}
       <div style={{
-        position: 'absolute', top: '24px', right: '32px', zIndex: 40,
-        display: 'flex', alignItems: 'center', gap: '1.5rem'
+        position: 'absolute', top: '24px', right: '32px', zIndex: 50,
+        display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'flex-end'
       }}>
-        {!isVertical && <img src={cdacLogo} alt="CDAC Logo" className="h-12 w-auto object-contain" />}
+        {!isVertical && <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain hidden xl:block" />}
         <LocationSelector locationInfo={locationInfo} />
+        
+        {/* ── Premium Elderly Mode Accessibility Card ── */}
+        <div style={{ position: 'relative' }}>
+          {/* ACTIVE badge — top-right corner of the card, animated in */}
+          {isElderlyMode && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-10px',
+                zIndex: 10,
+                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 900,
+                letterSpacing: '0.18em',
+                padding: '4px 10px',
+                borderRadius: '999px',
+                boxShadow: '0 4px 12px rgba(22,163,74,0.45)',
+                textTransform: 'uppercase',
+                animation: 'elderlyBadgePop 0.28s cubic-bezier(0.34,1.56,0.64,1) both',
+              }}
+            >
+              ACTIVE
+            </div>
+          )}
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isElderlyMode}
+            aria-label="Toggle Elderly Mode for Senior Citizens (65+)"
+            tabIndex={0}
+            onClick={() => {
+              const next = !isElderlyMode;
+              setIsElderlyMode(next);
+              sessionStorage.setItem('elderlyMode', next ? 'true' : 'false');
+            }}
+            style={{
+              minWidth: '460px',
+              minHeight: '104px',
+              borderRadius: '22px',
+              border: isElderlyMode
+                ? '2.5px solid #3b82f6'
+                : '2px solid #e2e8f0',
+              background: isElderlyMode
+                ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 60%, #e0e7ff 100%)'
+                : 'rgba(255,255,255,0.95)',
+              boxShadow: isElderlyMode
+                ? '0 0 0 4px rgba(59,130,246,0.18), 0 8px 32px rgba(37,99,235,0.22), 0 2px 8px rgba(0,0,0,0.06)'
+                : '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+              outline: 'none',
+              padding: '20px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '18px',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isElderlyMode) {
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px) scale(1.015)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 32px rgba(37,99,235,0.16), 0 2px 8px rgba(0,0,0,0.08)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = '#93c5fd';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isElderlyMode) {
+                (e.currentTarget as HTMLButtonElement).style.transform = '';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = '#e2e8f0';
+              }
+            }}
+            onFocus={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.outline = '3px solid #3b82f6';
+              (e.currentTarget as HTMLButtonElement).style.outlineOffset = '3px';
+            }}
+            onBlur={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.outline = 'none';
+            }}
+          >
+            {/* Icon block */}
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: isElderlyMode
+                ? 'linear-gradient(135deg, #2563eb, #1d4ed8)'
+                : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+              boxShadow: isElderlyMode
+                ? '0 4px 16px rgba(37,99,235,0.4)'
+                : '0 2px 8px rgba(59,130,246,0.15)',
+              transition: 'all 0.3s ease',
+            }}>
+              <Accessibility
+                size={28}
+                strokeWidth={2}
+                style={{ color: isElderlyMode ? '#fff' : '#2563eb', transition: 'color 0.3s ease' }}
+              />
+            </div>
+
+            {/* Text block */}
+            <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                lineHeight: 1.15,
+                color: isElderlyMode ? '#1e3a8a' : '#0f172a',
+                margin: 0,
+                marginBottom: '5px',
+                transition: 'color 0.3s ease',
+              }}>
+                {isElderlyMode ? 'Elderly Mode Enabled' : 'Elderly Mode'}
+              </h3>
+              <p style={{
+                fontSize: '13.5px',
+                fontWeight: 500,
+                lineHeight: 1.4,
+                color: isElderlyMode ? '#1d4ed8' : '#64748b',
+                margin: 0,
+                transition: 'color 0.3s ease',
+              }}>
+                {isElderlyMode
+                  ? 'Large Text • Simple Navigation • Easy Access'
+                  : 'Simplified interface designed for senior citizens (65+)'}
+              </p>
+            </div>
+
+            {/* Enable / Enabled pill button */}
+            <div
+              style={{
+                flexShrink: 0,
+                padding: '12px 22px',
+                borderRadius: '999px',
+                fontWeight: 900,
+                fontSize: '13px',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '7px',
+                transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
+                background: isElderlyMode
+                  ? 'linear-gradient(135deg, #16a34a, #15803d)'
+                  : 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                color: '#fff',
+                boxShadow: isElderlyMode
+                  ? '0 4px 16px rgba(22,163,74,0.4)'
+                  : '0 4px 16px rgba(37,99,235,0.4)',
+                minWidth: '110px',
+                justifyContent: 'center',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isElderlyMode ? (
+                <>
+                  <Check size={16} strokeWidth={3} />
+                  <span>Enabled</span>
+                </>
+              ) : (
+                <span>Enable</span>
+              )}
+            </div>
+          </button>
+
+          {/* Keyframe animation for ACTIVE badge — injected once */}
+          <style>{`
+            @keyframes elderlyBadgePop {
+              from { opacity: 0; transform: scale(0.6); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
       </div>
 
 
@@ -835,7 +1044,7 @@ const App: React.FC = () => {
       {/* Header */}
       <header className={`${isVertical ? 'px-5 py-4' : 'px-8 py-6'} flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-slate-200/50`}>
         <div className="flex items-center gap-4">
-          <button onClick={handleBackToLanding} className="p-2 hover:bg-slate-100 rounded-full transition">
+          <button onClick={() => { resetLoginState(); setView(ViewState.SELECTION); }} className="p-2 hover:bg-slate-100 rounded-full transition">
             <ArrowLeft className="text-slate-500" size={20} />
           </button>
           <div className="w-10 h-10 bg-blue-700 rounded-full flex items-center justify-center text-white font-black shadow-lg shadow-blue-200">
@@ -1061,6 +1270,16 @@ const App: React.FC = () => {
           <VoiceProvider appLanguage={language}>
           <ServiceComplaintProvider>
             {view === ViewState.LANDING && renderLanding()}
+            {view === ViewState.ELDERLY_HOME && (
+              <ElderlyHome
+                onSelect={(target) => {
+                  setDashboardInitialTab(target);
+                  setView(ViewState.DASHBOARD);
+                }}
+                onExit={handleBackToLanding}
+                language={language}
+              />
+            )}
             {view === ViewState.EMERGENCY_FAST_LANE && (
               <EmergencySOS onBack={() => setView(ViewState.LANDING)} isPrivacyOn={isPrivacyShieldOn} />
             )}

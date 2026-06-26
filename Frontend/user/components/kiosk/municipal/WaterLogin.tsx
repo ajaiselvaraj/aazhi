@@ -28,7 +28,8 @@ const WaterLogin: React.FC<Props> = ({ onBack, onLoginSuccess, language }) => {
       await authService.kioskLogin(consumerId.replace(/\D/g, ''), pin);
       onLoginSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid Consumer ID or Login failed. Please try again.');
+      console.error("❌ [WaterLogin] Login failed:", err);
+      setError(err?.message || err?.response?.data?.message || 'Invalid Consumer ID or Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

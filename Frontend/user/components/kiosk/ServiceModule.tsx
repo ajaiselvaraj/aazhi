@@ -48,12 +48,16 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
             setStep('details');
         }
         
-        // Load default user info
-        const sessionStr = localStorage.getItem('aazhi_user');
-        if (sessionStr) {
-            const sessionUser = JSON.parse(sessionStr);
-            if (sessionUser?.name) setApplicantName(sessionUser.name);
-            if (sessionUser?.mobile) setContactNumber(sessionUser.mobile);
+        // Load default user info safely
+        try {
+            const sessionStr = localStorage.getItem('aazhi_user');
+            if (sessionStr && sessionStr !== 'null' && sessionStr !== 'undefined') {
+                const sessionUser = JSON.parse(sessionStr);
+                if (sessionUser?.name) setApplicantName(sessionUser.name);
+                if (sessionUser?.mobile) setContactNumber(sessionUser.mobile);
+            }
+        } catch {
+            // Ignore corrupted storage
         }
     }, [departmentId]);
 
@@ -61,13 +65,18 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
         return DEPARTMENTS.find(d => d.id === id)?.name || 'General';
     };
 
-
-
     const handleFinalSubmit = async () => {
         setIsSubmitting(true);
 
-        const sessionStr = localStorage.getItem('aazhi_user');
-        const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
+        let sessionUser: any = null;
+        try {
+            const sessionStr = localStorage.getItem('aazhi_user');
+            if (sessionStr && sessionStr !== 'null' && sessionStr !== 'undefined') {
+                sessionUser = JSON.parse(sessionStr);
+            }
+        } catch {
+            sessionUser = null;
+        }
 
         try {
             const deptObj = DEPARTMENTS.find(d => d.id === selectedDept);

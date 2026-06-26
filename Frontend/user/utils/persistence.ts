@@ -5,6 +5,15 @@
 
 const APP_PREFIX = 'aazhi_';
 
+export function safeParseJSON<T>(raw: string | null | undefined, fallback: T): T {
+    if (!raw || raw === 'null' || raw === 'undefined') return fallback;
+    try {
+        return JSON.parse(raw) as T;
+    } catch {
+        return fallback;
+    }
+}
+
 export const Persistence = {
     /**
      * Save current route/view state

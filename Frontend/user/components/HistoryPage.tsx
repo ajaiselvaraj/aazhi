@@ -115,7 +115,7 @@ const HistoryCard: React.FC<{ item: HistoryItem; onDownload: (item: HistoryItem)
           title="Download Receipt PDF"
         >
           <Download size={18} />
-          <span>{t('hist_downloadReceipt') || 'Download Receipt'}</span>
+          <span>Download Receipt</span>
         </button>
       </div>
 

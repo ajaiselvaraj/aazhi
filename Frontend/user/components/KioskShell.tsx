@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Wifi, WifiOff, Battery, BatteryCharging, Clock, Search, ShieldCheck } from 'lucide-react';
+import { Home, CreditCard, AlertTriangle, FileCheck, HelpCircle, LogOut, Wifi, WifiOff, Battery, BatteryCharging, Clock, Search, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { APP_CONFIG } from '../constants';
 import cdacLogo from '../assets/cdac_logo.png';
 
@@ -210,7 +210,14 @@ const KioskShell: React.FC<KioskShellProps> = ({
         }
     }, [timer]);
 
-    const NAV_ITEMS = [
+    const isElderlyMode = sessionStorage.getItem('elderlyMode') === 'true';
+
+    const NAV_ITEMS = isElderlyMode ? [
+        { id: 'elderly-back', label: t('back') || 'Back', icon: ArrowLeft },
+        { id: 'billing', label: t('navPayBills') || 'Pay Bill', icon: CreditCard },
+        { id: 'ai', label: t('getHelp') || t('navAssistant') || 'Get Help', icon: HelpCircle },
+        { id: 'emergency', label: t('emergency') || 'Emergency', icon: AlertTriangle }
+    ] : [
         { id: 'home', label: t('navHome') || 'Home', icon: Home },
         { id: 'billing', label: t('navPayBills') || 'Pay Bills', icon: CreditCard },
         { id: 'complaints', label: t('navComplaints') || 'Complaints', icon: AlertTriangle },
@@ -222,7 +229,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
     return (
         <div 
-            className={`kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none ${isVertical ? 'flex-col-reverse vertical-mode' : 'flex-row horizontal-mode'}`}
+            className={`kiosk-main-layout flex h-full w-full overflow-hidden bg-slate-50 font-sans select-none ${isVertical ? 'flex-col-reverse vertical-mode' : 'flex-row horizontal-mode'} ${isElderlyMode ? 'elderly-mode-active' : ''}`}
             onContextMenu={(e) => { if (process.env.NODE_ENV === 'production') e.preventDefault(); }}
             onDragStart={(e) => e.preventDefault()}
             style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
@@ -418,27 +425,17 @@ const KioskShell: React.FC<KioskShellProps> = ({
                 )}
             </main>
 
-            {/* Network Disconnect Overlay */}
+            {/* Security: Full Screen Network Disconnect Overlay */}
             {!isOnline && (
                 <div className="fixed inset-0 z-[9999] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center text-white select-none">
                     <WifiOff size={100} className="text-red-500 mb-8 animate-pulse" />
-                    <h1 className="text-5xl font-black mb-4 uppercase tracking-wider">{t('offlineTitle') || 'No internet connection detected.'}</h1>
+                    <h1 className="text-5xl font-black mb-4 uppercase tracking-wider">{t('offlineTitle') || 'Terminal Offline'}</h1>
                     <p className="text-2xl text-slate-300 max-w-2xl text-center mb-8">
-                        {t('offlineDesc') || 'Please check your connection and try again.'}
+                        {t('offlineDesc') || 'Network connection has been lost. The system will automatically resume when the connection is restored.'}
                     </p>
-                    <div className="flex items-center gap-6">
-                        <button 
-                            onClick={() => setIsOnline(navigator.onLine)}
-                            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xl transition-all shadow-lg shadow-blue-200/20"
-                        >
-                            Retry Connection
-                        </button>
-                        <button 
-                            onClick={() => onNavigate('home')}
-                            className="px-8 py-4 bg-transparent border-2 border-slate-600 hover:bg-slate-800 text-white rounded-2xl font-bold text-xl transition-all"
-                        >
-                            Return Home
-                        </button>
+                    <div className="flex items-center gap-3 text-slate-400">
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                        <span className="text-lg font-bold tracking-widest uppercase">{t('offlineWait') || 'Waiting for connection...'}</span>
                     </div>
                 </div>
             )}
