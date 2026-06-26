@@ -1,8 +1,15 @@
 {
+<<<<<<< Updated upstream
   "lastBackupTime": "2026-06-26T16:45:00.895Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
   "lastVerificationTime": "2026-06-26T16:45:00.895Z",
+=======
+  "lastBackupTime": "2026-06-26T17:00:01.155Z",
+  "backupStatus": "Success",
+  "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
+  "lastVerificationTime": "2026-06-26T17:00:01.155Z",
+>>>>>>> Stashed changes
   "verificationStatus": "Passed",
   "recoveryTestLogs": [
     {
