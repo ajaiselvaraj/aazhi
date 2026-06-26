@@ -95,7 +95,12 @@ export const authService = {
     },
 
     getCurrentUser: (): User | null => {
-        const user = localStorage.getItem('aazhi_user');
-        return user ? JSON.parse(user) : null;
+        try {
+            const user = localStorage.getItem('aazhi_user');
+            if (!user || user === 'null' || user === 'undefined') return null;
+            return JSON.parse(user);
+        } catch {
+            return null;
+        }
     }
 };

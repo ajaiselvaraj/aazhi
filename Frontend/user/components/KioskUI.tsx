@@ -138,6 +138,26 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
   // New Service Flow State
   const [submissionStep, setSubmissionStep] = useState<'select' | 'auth' | 'form' | 'success'>('select');
+
+  // Requirement 6 & 7: Always reset billing state and inputs on tab change
+  // Do NOT auto-skip to the form — user must select service themselves
+
+  useEffect(() => {
+    const handleReset = () => resetBilling();
+    window.addEventListener('aazhi_reset_billing', handleReset);
+    return () => window.removeEventListener('aazhi_reset_billing', handleReset);
+  }, []);
+
+  useEffect(() => {
+    if (billingStep === 'success') {
+      const timer = setTimeout(() => {
+        resetBilling();
+        navigate('/pay-bills', { replace: true });
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [billingStep]);
+
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [generatedToken, setGeneratedToken] = useState<string>('');
@@ -389,7 +409,15 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   const handleFetchBill = async () => {
-    if (!consumerNumber || mobileNumber.length !== 10) return;
+    // Requirement 4: Validate before API call — never fire with empty input
+    if (!consumerNumber.trim()) {
+      setToast({ message: 'Please enter a valid Consumer Number.', type: 'error' });
+      return;
+    }
+    if (mobileNumber.length !== 10) {
+      setToast({ message: 'Please enter a valid 10-digit mobile number.', type: 'error' });
+      return;
+    }
     setIsFetchingBill(true);
 
     try {
@@ -403,10 +431,11 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       const type = selectedBillService ? serviceTypeMap[selectedBillService.id] : 'electricity';
       const unpaidBills = await BillingService.getUnpaidBills(type);
 
-      // Find bill by consumer number or fallback to first one for demo
-      const bill = unpaidBills.find(b => b.consumerId === consumerNumber) || unpaidBills[0];
+      const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+      // Find bill by consumer number or fallback to first one for demo, filtering out paid bills
+      const bill = unpaidBills.find(b => b.consumerId === consumerNumber && !paid.includes(b.consumerId)) || unpaidBills.find(b => !paid.includes(b.consumerId));
 
-      if (!bill) {
+      if (!bill || paid.includes(consumerNumber)) {
         setToast({ message: "No pending bills found for this consumer number.", type: 'info' });
         setIsFetchingBill(false);
         return;
@@ -439,6 +468,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
       // In real app, verifyPayment would be called after Razorpay success
       // await BillingService.verifyPayment(mockPaymentData);
+
+      const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+      localStorage.setItem('aazhi_paid_bills', JSON.stringify([...paid, fetchedBill.consumerId || consumerNumber]));
 
       setReceiptDetails({
         serviceName: selectedBillService.name,
@@ -705,7 +737,23 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                       key={item.id}
                       onClick={() => {
                         setSelectedBillService(item as any);
-                        setBillingStep('auth');
+                        // Requirement 7: Clear consumer number and bill state when switching services
+                        setConsumerNumber('');
+                        setMobileNumber('');
+                        setFetchedBill(null);
+                        const savedUser = localStorage.getItem('aazhi_user');
+                        let isLoggedIn = false;
+                        if (savedUser && savedUser !== 'null') {
+                          try {
+                            const parsed = JSON.parse(savedUser);
+                            if (parsed && parsed.id !== 'guest_user') isLoggedIn = true;
+                          } catch (e) {}
+                        }
+                        if (isLoggedIn) {
+                          setBillingStep('form');
+                        } else {
+                          setBillingStep('auth');
+                        }
                       }}
                       className="bg-white p-12 rounded-[3rem] shadow-sm border border-slate-100 hover:shadow-2xl hover:border-blue-400 transition-all flex flex-col items-center group relative overflow-hidden"
                     >
@@ -735,18 +783,21 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+                  initialSubView="QUICK_PAY"
                 />
               ) : selectedBillService.id === 'water' ? (
                 <MunicipalModule 
                   onBack={resetBilling} 
                   language={language} 
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)} 
+                  initialSubView="QUICK_PAY"
                 />
               ) : selectedBillService.id === 'gas' ? (
                 <GasModule
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+                  initialSubView="QUICK_PAY"
                 />
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-16 max-w-3xl w-full mx-auto my-auto animate-in zoom-in-95 relative overflow-hidden">
@@ -888,7 +939,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                     >
                       <Printer size={20} /> {t('printReceiptBtn') || "Print Receipt"}
                     </button>
-                    <button onClick={resetBilling} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">{t('returnHomeBtn') || "Return Home"}</button>
+                    <button onClick={() => { resetBilling(); navigate('/pay-bills', { replace: true }); }} className="flex-1 bg-slate-900 text-white p-6 rounded-2xl font-black uppercase text-sm hover:bg-slate-800 transition">{t('returnHomeBtn') || "Return Home"}</button>
                   </div>
                 </div>
               </div>

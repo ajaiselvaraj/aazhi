@@ -92,7 +92,7 @@ const IntegritySkeleton = () => (
   <div className="w-full max-w-4xl mx-auto space-y-6">
     <div className="flex items-center space-x-4 mb-8">
       <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full" />
-      <span className="text-sm font-mono text-emerald-500 uppercase tracking-widest animate-pulse">{t('sec_verifyingIntegrity')}</span>
+      <span className="text-sm font-mono text-emerald-500 uppercase tracking-widest animate-pulse">Verifying Integrity...</span>
     </div>
     {[...Array(3)].map((_, i) => (
       <motion.div key={i} initial={{ opacity: 0.5 }} animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }} className="w-full h-24 bg-slate-800 rounded border border-slate-700/50" />

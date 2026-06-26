@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, CheckCircle, Printer, Flame } from 'lucide-react';
 import PaymentReceipt from '../PaymentReceipt';
 import OfficialReceipt from '../electricity/OfficialReceipt';
@@ -6,6 +6,7 @@ import { Language } from '../../../types';
 import { GasService } from '../../../services/gasService';
 import ConsumptionAnalytics from '../ConsumptionAnalytics';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import RazorpayCheckout from '../../RazorpayCheckout';
 
 interface Props {
@@ -25,12 +26,52 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [error, setError] = useState<string>('');
     const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
+    // Clean start: ensure no stale state is carried from a previous session
+    useEffect(() => {
+        setConsumerNo('');
+        setBillData(null);
+        setError('');
+        setStep('INPUT');
+    }, []);
+
+    const navigate = useNavigate();
+
+    const handleReturnToBills = () => {
+        window.dispatchEvent(new Event('aazhi_reset_billing'));
+        navigate('/pay-bills', { replace: true });
+    };
+
+    // Step 3 & Step 4: Auto-redirect to Pay Bills page after 4 seconds on receipt
+    useEffect(() => {
+        if (step === 'SUCCESS') {
+            const timer = setTimeout(() => {
+                handleReturnToBills();
+            }, 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [step]);
+
     const handleFetch = async () => {
-        if (!consumerNo) return;
+        // Requirement 4: Validate before API call
+        if (!consumerNo.trim()) {
+            setError('Please enter a valid Gas Consumer ID.');
+            return;
+        }
+        if (consumerNo.trim().length < 6) {
+            setError('Consumer ID must be at least 6 characters.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
         try {
+            const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+            if (paid.includes(consumerNo)) {
+                setError('No pending bills found for this consumer ID.');
+                setIsLoading(false);
+                return;
+            }
             const fetchedBill = await GasService.getQuickPayBill(consumerNo);
             setBillData(fetchedBill);
             setStep('DETAILS');
@@ -45,6 +86,9 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
             txnId: paymentId,
             refId: paymentId 
         });
+
+        const paid = JSON.parse(localStorage.getItem('aazhi_paid_bills') || '[]');
+        localStorage.setItem('aazhi_paid_bills', JSON.stringify([...paid, consumerNo]));
         
         // Save demo transaction
         if (billData) {
@@ -232,7 +276,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-orange-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-orange-200">
                             <Printer size={18} /> {t('printReceipt')}
                         </button>
-                        <button onClick={onBack} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
+                        <button onClick={handleReturnToBills} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
                             {t('back') || "Done"}
                         </button>
                     </div>

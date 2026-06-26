@@ -42,11 +42,14 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
   const { t } = useTranslation();
   const { isVertical } = useOrientation();
 
-  // Load real user profile from localStorage session
+  // Load real user profile from localStorage session safely
   const getInitialProfile = () => {
     try {
       const stored = localStorage.getItem('aazhi_user');
-      const user = stored ? JSON.parse(stored) : null;
+      if (!stored || stored === 'null' || stored === 'undefined') {
+        return { name: 'Vetrivel M', mobile: '+91 98765 43210', email: 'vetri@example.com' };
+      }
+      const user = JSON.parse(stored);
       return {
         name: user?.name || 'Vetrivel M',
         mobile: user?.mobile || '+91 98765 43210',
@@ -61,7 +64,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
   const [accounts, setAccounts] = useState(MOCK_MUNICIPAL_ACCOUNTS);
   const [activeAccountId, setActiveAccountId] = useState(MOCK_MUNICIPAL_ACCOUNTS[0].id);
   
-  const activeAccount = accounts.find(c => c.id === activeAccountId) || accounts[0];
+  const activeAccount = accounts.find(c => c.id === activeAccountId) || accounts[0] || MOCK_MUNICIPAL_ACCOUNTS[0];
 
   const handlePaymentSuccess = (paymentId: string) => {
     setAccounts(prev => prev.map(conn => {
