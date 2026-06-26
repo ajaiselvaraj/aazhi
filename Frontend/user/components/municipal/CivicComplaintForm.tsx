@@ -260,8 +260,12 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                             label={`← ${t("goBackBtn")}`}
                             speakLabel={t("goBackBtn")}
                             language={getLanguageName()}
-                            onClick={() => step === 2 ? setStep(1) : undefined}
-                            className="text-xl px-8 py-4 bg-white shadow-sm hover:bg-slate-100 border-none"
+                            onClick={() => {
+                                if (step === 2) setStep(1);
+                                else if (step === 3) setStep(2);
+                                else if (step === 4) onBack();
+                            }}
+                            className="text-xl px-8 py-4 bg-[#1e293b] text-white shadow-sm hover:bg-slate-800 border-none rounded-xl font-bold"
                         />
                         <h2 className="text-4xl font-black text-slate-800 tracking-tight">{t("civic_title")}</h2>
                     </div>
