@@ -415,8 +415,13 @@ const KioskShell: React.FC<KioskShellProps> = ({
                             <AlertTriangle size={14} />
                             <span className="uppercase tracking-widest">{t('cityAlert') || "City Alert"}</span>
                         </div>
-                        <div className="flex-1 mx-4 overflow-hidden">
-                            <div className="whitespace-nowrap animate-marquee">
+                        <div className="flex-1 mx-4 overflow-hidden relative" style={{ height: '20px' }}>
+                            <div 
+                                className="whitespace-nowrap absolute whitespace-nowrap"
+                                style={{ 
+                                    animation: `marquee ${Math.max(20, alerts.map(a => translateAlertMessage(a)).join('  •  ').length * 0.15)}s linear infinite` 
+                                }}
+                            >
                                 {alerts.map(a => translateAlertMessage(a)).join('  •  ')}
                             </div>
                         </div>
@@ -445,9 +450,9 @@ const KioskShell: React.FC<KioskShellProps> = ({
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes marquee {
           0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          100% { transform: translateX(100vw); }
         }
-        .animate-marquee { display: inline-block; animation: marquee 20s linear infinite; }
+
       `}</style>
         </div>
     );

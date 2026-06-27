@@ -1,4 +1,5 @@
 {
+<<<<<<< Updated upstream
   "lastBackupTime": "2026-06-27T17:15:01.019Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
@@ -23,19 +24,93 @@
     },
     {
       "timestamp": "2026-06-27T13:30:00.253Z",
+=======
+  "lastBackupTime": "2026-06-27T19:45:00.263Z",
+  "backupStatus": "Success",
+  "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
+  "lastVerificationTime": "2026-06-27T19:45:00.263Z",
+  "verificationStatus": "Passed",
+  "recoveryTestLogs": [
+    {
+      "timestamp": "2026-06-27T19:30:01.261Z",
+>>>>>>> Stashed changes
       "testType": "Automated RTO Verification Job",
       "status": "Success",
-      "durationMs": 183,
-      "rtoAchieved": "303ms (Target: <1 Hour)",
+      "durationMs": 1159,
+      "rtoAchieved": "1279ms (Target: <1 Hour)",
       "notes": "Active standby DB replication verification passed. Primary node connection healthy."
     },
     {
-      "timestamp": "2026-06-27T10:26:46.102Z",
-      "testType": "Database Recovery Dry-run",
+      "timestamp": "2026-06-27T18:30:01.205Z",
+      "testType": "Automated RTO Verification Job",
       "status": "Success",
-      "durationMs": 4200,
-      "rtoAchieved": "12 Minutes",
-      "notes": "Successfully restored 45 encrypted records, integrity check passed."
+      "durationMs": 1105,
+      "rtoAchieved": "1225ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T17:30:00.239Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 163,
+      "rtoAchieved": "282ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T16:30:00.279Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 168,
+      "rtoAchieved": "288ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T15:30:00.219Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 151,
+      "rtoAchieved": "271ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T14:30:00.251Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 165,
+      "rtoAchieved": "285ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T13:30:01.256Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 1163,
+      "rtoAchieved": "1283ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T12:30:01.302Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 1173,
+      "rtoAchieved": "1293ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T11:30:01.272Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 1164,
+      "rtoAchieved": "1284ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
+    {
+      "timestamp": "2026-06-27T10:30:01.209Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 1086,
+      "rtoAchieved": "1206ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
     }
   ]
 }

@@ -15,7 +15,7 @@ import SettingsPanel from '../components/panels/SettingsPanel'
 import ServiceRequestsPanel from '../components/panels/ServiceRequestsPanel'
 import ComplaintSummarizerPanel from '../components/panels/ComplaintSummarizerPanel'
 import SentimentPulsePanel from '../components/panels/SentimentPulsePanel'
-import CivicAlertPanel from '../components/panels/CivicAlertPanel' // ⭐ ADD-ON: Civic Alert Management
+import PublicInformationPanel from '../components/panels/PublicInformationPanel' // ⭐ ADD-ON: Civic Alert Management
 import AICommandCenter from './AICommandCenter'
 import AIModelMetrics from './AIModelMetrics'
 import IntegrityDashboardPanel from '../components/panels/IntegrityDashboardPanel' // ⭐ ADD-ON: Integrity Queue
@@ -42,7 +42,7 @@ const PANEL_MAP: Record<string, React.ComponentType> = {
   settings:   SettingsPanel,
   'ml-summarizer':  ComplaintSummarizerPanel,
   'ml-sentiment':   SentimentPulsePanel,
-  'civic-alerts':   CivicAlertPanel,  // ⭐ ADD-ON: Admin Civic Alert Management
+  'public-info':   PublicInformationPanel,  // ⭐ ADD-ON: Admin Civic Alert Management
   'ai-command-center': AICommandCenter,
   'ai-model-metrics': AIModelMetrics,
   'integrity-dashboard': IntegrityDashboardPanel,

@@ -14,14 +14,13 @@ import {
 } from "../services/alert.service.js";
 
 // ─── Validation helpers ───────────────────────────────────────────────────────
-const VALID_TYPES     = ["Power", "Water", "Road", "Weather", "Civic"];
+// VALID_TYPES doesn't restrict custom categories for Notices anymore.
 const VALID_SEVERITIES = ["Critical", "Warning", "Info"];
 
 function validateAlertInput({ title, message, type, severity, priority }) {
     const errs = [];
     if (!title || String(title).trim().length < 3)         errs.push("title must be at least 3 characters.");
     if (!message || String(message).trim().length < 5)     errs.push("message must be at least 5 characters.");
-    if (type      && !VALID_TYPES.includes(type))          errs.push(`type must be one of: ${VALID_TYPES.join(", ")}.`);
     if (severity  && !VALID_SEVERITIES.includes(severity)) errs.push(`severity must be one of: ${VALID_SEVERITIES.join(", ")}.`);
     if (priority !== undefined && (isNaN(priority) || priority < 1 || priority > 5))
                                                            errs.push("priority must be an integer between 1 and 5.");
@@ -42,7 +41,7 @@ export async function adminGetAllAlerts(req, res) {
 // ─── POST /api/admin/alerts ───────────────────────────────────────────────────
 export async function adminCreateAlert(req, res) {
     try {
-        const { title, message, type, severity, priority, ward, expires_at } = req.body;
+        const { title, message, type, severity, priority, ward, start_date, expires_at, is_notice } = req.body;
         const created_by = req.user?.id || null;
 
         const validationErrors = validateAlertInput({ title, message, type, severity, priority });
@@ -57,8 +56,10 @@ export async function adminCreateAlert(req, res) {
             severity:   severity   || "Info",
             priority:   parseInt(priority) || 3,
             ward:       ward       || "Global",
+            start_date: start_date || null,
             expires_at: expires_at || null,
             created_by,
+            is_notice:  is_notice === true,
         });
 
         return success(res, "Alert created successfully.", alert, 201);
@@ -72,7 +73,7 @@ export async function adminCreateAlert(req, res) {
 export async function adminUpdateAlert(req, res) {
     try {
         const { id } = req.params;
-        const { title, message, type, severity, priority, ward, is_active, expires_at } = req.body;
+        const { title, message, type, severity, priority, ward, is_active, start_date, expires_at, is_notice } = req.body;
 
         if (isNaN(parseInt(id))) {
             return fail(res, "Invalid alert ID.", 400);
@@ -105,7 +106,9 @@ export async function adminUpdateAlert(req, res) {
             priority:   priority !== undefined ? parseInt(priority) : undefined,
             ward,
             is_active:  is_active !== undefined ? Boolean(is_active) : undefined,
+            start_date: start_date || null,
             expires_at: expires_at || null,
+            is_notice:  is_notice !== undefined ? Boolean(is_notice) : undefined,
         });
 
         if (!updated) {

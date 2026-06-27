@@ -1,17 +1,14 @@
-import React from 'react';
-import { LayoutGrid, CreditCard, ArrowRight, User, FileText, Smartphone, Phone, MapPin, AlertCircle, Users, Briefcase } from 'lucide-react';
-import AlertsPanel from './AlertsPanel';
-import LiveAlertsPanel from './LiveAlertsPanel'; // ⭐ ADD-ON: live backend feed with fallback
-import ConsumptionAnalytics from './ConsumptionAnalytics';
+import React, { useEffect, useState } from 'react';
+import { Phone, MapPin, AlertCircle, Info, Calendar, ShieldAlert, Zap, Droplets, HeartPulse, Building2, Flame, HelpCircle } from 'lucide-react';
+import LiveAlertsPanel from './LiveAlertsPanel';
 import DisruptionMap from './disruption/DisruptionMap';
-import LiveMetricsOverlay from './disruption/LiveMetricsOverlay';
-import { mockIncidents } from './disruption/mockIncidentData';
 import { CityAlert, Language } from '../../types';
 import { LocalityService } from '../../services/civicService';
 import { MOCK_USER_PROFILE } from '../../constants';
 import { useTranslation } from 'react-i18next';
 import { motion, Variants } from 'framer-motion';
 import { useOrientation } from '../../contexts/OrientationContext';
+import { dynamicTranslationService } from '../../services/dynamicTranslationService';
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -33,266 +30,341 @@ interface Props {
     language: Language;
 }
 
-const DashboardHome: React.FC<Props> = ({ alerts, onNavigate, userName = "Citizen", language }) => {
+export const IMPORTANT_CONTACTS = [
+    { name: "Ambulance", number: "108", icon: HeartPulse, color: "text-red-500", bg: "bg-red-50" },
+    { name: "Police", number: "100", icon: ShieldAlert, color: "text-blue-500", bg: "bg-blue-50" },
+    { name: "Fire Department", number: "101", icon: Flame, color: "text-orange-500", bg: "bg-orange-50" },
+    { name: "Women Helpline", number: "1091", icon: Phone, color: "text-pink-500", bg: "bg-pink-50" },
+    { name: "Child Helpline", number: "1098", icon: Phone, color: "text-purple-500", bg: "bg-purple-50" },
+    { name: "Municipal Support", number: "1913", icon: Building2, color: "text-indigo-500", bg: "bg-indigo-50" },
+];
+
+// PUBLIC_NOTICES removed: we now fetch dynamically from the backend
+
+const DashboardHome: React.FC<Props> = React.memo(({ alerts, onNavigate, userName = "Citizen", language }) => {
     const wardContacts = LocalityService.getSupportContacts(MOCK_USER_PROFILE.ward);
     const { t } = useTranslation();
     const { isVertical } = useOrientation();
 
-    const activeIncidentsCount = mockIncidents.filter((i) => i.status !== 'Resolved').length;
+    // Use dynamically translated alerts
+    const [translatedAlerts, setTranslatedAlerts] = useState<(CityAlert & { translatedTitle?: string, translatedDesc?: string })[]>([]);
+    
+    // Notice Board States
+    const [activeNoticeTab, setActiveNoticeTab] = useState<string>('All');
+    const [selectedNotice, setSelectedNotice] = useState<any | null>(null);
+
+    const localNotices = React.useMemo(() => {
+        return (alerts as any[]).filter(a => a.is_notice).map(n => ({
+            id: n.id,
+            title: n.title,
+            category: n.type || 'Notice',
+            message: n.message || 'No additional details provided.',
+            date: n.start_date ? new Date(n.start_date).toLocaleDateString() : 'Active',
+            priority: n.priority || 3,
+            expires_at: n.expires_at || null,
+            start_date: n.start_date || null
+        }));
+    }, [alerts]);
+
+    const getExpiryText = (expiresAt: string | null) => {
+        if (!expiresAt) return { text: "No expiry", color: "text-slate-500" };
+        const now = new Date();
+        const exp = new Date(expiresAt);
+        const diffTime = exp.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) return { text: "Expired", color: "text-red-500 font-bold" };
+        if (diffDays === 0) return { text: "Expires today", color: "text-orange-500 font-bold" };
+        if (diffDays === 1) return { text: "Expires tomorrow", color: "text-orange-500 font-bold" };
+        if (diffDays <= 3) return { text: `${diffDays} days remaining`, color: "text-orange-500 font-bold" };
+        return { text: `Expires ${exp.toLocaleDateString()}`, color: "text-slate-500" };
+    };
+
+    const getPriorityBadge = (priority: number) => {
+        if (priority === 1) return { label: "High Priority", dot: "🔴", color: "text-red-700 bg-red-100" };
+        if (priority === 2) return { label: "Medium Priority", dot: "🟡", color: "text-orange-700 bg-orange-100" };
+        return { label: "General Notice", dot: "🟢", color: "text-emerald-700 bg-emerald-100" };
+    };
+
+    const getContactInfo = (category: string) => {
+        switch(category) {
+            case 'Tax': return 'Municipal Tax Office: 1800-TAX-HELP';
+            case 'Health': return 'Health Department: 104';
+            case 'Jobs': return 'Employment Cell: 1800-JOBS';
+            default: return 'General Municipal Support: 1913';
+        }
+    };
+
+    const filteredNotices = React.useMemo(() => {
+        if (activeNoticeTab === 'All') return localNotices;
+        return localNotices.filter(n => n.category === activeNoticeTab);
+    }, [localNotices, activeNoticeTab]);
+
+    useEffect(() => {
+        let isMounted = true;
+        
+        const translateAlerts = async () => {
+            if (!alerts || alerts.length === 0) {
+                if (isMounted) setTranslatedAlerts([]);
+                return;
+            }
+
+            const promises = alerts.map(async (alert) => {
+                if (language === Language.ENGLISH) {
+                    return { ...alert, translatedTitle: alert.title, translatedDesc: alert.message };
+                }
+                const translatedTitle = await dynamicTranslationService.translate(alert.title || 'Civic Alert', language);
+                const translatedDesc = await dynamicTranslationService.translate(alert.message, language);
+                return { ...alert, translatedTitle, translatedDesc };
+            });
+
+            const translated = await Promise.all(promises);
+            if (isMounted) {
+                setTranslatedAlerts(translated);
+            }
+        };
+
+        translateAlerts();
+
+        return () => { isMounted = false; };
+    }, [alerts, language]);
 
     const greetingSection = (
-        <motion.div variants={itemVariants} className={`flex ${isVertical ? 'flex-col gap-3' : 'justify-between items-end'}`}>
+        <motion.div variants={itemVariants} className={`flex ${isVertical ? 'flex-col gap-3' : 'justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100'}`}>
             <div>
-                <h2 className={`${isVertical ? 'text-3xl' : 'text-4xl'} font-black text-slate-900 tracking-tight mb-2`}>{t('welcomeCitizen')} <span className="privacy-sensitive">{userName === 'Citizen' ? '' : userName}</span></h2>
-                <div className="flex gap-2">
-                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                        <Smartphone size={12} /> {t('eKycVerified')}
-                    </span>
-                    <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                        <User size={12} /> {t('aadhaar')}: •••• 9821
-                    </span>
-                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1">
-                        <MapPin size={12} /> {t('ward')} {MOCK_USER_PROFILE.ward}
-                    </span>
-                </div>
+                <h2 className={`${isVertical ? 'text-3xl' : 'text-3xl'} font-black text-slate-900 tracking-tight`}>
+                    {t('welcomeCitizen')} <span className="privacy-sensitive">{userName === 'Citizen' ? '' : userName}</span>
+                </h2>
+                <p className="text-slate-500 font-medium mt-1">Digital Public Information Center</p>
             </div>
 
             {/* Ward Support Widget */}
             {wardContacts.length > 0 && (
-                <div className={`bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 ${isVertical ? 'w-full justify-between' : ''}`}>
-                    <div className="text-right">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('wardsupport')}</p>
-                        <p className="font-bold text-slate-900">{wardContacts[0].phone}</p>
+                <div className={`bg-slate-50 px-6 py-4 rounded-[1.5rem] flex items-center gap-4 ${isVertical ? 'w-full justify-between' : 'border border-slate-200'}`}>
+                    <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                        <Phone size={24} />
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center animate-pulse">
-                        <Phone size={20} />
+                    <div className="text-left">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('wardsupport')} • Ward {MOCK_USER_PROFILE.ward}</p>
+                        <p className="font-black text-lg text-slate-900">{wardContacts[0].phone}</p>
                     </div>
                 </div>
             )}
         </motion.div>
     );
 
-    const alertsSection = (
-        <LiveAlertsPanel staticAlerts={alerts} language={language} />
-    );
-
-    const quickActionsSection = (
-        <div className={`${isVertical ? 'flex flex-col gap-4' : 'grid grid-cols-3 gap-4 h-full'}`}>
-            <motion.button
-                whileHover={{ scale: 1.02, y: -4 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => onNavigate('services')}
-                className={`group bg-blue-600 text-white p-6 rounded-[2rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition relative overflow-hidden text-left ${isVertical ? 'h-[130px] p-5 rounded-[1.8rem]' : 'h-full'}`}
-            >
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition duration-500">
-                    <LayoutGrid size={isVertical ? 100 : 100} />
+    const alertsCenterSection = (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                <div>
+                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <AlertCircle className="text-red-500" size={24} />
+                        Local Alerts & Information
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium mt-1">Locality-specific announcements</p>
                 </div>
-                <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-4 h-full' : 'flex-col h-full justify-between'}`}>
-                    <div className={`w-16 h-16 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center ${isVertical ? 'w-12 h-12 shrink-0' : 'mb-4'}`}>
-                        <LayoutGrid size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
-                        <h3 className={`${isVertical ? 'text-xl' : 'text-2xl'} font-black mb-1`}>{t('newRequest')}</h3>
-                        <p className={`opacity-80 font-medium ${isVertical ? 'text-xs mb-0' : 'text-xs mb-3'}`}>{t('newRequestDesc')}</p>
-                        {!isVertical && (
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/20 w-fit px-3 py-2 rounded-lg mt-3">
-                                {t('start')} <ArrowRight size={12} />
+                <div className="flex gap-2">
+                    <span className="bg-red-100 text-red-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase">Active Alerts</span>
+                </div>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="space-y-3">
+                    {translatedAlerts.filter(a => !(a as any).is_notice && (a.severity === 'Alert' || a.severity === 'Critical' || a.severity === 'Warning' || a.severity === 'Info')).map((alert, idx) => (
+                        <div key={alert.id || idx} className={`p-4 rounded-[1.5rem] border ${alert.priority === 1 ? 'bg-red-50 border-red-100' : alert.priority === 2 ? 'bg-orange-50 border-orange-100' : 'bg-blue-50 border-blue-100'} flex gap-4 items-start`}>
+                            <div className={`p-3 rounded-xl ${alert.priority === 1 ? 'bg-red-100 text-red-600' : alert.priority === 2 ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {alert.type === 'Water' ? <Droplets size={20} /> : alert.type === 'Power' ? <Zap size={20} /> : <Info size={20} />}
                             </div>
-                        )}
-                    </div>
-                    {isVertical && (
-                        <div className="shrink-0 w-10 h-10 bg-white/20 backdrop-blur rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-blue-600 transition-colors">
-                            <ArrowRight size={20} />
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${alert.priority === 1 ? 'bg-red-200 text-red-800' : alert.priority === 2 ? 'bg-orange-200 text-orange-800' : 'bg-blue-200 text-blue-800'}`}>
+                                        {alert.type || 'Alert'}
+                                    </span>
+                                </div>
+                                <h4 className={`font-bold text-[15px] ${alert.priority === 1 ? 'text-red-900' : alert.priority === 2 ? 'text-orange-900' : 'text-blue-900'}`}>{alert.translatedTitle}</h4>
+                                <p className="text-sm mt-1 opacity-80 font-medium">{alert.translatedDesc}</p>
+                            </div>
                         </div>
+                    ))}
+                    {translatedAlerts.length === 0 && (
+                        <div className="text-center p-6 text-slate-500">No active alerts.</div>
                     )}
                 </div>
-            </motion.button>
-
-            <motion.button
-                whileHover={{ scale: 1.02, y: -5 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onNavigate('billing')}
-                className={`group bg-white text-slate-900 border border-slate-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl transition relative overflow-hidden text-left ${isVertical ? 'h-[130px] p-5 rounded-[1.8rem]' : 'h-full'}`}
-            >
-                <div className="absolute top-0 right-0 p-4 text-slate-100 group-hover:text-slate-50 transition duration-500">
-                    <CreditCard size={isVertical ? 100 : 100} />
-                </div>
-                <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-4 h-full' : 'flex-col h-full justify-between'}`}>
-                    <div className={`w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 ${isVertical ? 'w-12 h-12 shrink-0' : 'mb-4'}`}>
-                        <CreditCard size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
-                        <h3 className={`${isVertical ? 'text-xl' : 'text-2xl'} font-black mb-1`}>{t('payBills') || "Pay Bills"}</h3>
-                        <p className={`text-slate-500 font-medium ${isVertical ? 'text-xs mb-0' : 'text-[10px] mb-4'}`}>{t('payBillsDesc') || "Utility bills"}</p>
-                        {!isVertical && (
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600 w-fit px-3 py-2 rounded-lg group-hover:bg-slate-900 group-hover:text-white transition mt-3">
-                                {t('pay') || "Pay"} <ArrowRight size={12} />
-                            </div>
-                        )}
-                    </div>
-                    {isVertical && (
-                        <div className="shrink-0 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                            <ArrowRight size={20} />
-                        </div>
-                    )}
-                </div>
-            </motion.button>
-
-            <motion.button
-                whileHover={{ scale: 1.02, y: -5 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onNavigate('complaints')}
-                className={`group bg-red-50 text-red-900 border border-red-100 p-6 rounded-[2rem] shadow-sm hover:shadow-2xl hover:bg-red-600 hover:text-white transition relative overflow-hidden text-left ${isVertical ? 'h-[130px] p-5 rounded-[1.8rem]' : 'h-full'}`}
-            >
-                <div className="absolute top-0 right-0 p-4 text-red-100 group-hover:text-red-500 transition duration-500">
-                    <AlertCircle size={isVertical ? 100 : 100} />
-                </div>
-                <div className={`relative z-10 flex ${isVertical ? 'flex-row items-center gap-4 h-full' : 'flex-col h-full justify-between'}`}>
-                    <div className={`w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-red-600 shadow-sm ${isVertical ? 'w-12 h-12 shrink-0' : 'mb-4'}`}>
-                        <AlertCircle size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className={`${isVertical ? 'flex-1 text-left' : ''}`}>
-                        <h3 className={`${isVertical ? 'text-xl' : 'text-2xl'} font-black mb-1`}>{t('reportIssue') || "Report Issue"}</h3>
-                        <p className={`opacity-80 font-medium ${isVertical ? 'text-xs mb-0' : 'text-[10px] mb-4'}`}>{t('reportIssueDesc')}</p>
-                        {!isVertical && (
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest bg-white/50 text-red-700 w-fit px-3 py-2 rounded-lg group-hover:bg-red-800 group-hover:text-white transition mt-3">
-                                {t('reportIssue')} <ArrowRight size={12} />
-                            </div>
-                        )}
-                    </div>
-                    {isVertical && (
-                        <div className="shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center text-red-600 group-hover:text-red-600 transition-colors">
-                            <ArrowRight size={20} />
-                        </div>
-                    )}
-                </div>
-            </motion.button>
+            </div>
         </div>
     );
 
-    const bottomLinksSection = (
-        <div className={`grid ${isVertical ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-3 gap-6'}`}>
-            <button onClick={() => onNavigate('emergency')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-red-200 transition group ${isVertical ? 'h-[80px] p-4 rounded-2xl' : ''}`}>
-                <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition shadow-sm ${isVertical ? 'w-12 h-12 rounded-xl' : ''}`}>
-                        <AlertCircle size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className="text-left">
-                        <h4 className={`font-black text-slate-800 ${isVertical ? 'text-lg' : 'text-2xl'} mb-0.5 flex items-center gap-2`}>{t('sosHelp')} <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div></h4>
-                        <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('fireRescue')}</p>
-                    </div>
+    const publicNoticeBoardSection = (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <Calendar className="text-indigo-500" size={24} />
+                        Public Notice Board
+                    </h3>
                 </div>
-                <ArrowRight size={isVertical ? 20 : 28} className="text-slate-300 group-hover:text-red-500 group-hover:translate-x-1 transition" />
-            </button>
-
-            <button onClick={() => onNavigate('participation')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-indigo-200 transition group ${isVertical ? 'h-[80px] p-4 rounded-2xl' : ''}`}>
-                <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm ${isVertical ? 'w-12 h-12 rounded-xl' : ''}`}>
-                        <Users size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className="text-left">
-                        <h4 className={`font-black text-slate-800 ${isVertical ? 'text-lg' : 'text-2xl'} mb-0.5`}>{t('governance')}</h4>
-                        <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('voteMeetings')}</p>
-                    </div>
+                {/* Tabs */}
+                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2">
+                    {['All', 'Tax', 'Health', 'Jobs', 'Event'].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveNoticeTab(tab)}
+                            className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider whitespace-nowrap transition-colors ${activeNoticeTab === tab ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-200/50 text-slate-600 hover:bg-slate-200'}`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
                 </div>
-                <ArrowRight size={isVertical ? 20 : 28} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition" />
-            </button>
-
-            <button onClick={() => onNavigate('business')} className={`bg-white border border-slate-100 p-5 rounded-3xl flex items-center justify-between shadow-sm hover:shadow-xl hover:border-blue-200 transition group ${isVertical ? 'h-[80px] p-4 rounded-2xl' : ''}`}>
-                <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition shadow-sm ${isVertical ? 'w-12 h-12 rounded-xl' : ''}`}>
-                        <Briefcase size={isVertical ? 24 : 32} />
-                    </div>
-                    <div className="text-left">
-                        <h4 className={`font-black text-slate-800 ${isVertical ? 'text-lg' : 'text-2xl'} mb-0.5`}>{t('vendorLicenses')}</h4>
-                        <p className="opacity-80 text-[10px] font-bold text-slate-500 uppercase tracking-widest text-left">{t('shopsCommerce')}</p>
-                    </div>
+            </div>
+            <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-1 gap-3">
+                    {filteredNotices.map((notice, idx) => {
+                        const priorityData = getPriorityBadge(notice.priority);
+                        const expiryData = getExpiryText(notice.expires_at);
+                        return (
+                            <div key={idx} className="p-4 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex flex-col justify-between group hover:border-indigo-200 transition gap-2">
+                                <div className="flex justify-between items-start gap-4">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                            <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${priorityData.color}`}>
+                                                {priorityData.dot} {priorityData.label}
+                                            </span>
+                                            <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                                {notice.category}
+                                            </span>
+                                        </div>
+                                        <h4 className="font-bold text-slate-800 text-[15px] leading-tight mb-1">{notice.title}</h4>
+                                    </div>
+                                    <button onClick={() => setSelectedNotice(notice)} className="shrink-0 w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-indigo-500 shadow-sm transition hover:scale-110">
+                                        <Info size={16} />
+                                    </button>
+                                </div>
+                                <div className="flex justify-between items-center text-xs mt-1 border-t border-slate-200/60 pt-2">
+                                    <span className="text-slate-500 font-medium">Published: {notice.date}</span>
+                                    <span className={expiryData.color}>{expiryData.text}</span>
+                                </div>
+                            </div>
+                        )
+                    })}
+                    {filteredNotices.length === 0 && (
+                        <div className="text-center p-6 text-slate-500">No public notices available.</div>
+                    )}
                 </div>
-                <ArrowRight size={isVertical ? 20 : 28} className="text-slate-300 group-hover:text-blue-500 group-hover:translate-x-1 transition" />
-            </button>
+            </div>
         </div>
     );
 
-    const mapSection = (
-        <DisruptionMap alerts={alerts} language={language} />
+    const importantContactsSection = (
+        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                    <Phone className="text-emerald-500" size={24} />
+                    Important Contacts
+                </h3>
+            </div>
+            <div className="p-6">
+                <div className={`grid ${isVertical ? 'grid-cols-2' : 'grid-cols-3 xl:grid-cols-6'} gap-4`}>
+                    {IMPORTANT_CONTACTS.map((contact, idx) => {
+                        const Icon = contact.icon;
+                        return (
+                            <div key={idx} className={`${contact.bg} p-4 rounded-2xl border border-white/50 flex flex-col items-center text-center justify-center gap-2 transition hover:shadow-md`}>
+                                <div className={`w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm ${contact.color}`}>
+                                    <Icon size={24} />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider mb-1">{contact.name}</p>
+                                    <p className={`font-black text-xl ${contact.color}`}>{contact.number}</p>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
+        </div>
     );
 
-    const analyticsSection = (
-        <ConsumptionAnalytics language={language} />
-    );
-
-    if (isVertical) {
-        // Redesigned prioritized hierarchy for vertical mobile/kiosk layout
-        return (
-            <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-6xl mx-auto space-y-6 pb-10 px-4">
-                {greetingSection}
-
-                {/* 1. Incident Summary */}
-                <motion.div variants={itemVariants} className="w-full">
-                    <LiveMetricsOverlay activeCount={activeIncidentsCount} />
-                </motion.div>
-
-                {/* 2. Active Alerts */}
-                <motion.div variants={itemVariants} className="w-full">
-                    {alertsSection}
-                </motion.div>
-
-                {/* 3. Map (Redesigned as compact situational awareness widget) */}
-                <motion.div variants={itemVariants} className="w-full">
-                    {mapSection}
-                </motion.div>
-
-                {/* 4. SOS Help & 5. Governance / Business */}
-                <motion.div variants={itemVariants} className="w-full">
-                    {bottomLinksSection}
-                </motion.div>
-
-                {/* 6. Other Services (Pushed below primary situational awareness items) */}
-                <motion.div variants={itemVariants} className="w-full">
-                    <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest text-left mb-3">Other Services</h3>
-                    {quickActionsSection}
-                </motion.div>
-
-                {/* Secondary Analytics */}
-                <motion.div variants={itemVariants} className="w-full">
-                    {analyticsSection}
-                </motion.div>
-            </motion.div>
-        );
-    }
-
-    // Default Landscape HUD Layout
     return (
-        <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-6xl mx-auto space-y-6 pb-10">
+        <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-7xl mx-auto space-y-6 pb-10 px-4 pt-4">
+            {/* Section 1: Welcome & Support */}
             {greetingSection}
 
-            {/* Top Row: Alerts and Quick Actions */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1 h-full">
-                    {alertsSection}
+            {/* Section 2: Expanded Live City Map */}
+            <motion.div variants={itemVariants} className="w-full">
+                <div className="bg-white rounded-[2.5rem] p-4 shadow-sm border border-slate-100">
+                    <div className="mb-4 px-4 flex justify-between items-end">
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                                <MapPin className="text-blue-500" size={28} />
+                                Live City Map
+                            </h3>
+                            <p className="text-slate-500 text-sm font-medium mt-1">Locality awareness & city-wide visibility</p>
+                        </div>
+                    </div>
+                    {/* DisruptionMap handles its own container size natively, but we give it a wrapper */}
+                    <div className="w-full h-[400px] lg:h-[500px] rounded-[2rem] overflow-hidden">
+                        <DisruptionMap alerts={alerts} language={language} />
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Middle Row: Alerts & Notices */}
+            <motion.div variants={itemVariants} className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
+                {/* Section 3: Local Alerts */}
+                <div className="h-full">
+                    {alertsCenterSection}
                 </div>
 
-                <div className="lg:col-span-2">
-                    {quickActionsSection}
+                {/* Section 4: Public Notice Board */}
+                <div className="h-full">
+                    {publicNoticeBoardSection}
                 </div>
             </motion.div>
 
-            {/* Middle Row: Analytics */}
+            {/* Section 5: Important Contacts */}
             <motion.div variants={itemVariants} className="w-full">
-                {analyticsSection}
+                {importantContactsSection}
             </motion.div>
 
-            {/* Live Disruption Map Row (Hero Element) */}
-            <motion.div variants={itemVariants} className="w-full">
-                {mapSection}
-            </motion.div>
-
-            {/* Extra Kiosk Links Row */}
-            <motion.div variants={itemVariants} className="w-full mt-6">
-                {bottomLinksSection}
-            </motion.div>
+            {/* Modal Overlay for Notice Details */}
+            {selectedNotice && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-100 bg-slate-50 flex justify-between items-start">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${getPriorityBadge(selectedNotice.priority).color}`}>
+                                        {getPriorityBadge(selectedNotice.priority).dot} {getPriorityBadge(selectedNotice.priority).label}
+                                    </span>
+                                    <span className="text-[10px] font-black uppercase text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                                        {selectedNotice.category}
+                                    </span>
+                                </div>
+                                <h2 className="text-xl font-black text-slate-900 leading-tight">{selectedNotice.title}</h2>
+                            </div>
+                            <button onClick={() => setSelectedNotice(null)} className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-100 transition shadow-sm font-black shrink-0">✕</button>
+                        </div>
+                        <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                            <div>
+                                <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><HelpCircle size={14}/> What is it?</h3>
+                                <p className="text-slate-700 text-[15px] font-medium leading-relaxed">{selectedNotice.message}</p>
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><Building2 size={14}/> Who should care?</h3>
+                                <p className="text-slate-700 text-sm font-medium">All Citizens / Residents</p>
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-black uppercase text-slate-400 tracking-widest mb-2 flex items-center gap-2"><Calendar size={14}/> When does it end?</h3>
+                                <p className="text-slate-700 text-sm font-medium">{selectedNotice.expires_at ? new Date(selectedNotice.expires_at).toLocaleDateString() : 'No specified end date'}</p>
+                            </div>
+                            <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                                <h3 className="text-xs font-black uppercase text-indigo-400 tracking-widest mb-1 flex items-center gap-2"><Phone size={14}/> Where to get help?</h3>
+                                <p className="text-indigo-900 font-bold">{getContactInfo(selectedNotice.category)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
-};
+});
 
 export default DashboardHome;

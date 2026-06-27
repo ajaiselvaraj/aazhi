@@ -36,11 +36,7 @@ export const DEPARTMENTS: Department[] = [
   }
 ];
 
-export const MOCK_ALERTS: CityAlert[] = [
-  { id: 'AL-01', type: 'Power', severity: 'Critical', ward: '12', message: 'plannedMaintenance' },
-  { id: 'AL-02', type: 'Water', severity: 'Warning', ward: 'Global', message: 'lowPressureWarning' },
-  { id: 'AL-03', type: 'Civic', severity: 'Info', ward: '12', message: 'alert_AL-03' }
-];
+
 
 export const APP_CONFIG = {
   TITLE: 'AAZHI',

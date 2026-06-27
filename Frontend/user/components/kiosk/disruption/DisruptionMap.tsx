@@ -73,7 +73,7 @@ const getUpdatedWardsGeojson = (baseGeojson: any, currentIncidents: Incident[]) 
   };
 };
 
-const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
+const DisruptionMap: React.FC<Props> = React.memo(({ language = Language.ENGLISH }) => {
   const { t } = useTranslation();
   const { isVertical } = useOrientation();
 
@@ -105,10 +105,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
   useEffect(() => { aiRisksEnabledRef.current = aiRisksEnabled; }, [aiRisksEnabled]);
   useEffect(() => { flowLinesEnabledRef.current = flowLinesEnabled; }, [flowLinesEnabled]);
 
-  // Sync feed open state with orientation defaults
-  useEffect(() => {
-    setIsFeedOpen(!isVertical);
-  }, [isVertical]);
+
 
   // 1. Initialize Mapbox Map
   useEffect(() => {
@@ -126,7 +123,9 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
       maxZoom: 14.5,
       pitch: isVertical ? 15 : (is3DMode ? 50 : 0),
       bearing: isVertical ? 0 : (is3DMode ? -15 : 0),
-      attributionControl: false
+      attributionControl: false,
+      scrollZoom: false, // Prevents Mapbox from capturing mouse wheel and blocking page scroll
+      cooperativeGestures: true // Allows two-finger panning on touch devices without capturing page scroll
     });
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right');
@@ -257,34 +256,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         }
       });
 
-      // Start Flow Dash Line Animation + Ward Borders Glow Pulse
-      let step = 0;
-      const animateDash = () => {
-        if (!mapRef.current) return;
-        step = (step + 0.18) % 20;
-        try {
-          const m = mapRef.current;
-          if (m.getLayer('flow-lines-layer') && flowLinesEnabledRef.current) {
-            m.setPaintProperty('flow-lines-layer', 'line-dasharray', [3, 6, step, 10]);
-          }
-
-          // Pulse Wards Opacity and border glow widths
-          if (m.getLayer('ward-fills')) {
-            const baseOpacity = isVertical
-              ? (0.3 + Math.sin(step * 0.4) * 0.08)
-              : (0.55 + Math.sin(step * 0.4) * 0.15);
-            m.setPaintProperty('ward-fills', 'fill-extrusion-opacity', baseOpacity);
-          }
-          if (m.getLayer('ward-borders-glow')) {
-            const glowOpacity = isVertical
-              ? (0.15 + Math.sin(step * 0.5) * 0.08)
-              : (0.3 + Math.sin(step * 0.5) * 0.2);
-            m.setPaintProperty('ward-borders-glow', 'line-opacity', Math.max(0.05, glowOpacity));
-          }
-        } catch (e) {}
-        animationFrameRef.current = requestAnimationFrame(animateDash);
-      };
-      animateDash();
+      // Removed animateDash to prevent WebGL GPU repaint loops
 
       // Click handler for Ward Platforms
       map.on('click', 'ward-fills', (e) => {
@@ -358,10 +330,9 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
   // 2. Sync Map Styles
   useEffect(() => {
     if (mapRef.current && mapReady) {
-      setMapReady(false);
       mapRef.current.setStyle(mapStyle);
     }
-  }, [mapStyle]);
+  }, [mapStyle, mapReady]);
 
   // 3. Toggle 3D / 2D settings dynamically
   useEffect(() => {
@@ -477,17 +448,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             inset: -6px; 
             border-radius: 50%; 
             background-color: ${color}; 
-            opacity: 0.4; 
-            animation: pulseGlow 1.8s infinite ease-out;
-          "></span>
-          <span style="
-            position: absolute; 
-            inset: -6px; 
-            border-radius: 50%; 
-            background-color: ${color}; 
-            opacity: 0.25; 
-            animation: pulseGlow 1.8s infinite ease-out;
-            animation-delay: 0.9s;
+            opacity: 0.3; 
           "></span>
         `
         : `
@@ -496,8 +457,7 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             inset: -4px; 
             border-radius: 50%; 
             background-color: ${color}; 
-            opacity: 0.3; 
-            animation: pulseGlow 2s infinite ease-out;
+            opacity: 0.2; 
           "></span>
         `;
 
@@ -644,8 +604,8 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
         .mapboxgl-popup-anchor-right .mapboxgl-popup-tip { border-left-color: rgba(15, 23, 42, 0.88) !important; }
       `}</style>
 
-      {/* Top Metrics Row (Hidden in vertical/mobile view to prevent duplication with DashboardHome) */}
-      {!isVertical && <LiveMetricsOverlay activeCount={activeCount} />}
+      {/* Top Metrics Row (Hidden) */}
+
 
       {/* Main Panel Content Area */}
       <div className={`flex-1 flex ${isVertical ? 'flex-col' : 'flex-row'} gap-5 w-full h-full min-h-0 relative overflow-hidden`}>
@@ -716,14 +676,8 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             </div>
           )}
 
-          {/* Floating Sidebar Toggle Button */}
-          <button
-            onClick={() => setIsFeedOpen(!isFeedOpen)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 text-slate-400 hover:text-white flex items-center justify-center transition shadow-lg hover:border-white/20"
-            title={isFeedOpen ? "Collapse Feed" : "Expand Feed"}
-          >
-            <Sidebar size={16} />
-          </button>
+          {/* Floating Sidebar Toggle Button removed to give full width Map */}
+          
 
           {/* Bottom Left AI Predictor Status (Hidden on vertical/mobile layouts) */}
           {aiRisksEnabled && !isVertical && (
@@ -741,58 +695,10 @@ const DisruptionMap: React.FC<Props> = ({ language = Language.ENGLISH }) => {
             <MapLegend />
           </div>
         </div>
-
-        {/* Live Incident Feed Sidebar (Desktop) or overlay slide-drawer (Kiosk/Tablet) */}
-        {!isVertical ? (
-          /* Desktop layout: Side-by-side flex column */
-          <AnimatePresence initial={false}>
-            {isFeedOpen && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: '32%', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-                className="h-full shrink-0 overflow-hidden"
-              >
-                <div className="w-full h-full min-w-[280px]">
-                  <LiveIncidentFeed
-                    incidents={mockIncidents}
-                    onIncidentClick={handleIncidentClick}
-                    selectedIncidentId={selectedIncidentId}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        ) : (
-          /* Vertical Mode: Floating bottom slide-up overlay panel */
-          <AnimatePresence>
-            {isFeedOpen && (
-              <motion.div
-                initial={{ y: '100%' }}
-                animate={{ y: 0 }}
-                exit={{ y: '100%' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                className="fixed inset-x-0 bottom-0 h-[85%] bg-slate-950/95 backdrop-blur-2xl rounded-t-[2.5rem] border-t border-white/10 z-[100] shadow-2xl flex flex-col overflow-hidden"
-              >
-                {/* Drag handle decoration */}
-                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
-                <div className="flex-1 min-h-0">
-                  <LiveIncidentFeed
-                    incidents={mockIncidents}
-                    onIncidentClick={handleIncidentClick}
-                    selectedIncidentId={selectedIncidentId}
-                    onClose={() => setIsFeedOpen(false)}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
       </div>
     </div>
   );
-};
+});
 
 export default DisruptionMap;
 export { DisruptionMap };

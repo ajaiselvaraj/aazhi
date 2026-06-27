@@ -23,7 +23,6 @@ const navGroups = [
     label_key: 'nav.grp_ai',
     label_default: 'AI Processing',
     items: [
-      { id: 'triage',       icon: Cpu,             trans_key: 'nav.ai_route', default_label: 'AI Routing Queue' },
       { id: 'duplicate',    icon: Copy,            trans_key: 'nav.dup_det', default_label: 'Duplicate Detection' },
       { id: 'ai-insights',  icon: Brain,           trans_key: 'nav.ai_insights', default_label: 'AI Insights' },
       { id: 'cci-command',  icon: Layers,          trans_key: 'nav.cci_command', default_label: 'Cascade Coordination' },
@@ -60,7 +59,7 @@ const navGroups = [
     items: [
       { id: 'alerts',        icon: BellRing,      trans_key: 'nav.sys_alerts',   default_label: 'System Alerts' },
       { id: 'risk',          icon: AlertTriangle,  trans_key: 'nav.risk_det',     default_label: 'Risk Detector' },
-      { id: 'civic-alerts',  icon: Megaphone,      trans_key: 'nav.civic_alerts', default_label: 'Alerts' }, // ⭐ ADD-ON
+      { id: 'public-info',  icon: Megaphone,      trans_key: 'nav.public_info', default_label: 'Public Info Management' }, // ⭐ ADD-ON
       { id: 'notification-center', icon: Bell,     trans_key: 'nav.notification_center', default_label: 'Notification Center' },
     ],
   },
@@ -69,7 +68,6 @@ const navGroups = [
     label_default: '⭐ Accountability', // ⭐ ADD-ON: Escalation & Accountability Engine
     items: [
       { id: 'escalation-queue',       icon: ClipboardList, trans_key: 'nav.escalation_queue',       default_label: 'Escalation Queue'   },
-      { id: 'officer-accountability', icon: Award,         trans_key: 'nav.officer_accountability', default_label: 'Officer Scores'     },
     ],
   },
 ]

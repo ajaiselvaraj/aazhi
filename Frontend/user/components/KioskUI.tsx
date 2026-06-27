@@ -7,9 +7,10 @@ import {
   RefreshCw, Users, QrCode, ClipboardCheck, Home, Type, Printer, RotateCcw, Trash2
 } from 'lucide-react';
 import { ViewState, Language, ServiceRequest } from '../types';
-import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, MOCK_ALERTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
+import { DEPARTMENTS, APP_CONFIG, MOCK_REQUESTS, MOCK_USER_PROFILE, MOCK_BILLS, PREDEFINED_ISSUES, AREA_SUPPORT_CONTACTS } from '../constants';
 import { getAssistantResponse, generateCitizenImage, AIResponse, AIMenu } from '../services/geminiService';
 import { BillingService, GrievanceService, CivicAlertService } from '../services/civicService';
+import { startAlertPolling } from '../services/civicAlertService';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import html2pdf from 'html2pdf.js';
 import { useNavigate } from 'react-router-dom';
@@ -169,30 +170,34 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<ServiceRequest | null>(null);
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
-  const [liveAlerts, setLiveAlerts] = useState<any[]>(MOCK_ALERTS);
+  const [liveAlerts, setLiveAlerts] = useState<any[]>([]);
 
   // ─── PERSISTENCE: Restore Tab & Steps ───
   useEffect(() => {
-    const saved = Persistence.loadRoute();
-    if (saved && saved.view === 'DASHBOARD' && saved.subView) {
-      const { tab, sStep, bStep, service, dept } = saved.subView;
-      if (tab) setActiveTab(tab);
-      if (sStep) setSubmissionStep(sStep);
-      if (bStep) setBillingStep(bStep);
-      if (service) setSelectedService(service);
-      if (dept) setSelectedDepartment(dept);
+    const saved = sessionStorage.getItem('aazhi_dashboard_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Only restore steps if the saved tab matches the current URL tab
+        if (parsed.tab === initialTab) {
+          if (parsed.sStep) setSubmissionStep(parsed.sStep);
+          if (parsed.bStep) setBillingStep(parsed.bStep);
+          if (parsed.service) setSelectedService(parsed.service);
+          if (parsed.dept) setSelectedDepartment(parsed.dept);
+        }
+      } catch (e) {}
     }
-  }, []);
+  }, [initialTab]);
 
   // ─── PERSISTENCE: Save Sub-views ───
   useEffect(() => {
-    Persistence.saveRoute('DASHBOARD', { 
+    sessionStorage.setItem('aazhi_dashboard_state', JSON.stringify({ 
         tab: activeTab, 
         sStep: submissionStep, 
         bStep: billingStep,
         service: selectedService,
         dept: selectedDepartment
-    });
+    }));
   }, [activeTab, submissionStep, billingStep, selectedService, selectedDepartment]);
 
   // Service Filtering: automatically show services for the logged-in department on /pay-bills
@@ -256,19 +261,13 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
     };
     fetchRequests();
 
-    const fetchAlerts = async () => {
-      try {
-        const alerts = await CivicAlertService.getLiveAlerts();
-        if (alerts && alerts.length > 0) {
-          setLiveAlerts(alerts);
-        }
-      } catch (error) {
-        console.error("Failed to fetch live alerts", error);
-      }
+    const cleanupAlerts = startAlertPolling((fetchedAlerts) => {
+      setLiveAlerts(fetchedAlerts);
+    });
+
+    return () => {
+      cleanupAlerts();
     };
-    fetchAlerts();
-    const alertInterval = setInterval(fetchAlerts, 60000); // Live update every 60s
-    return () => clearInterval(alertInterval);
   }, []);
 
   // Scroll to bottom of chat
@@ -557,7 +556,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       }}
       onLogout={onLogout}
       userName={MOCK_USER_PROFILE.name}
-      alerts={MOCK_ALERTS}
+      alerts={liveAlerts}
       language={language}
       timer={timer}
       isPrivacyShield={isPrivacyShield}

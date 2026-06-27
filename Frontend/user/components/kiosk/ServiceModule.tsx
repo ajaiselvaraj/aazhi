@@ -3,7 +3,6 @@ import {
     Building2,
     MapPin,
     AlertTriangle,
-    Camera,
     Send,
     ArrowRight,
     ArrowLeft,
@@ -239,9 +238,6 @@ const ServiceModule: React.FC<ServiceModuleProps> = ({ onBack, language, departm
                                     />
 
                                     <div className="mt-4 flex gap-3">
-                                        <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                                            <Camera size={18} /> {t('comp_addPhoto') || "Photo"}
-                                        </button>
                                     </div>
                                 </div>
                             </div>

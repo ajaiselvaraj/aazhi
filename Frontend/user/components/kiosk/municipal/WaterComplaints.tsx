@@ -3,7 +3,7 @@ import { ArrowLeft, CheckCircle, AlertCircle, Send, Camera } from 'lucide-react'
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
-import ComplaintQRModal from '../../ComplaintQRModal';
+import { Persistence } from '../../../utils/persistence';
 import StatusSubscription from '../StatusSubscription';
 import { VoiceInputField } from '../../accessibility/VoiceInputField';
 import { useAnnouncer } from '../../accessibility/AriaLiveAnnouncer';
@@ -40,7 +40,6 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [showQR, setShowQR] = useState(false);
   const { announce } = useAnnouncer();
 
   // Get Water Complaints History
@@ -76,7 +75,7 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
     try {
       const generatedTicket = 'WTR-' + Math.floor(1000 + Math.random() * 9000);
       setTicketNumber(generatedTicket);
-      setShowQR(true);
+      setTicketNumber(generatedTicket);
 
       const userStr = localStorage.getItem('aazhi_user');
       const user = userStr ? JSON.parse(userStr) : null;
@@ -150,20 +149,31 @@ const WaterComplaints: React.FC<Props> = ({ onBack, language }) => {
             />
           </div>
 
-          <button
-            onClick={() => setShowQR(true)}
-            className="w-full bg-cyan-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-cyan-700 transition flex items-center justify-center gap-2"
-          >
-            📱 {t('scanQRToTrack') || 'Scan QR to Track on Mobile'}
-          </button>
-          <button
-            onClick={() => { setStep('form'); setFormData({ priority: 'medium' }); }}
-            className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
-          >
-            {t('returnHomeBtn') || 'Back to Dashboard'}
-          </button>
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={() => {
+                setStep('form');
+                setFormData({ priority: 'medium' });
+                setTicketNumber('');
+              }}
+              className="w-full bg-[#1e293b] text-white py-4 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
+            >
+              {t('registerAnotherComplaint') || '← Register Another Complaint'}
+            </button>
+            <button
+              onClick={() => {
+                setStep('form');
+                setFormData({ priority: 'medium' });
+                setTicketNumber('');
+                Persistence.clearFormData('civic_form');
+                onBack();
+              }}
+              className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black text-lg hover:bg-slate-200 transition"
+            >
+              {t('returnHomeBtn') || 'Return Home'}
+            </button>
+          </div>
         </div>
-        {showQR && <ComplaintQRModal ticketNumber={ticketNumber} complaintId={ticketNumber} onClose={() => setShowQR(false)} />}
       </div>
     );
   }

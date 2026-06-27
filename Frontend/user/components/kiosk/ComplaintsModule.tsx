@@ -3,7 +3,6 @@ import {
     Building2,
     MapPin,
     AlertTriangle,
-    Camera,
     Send,
     ArrowLeft,
     CheckCircle,
@@ -17,6 +16,7 @@ import {
 import { PREDEFINED_ISSUES, DEPARTMENTS } from '../../constants';
 import { Language } from '../../types';
 import { useServiceComplaint } from '../../contexts/ServiceComplaintContext';
+import { Persistence } from '../../utils/persistence';
 import { useTranslation } from 'react-i18next';
 import { AccessibleButton } from '../AccessibleButton';
 import StatusSubscription from './StatusSubscription';
@@ -263,9 +263,6 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             />
 
                             <div className="mt-4 flex gap-3">
-                                <button className="flex-1 bg-slate-200 text-slate-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-300 transition">
-                                    <Camera size={18} /> {t('comp_addPhoto')}
-                                </button>
                             </div>
                         </div>
                             
@@ -349,11 +346,32 @@ const ComplaintsModule: React.FC<ComplaintsModuleProps> = ({ onBack, language, d
                             <StatusSubscription 
                                 complaintId={ticketId} 
                                 defaultMobile={userPhone} 
-                                onClose={() => {
+                            />
+                        </div>
+
+                        <div className="flex flex-col gap-3 w-full max-w-sm mx-auto">
+                            <button
+                                onClick={() => {
+                                    clearLatestCci?.();
+                                    setStep('category');
+                                    setTicketId('');
+                                }}
+                                className="w-full bg-[#1e293b] text-white py-4 rounded-2xl font-black text-lg hover:bg-slate-800 transition shadow-sm"
+                            >
+                                {t('registerAnotherComplaint') || '← Register Another Complaint'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setStep('category');
+                                    setTicketId('');
+                                    Persistence.clearFormData('civic_form');
                                     clearLatestCci?.();
                                     onBack();
                                 }}
-                            />
+                                className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black text-lg hover:bg-slate-200 transition"
+                            >
+                                {t('returnHomeBtn') || 'Return Home'}
+                            </button>
                         </div>
                     </div>
                 )}

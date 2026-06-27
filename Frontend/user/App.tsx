@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, ArrowLeft, RefreshCw, Smartphone, Shield, Maximize2, AlertTriangle, ArrowRight, Lock, User, MapPin, ChevronDown, Navigation, CheckCircle, Monitor, Bot, Check, Accessibility, HeartHandshake } from 'lucide-react';
-import { APP_CONFIG, LANGUAGES_CONFIG, MOCK_ALERTS } from './constants';
+import { APP_CONFIG, LANGUAGES_CONFIG } from './constants';
 import { Language, ViewState } from './types';
 import KioskKeyboardWrapper from './components/KioskKeyboardWrapper';
 import { ServiceComplaintProvider } from './contexts/ServiceComplaintContext';
@@ -61,11 +61,56 @@ const LOCATION_TO_LANGUAGE: Record<string, Language> = {
 
 const STATES = Object.keys(LOCATION_TO_LANGUAGE);
 
+import { startAlertPolling } from './services/civicAlertService';
+import { dynamicTranslationService } from './services/dynamicTranslationService';
+import { CityAlert } from './types';
+
 // ─────────────────────────────────────────────
 // Scrolling Alert Banner Component
 // ─────────────────────────────────────────────
 const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> = ({ language, location }) => {
   const { i18n } = useTranslation();
+  const [alerts, setAlerts] = useState<CityAlert[]>([]);
+  const [translatedAlerts, setTranslatedAlerts] = useState<string>('');
+
+  useEffect(() => {
+    const cleanup = startAlertPolling((fetchedAlerts) => {
+      setAlerts(fetchedAlerts);
+    });
+    return cleanup;
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const translateAll = async () => {
+      if (alerts.length === 0) {
+        if (isMounted) setTranslatedAlerts('');
+        return;
+      }
+
+      // Concatenate active alerts. For ticker, we want top 3 or so.
+      const topAlerts = alerts.slice(0, 3);
+      
+      const promises = topAlerts.map(async (alert) => {
+        // Only translate if language is not english
+        if (language === Language.ENGLISH) return alert.message;
+        return await dynamicTranslationService.translate(alert.message, language);
+      });
+
+      const translated = await Promise.all(promises);
+      
+      if (isMounted) {
+        setTranslatedAlerts(translated.join('   •   '));
+      }
+    };
+
+    translateAll();
+
+    return () => { isMounted = false; };
+  }, [alerts, language]);
+
+  if (!translatedAlerts) return null;
 
   const getLiteral = (key: string, lang: string) => {
     const resource = i18n.getResourceBundle(lang, 'translation');
@@ -75,15 +120,11 @@ const ScrollingAlertBanner: React.FC<{ language: Language; location: string }> =
     return key;
   };
 
-  const primaryAlert = MOCK_ALERTS[0];
-  const translatedMessage = getLiteral(`alert_${primaryAlert.id}`, language) || primaryAlert.message;
-
-  // Use a localized prefix based on the alert language
   const prefix = getLiteral('alertUpdateFor', language) || "Important update for";
   const isRtl = language === Language.URDU;
 
   // Personalized message including location
-  const alertText = `${prefix} ${location}: ${translatedMessage}`;
+  const alertText = `${prefix} ${location}: ${translatedAlerts}`;
 
   return (
     <div

@@ -60,13 +60,15 @@ export interface CivicAlert {
   id: number;
   title: string;
   message: string;
-  type: 'Power' | 'Water' | 'Road' | 'Weather' | 'Civic';
-  severity: 'Critical' | 'Warning' | 'Info';
+  type: string;
+  severity: string;
   priority: number;
   is_active: boolean;
   ward: string;
   created_by: number | null;
+  is_notice: boolean;
   created_at: string;
+  start_date: string;
   expires_at: string | null;
 }
 
@@ -77,6 +79,8 @@ export interface CreateAlertPayload {
   severity?: CivicAlert['severity'];
   priority?: number;
   ward?: string;
+  is_notice?: boolean;
+  start_date?: string | null;
   expires_at?: string | null;
 }
 

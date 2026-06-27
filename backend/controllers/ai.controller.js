@@ -8,7 +8,7 @@ import logger from "../utils/logger.js";
  */
 export const handleGeminiQuery = async (req, res, next) => {
     try {
-        const { query } = req.body;
+        const { query, systemPrompt } = req.body;
         if (!query) {
             return fail(res, "Query is required.", 400);
         }
@@ -26,11 +26,14 @@ export const handleGeminiQuery = async (req, res, next) => {
         const fallbackModel = 'gemini-flash-lite-latest';
         
         const fetchGemini = async (modelName) => {
+            const defaultPrompt = `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}`;
+            const finalPrompt = systemPrompt ? `${systemPrompt}\n\n${query}` : defaultPrompt;
+            
             return await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}` }] }]
+                    contents: [{ parts: [{ text: finalPrompt }] }]
                 })
             });
         };

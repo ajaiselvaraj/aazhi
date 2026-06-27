@@ -75,6 +75,11 @@ export const Persistence = {
      */
     clearFormData: (formKey: string) => {
         sessionStorage.removeItem(`${APP_PREFIX}form_${formKey}`);
+        if (currentSaveKey === formKey && saveTimeout) {
+            clearTimeout(saveTimeout);
+            saveTimeout = null;
+            currentSaveKey = null;
+        }
     },
 
     /**
@@ -93,9 +98,13 @@ export const Persistence = {
  * Hook-friendly debounced saver
  */
 let saveTimeout: any = null;
+let currentSaveKey: string | null = null;
 export const debounceSaveForm = (formKey: string, data: any, delay = 1000) => {
     if (saveTimeout) clearTimeout(saveTimeout);
+    currentSaveKey = formKey;
     saveTimeout = setTimeout(() => {
         Persistence.saveFormData(formKey, data);
+        saveTimeout = null;
+        currentSaveKey = null;
     }, delay);
 };

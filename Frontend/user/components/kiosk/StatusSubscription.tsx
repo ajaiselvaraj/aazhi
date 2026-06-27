@@ -11,7 +11,7 @@ interface Props {
 
 const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile, onClose }) => {
     const { t } = useTranslation();
-    const [subStep, setSubStep] = useState<'idle' | 'otp' | 'success'>('idle');
+    const [subStep, setSubStep] = useState<'idle' | 'otp' | 'success' | 'skipped'>('idle');
     const [channel, setChannel] = useState<'sms' | 'whatsapp'>('whatsapp');
     const [contact, setContact] = useState(defaultMobile || '');
     const [otp, setOtp] = useState('');
@@ -78,7 +78,7 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile, onClo
             {subStep === 'idle' && (
                 <div className="flex flex-col space-y-5 animate-in fade-in relative z-10">
                     <p className="text-slate-600 text-sm font-medium leading-relaxed">
-                        Skip manual tracking! Get proactive push updates at each status change.
+                        {t('optionalSubscribe') || 'Optional: Receive complaint status updates via WhatsApp or SMS.'}
                     </p>
 
                     <div className="space-y-2">
@@ -113,21 +113,20 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile, onClo
 
                     {error && <p className="text-red-500 text-xs font-bold bg-red-50 p-2 rounded-lg">{error}</p>}
 
-                    <div className="flex gap-2">
-                        {onClose && (
-                            <button
-                                onClick={onClose}
-                                className="px-6 py-4 bg-white text-slate-500 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-slate-50 transition border border-slate-100 shadow-sm"
-                            >
-                                {t('close') || 'Close'}
-                            </button>
-                        )}
+                    <div className="flex flex-col gap-2 mt-2">
                         <button
                             onClick={handleSubscribeRequest}
                             disabled={loading}
-                            className="flex-1 bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
+                            className="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase tracking-widest text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm"
                         >
-                            {loading ? (t('sending') || 'Sending...') : (t('subscribe') || 'Subscribe')} {(!loading && !onClose) && <ChevronRight size={16} />}
+                            {loading ? (t('sending') || 'Sending...') : (t('subscribe') || 'Subscribe')}
+                            {(!loading && !onClose) && <ChevronRight size={16} />}
+                        </button>
+                        <button
+                            onClick={() => setSubStep('skipped')}
+                            className="w-full px-5 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition border border-transparent shadow-sm"
+                        >
+                            {t('noThanksContinue') || 'No Thanks, Continue'}
                         </button>
                     </div>
                 </div>
@@ -193,6 +192,23 @@ const StatusSubscription: React.FC<Props> = ({ complaintId, defaultMobile, onClo
                             Subscription Active
                         </div>
                     )}
+                </div>
+            )}
+        {subStep === 'skipped' && (
+                <div className="flex flex-col items-center text-center space-y-4 animate-in zoom-in fade-in relative z-10 py-4">
+                    <h3 className="text-lg font-black text-slate-900 mb-1">{t('noUpdates') || 'Status Updates Not Enabled'}</h3>
+                    <p className="text-slate-600 font-medium text-sm leading-relaxed">
+                        {t('skippedDesc1') || 'You chose not to subscribe for complaint updates.'}
+                    </p>
+                    <p className="text-slate-600 font-medium text-sm leading-relaxed">
+                        {t('skippedDesc2') || 'You will not receive WhatsApp or SMS notifications regarding this complaint.'}
+                    </p>
+                    <p className="text-slate-600 font-medium text-sm leading-relaxed">
+                        {t('skippedDesc3') || 'You can still check complaint status later using your Ticket ID.'}
+                    </p>
+                    <div className="bg-white text-slate-600 px-4 py-3 rounded-lg font-bold border border-slate-200 shadow-sm mt-2 inline-flex">
+                        {t('ticketId') || 'Ticket ID'}: {complaintId}
+                    </div>
                 </div>
             )}
         </div>

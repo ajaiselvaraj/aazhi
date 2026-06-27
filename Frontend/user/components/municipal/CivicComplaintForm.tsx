@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Camera, MapPin, AlertCircle, CheckCircle, Mic, Plus, ArrowLeft,
+    MapPin, AlertCircle, CheckCircle, Mic, Plus, ArrowLeft,
     Trash2, AlertTriangle, Waves, CloudRain, Archive, Users, Dog,
     Megaphone, Lightbulb, Footprints, TreePine, Leaf, Factory, Bug,
     Package, Receipt, Droplets, Grid, Locate, ChevronsDown, Minus, ChevronsUp
@@ -372,8 +372,29 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
                                     const sessionUser = sessionStr ? JSON.parse(sessionStr) : null;
                                     return sessionUser?.mobile || '';
                                 })()} 
-                                onClose={onBack}
                             />
+                        </div>
+
+                        <div className="flex flex-col gap-3 w-full">
+                            <button
+                                onClick={() => {
+                                    Persistence.clearFormData('civic_form');
+                                    setStep(1);
+                                }}
+                                className="w-full bg-[#1e293b] text-white py-4 rounded-2xl font-black text-lg hover:bg-slate-800 transition shadow-sm"
+                            >
+                                {t('registerAnotherComplaint') || '← Register Another Complaint'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setStep(1);
+                                    Persistence.clearFormData('civic_form');
+                                    onBack();
+                                }}
+                                className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black text-lg hover:bg-slate-200 transition"
+                            >
+                                {t('returnHomeBtn') || 'Return Home'}
+                            </button>
                         </div>
                     </div>
                 )}

@@ -12,6 +12,13 @@
 
 import { CityAlert } from '../types'
 
+// Re-define CityAlert to match the new schema structure if needed, or we just cast
+export interface ExtendedCityAlert extends CityAlert {
+  title?: string;
+  is_notice?: boolean;
+  start_date?: string;
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const CACHE_KEY       = 'suvidha_civic_alerts_cache'
@@ -30,19 +37,22 @@ const getApiBase = (): string => {
 // Frontend CityAlert expects {id, type, severity, message, ward}
 // 'type' maps directly; severity: Critical|Warning|Info maps directly.
 
-function mapBackendAlert(raw: any): CityAlert {
+function mapBackendAlert(raw: any): ExtendedCityAlert {
   return {
     id:       String(raw.id),
-    type:     (['Power','Water','Road','Weather','Civic'].includes(raw.type) ? raw.type : 'Civic') as CityAlert['type'],
-    severity: (['Critical','Warning','Info'].includes(raw.severity) ? raw.severity : 'Info') as CityAlert['severity'],
+    type:     raw.type as CityAlert['type'],
+    severity: raw.severity as CityAlert['severity'],
+    title:    raw.title || 'Civic update',
     message:  raw.message || raw.title || 'Civic update',
     ward:     raw.ward    || 'Global',
+    is_notice: Boolean(raw.is_notice),
+    start_date: raw.start_date || new Date().toISOString(),
   }
 }
 
 // ── Cache helpers ─────────────────────────────────────────────────────────────
 
-function saveCacheAlerts(alerts: CityAlert[]): void {
+function saveCacheAlerts(alerts: ExtendedCityAlert[]): void {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), alerts }))
   } catch {
@@ -50,7 +60,7 @@ function saveCacheAlerts(alerts: CityAlert[]): void {
   }
 }
 
-function loadCacheAlerts(): CityAlert[] | null {
+function loadCacheAlerts(): ExtendedCityAlert[] | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
@@ -63,7 +73,7 @@ function loadCacheAlerts(): CityAlert[] | null {
 
 // ── Fetch from backend ────────────────────────────────────────────────────────
 
-async function fetchActiveAlerts(): Promise<CityAlert[]> {
+async function fetchActiveAlerts(): Promise<ExtendedCityAlert[]> {
   const base = getApiBase()
   const url  = `${base}/alerts/active?_t=${Date.now()}`
   const res  = await fetch(url, { cache: 'no-store' })
@@ -80,7 +90,7 @@ async function fetchActiveAlerts(): Promise<CityAlert[]> {
  * Fetch active alerts with localStorage fallback.
  * Never throws — always returns an array (possibly empty).
  */
-export async function getActiveAlertsSafe(fallback: CityAlert[] = []): Promise<CityAlert[]> {
+export async function getActiveAlertsSafe(fallback: ExtendedCityAlert[] = []): Promise<ExtendedCityAlert[]> {
   try {
     const alerts = await fetchActiveAlerts()
     if (alerts.length > 0) {
@@ -99,13 +109,13 @@ export async function getActiveAlertsSafe(fallback: CityAlert[] = []): Promise<C
 
 // ── Polling manager ───────────────────────────────────────────────────────────
 
-type AlertsListener = (alerts: CityAlert[]) => void
+type AlertsListener = (alerts: ExtendedCityAlert[]) => void
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let listeners: AlertsListener[] = []
-let lastAlerts: CityAlert[] = []
+let lastAlerts: ExtendedCityAlert[] = []
 
-async function runPoll(fallback: CityAlert[]) {
+async function runPoll(fallback: ExtendedCityAlert[]) {
   const alerts = await getActiveAlertsSafe(fallback)
   lastAlerts = alerts
   listeners.forEach(fn => {
@@ -119,7 +129,7 @@ async function runPoll(fallback: CityAlert[]) {
  */
 export function startAlertPolling(
   onUpdate: AlertsListener,
-  fallback: CityAlert[] = [],
+  fallback: ExtendedCityAlert[] = [],
 ): () => void {
   listeners.push(onUpdate)
 

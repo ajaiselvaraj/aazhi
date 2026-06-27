@@ -7,7 +7,7 @@ import {
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useServiceComplaint } from '../../../contexts/ServiceComplaintContext';
-import ComplaintQRModal from '../../ComplaintQRModal'; // ⭐ PLUG-IN: QR tracking
+import { Persistence } from '../../../utils/persistence';
 import { AccessibleButton } from '../../AccessibleButton';
 import StatusSubscription from '../StatusSubscription';
 import { VoiceInputField } from '../../accessibility/VoiceInputField';
@@ -57,7 +57,6 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [ticketNumber, setTicketNumber] = useState('');
   const [submitError, setSubmitError] = useState('');
-  const [showQR, setShowQR] = useState(false); // ⭐ PLUG-IN: QR modal state
   const { announce } = useAnnouncer();
 
   const handleCategorySelect = (categoryLabel: string) => {
@@ -111,7 +110,6 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
       });
       
       setTicketNumber(ticketId);
-      setShowQR(true);
       setStep('success');
       announce(t('muni_complaintRegistered') || 'Complaint Registered!');
     } catch (err: any) {
@@ -154,20 +152,31 @@ const MunicipalComplaints: React.FC<Props> = ({ onBack, language }) => {
             />
           </div>
 
-          <button
-            onClick={() => setShowQR(true)}
-            className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-sm mb-3 hover:bg-blue-700 transition flex items-center justify-center gap-2"
-          >
-            📱 Scan QR to Track on Mobile
-          </button>
-          <button
-            onClick={onBack}
-            className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
-          >
-            {t('returnHomeBtn') || 'Back to Municipal Dashboard'}
-          </button>
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={() => {
+                setStep('category');
+                setFormData({ priority: 'medium' });
+                setTicketNumber('');
+              }}
+              className="w-full bg-[#1e293b] text-white py-4 rounded-2xl font-black text-lg hover:bg-slate-800 transition"
+            >
+              {t('registerAnotherComplaint') || '← Register Another Complaint'}
+            </button>
+            <button
+              onClick={() => {
+                setStep('category');
+                setFormData({ priority: 'medium' });
+                setTicketNumber('');
+                Persistence.clearFormData('civic_form');
+                onBack();
+              }}
+              className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black text-lg hover:bg-slate-200 transition"
+            >
+              {t('returnHomeBtn') || 'Return Home'}
+            </button>
+          </div>
         </div>
-        {showQR && <ComplaintQRModal ticketNumber={ticketNumber} complaintId={ticketNumber} onClose={() => setShowQR(false)} />}
       </div>
     );
   }
