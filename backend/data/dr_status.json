@@ -1,97 +1,25 @@
 {
-  "lastBackupTime": "2026-06-27T06:15:00.196Z",
+  "lastBackupTime": "2026-06-27T14:00:01.587Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
-  "lastVerificationTime": "2026-06-27T06:15:00.196Z",
+  "lastVerificationTime": "2026-06-27T14:00:01.587Z",
   "verificationStatus": "Passed",
   "recoveryTestLogs": [
     {
-      "timestamp": "2026-06-27T05:30:00.960Z",
+      "timestamp": "2026-06-27T13:30:00.253Z",
       "testType": "Automated RTO Verification Job",
       "status": "Success",
-      "durationMs": 842,
-      "rtoAchieved": "962ms (Target: <1 Hour)",
+      "durationMs": 183,
+      "rtoAchieved": "303ms (Target: <1 Hour)",
       "notes": "Active standby DB replication verification passed. Primary node connection healthy."
     },
     {
-      "timestamp": "2026-06-26T15:30:00.139Z",
-      "testType": "Automated RTO Verification Job",
+      "timestamp": "2026-06-27T10:26:46.102Z",
+      "testType": "Database Recovery Dry-run",
       "status": "Success",
-      "durationMs": 117,
-      "rtoAchieved": "237ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-26T14:30:01.229Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 1076,
-      "rtoAchieved": "1196ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-26T13:30:00.157Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 113,
-      "rtoAchieved": "233ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-26T10:30:01.448Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 1373,
-      "rtoAchieved": "1493ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-25T06:30:01.028Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 943,
-      "rtoAchieved": "1063ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-25T05:30:10.081Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Failed",
-      "durationMs": 10002,
-      "rtoAchieved": "N/A",
-      "notes": "Recovery verification test encountered error: timeout exceeded when trying to connect"
-    },
-    {
-      "timestamp": "2026-06-24T17:30:00.256Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 172,
-      "rtoAchieved": "292ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-21T11:30:01.326Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 1240,
-      "rtoAchieved": "1360ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-21T10:30:01.235Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 1193,
-      "rtoAchieved": "1313ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-21T09:30:00.231Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 148,
-      "rtoAchieved": "268ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+      "durationMs": 4200,
+      "rtoAchieved": "12 Minutes",
+      "notes": "Successfully restored 45 encrypted records, integrity check passed."
     }
   ]
 }

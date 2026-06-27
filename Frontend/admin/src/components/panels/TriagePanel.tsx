@@ -133,7 +133,7 @@ export default function TriagePanel() {
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
-      if (myDept && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
+      if (myDept && myDept !== 'ALL' && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
         params.department = myDept;
       }
       
@@ -158,15 +158,18 @@ export default function TriagePanel() {
        ? (c.status !== 'resolved' && c.status !== 'rejected') 
        : c.status === statusFilter;
 
-    const isDeptMatch = !myDept || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
-      (c.department || '').toLowerCase().includes(myDept.toLowerCase());
+    const deptStr = (c.department || '').toLowerCase();
+    const isDeptMatch = !myDept || myDept === 'ALL' || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
+      myDept.toLowerCase().includes(deptStr) || deptStr.includes(myDept.toLowerCase());
 
+    const safeSearch = search.toLowerCase();
+    
     return isDeptMatch && matchesStatus &&
-    (c.ticket_number?.toLowerCase().includes(search.toLowerCase()) ||
-     c.citizen_name?.toLowerCase().includes(search.toLowerCase()) ||
-     c.description?.toLowerCase().includes(search.toLowerCase()) ||
-     c.category?.toLowerCase().includes(search.toLowerCase()));
-  })
+      ((c.ticket_number || '').toLowerCase().includes(safeSearch) ||
+       (c.citizen_name || '').toLowerCase().includes(safeSearch) ||
+       (c.description || '').toLowerCase().includes(safeSearch) ||
+       (c.category || '').toLowerCase().includes(safeSearch));
+  });
 
   async function handleUpdateStage(id: string, newStatus: string) {
     try {

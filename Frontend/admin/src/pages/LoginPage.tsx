@@ -450,13 +450,13 @@ export default function LoginPage() {
                 onChange={e => setDepartment(e.target.value)}
                 style={{ borderRadius: 10 }}
               >
-                <option value="" disabled>{t('login.dept_opt')}</option>
-                <option value="Electricity Department">{t('login.dept_electricity') || 'Electricity Department'}</option>
-                <option value="Water Supply Department">{t('login.dept_water') || 'Water Supply Department'}</option>
-                <option value="Gas Distribution">{t('login.dept_gas') || 'Gas Distribution'}</option>
-                <option value="Municipal Services">{t('login.dept_municipal') || 'Municipal Services'}</option>
+                <option value="" disabled>{t('login.dept_opt', 'Select your department')}</option>
+                <option value="Electricity Department">{t('login.dept_electricity', 'Electricity Department')}</option>
+                <option value="Water Supply Department">{t('login.dept_water', 'Water Supply Department')}</option>
+                <option value="Gas Distribution">{t('login.dept_gas', 'Gas Distribution')}</option>
+                <option value="Municipal Services">{t('login.dept_municipal', 'Municipal Services')}</option>
                 <option value="Integrity Office">Integrity Office (Integrity Officer)</option>
-                <option value="ALL">{t('login.dept_all') || 'All Departments (Super Admin)'}</option>
+                <option value="ALL">{t('login.dept_all', 'All Departments (Super Admin)')}</option>
               </select>
             </div>
 

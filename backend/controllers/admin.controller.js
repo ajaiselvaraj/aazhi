@@ -385,6 +385,10 @@ export const getAllComplaints = async (req, res, next) => {
 
         const useSupabase = supabase !== null;
 
+        const normalizedDept = department
+            ? (DEPT_NORMALIZE[department.toLowerCase()] || department)
+            : null;
+
         if (useSupabase) {
             console.log("📡 [ADMIN] Fetching complaints via SUPABASE CLIENT");
             let query = supabase
@@ -392,7 +396,7 @@ export const getAllComplaints = async (req, res, next) => {
                 .select('*, citizen:citizens!complaints_citizen_id_fkey(name, mobile)', { count: 'estimated' });
 
             if (status) query = query.eq('status', status);
-            if (department) query = query.ilike('department', `%${department}%`);
+            if (normalizedDept) query = query.ilike('department', `%${normalizedDept}%`);
             if (priority) query = query.eq('priority', priority);
 
             const { data, count, error } = await query

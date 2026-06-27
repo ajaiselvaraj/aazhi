@@ -128,7 +128,7 @@ export default function ServiceRequestsPanel() {
       if (statusFilter !== 'All') {
         params.status = statusFilter
       }
-      if (myDept && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
+      if (myDept && myDept !== 'ALL' && myDept !== 'login.dept_all' && !myDept.toLowerCase().includes('integrity')) {
         params.department = myDept;
       }
       
@@ -175,8 +175,9 @@ export default function ServiceRequestsPanel() {
        ? ACTIVE_STATUSES.includes(r.status)
        : r.status === statusFilter;
 
-    const isDeptMatch = !myDept || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
-      (r.department || '').toLowerCase().includes(myDept.toLowerCase());
+    const deptStr = (r.department || '').toLowerCase();
+    const isDeptMatch = !myDept || myDept === 'ALL' || myDept === 'login.dept_all' || myDept.toLowerCase().includes('integrity') || 
+      myDept.toLowerCase().includes(deptStr) || deptStr.includes(myDept.toLowerCase());
 
     const tkt = (r.ticket_number || '').toLowerCase();
     const name = (r.citizen_name || '').toLowerCase();
