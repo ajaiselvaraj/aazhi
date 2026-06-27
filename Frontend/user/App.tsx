@@ -223,7 +223,7 @@ const App: React.FC = () => {
         navigate('/choose-language', { replace: true });
         return;
       }
-    } else if (path === '/') {
+    } else if (path === '/' || path === '/selection') {
       if (user) {
         setView(isElderly ? ViewState.ELDERLY_HOME : ViewState.SELECTION);
       } else {
@@ -505,6 +505,7 @@ const App: React.FC = () => {
     } else {
       sessionStorage.setItem('elderlyMode', 'false');
       setView(ViewState.SELECTION);
+      navigate('/selection');
     }
     setError('');
   };
@@ -573,9 +574,28 @@ const App: React.FC = () => {
       }
 
       setView(ViewState.DASHBOARD);
-      if (dashboardInitialTab === 'ai') {
-        navigate('/assistant');
+      const isElderly = sessionStorage.getItem('elderlyMode') === 'true';
+      if (isElderly) {
+        if (dashboardInitialTab === 'ai') {
+          navigate('/assistant');
+        } else if (dashboardInitialTab === 'billing') {
+          navigate('/pay-bills');
+        } else {
+          const tab = dashboardInitialTab || 'services';
+          setDashboardInitialTab(tab);
+          const pathMap: Record<string, string> = {
+            services: '/services',
+            home: '/home',
+            eb: '/power',
+            gas: '/gas',
+            municipal: '/municipal'
+          };
+          navigate(pathMap[tab] || '/services');
+        }
       } else {
+        if (dashboardInitialTab && ['eb', 'gas', 'municipal', 'water', 'waste'].includes(dashboardInitialTab)) {
+          localStorage.setItem('aazhi_selected_department', dashboardInitialTab);
+        }
         setDashboardInitialTab('billing');
         navigate('/pay-bills');
       }
@@ -625,7 +645,12 @@ const App: React.FC = () => {
 
   const handleSelection = (target: 'ai' | 'billing') => {
     setDashboardInitialTab(target);
-    setView(ViewState.LOGIN);
+    setView(ViewState.DASHBOARD);
+    if (target === 'ai') {
+      navigate('/assistant');
+    } else {
+      navigate('/pay-bills');
+    }
   };
 
 

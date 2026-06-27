@@ -12,6 +12,7 @@ import GasTariff from './GasTariff';
 import GasBillCalculator from './GasBillCalculator';
 import GasBrandSelection from './GasBrandSelection';
 import { Language } from '../../../types';
+import { useNavigate } from 'react-router-dom';
 
 interface Props {
   onBack: () => void;
@@ -26,6 +27,7 @@ type GasView = 'HOME' | 'NEW_CONNECTION' | 'COMPLAINTS' | 'PROFILE' | 'BILLS' | 
 const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initialSubView }) => {
   const [view, setView] = useState<GasView>(initialSubView ?? 'HOME');
   const [pendingView, setPendingView] = useState<GasView | null>(null);
+  const navigate = useNavigate();
 
   // Apply initialSubView changes driven by voice commands
   useEffect(() => {
@@ -105,7 +107,15 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
       {view === 'LOGIN' && (
         <GasLogin 
           onBack={handleInternalBack}
-          onLoginSuccess={() => handleNavigate('BILLS')}
+          onLoginSuccess={() => {
+            if (sessionStorage.getItem('elderlyMode') === 'true') {
+              handleNavigate('BILLS');
+            } else {
+              localStorage.setItem('aazhi_selected_department', 'gas');
+              if (onGlobalNavigate) onGlobalNavigate('billing');
+              navigate('/pay-bills');
+            }
+          }}
           language={language}
         />
       )}

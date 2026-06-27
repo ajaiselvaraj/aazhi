@@ -1,17 +1,18 @@
 {
-<<<<<<< Updated upstream
-  "lastBackupTime": "2026-06-26T16:45:00.895Z",
+  "lastBackupTime": "2026-06-27T06:15:00.196Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
-  "lastVerificationTime": "2026-06-26T16:45:00.895Z",
-=======
-  "lastBackupTime": "2026-06-26T17:00:01.155Z",
-  "backupStatus": "Success",
-  "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
-  "lastVerificationTime": "2026-06-26T17:00:01.155Z",
->>>>>>> Stashed changes
+  "lastVerificationTime": "2026-06-27T06:15:00.196Z",
   "verificationStatus": "Passed",
   "recoveryTestLogs": [
+    {
+      "timestamp": "2026-06-27T05:30:00.960Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 842,
+      "rtoAchieved": "962ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
     {
       "timestamp": "2026-06-26T15:30:00.139Z",
       "testType": "Automated RTO Verification Job",
@@ -90,14 +91,6 @@
       "status": "Success",
       "durationMs": 148,
       "rtoAchieved": "268ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-21T08:30:00.432Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 173,
-      "rtoAchieved": "293ms (Target: <1 Hour)",
       "notes": "Active standby DB replication verification passed. Primary node connection healthy."
     }
   ]

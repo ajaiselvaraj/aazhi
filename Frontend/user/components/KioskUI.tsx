@@ -63,7 +63,7 @@ interface ChatMessage {
 const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '' }) => {
   const { isVertical } = useOrientation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'eb' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>(initialTab);
 
   // ── Sync activeTab to browser URL ──
   useEffect(() => {
@@ -74,6 +74,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
       tracker: '/track',
       status: '/history',
       ai: '/assistant',
+      eb: '/power',
+      gas: '/gas',
+      municipal: '/municipal',
       'power-tracker': '/power/track-request',
       'gas-tracker': '/gas/track-request',
       'municipal-tracker': '/municipal/track-request',
@@ -191,6 +194,31 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         dept: selectedDepartment
     });
   }, [activeTab, submissionStep, billingStep, selectedService, selectedDepartment]);
+
+  // Service Filtering: automatically show services for the logged-in department on /pay-bills
+  useEffect(() => {
+    if (sessionStorage.getItem('elderlyMode') !== 'true' && activeTab === 'billing' && billingStep === 'select') {
+      const savedUser = localStorage.getItem('aazhi_user');
+      let isLoggedIn = false;
+      if (savedUser && savedUser !== 'null') {
+        try {
+          const parsed = JSON.parse(savedUser);
+          if (parsed && parsed.id !== 'guest_user') isLoggedIn = true;
+        } catch (e) {}
+      }
+      const savedDept = localStorage.getItem('aazhi_selected_department') || selectedDepartment;
+      if (isLoggedIn && savedDept) {
+        if (savedDept === 'eb') {
+          setSelectedBillService({ id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' } as any);
+        } else if (savedDept === 'gas') {
+          setSelectedBillService({ id: 'gas', name: t('gas') || 'Gas', icon: Flame, color: 'orange', consumerLabel: t('customerId') || 'Customer ID', providerLabel: t('deptGas') || 'Gas Provider / PNG' } as any);
+        } else {
+          setSelectedBillService({ id: 'water', name: t('muniOtherServices') || 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' } as any);
+        }
+        setBillingStep('form');
+      }
+    }
+  }, [activeTab, billingStep, selectedDepartment, t]);
 
   // Kiosk Physical Security: Auto-logout after 45s of inactivity
   const { isWarning, countdown, resetTimer } = useInactivityTimer(45000, 15000, () => {
@@ -372,15 +400,22 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   const handleServiceSelect = (svc: string, deptId: string) => {
-    // Redirect Gas department to dedicated Gas Module
-    if (deptId === 'gas') {
-      setActiveTab('gas');
-      return;
-    }
-    // Redirect Municipal department to Municipal Module
-    if (deptId === 'municipal') {
-      setActiveTab('municipal');
-      return;
+    if (sessionStorage.getItem('elderlyMode') === 'true') {
+      // Redirect Electricity department to dedicated Electricity Module
+      if (deptId === 'eb') {
+        setActiveTab('eb');
+        return;
+      }
+      // Redirect Gas department to dedicated Gas Module
+      if (deptId === 'gas') {
+        setActiveTab('gas');
+        return;
+      }
+      // Redirect Municipal or Water department to Municipal Module
+      if (deptId === 'municipal' || deptId === 'water') {
+        setActiveTab('municipal');
+        return;
+      }
     }
     setSelectedService(svc);
     setSelectedDepartment(deptId);
@@ -499,6 +534,8 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   };
 
   const resetBilling = () => {
+    localStorage.removeItem('aazhi_selected_department');
+    setSelectedDepartment(null);
     setBillingStep('select');
     setSelectedBillService(null);
     setConsumerNumber('');
@@ -604,7 +641,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                         className={`bg-white rounded-[2.5rem] border-2 ${colors.border} ${colors.hover} transition-all duration-300 overflow-hidden shadow-lg hover:shadow-2xl group focus:outline-none focus:ring-4 focus:ring-blue-400/50`}
                       >
                         {/* Department Header */}
-                        <div className={`${colors.bg} p-8 border-b-2 ${colors.border}`}>
+                        <div
+                          onClick={() => handleServiceSelect('Landing', dept.id)}
+                          className={`${colors.bg} p-8 border-b-2 ${colors.border} cursor-pointer hover:opacity-90 transition`}
+                        >
                           <div className="flex items-center gap-5">
                             <div className={`w-20 h-20 rounded-[1.5rem] ${colors.bg} border-2 ${colors.border} flex items-center justify-center ${colors.icon} group-hover:scale-110 transition-transform duration-300 shadow-inner`}>
                               <IconComponent size={40} strokeWidth={2.5} />
@@ -640,11 +680,15 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                           <div className="pt-2 mt-2 border-t border-dashed border-slate-200">
                             <button
                               onClick={() => {
+                                if (dept.id === 'eb') {
+                                  setActiveTab('eb');
+                                  return;
+                                }
                                 if (dept.id === 'gas') {
                                   setActiveTab('gas');
                                   return;
                                 }
-                                if (dept.id === 'municipal') {
+                                if (dept.id === 'municipal' || dept.id === 'water') {
                                   setActiveTab('municipal');
                                   return;
                                 }
@@ -681,7 +725,24 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {/* Authentication Step */}
             {submissionStep === 'auth' && selectedService && selectedDepartment && (
               <SecureAuth 
-                onSuccess={() => setSubmissionStep('form')} 
+                onSuccess={() => {
+                  if (sessionStorage.getItem('elderlyMode') === 'true') {
+                    setSubmissionStep('form');
+                  } else {
+                    setSubmissionStep('select');
+                    localStorage.setItem('aazhi_selected_department', selectedDepartment);
+                    if (selectedDepartment === 'eb') {
+                      setSelectedBillService({ id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' } as any);
+                    } else if (selectedDepartment === 'gas') {
+                      setSelectedBillService({ id: 'gas', name: t('gas') || 'Gas', icon: Flame, color: 'orange', consumerLabel: t('customerId') || 'Customer ID', providerLabel: t('deptGas') || 'Gas Provider / PNG' } as any);
+                    } else {
+                      setSelectedBillService({ id: 'water', name: t('muniOtherServices') || 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' } as any);
+                    }
+                    setBillingStep('form');
+                    setActiveTab('billing');
+                    navigate('/pay-bills');
+                  }
+                }} 
                 onBack={() => setSubmissionStep('select')}
                 language={language} 
               />
@@ -716,7 +777,18 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         />}
         
         {/* VIEW: MUNICIPAL MODULE */}
-        {activeTab === 'municipal' && <MunicipalModule onBack={() => setActiveTab('services')} language={language} />}
+        {activeTab === 'municipal' && <MunicipalModule
+          onBack={() => setActiveTab('services')}
+          language={language}
+          onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+        />}
+
+        {/* VIEW: ELECTRICITY MODULE */}
+        {activeTab === 'eb' && <ElectricityModule
+          onBack={() => { setActiveTab('services'); }}
+          language={language}
+          onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+        />}
 
         {/* VIEW 3: BILLING */}
         {activeTab === 'billing' && (
@@ -750,6 +822,10 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                           } catch (e) {}
                         }
                         if (isLoggedIn) {
+                          const deptMap: any = { elec: 'eb', water: 'municipal', gas: 'gas' };
+                          const chosenDept = deptMap[item.id] || 'eb';
+                          localStorage.setItem('aazhi_selected_department', chosenDept);
+                          setSelectedDepartment(chosenDept);
                           setBillingStep('form');
                         } else {
                           setBillingStep('auth');
@@ -770,7 +846,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
             {billingStep === 'auth' && (
               <SecureAuth 
-                onSuccess={() => setBillingStep('form')} 
+                onSuccess={() => {
+                  if (sessionStorage.getItem('elderlyMode') === 'true') {
+                    setBillingStep('form');
+                  } else {
+                    const deptMap: any = { elec: 'eb', water: 'municipal', gas: 'gas' };
+                    if (selectedBillService?.id) localStorage.setItem('aazhi_selected_department', deptMap[selectedBillService.id] || 'eb');
+                    setBillingStep('form');
+                    setActiveTab('billing');
+                    navigate('/pay-bills');
+                  }
+                }} 
                 onBack={() => setBillingStep('select')}
                 language={language} 
               />
@@ -783,21 +869,21 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
-                  initialSubView="QUICK_PAY"
+                  initialSubView="HOME"
                 />
               ) : selectedBillService.id === 'water' ? (
                 <MunicipalModule 
                   onBack={resetBilling} 
                   language={language} 
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)} 
-                  initialSubView="QUICK_PAY"
+                  initialSubView="HOME"
                 />
               ) : selectedBillService.id === 'gas' ? (
                 <GasModule
                   onBack={resetBilling}
                   language={language}
                   onGlobalNavigate={(tab) => setActiveTab(tab as any)}
-                  initialSubView="QUICK_PAY"
+                  initialSubView="HOME"
                 />
               ) : (
                 <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-16 max-w-3xl w-full mx-auto my-auto animate-in zoom-in-95 relative overflow-hidden">

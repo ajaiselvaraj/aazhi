@@ -14,6 +14,7 @@ import CitizenProfile from './CitizenProfile';
 
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 
 type ElectricityView = 'HOME' | 'QUICK_PAY' | 'LOGIN' | 'CALCULATOR' | 'TRANSACTIONS' | 'NEW_CONNECTION' | 'METER_SERVICE' | 'COMPLAINTS' | 'PROFILE' | 'TRACK_REQUEST' | 'TARIFF' | 'CONSUMER_DASHBOARD';
@@ -30,6 +31,7 @@ interface Props {
 const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initialSubView }) => {
     const [view, setView] = useState<ElectricityView>(initialSubView ?? 'HOME');
     const { t } = useTranslation();
+    const navigate = useNavigate();
 
     // Apply initialSubView changes (e.g. voice command sets it from outside)
     useEffect(() => {
@@ -54,7 +56,15 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate
         <div className="h-full">
             {view === 'HOME' && <ElectricityLanding onNavigate={handleNavigate} onExit={onBack} language={language} />}
             {view === 'QUICK_PAY' && <QuickPay onBack={handleInternalBack} language={language} />}
-            {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => handleNavigate('CONSUMER_DASHBOARD')} language={language} />}
+            {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => {
+                if (sessionStorage.getItem('elderlyMode') === 'true') {
+                    handleNavigate('CONSUMER_DASHBOARD');
+                } else {
+                    localStorage.setItem('aazhi_selected_department', 'eb');
+                    if (onGlobalNavigate) onGlobalNavigate('billing');
+                    navigate('/pay-bills');
+                }
+            }} language={language} />}
             {view === 'CALCULATOR' && <BillCalculator onBack={handleInternalBack} language={language} />}
             {view === 'TRANSACTIONS' && <MyTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />}
             
