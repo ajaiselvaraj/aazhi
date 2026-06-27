@@ -138,6 +138,14 @@ def predict_route(text: str, category: str = None, location: str = None, keyword
             explainability = [
                 {"name": "Base Constant", "value": 10.0, "color": "#9b59b6"}
             ]
+            
+    # Heuristic override for stray animals
+    if any(w in lower_text for w in ["stray", "animal", "dog", "cow", "monkey", "cattle"]):
+        pred_dept = "sanitation"
+        confidence = 0.85
+        if "sanitation" not in all_detected:
+            all_detected = ["sanitation"] + all_detected
+        explainability = [{"name": "Keyword: 'stray/animal'", "value": 85.0, "color": "#E67E22"}] + explainability
     
     return {
         "department": pred_dept,

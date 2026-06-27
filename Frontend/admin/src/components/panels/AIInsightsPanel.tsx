@@ -127,6 +127,17 @@ export default function AIInsightsPanel() {
     }
 
     const { validation, department, duplicate, sentiment } = json.data
+    
+    // Fallback heuristic override for stray animals
+    if (department && department.department) {
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('stray') || lowerText.includes('animal') || lowerText.includes('dog') || lowerText.includes('cow') || lowerText.includes('monkey')) {
+        department.department = 'sanitation';
+        if (!department.all_departments_detected?.includes('sanitation')) {
+          department.all_departments_detected = ['sanitation', ...(department.all_departments_detected || [])];
+        }
+      }
+    }
 
     return {
       validation,

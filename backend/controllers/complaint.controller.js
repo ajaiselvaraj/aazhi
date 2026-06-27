@@ -124,6 +124,13 @@ export const registerComplaint = async (req, res, next) => {
             // 5. Process Department routing result
             if (analysis.department?.department) {
                 classifiedDepartment = analysis.department.department;
+                
+                // Fallback heuristic override for stray animals
+                const lowerSubjectDesc = `${subject || ''} ${description || ''}`.toLowerCase();
+                if (lowerSubjectDesc.includes('stray') || lowerSubjectDesc.includes('animal') || lowerSubjectDesc.includes('dog') || lowerSubjectDesc.includes('cow') || lowerSubjectDesc.includes('monkey')) {
+                    classifiedDepartment = 'sanitation';
+                }
+                
                 logger.info(`AI classified department as: ${classifiedDepartment}`);
             }
             aiData.department = analysis.department;
