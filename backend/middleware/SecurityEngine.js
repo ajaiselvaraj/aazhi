@@ -5,6 +5,7 @@
 
 import helmet from "helmet";
 import hpp from "hpp";
+import geoip from "geoip-lite";
 
 // ─── Leaky Bucket Rate Limiter (In-Memory) ────────────────────
 // Stores: { ip -> { tokens, lastRefill } }
@@ -94,6 +95,19 @@ export class SecurityEngine {
         message: "Access denied.",
         data: {},
       });
+    }
+
+    // ── 1.5 Geo-Fencing Check ──────────────────────────────────
+    if (ip !== "127.0.0.1" && ip !== "::1" && !ip.startsWith("192.168.") && !ip.startsWith("10.")) {
+      const geo = geoip.lookup(ip);
+      // If country is detected and not in allowed list, block it.
+      if (geo && !ALLOWED_COUNTRIES.has(geo.country)) {
+        return res.status(403).json({
+          success: false,
+          message: "Access from your country is blocked.",
+          data: {},
+        });
+      }
     }
 
     // ── 2. WAF Secret Header Validation (optional) ───────────

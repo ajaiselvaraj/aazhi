@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 import os from 'os';
 
 // ⭐ FIX: Automatically detect local network IP for QR generation
@@ -37,7 +38,45 @@ export default defineConfig(({ mode }) => {
           }
         }
       },
-      plugins: [react()],
+      plugins: [
+        react(),
+        VitePWA({
+          registerType: 'autoUpdate',
+          workbox: {
+            // Cache static assets and api responses for offline support
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            runtimeCaching: [
+              {
+                urlPattern: /^https:\/\/your-api-domain\.com\/.*$/i,
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'api-cache',
+                  expiration: {
+                    maxEntries: 100,
+                    maxAgeSeconds: 60 * 60 * 24 * 7 // <== 7 days
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              }
+            ]
+          },
+          manifest: {
+            name: 'SUVIDHA Citizen Portal',
+            short_name: 'SUVIDHA',
+            description: 'Unified Civic Utility Self-Service KIOSK Platform',
+            theme_color: '#ffffff',
+            icons: [
+              {
+                src: 'pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png'
+              }
+            ]
+          }
+        })
+      ],
       define: {
         'process.env.VITE_LOCAL_IP': JSON.stringify(getLocalIP()) // Export local IP
       },

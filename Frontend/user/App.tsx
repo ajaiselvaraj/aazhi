@@ -17,6 +17,7 @@ const WhistleblowerPortal = lazy(() => import('./components/WhistleblowerPortal'
 const VoiceProvider = lazy(() => import('./src/voice/VoiceProvider'));
 const ElderlyHome = lazy(() => import('./components/ElderlyHome'));
 import { EmergencySOS } from './components/municipal/EmergencySOS';
+import WelcomeSplash from './components/WelcomeSplash';
 
 import { authService } from './services/authService';
 import { Persistence } from './utils/persistence';
@@ -233,7 +234,7 @@ const LocationSelector: React.FC<LocationSelectorProps> = ({
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [view, setView] = useState<ViewState>(ViewState.LANDING);
+  const [view, setView] = useState<ViewState>(ViewState.SPLASH);
   const { t, i18n } = useTranslation();
   const language = i18n.language as Language;
   const [timer, setTimer] = useState(LOGOUT_TIME);
@@ -394,7 +395,7 @@ const App: React.FC = () => {
       sessionStorage.clear();
       sessionStorage.setItem('session_initialized', 'true');
       setIsElderlyMode(false);
-      setView(ViewState.LANDING);
+      setView(ViewState.SPLASH);
     } else {
       // ─── ROUTE PERSISTENCE: Restore last view on reload ───
       const savedRoute = Persistence.loadRoute();
@@ -410,7 +411,7 @@ const App: React.FC = () => {
 
   // ─── AUTO-SAVE ROUTE STATE ───
   useEffect(() => {
-    if (view !== ViewState.LANDING) {
+    if (view !== ViewState.LANDING && view !== ViewState.SPLASH) {
       Persistence.saveRoute(view, dashboardInitialTab);
     }
   }, [view, dashboardInitialTab]);
@@ -678,7 +679,7 @@ const App: React.FC = () => {
     if (appLang) localStorage.setItem('app_lang', appLang);
 
     setIsElderlyMode(false);
-    setView(ViewState.LANDING);
+    setView(ViewState.SPLASH);
     resetLoginState();
     setIsPrivacyShieldOn(false);
     navigate('/choose-language', { replace: true });
@@ -1335,6 +1336,9 @@ const App: React.FC = () => {
         <KioskKeyboardWrapper language={language}>
           <VoiceProvider appLanguage={language}>
           <ServiceComplaintProvider>
+            {view === ViewState.SPLASH && (
+              <WelcomeSplash onInteract={() => setView(ViewState.LANDING)} />
+            )}
             {view === ViewState.LANDING && renderLanding()}
             {view === ViewState.ELDERLY_HOME && (
               <ElderlyHome

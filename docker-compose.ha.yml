@@ -1,0 +1,82 @@
+version: '3.8'
+
+# Phase 6: Active-Active Multi-Region High Availability Setup
+# This compose file simulates a highly available architecture with load balancing,
+# multiple API replicas, a PostgreSQL primary-replica setup, and a Redis cluster.
+
+services:
+  # Nginx Load Balancer to distribute traffic among backend replicas
+  lb:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api-node-1
+      - api-node-2
+
+  # Backend Node 1
+  api-node-1:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db-primary
+      - REDIS_URL=redis://redis-cluster:6379
+      - PORT=8000
+    depends_on:
+      - db-primary
+      - redis-cluster
+
+  # Backend Node 2
+  api-node-2:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db-primary
+      - REDIS_URL=redis://redis-cluster:6379
+      - PORT=8000
+    depends_on:
+      - db-primary
+      - redis-cluster
+
+  # PostgreSQL Primary Database
+  db-primary:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=securepassword
+      - POSTGRES_DB=suvidha
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_primary:/var/lib/postgresql/data
+
+  # Redis for Session, Queue, and Socket.IO adapter
+  redis-cluster:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
+  # AI Service (Python)
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis-cluster
+      - REDIS_PORT=6379
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis-cluster
+
+volumes:
+  pgdata_primary:
+  redisdata:

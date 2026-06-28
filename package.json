@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "stress:test": "cd stress-testing && powershell ./scripts/run-tests.ps1"
+  },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
     "@capacitor/core": "^8.3.0",

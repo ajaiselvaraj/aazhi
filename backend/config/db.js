@@ -35,10 +35,11 @@ const isProd = process.env.NODE_ENV === "production";
 // We keep max:20 to leave headroom for Render/other services
 const poolConfig = {
     connectionString: process.env.DATABASE_URL,
-    max: isProd ? 20 : 5,                   // production needs more workers
-    min: isProd ? 2 : 1,                    // keep warm connections alive
-    idleTimeoutMillis: 30_000,              // release idle connections after 30s
-    connectionTimeoutMillis: 10_000,        // fail fast if DB is unreachable
+    max: isProd ? 40 : 10,                  // scale up max workers but prevent exhaustion (PgBouncer sim)
+    min: isProd ? 5 : 2,                    // keep warm connections alive
+    idleTimeoutMillis: 10_000,              // aggressively release idle connections after 10s
+    connectionTimeoutMillis: 5_000,         // fail fast if DB is unreachable to prevent queue pile-up
+    maxUses: 1000                           // recycle connections to prevent driver-level memory leaks
 };
 
 // Only enable SSL for Supabase (direct or pooler host) or when explicitly requested

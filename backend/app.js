@@ -34,8 +34,12 @@ import { pool, getPoolStatus } from "./config/db.js";
 import errorHandler from "./middleware/error.middleware.js";
 import auditLogger from "./middleware/audit.middleware.js";
 import { SecurityEngine } from "./middleware/SecurityEngine.js";
+import generalLimiter from "./middleware/rateLimiter.js";
 
 const app = express();
+
+// ─── Global Rate Limiter ──────────────────────────────
+app.use(generalLimiter);
 
 // ─── Trust Cloud Proxies ──────────────────────────────
 app.set('trust proxy', 1);

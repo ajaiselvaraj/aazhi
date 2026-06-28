@@ -35,6 +35,8 @@ app.use('/users', proxy(AUTH_SERVICE, { proxyPriority: 10 }));
 app.use('/gas', proxy(GAS_SERVICE, { proxyPriority: 10 }));
 app.use('/electricity', proxy(ELEC_SERVICE, { proxyPriority: 10 }));
 app.use('/municipal', proxy(MUNI_SERVICE, { proxyPriority: 10 }));
+app.use('/complaints', proxy(MUNI_SERVICE, { proxyPriority: 10 }));
+app.use('/service-requests', proxy(MUNI_SERVICE, { proxyPriority: 10 }));
 app.use('/ai', proxy(AI_SERVICE, { proxyPriority: 10 }));
 
 // ─── Error handling ─────────────────────────────

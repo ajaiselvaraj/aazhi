@@ -8,12 +8,15 @@ import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
+import crypto from "crypto";
 import { emitComplaintStatusUpdate, emitComplaintTimelineUpdate } from "../socket.js"; // ⭐ PLUG-IN: real-time tracking
 import { checkAndClusterComplaint, syncClusterCompletionStatus } from "../services/cascadeDetection.service.js"; // ⭐ ADD-ON: CCI Integration
 import { triggerStatusNotifications } from "../services/subscription.service.js";
 import { sendStatusUpdate } from "../services/notification.service.js";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://127.0.0.1:5005';
+
+const hashState = (obj) => crypto.createHash('sha256').update(JSON.stringify(obj || {})).digest('hex');
 
 // Helper to proactively sync citizen name in DB if currently null/empty
 const syncCitizenName = async (citizenId, name) => {
@@ -214,6 +217,20 @@ export const registerComplaint = async (req, res, next) => {
                 [result.rows[0].id, s.stage, s.status]
             );
         }
+        
+        try {
+            const secret = process.env.AUDIT_SECRET || 'fallback-audit-secret';
+            const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            const userAgent = req.headers['user-agent'] || 'unknown';
+            const prevHash = hashState(null);
+            const curHash = hashState(result.rows[0]);
+            await pool.query(
+              "SELECT append_audit_chain_entry($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+              [secret, citizenId, req.user?.role || 'citizen', 'complaint', result.rows[0].id, 'CREATE', ip, userAgent, null, prevHash, curHash, JSON.stringify(result.rows[0])]
+            );
+        } catch(auditErr) {
+            logger.warn(`⚠️ [Audit Ledger] Failed to record creation: ${auditErr.message}`);
+        }
 
         logger.info("Complaint registered", { citizenId, ticketNumber, category, department });
 
@@ -302,11 +319,15 @@ export const trackComplaint = async (req, res, next) => {
 export const getMyComplaints = async (req, res, next) => {
     try {
         const citizenId = req.user.id;
-        const { status, department, category, page = 1, limit = 10 } = req.query;
-        const offset = (page - 1) * limit;
+        const { status, department, category, cursor, limit = 10 } = req.query;
  
         let query = `SELECT * FROM complaints WHERE citizen_id = $1`;
         const params = [citizenId];
+
+        if (cursor) {
+            query += ` AND created_at < $${params.length + 1}`;
+            params.push(new Date(cursor).toISOString());
+        }
  
         if (status) {
             query += ` AND status = $${params.length + 1}`;
@@ -323,19 +344,24 @@ export const getMyComplaints = async (req, res, next) => {
             params.push(activeCategory);
         }
 
-        // Get total count
-        const countQuery = query.replace("SELECT *", "SELECT COUNT(*)");
-        const countResult = await pool.query(countQuery, params);
+        // Get total count (for fallback/info)
+        const countQuery = `SELECT COUNT(*) FROM complaints WHERE citizen_id = $1`;
+        const countResult = await pool.query(countQuery, [citizenId]);
 
-        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(parseInt(limit), parseInt(offset));
+        query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+        params.push(parseInt(limit));
 
         const result = await pool.query(query, params);
+        
+        const nextCursor = result.rows.length > 0 ? result.rows[result.rows.length - 1].created_at : null;
 
-        return paginated(res, "Complaints retrieved", result.rows, {
-            total: parseInt(countResult.rows[0].count),
-            page: parseInt(page),
-            limit: parseInt(limit),
+        return success(res, "Complaints retrieved", {
+            data: result.rows,
+            meta: {
+                total: parseInt(countResult.rows[0].count),
+                nextCursor,
+                limit: parseInt(limit),
+            }
         });
     } catch (err) {
         next(err);
@@ -458,6 +484,20 @@ export const updateComplaintStatus = async (req, res, next) => {
                 [actualId, finalStatus, notes || rejection_reason || null, updatedBy]
             );
         }
+        
+        try {
+            const secret = process.env.AUDIT_SECRET || 'fallback-audit-secret';
+            const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            const userAgent = req.headers['user-agent'] || 'unknown';
+            const prevHash = hashState(current.rows[0]);
+            const curHash = hashState(result.rows[0]);
+            await pool.query(
+              "SELECT append_audit_chain_entry($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+              [secret, updatedBy, req.user?.role || 'staff', 'complaint', actualId, 'STATUS_CHANGE', ip, userAgent, null, prevHash, curHash, JSON.stringify(result.rows[0])]
+            );
+        } catch(auditErr) {
+            logger.warn(`⚠️ [Audit Ledger] Failed to record status update: ${auditErr.message}`);
+        }
 
         logger.info("Complaint status updated", { complaintId: actualId, oldStatus: current.rows[0].status, newStatus: finalStatus, updatedBy });
 
@@ -547,8 +587,7 @@ export const addMessage = async (req, res, next) => {
 // ─── Get All Complaints (Admin/Staff Only) ───────────────
 export const getAllComplaintsAdmin = async (req, res, next) => {
     try {
-        const { status, department, category, page = 1, limit = 50 } = req.query;
-        const offset = (page - 1) * limit;
+        const { status, department, category, cursor, limit = 50 } = req.query;
 
         let query = `
             SELECT 
@@ -561,6 +600,12 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
         const params = [];
 
         const conditions = [];
+        
+        if (cursor) {
+            conditions.push(`c.created_at < $${params.length + 1}`);
+            params.push(new Date(cursor).toISOString());
+        }
+
         if (status) {
             conditions.push(`c.status = $${params.length + 1}`);
             params.push(status);
@@ -579,18 +624,18 @@ export const getAllComplaintsAdmin = async (req, res, next) => {
             query += ` WHERE ${conditions.join(' AND ')}`;
         }
 
-        const countQuery = `SELECT COUNT(*) FROM complaints c${conditions.length > 0 ? ` WHERE ${conditions.join(' AND ')}` : ''}`;
-        const countResult = await pool.query(countQuery, params);
-
-        query += ` ORDER BY c.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-        params.push(parseInt(limit), parseInt(offset));
+        query += ` ORDER BY c.created_at DESC LIMIT $${params.length + 1}`;
+        params.push(parseInt(limit));
 
         const result = await pool.query(query, params);
+        const nextCursor = result.rows.length > 0 ? result.rows[result.rows.length - 1].created_at : null;
 
-        return paginated(res, "All complaints retrieved", result.rows, {
-            total: parseInt(countResult.rows[0].count),
-            page: parseInt(page),
-            limit: parseInt(limit),
+        return success(res, "All complaints retrieved", {
+            data: result.rows,
+            meta: {
+                nextCursor,
+                limit: parseInt(limit),
+            }
         });
     } catch (err) {
         next(err);

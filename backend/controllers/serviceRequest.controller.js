@@ -9,9 +9,12 @@ import { success, fail, paginated } from "../utils/response.js";
 import { generateTicketNumber, isValidUuid } from "../utils/helpers.js";
 import logger from "../utils/logger.js";
 import axios from "axios";
+import crypto from "crypto";
 import { emitServiceRequestStatusUpdate, emitServiceRequestTimelineUpdate } from "../socket.js";
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'https://ai-service-aazhi.onrender.com';
+
+const hashState = (obj) => crypto.createHash('sha256').update(JSON.stringify(obj || {})).digest('hex');
 
 // Helper to proactively sync citizen name in DB if currently null/empty
 const syncCitizenName = async (citizenId, name) => {
@@ -265,6 +268,20 @@ export const createServiceRequest = async (req, res, next) => {
                     [requestRecord.id, srStageDefs[i].key, i === 0 ? "current" : "pending"]
                 );
             }
+        }
+        
+        try {
+            const secret = process.env.AUDIT_SECRET || 'fallback-audit-secret';
+            const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            const userAgent = req.headers['user-agent'] || 'unknown';
+            const prevHash = hashState(null);
+            const curHash = hashState(requestRecord);
+            await pool.query(
+              "SELECT append_audit_chain_entry($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+              [secret, citizenId, req.user?.role || 'citizen', 'service_request', requestRecord.id, 'CREATE', ip, userAgent, null, prevHash, curHash, JSON.stringify(requestRecord)]
+            );
+        } catch(auditErr) {
+            logger.warn(`⚠️ [Audit Ledger] Failed to record creation: ${auditErr.message}`);
         }
 
         console.log("✅ [DEBUG] Successfully inserted service request:", requestRecord.ticket_number);
@@ -566,6 +583,20 @@ export const updateServiceRequestStatus = async (req, res, next) => {
                  VALUES ($1, $2, 'current', $3, $4)`,
                 [actualId, finalStage, stageNotes, updatedBy]
             );
+        }
+        
+        try {
+            const secret = process.env.AUDIT_SECRET || 'fallback-audit-secret';
+            const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
+            const userAgent = req.headers['user-agent'] || 'unknown';
+            const prevHash = hashState(current.rows[0]);
+            const curHash = hashState(result.rows[0]);
+            await pool.query(
+              "SELECT append_audit_chain_entry($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+              [secret, updatedBy, req.user?.role || 'staff', 'service_request', actualId, 'STATUS_CHANGE', ip, userAgent, null, prevHash, curHash, JSON.stringify(result.rows[0])]
+            );
+        } catch(auditErr) {
+            logger.warn(`⚠️ [Audit Ledger] Failed to record status update: ${auditErr.message}`);
         }
 
         logger.info("Service request updated", { requestId: actualId, newStatus: finalStatus, updatedBy });

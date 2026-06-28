@@ -25,6 +25,7 @@ export enum Language {
 }
 
 export enum ViewState {
+  SPLASH = 'SPLASH',
   LANDING = 'LANDING',
   LOGIN = 'LOGIN',
   SELECTION = 'SELECTION',

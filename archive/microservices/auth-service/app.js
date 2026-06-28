@@ -3,6 +3,8 @@
 
 import express from 'express';
 import 'dotenv/config';
+import cron from 'node-cron';
+import { pool } from './config/db.js';
 
 if (!process.env.JWT_SECRET) {
     throw new Error("Missing JWT_SECRET environment variable");
@@ -44,6 +46,20 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`🔑 Auth Microservice running on port ${PORT}`);
+});
+
+// ─── Cron Jobs ──────────────────────────────────
+cron.schedule('*/15 * * * *', async () => {
+    try {
+        const result = await pool.query(
+            "DELETE FROM otp_verifications WHERE expires_at < NOW()"
+        );
+        if (result.rowCount > 0) {
+            console.log(`🧹 Cleaned up ${result.rowCount} expired OTPs`);
+        }
+    } catch (err) {
+        console.error("❌ Failed to clean up OTPs:", err.message);
+    }
 });
 
 export default app;
