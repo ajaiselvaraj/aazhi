@@ -1,8 +1,8 @@
 {
-  "lastBackupTime": "2026-06-28T14:45:00.237Z",
+  "lastBackupTime": "2026-06-28T15:00:01.205Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
-  "lastVerificationTime": "2026-06-28T14:45:00.237Z",
+  "lastVerificationTime": "2026-06-28T15:00:01.205Z",
   "verificationStatus": "Passed",
   "recoveryTestLogs": [
     {

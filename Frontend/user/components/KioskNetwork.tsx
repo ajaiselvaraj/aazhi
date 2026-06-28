@@ -546,7 +546,7 @@ const KioskNetwork: React.FC = () => {
       )}
       {/* 7. Real Map-Based Visualization using Mapbox GL JS */}
       {viewMode === 'Map' && (
-        <div className="w-full h-[600px] bg-white rounded-3xl border border-slate-200 relative overflow-hidden animate-in fade-in zoom-in-95 shadow-sm">
+        <div className="w-full min-h-[600px] h-[calc(100vh-350px)] bg-white rounded-3xl border border-slate-200 relative overflow-hidden animate-in fade-in zoom-in-95 shadow-sm" style={{ touchAction: "none" }}>
           {import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ? (
             <div ref={mapContainerRef} className="w-full h-full z-0 font-sans" />
           ) : (
