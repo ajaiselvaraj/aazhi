@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, MapPin, Edit3, Save, Shield, History, Plus, FileText, Download, CheckCircle, Clock, Zap, Home, DollarSign, X, Check, Building, AlertCircle } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Edit3, Save, Shield, History, Plus, FileText, Download, CheckCircle, Clock, Zap, Home, DollarSign, X, Check, Building, AlertCircle , Printer} from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../../contexts/OrientationContext';
+import PaymentReceipt from '../PaymentReceipt';
 import KioskInput from '../KioskInput';
 import RazorpayCheckout from '../../RazorpayCheckout';
 
@@ -68,6 +69,8 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
   const [newConsumerNo, setNewConsumerNo] = useState('');
   const [newPin, setNewPin] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [paymentSuccessRef, setPaymentSuccessRef] = useState<string | null>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   const activeConnection = connections.find(c => c.id === activeConnectionId) || connections[0];
 
@@ -95,6 +98,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
   };
 
   const handlePaymentSuccess = (paymentId: string) => {
+    setPaymentSuccessRef(paymentId);
     // Optimistically update the UI to show the bill is paid
     setConnections(prev => prev.map(conn => {
       if(conn.id === activeConnectionId) {
@@ -110,6 +114,53 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in max-w-[1400px] mx-auto w-full">
+      {paymentSuccessRef && (
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in">
+          <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-200 text-center relative">
+              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle size={48} />
+              </div>
+
+              <h2 className="text-4xl font-black text-slate-900 mb-2">{t('paymentSuccess') || 'Payment Successful'}</h2>
+              <p className="text-slate-500 font-medium mb-8">Payment Ref: {paymentSuccessRef}</p>
+
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-left space-y-3 mb-8">
+                  <div className="flex justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Consumer No</span>
+                      <span className="text-sm font-black text-slate-900">{(activeConnection as any).id || (activeConnection as any).propertyId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Amount Paid</span>
+                      <span className="text-sm font-black text-blue-600">₹{Number(activeConnection.lastPayment?.amount || 0).toFixed(2)}</span>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                  <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-blue-200">
+                      <Printer size={18} /> Print Receipt
+                  </button>
+                  <button onClick={() => setPaymentSuccessRef(null)} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
+                      Done
+                  </button>
+              </div>
+          </div>
+          {showReceiptPreview && (
+              <PaymentReceipt 
+                  data={{
+                      serviceName: 'Electricity',
+                      serviceId: 'elec',
+                      consumerId: (activeConnection as any).id || (activeConnection as any).propertyId,
+                      consumerName: profileData?.name || 'Consumer',
+                      amount: (activeConnection.lastPayment?.amount || 0).toString(),
+                      txnId: paymentSuccessRef,
+                      date: activeConnection.lastPayment?.date || new Date().toISOString(),
+                      paymentMode: 'Online'
+                  }}
+                  onClose={() => setShowReceiptPreview(false)}
+              />
+          )}
+        </div>
+      )}
       <div className="px-4 py-6 border-b border-slate-200 flex justify-between items-center bg-white z-10 shrink-0">
         <button onClick={onBack} className="flex items-center gap-2 text-slate-500 font-black text-sm uppercase tracking-widest hover:text-slate-900 transition">
           <ArrowLeft size={20} /> {t('backToUtils') || 'Back'}
@@ -207,7 +258,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
                     <div className="mb-6">
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Due Amount</p>
                         <h2 className="text-5xl font-black text-slate-900 font-mono tracking-tighter">
-                            ₹{activeConnection.currentDue.amount.toFixed(2)}
+                            ₹{Number(activeConnection.currentDue.amount || 0).toFixed(2)}
                         </h2>
                         {activeConnection.currentDue.status === 'UNPAID' && (
                             <p className="text-red-600 font-bold mt-2 flex items-center gap-1">
@@ -247,7 +298,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
                         <div className="mb-6">
                             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Amount Paid</p>
                             <h2 className="text-4xl font-black text-slate-800 font-mono tracking-tighter">
-                                ₹{activeConnection.lastPayment.amount.toFixed(2)}
+                                ₹{Number(activeConnection.lastPayment.amount || 0).toFixed(2)}
                             </h2>
                             <p className="text-slate-500 font-bold mt-2">
                                 Paid on {activeConnection.lastPayment.date}
@@ -280,7 +331,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
                                 </div>
                                 <div className="text-right">
                                     <div className="font-mono font-black text-slate-900 text-2xl">
-                                        ₹{bill.amount.toFixed(2)}
+                                        ₹{Number(bill.amount || 0).toFixed(2)}
                                     </div>
                                     <div className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">
                                         {bill.units} Units

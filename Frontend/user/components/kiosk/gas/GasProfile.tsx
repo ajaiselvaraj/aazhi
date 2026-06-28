@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Shield, Edit3, CheckCircle, AlertCircle, Save, Phone, MapPin, Mail } from 'lucide-react';
+import { ArrowLeft, User, Shield, Edit3, CheckCircle, AlertCircle, Save, Phone, MapPin, Mail , Printer} from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { GasService, GasAccount } from '../../../services/gasService';

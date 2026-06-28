@@ -226,7 +226,7 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                                                 <p className="text-xs font-semibold text-slate-500">No: {txn.account_number || txn.consumerId || txn.serviceNo || '—'}</p>
                                             </div>
                                             <div className="text-right flex flex-col items-end gap-1">
-                                                <span className="text-xl font-black text-slate-950">₹{amountPaid.toFixed(2)}</span>
+                                                <span className="text-xl font-black text-slate-950">₹{Number(amountPaid || 0).toFixed(2)}</span>
                                                 <div>
                                                     {isPaid ? (
                                                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider border border-emerald-200">
@@ -328,9 +328,9 @@ const MyTransactions: React.FC<Props> = ({ onBack, onNavigate, language }) => {
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-right">
-                                                    <div className="text-sm font-black text-slate-900">Paid: ₹{amountPaid.toFixed(2)}</div>
+                                                    <div className="text-sm font-black text-slate-900">Paid: ₹{Number(amountPaid || 0).toFixed(2)}</div>
                                                     {pendingAmount > 0 ? (
-                                                        <div className="text-xs font-bold text-red-500">Pending: ₹{pendingAmount.toFixed(2)}</div>
+                                                        <div className="text-xs font-bold text-red-500">Pending: ₹{Number(pendingAmount || 0).toFixed(2)}</div>
                                                     ) : (
                                                         <div className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest">No Dues</div>
                                                     )}

@@ -30,6 +30,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, 
   const { t } = useTranslation();
   const { isVertical } = useOrientation();
   const navigate = useNavigate();
+  const isElderly = sessionStorage.getItem('elderlyMode') === 'true';
   const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'WATER_COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR' | 'MUNICIPAL_DASHBOARD'>(initialSubView ?? 'HOME');
 
   const handleInternalBack = () => {
@@ -57,13 +58,7 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, 
   if (view === 'PT_TARIFF') return <PropertyTaxTariff onBack={handleInternalBack} language={language} />;
   if (view === 'PT_CALCULATOR') return <PropertyTaxCalculator onBack={handleInternalBack} language={language} />;
   if (view === 'LOGIN') return <WaterLogin onBack={handleInternalBack} onLoginSuccess={() => {
-    if (sessionStorage.getItem('elderlyMode') === 'true') {
-      handleNavigate('MUNICIPAL_DASHBOARD');
-    } else {
-      localStorage.setItem('aazhi_selected_department', 'municipal');
-      if (onGlobalNavigate) onGlobalNavigate('billing');
-      navigate('/pay-bills');
-    }
+    handleNavigate('MUNICIPAL_DASHBOARD');
   }} language={language} />;
   if (view === 'TAXES') {
       return (
@@ -138,19 +133,19 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, 
         </p>
       </div>
 
-      {/* Main Feature - Quick Pay */}
-      <div className="max-w-4xl mx-auto">
+      {/* Main Features */}
+      <div className={`max-w-4xl mx-auto grid gap-6 ${isElderly ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
           {/* Quick Pay */}
           <button
               onClick={() => handleNavigate('QUICK_PAY')}
-              className="w-full group relative bg-gradient-to-br from-cyan-600 to-blue-600 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-cyan-300"
+              className="w-full group relative bg-gradient-to-br from-cyan-600 to-blue-600 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-cyan-300 flex flex-col"
           >
               <div className="absolute right-0 top-0 p-6 opacity-10 rotate-12 group-hover:scale-125 transition duration-500">
-                  <Droplet size={140} />
+                  <Droplet size={isElderly ? 140 : 100} />
               </div>
 
-              <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                  <div className="flex items-start gap-6">
+              <div className="relative z-10 flex flex-col justify-between h-full w-full gap-8">
+                  <div className={`flex items-start gap-6 ${isElderly ? 'md:flex-row md:items-center' : 'flex-col'}`}>
                       <div className="w-16 h-16 shrink-0 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
                           <CreditCard size={32} className="text-white fill-white/20" />
                       </div>
@@ -166,11 +161,45 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, 
                       </div>
                   </div>
 
-                  <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-cyan-700 transition">
+                  <div className={`flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-cyan-700 transition w-max ${isElderly ? 'self-end' : ''} mt-auto`}>
                       {t('startPayment') || 'START PAYMENT'} <ArrowRight size={14} />
                   </div>
               </div>
           </button>
+
+          {/* Consumer Login */}
+          {!isElderly && (
+              <button
+                  onClick={() => handleNavigate('LOGIN')}
+                  className="w-full group relative bg-gradient-to-br from-slate-800 to-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-slate-500 flex flex-col"
+              >
+                  <div className="absolute right-0 top-0 p-6 opacity-10 rotate-12 group-hover:scale-125 transition duration-500">
+                      <Lock size={100} />
+                  </div>
+
+                  <div className="relative z-10 flex flex-col justify-between h-full w-full gap-8">
+                      <div className="flex flex-col items-start gap-6">
+                          <div className="w-16 h-16 shrink-0 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
+                              <User size={32} className="text-cyan-400" />
+                          </div>
+
+                          <div>
+                              <div className="inline-block bg-white/10 backdrop-blur px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 border border-white/5">
+                                  {t('secureAccess') || "SECURE ACCESS"}
+                              </div>
+                              <h2 className="text-3xl font-black leading-tight mb-2">{t('consumerLogin') || "Consumer Login"}</h2>
+                              <p className="opacity-90 font-medium text-sm leading-relaxed max-w-xl">
+                                  Access dashboard & manage your municipal services
+                              </p>
+                          </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-slate-900 transition w-max mt-auto">
+                          {t('loginNow') || "Login Now"} <ArrowRight size={14} />
+                      </div>
+                  </div>
+              </button>
+          )}
       </div>
 
       <div className="max-w-4xl mx-auto mt-8">

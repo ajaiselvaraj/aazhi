@@ -315,7 +315,7 @@ const BillCalculator: React.FC<Props> = ({ onBack, language }) => {
                                     </div>
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="font-bold text-slate-500 uppercase tracking-widest text-[10px]">Electricity Duty ({dutyPercent}%)</span>
-                                        <span className="font-black text-slate-900">₹{result.duty_amount.toFixed(2)}</span>
+                                        <span className="font-black text-slate-900">₹{Number(result.duty_amount || 0).toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>

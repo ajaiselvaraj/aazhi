@@ -14,6 +14,7 @@ interface Props {
 const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) => {
     const { t } = useTranslation();
     const { isVertical } = useOrientation();
+    const isElderly = sessionStorage.getItem('elderlyMode') === 'true';
 
     return (
         <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 pb-10">
@@ -34,19 +35,19 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                 </p>
             </div>
 
-            {/* Main Feature - Quick Pay */}
-            <div className="max-w-4xl mx-auto">
+            {/* Main Features */}
+            <div className={`max-w-4xl mx-auto grid gap-6 ${isElderly ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
                 {/* Quick Pay */}
                 <button
                     onClick={() => onNavigate('QUICK_PAY')}
-                    className="w-full group relative bg-gradient-to-br from-blue-600 to-blue-700 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-blue-300"
+                    className="w-full group relative bg-gradient-to-br from-blue-600 to-blue-700 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-blue-300 flex flex-col"
                 >
                     <div className="absolute right-0 top-0 p-6 opacity-10 rotate-12 group-hover:scale-125 transition duration-500">
-                        <Zap size={140} />
+                        <Zap size={isElderly ? 140 : 100} />
                     </div>
 
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                        <div className="flex items-start gap-6">
+                    <div className="relative z-10 flex flex-col justify-between h-full w-full gap-8">
+                        <div className={`flex items-start gap-6 ${isElderly ? 'md:flex-row md:items-center' : 'flex-col'}`}>
                             <div className="w-16 h-16 shrink-0 bg-white/20 backdrop-blur rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
                                 <Zap size={32} className="text-yellow-300 fill-yellow-300" />
                             </div>
@@ -57,16 +58,50 @@ const ElectricityLanding: React.FC<Props> = ({ onNavigate, onExit, language }) =
                                 </div>
                                 <h2 className="text-3xl font-black leading-tight mb-2">{t('quickPay')}</h2>
                                 <p className="opacity-90 font-medium text-sm leading-relaxed max-w-xl">
-                                    {t('quickPayDesc')}
+                                    {t('quickPayDesc') || "Pay instantly without login"}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-blue-600 transition">
+                        <div className={`flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-blue-600 transition w-max ${isElderly ? 'self-end' : ''} mt-auto`}>
                             {t('startPayment')} <ArrowRight size={14} />
                         </div>
                     </div>
                 </button>
+
+                {/* Consumer Login - Hidden in Elderly Mode */}
+                {!isElderly && (
+                    <button
+                        onClick={() => onNavigate('LOGIN')}
+                        className="w-full group relative bg-gradient-to-br from-slate-800 to-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 text-left overflow-hidden border-4 border-transparent hover:border-slate-500 flex flex-col"
+                    >
+                        <div className="absolute right-0 top-0 p-6 opacity-10 rotate-12 group-hover:scale-125 transition duration-500">
+                            <Lock size={100} />
+                        </div>
+
+                        <div className="relative z-10 flex flex-col justify-between h-full w-full gap-8">
+                            <div className="flex flex-col items-start gap-6">
+                                <div className="w-16 h-16 shrink-0 bg-white/10 backdrop-blur rounded-2xl flex items-center justify-center border border-white/10 shadow-inner">
+                                    <User size={32} className="text-blue-400" />
+                                </div>
+
+                                <div>
+                                    <div className="inline-block bg-white/10 backdrop-blur px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest mb-3 border border-white/5">
+                                        {t('secureAccess') || "SECURE ACCESS"}
+                                    </div>
+                                    <h2 className="text-3xl font-black leading-tight mb-2">{t('consumerLogin') || "Consumer Login"}</h2>
+                                    <p className="opacity-90 font-medium text-sm leading-relaxed max-w-xl">
+                                        {t('consumerLoginDesc') || "Access dashboard & manage bills"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 font-black text-xs uppercase tracking-widest bg-white/10 shrink-0 px-6 py-4 rounded-xl group-hover:bg-white group-hover:text-slate-900 transition w-max mt-auto">
+                                {t('loginNow') || "Login Now"} <ArrowRight size={14} />
+                            </div>
+                        </div>
+                    </button>
+                )}
             </div>
 
             <div className="max-w-4xl mx-auto mt-8">

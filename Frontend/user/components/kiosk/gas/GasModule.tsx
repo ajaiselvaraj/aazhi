@@ -108,14 +108,8 @@ const GasModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, initia
         <GasLogin 
           onBack={handleInternalBack}
           onLoginSuccess={() => {
-            if (sessionStorage.getItem('elderlyMode') === 'true') {
-              handleNavigate('BILLS');
-            } else {
-              localStorage.setItem('aazhi_selected_department', 'gas');
-              if (onGlobalNavigate) onGlobalNavigate('billing');
-              navigate('/pay-bills');
-            }
-          }}
+    handleNavigate('BILLS');
+  }}
           language={language}
         />
       )}

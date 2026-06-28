@@ -122,9 +122,9 @@ const MunicipalTransactions: React.FC<Props> = ({ onBack, onNavigate, language }
                                                 <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">Via: {txn.payment_method || 'Online'}</div>
                                             </td>
                                             <td className="p-4 text-right">
-                                                <div className="text-sm font-black text-slate-900">Paid: ₹{amountPaid.toFixed(2)}</div>
+                                                <div className="text-sm font-black text-slate-900">Paid: ₹{Number(amountPaid || 0).toFixed(2)}</div>
                                                 {pendingAmount > 0 ? (
-                                                    <div className="text-xs font-bold text-red-500">Pending: ₹{pendingAmount.toFixed(2)}</div>
+                                                    <div className="text-xs font-bold text-red-500">Pending: ₹{Number(pendingAmount || 0).toFixed(2)}</div>
                                                 ) : (
                                                     <div className="text-[10px] font-black text-slate-400 uppercase mt-1 tracking-widest">No Dues</div>
                                                 )}

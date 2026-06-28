@@ -179,7 +179,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                                 <p className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-400 mb-2">{t('totalPending')}</p>
                                 <h2 className="text-5xl font-black tracking-tight flex items-baseline gap-1">
                                     <span className="text-2xl opacity-60">₹</span>
-                                    {(billData.amount || billData.total_amount).toFixed(2)}
+                                    {Number(billData.amount || billData.total_amount || 0).toFixed(2)}
                                 </h2>
                             </div>
                             <div className="text-right">
@@ -230,7 +230,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         
                         <div className="bg-slate-50 p-8 rounded-3xl mb-8 border border-slate-100">
                             <p className="text-xs uppercase font-black text-slate-400 tracking-widest mb-2">Total Amount Due</p>
-                            <p className="text-5xl font-black text-slate-900 mb-6">₹{(billData.amount || billData.total_amount).toFixed(2)}</p>
+                            <p className="text-5xl font-black text-slate-900 mb-6">₹{Number(billData.amount || billData.total_amount || 0).toFixed(2)}</p>
                             <p className="text-sm font-bold text-slate-500 mb-8">Secure payments powered by Razorpay</p>
                             
                             <RazorpayCheckout 
@@ -268,7 +268,7 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-xs font-bold text-slate-400 uppercase">{t('billAmount')}</span>
-                            <span className="text-sm font-black text-orange-600">₹{(billData.amount || billData.total_amount).toFixed(2)}</span>
+                            <span className="text-sm font-black text-orange-600">₹{Number(billData.amount || billData.total_amount || 0).toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -305,11 +305,11 @@ const GasQuickPay: React.FC<Props> = ({ onBack, language }) => {
                     data={{
                         serviceNo: billData.account_number,
                         consumerName: billData.metadata?.consumer_name_masked || 'Unknown',
-                        billAmount: `Rs. ${(billData.amount || billData.total_amount).toFixed(2)}`,
+                        billAmount: `Rs. ${Number(billData.amount || billData.total_amount || 0).toFixed(2)}`,
                         billMonth: billData.billing_month,
                         receiptNo: `GR-${Date.now().toString().slice(-8)}`,
                         dateTime: new Date().toLocaleString(),
-                        debitAmount: `Rs. ${(billData.amount || billData.total_amount).toFixed(2)}`,
+                        debitAmount: `Rs. ${Number(billData.amount || billData.total_amount || 0).toFixed(2)}`,
                         bankRef: paymentRef.txnId,
                         authId: paymentRef.refId,
                         paymentMode: paymentMode

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, MapPin, Download, CheckCircle, Clock, Droplet, Building2, DollarSign, History, AlertCircle, FileText } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Download, CheckCircle, Clock, Droplet, Building2, DollarSign, History, AlertCircle, FileText , Printer} from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../../contexts/OrientationContext';
@@ -67,6 +67,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
   const activeAccount = accounts.find(c => c.id === activeAccountId) || accounts[0] || MOCK_MUNICIPAL_ACCOUNTS[0];
 
   const handlePaymentSuccess = (paymentId: string) => {
+    setPaymentSuccessRef(paymentId);
     setAccounts(prev => prev.map(conn => {
       if(conn.id === activeAccountId) {
         return {
@@ -81,6 +82,53 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden animate-in fade-in max-w-[1400px] mx-auto w-full">
+      {paymentSuccessRef && (
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-6 animate-in fade-in">
+          <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-200 text-center relative">
+              <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <CheckCircle size={48} />
+              </div>
+
+              <h2 className="text-4xl font-black text-slate-900 mb-2">{t('paymentSuccess') || 'Payment Successful'}</h2>
+              <p className="text-slate-500 font-medium mb-8">Payment Ref: {paymentSuccessRef}</p>
+
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-left space-y-3 mb-8">
+                  <div className="flex justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Consumer No</span>
+                      <span className="text-sm font-black text-slate-900">{(activeConnection as any).id || (activeConnection as any).propertyId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Amount Paid</span>
+                      <span className="text-sm font-black text-cyan-600">₹{Number(activeConnection.lastPayment?.amount || 0).toFixed(2)}</span>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                  <button onClick={() => setShowReceiptPreview(true)} className="flex items-center justify-center gap-2 bg-cyan-600 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider shadow-lg shadow-cyan-200">
+                      <Printer size={18} /> Print Receipt
+                  </button>
+                  <button onClick={() => setPaymentSuccessRef(null)} className="bg-slate-900 text-white p-4 rounded-2xl font-bold uppercase text-xs tracking-wider hover:bg-slate-800 transition">
+                      Done
+                  </button>
+              </div>
+          </div>
+          {showReceiptPreview && (
+              <PaymentReceipt 
+                  data={{
+                      serviceName: 'Municipal Property Tax',
+                      serviceId: 'municipal',
+                      consumerId: (activeConnection as any).id || (activeConnection as any).propertyId,
+                      consumerName: profileData?.name || 'Consumer',
+                      amount: (activeConnection.lastPayment?.amount || 0).toString(),
+                      txnId: paymentSuccessRef,
+                      date: activeConnection.lastPayment?.date || new Date().toISOString(),
+                      paymentMode: 'Online'
+                  }}
+                  onClose={() => setShowReceiptPreview(false)}
+              />
+          )}
+        </div>
+      )}
       <div className="px-4 py-6 border-b border-slate-200 flex justify-between items-center bg-white z-10 shrink-0">
         <button onClick={onBack} className="flex items-center gap-2 text-slate-500 font-black text-sm uppercase tracking-widest hover:text-slate-900 transition">
           <ArrowLeft size={20} /> {t('backToUtils') || 'Back'}
@@ -168,7 +216,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
                     <div className="mb-6">
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Total Due Amount</p>
                         <h2 className="text-5xl font-black text-slate-900 font-mono tracking-tighter">
-                            ₹{activeAccount.currentDue.amount.toFixed(2)}
+                            ₹{Number(activeAccount.currentDue.amount || 0).toFixed(2)}
                         </h2>
                         {activeAccount.currentDue.status === 'UNPAID' && (
                             <p className="text-red-600 font-bold mt-2 flex items-center gap-1">
@@ -208,7 +256,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
                         <div className="mb-6">
                             <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-1">Amount Paid</p>
                             <h2 className="text-4xl font-black text-slate-800 font-mono tracking-tighter">
-                                ₹{activeAccount.lastPayment.amount.toFixed(2)}
+                                ₹{Number(activeAccount.lastPayment.amount || 0).toFixed(2)}
                             </h2>
                             <p className="text-slate-500 font-bold mt-2">
                                 Paid on {activeAccount.lastPayment.date}
@@ -241,7 +289,7 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
                                 </div>
                                 <div className="text-right">
                                     <div className="font-mono font-black text-slate-900 text-2xl">
-                                        ₹{bill.amount.toFixed(2)}
+                                        ₹{Number(bill.amount || 0).toFixed(2)}
                                     </div>
                                 </div>
                             </div>

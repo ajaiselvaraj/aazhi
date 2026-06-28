@@ -57,14 +57,8 @@ const ElectricityModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate
             {view === 'HOME' && <ElectricityLanding onNavigate={handleNavigate} onExit={onBack} language={language} />}
             {view === 'QUICK_PAY' && <QuickPay onBack={handleInternalBack} language={language} />}
             {view === 'LOGIN' && <ElectricityLogin onBack={handleInternalBack} onLoginSuccess={() => {
-                if (sessionStorage.getItem('elderlyMode') === 'true') {
-                    handleNavigate('CONSUMER_DASHBOARD');
-                } else {
-                    localStorage.setItem('aazhi_selected_department', 'eb');
-                    if (onGlobalNavigate) onGlobalNavigate('billing');
-                    navigate('/pay-bills');
-                }
-            }} language={language} />}
+    handleNavigate('CONSUMER_DASHBOARD');
+  }} language={language} />}
             {view === 'CALCULATOR' && <BillCalculator onBack={handleInternalBack} language={language} />}
             {view === 'TRANSACTIONS' && <MyTransactions onBack={handleInternalBack} onNavigate={handleNavigate} language={language} />}
             
