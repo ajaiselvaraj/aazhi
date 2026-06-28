@@ -45,6 +45,7 @@ export default defineConfig(({ mode }) => {
           workbox: {
             // Cache static assets and api responses for offline support
             globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit to fix CartesianChart chunk issue
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/your-api-domain\.com\/.*$/i,
