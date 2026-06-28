@@ -1,43 +1,19 @@
-import Redis from "ioredis";
+import { getRedisClient, isRedisEnabled } from "../config/redisClient.js";
 import crypto from "crypto";
 
-let redisClient = null;
-let useMemoryFallback = !process.env.REDIS_URL;
 const memoryBlacklist = new Map();
-
-if (!useMemoryFallback) {
-    redisClient = new Redis(process.env.REDIS_URL, {
-        retryStrategy: (times) => {
-            if (times > 3) {
-                console.warn("⚠️ [Redis] Connection failed 3 times. Disabling Redis and falling back to in-memory blacklist.");
-                useMemoryFallback = true;
-                return null; // Stop retrying
-            }
-            return Math.min(times * 500, 2000);
-        },
-        maxRetriesPerRequest: 1
-    });
-
-    redisClient.on("error", (err) => {
-        if (!useMemoryFallback) {
-            console.error("⚠️ [Redis Error]:", err.message);
-        }
-    });
-} else {
-    console.warn("⚠️ [Redis] No REDIS_URL provided. Using in-memory blacklist fallback.");
-}
 
 export const isTokenBlacklisted = async (token) => {
     if (!token) return false;
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
     
-    if (useMemoryFallback) {
+    if (!isRedisEnabled()) {
         return memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
-    } else if (redisClient) {
+    } else {
         try {
+            const redisClient = getRedisClient();
             return await redisClient.get(`bl_${hashedToken}`) !== null;
         } catch (err) {
-            useMemoryFallback = true;
             return memoryBlacklist.has(hashedToken) && memoryBlacklist.get(hashedToken) > Date.now();
         }
     }
@@ -75,9 +51,10 @@ export const checkTokenBlacklist = async (req, res, next) => {
 export const blacklistToken = async (token, expiresInSeconds = 3600) => {
     try {
         const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-        if (useMemoryFallback) {
+        if (!isRedisEnabled()) {
             memoryBlacklist.set(hashedToken, Date.now() + expiresInSeconds * 1000);
-        } else if (redisClient) {
+        } else {
+            const redisClient = getRedisClient();
             await redisClient.set(`bl_${hashedToken}`, "true", "EX", expiresInSeconds);
         }
     } catch (err) {

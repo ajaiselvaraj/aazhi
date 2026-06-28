@@ -711,13 +711,20 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Top-right Controls: Location Selector, CDAC Logo & Elderly Mode Switch */}
+      {/* Top-left Controls: Location Selector & CDAC Logo */}
+      <div style={{
+        position: 'absolute', top: '24px', left: '32px', zIndex: 50,
+        display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap'
+      }}>
+        {!isVertical && <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain hidden xl:block" />}
+        <LocationSelector locationInfo={locationInfo} />
+      </div>
+
+      {/* Top-right Controls: Elderly Mode Switch */}
       <div style={{
         position: 'absolute', top: '24px', right: '32px', zIndex: 50,
         display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'flex-end'
       }}>
-        {!isVertical && <img src={cdacLogo} alt="CDAC Logo" className="h-10 w-auto object-contain hidden xl:block" />}
-        <LocationSelector locationInfo={locationInfo} />
         
         {/* ── Premium Elderly Mode Accessibility Card ── */}
         <div style={{ position: 'relative' }}>

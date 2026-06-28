@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Printer, Download, CheckCircle2, ShieldCheck, Landmark, Smartphone, Mail } from 'lucide-react';
 import { QRCodeSVG as QRCode } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
@@ -45,6 +45,25 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
             setShareStatus(t('receiptSentSuccess', { type: type.toUpperCase() }) || `Receipt sent via ${type.toUpperCase()} successfully!`);
             setTimeout(() => setShareStatus(null), 3500);
         }, 1500);
+    };
+
+    const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowConfirmClose(true);
+            }
+        };
+        // Use capture phase to intercept before other handlers
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    }, []);
+
+    const handleCloseRequest = () => {
+        setShowConfirmClose(true);
     };
 
     // Determine header based on service type
@@ -194,7 +213,7 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
                             </div>
                         </div>
                         <button 
-                            onClick={onClose}
+                            onClick={handleCloseRequest}
                             className="p-3 bg-white hover:bg-red-50 hover:text-red-500 rounded-2xl transition-colors border shadow-sm"
                         >
                             <X size={20} />
@@ -241,12 +260,34 @@ const PaymentReceipt: React.FC<Props> = ({ data, onClose, isBackground = false }
                                 </button>
                             </div>
                         </div>
-                        <button 
-                            onClick={onClose}
-                            className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black uppercase text-sm hover:bg-slate-200 transition"
-                        >
-                            Close
-                        </button>
+                        {showConfirmClose ? (
+                            <div className="bg-red-50 p-4 rounded-2xl border border-red-100 flex flex-col gap-3 animate-in slide-in-from-bottom-2">
+                                <p className="text-red-700 font-bold text-sm text-center">
+                                    Are you sure you want to close this receipt? You can download or print it before closing.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setShowConfirmClose(false)}
+                                        className="flex-1 bg-white border border-red-200 text-slate-600 p-3 rounded-xl font-bold uppercase text-xs hover:bg-slate-50 transition"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={onClose}
+                                        className="flex-1 bg-red-600 text-white p-3 rounded-xl font-bold uppercase text-xs hover:bg-red-700 transition"
+                                    >
+                                        Yes, Close
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={handleCloseRequest}
+                                className="w-full bg-slate-100 text-slate-600 p-4 rounded-2xl font-black uppercase text-sm hover:bg-slate-200 transition"
+                            >
+                                Close
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

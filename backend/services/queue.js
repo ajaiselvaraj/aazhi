@@ -1,16 +1,17 @@
 import { Queue, Worker } from 'bullmq';
-import Redis from 'ioredis';
+import { getBullRedisClient, isRedisEnabled } from '../config/redisClient.js';
+import logger from '../utils/logger.js';
 
-// Standard connection config for BullMQ
-const connection = new Redis(process.env.REDIS_URL || 'redis://127.0.0.1:6379', {
-    maxRetriesPerRequest: null,
-});
+let complaintQueue = null;
+let complaintWorker = null;
 
-// Initialize the Complaint Queue
-export const complaintQueue = new Queue('complaint-queue', { connection });
+if (isRedisEnabled()) {
+    const connection = getBullRedisClient('client');
+    // Initialize the Complaint Queue
+    complaintQueue = new Queue('complaint-queue', { connection });
 
-// Initialize the Worker to process complaints asynchronously
-export const complaintWorker = new Worker('complaint-queue', async (job) => {
+    // Initialize the Worker to process complaints asynchronously
+    complaintWorker = new Worker('complaint-queue', async (job) => {
     const { data } = job;
     console.log(`[Queue] Processing complaint creation for user ${data.userId}`);
     
@@ -23,12 +24,17 @@ export const complaintWorker = new Worker('complaint-queue', async (job) => {
         console.error(`[Queue] DB Error processing job ${job.id}:`, err);
         throw err;
     }
-}, { connection });
+    }, { connection });
 
-complaintWorker.on('completed', (job, returnvalue) => {
-    console.log(`[Queue] Complaint job ${job.id} completed successfully.`);
-});
+    complaintWorker.on('completed', (job, returnvalue) => {
+        logger.info(`[Queue] Complaint job ${job.id} completed successfully.`);
+    });
 
-complaintWorker.on('failed', (job, err) => {
-    console.error(`[Queue] Complaint job ${job.id} failed: ${err.message}`);
-});
+    complaintWorker.on('failed', (job, err) => {
+        logger.error(`[Queue] Complaint job ${job.id} failed: ${err.message}`);
+    });
+} else {
+    logger.info("[Queue] Redis disabled, BullMQ workers not started.");
+}
+
+export { complaintQueue, complaintWorker };

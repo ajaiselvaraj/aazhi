@@ -27,30 +27,38 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
     const [error, setError] = useState<string>('');
     const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
-    // Clean start: ensure no stale state is carried from a previous session
+    // Clean start or load persisted session
     useEffect(() => {
-        setConsumerNo('');
-        setBillData(null);
-        setError('');
-        setStep('INPUT');
+        const savedSession = sessionStorage.getItem('aazhi_last_receipt_elec');
+        if (savedSession) {
+            try {
+                const data = JSON.parse(savedSession);
+                setConsumerNo(data.consumerNo);
+                setBillData(data.billData);
+                setPaymentRef(data.paymentRef);
+                setPaymentMode(data.paymentMode);
+                setStep('SUCCESS');
+            } catch (e) {
+                sessionStorage.removeItem('aazhi_last_receipt_elec');
+                setStep('INPUT');
+            }
+        } else {
+            setConsumerNo('');
+            setBillData(null);
+            setError('');
+            setStep('INPUT');
+        }
     }, []);
 
     const navigate = useNavigate();
 
     const handleReturnToBills = () => {
+        sessionStorage.removeItem('aazhi_last_receipt_elec');
         window.dispatchEvent(new Event('aazhi_reset_billing'));
         navigate('/pay-bills', { replace: true });
     };
 
-    // Step 3 & Step 4: Auto-redirect to Pay Bills page after 4 seconds on receipt
-    useEffect(() => {
-        if (step === 'SUCCESS') {
-            const timer = setTimeout(() => {
-                handleReturnToBills();
-            }, 4000);
-            return () => clearTimeout(timer);
-        }
-    }, [step]);
+    // Step 3 & Step 4: Removed auto-redirect to keep receipt visible.
 
     const handleFetch = async () => {
         // Requirement 4: Validate before API call
@@ -106,6 +114,14 @@ const QuickPay: React.FC<Props> = ({ onBack, language }) => {
                 });
             });
         }
+
+        // Persist session to survive refresh
+        sessionStorage.setItem('aazhi_last_receipt_elec', JSON.stringify({
+            consumerNo,
+            billData: billData,
+            paymentRef: { txnId: paymentId, refId: paymentId },
+            paymentMode
+        }));
 
         setStep('SUCCESS');
     };

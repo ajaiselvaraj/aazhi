@@ -1,10 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
+import { getRedisClient, isRedisEnabled } from '../config/redisClient.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
-
-// Initialize Redis client
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 // Security Engine Configuration
 const GEO_FENCE_ALLOWED_COUNTRY = 'IN'; // Example: Only allow India
@@ -45,7 +42,8 @@ const leakyBucketLua = `
   end
 `;
 
-redis.defineCommand('leakyBucket', { numberOfKeys: 1, lua: leakyBucketLua });
+
+let isLeakyBucketDefined = false;
 
 export class SecurityEngine {
   
@@ -142,14 +140,22 @@ export class SecurityEngine {
       const key = `rate_limit:${userRole}:${identifier}`;
       const now = Math.floor(Date.now() / 1000);
 
-      // 4. Execute atomic Leaky Bucket script
-      // @ts-ignore - custom defined command
-      const allowed = await (redis as any).leakyBucket(key, tier.capacity, tier.rate, now);
+      // 4. Execute atomic Leaky Bucket script if Redis is enabled
+      if (isRedisEnabled()) {
+        const redisClient = getRedisClient();
+        if (redisClient && !isLeakyBucketDefined) {
+          redisClient.defineCommand('leakyBucket', { numberOfKeys: 1, lua: leakyBucketLua });
+          isLeakyBucketDefined = true;
+        }
+        
+        // @ts-ignore
+        const allowed = await redisClient.leakyBucket(key, tier.capacity, tier.rate, now);
 
-      if (!allowed) {
-        return res.status(429).json({ 
-          error: 'Traffic Baseline Exceeded. Rate Limit Applied.' 
-        });
+        if (!allowed) {
+          return res.status(429).json({ 
+            error: 'Traffic Baseline Exceeded. Rate Limit Applied.' 
+          });
+        }
       }
 
       next();

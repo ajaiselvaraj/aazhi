@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
+import { getRedisClient, isRedisEnabled } from '../config/redisClient.js';
 import crypto from 'crypto';
-
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_SECONDS = 15 * 60; // 15 minutes
@@ -22,6 +20,13 @@ export const accountLockout = async (req: Request, res: Response, next: NextFunc
   const key = `lockout:${hashedIdentifier}`;
   
   try {
+    if (!isRedisEnabled()) {
+      req.incrementFailedLogin = async () => {};
+      req.clearFailedLogin = async () => {};
+      return next();
+    }
+    
+    const redis = getRedisClient();
     const attempts = await redis.get(key);
 
     if (attempts && parseInt(attempts, 10) >= MAX_FAILED_ATTEMPTS) {
@@ -36,14 +41,17 @@ export const accountLockout = async (req: Request, res: Response, next: NextFunc
 
     // Attach helper methods to req so the auth controller can easily update the state
     req.incrementFailedLogin = async () => {
-      const currentAttempts = await redis.incr(key);
+      if (!isRedisEnabled()) return;
+      const redisClient = getRedisClient();
+      const currentAttempts = await redisClient.incr(key);
       if (currentAttempts === 1) {
-        await redis.expire(key, LOCKOUT_DURATION_SECONDS);
+        await redisClient.expire(key, LOCKOUT_DURATION_SECONDS);
       }
     };
 
     req.clearFailedLogin = async () => {
-      await redis.del(key);
+      if (!isRedisEnabled()) return;
+      await getRedisClient().del(key);
     };
 
     next();

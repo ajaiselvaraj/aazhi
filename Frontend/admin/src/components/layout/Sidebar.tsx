@@ -36,14 +36,7 @@ const navGroups = [
       { id: 'ml-sentiment',    icon: Heart,         trans_key: 'nav.ml_sentiment',  default_label: '🎯 Sentiment Pulse' },
     ],
   },
-  {
-    label_key: 'nav.grp_mlops',
-    label_default: '🧠 MLOps & Control',
-    items: [
-      { id: 'ai-command-center', icon: Brain, trans_key: 'nav.ai_command_center', default_label: 'AI Command Center' },
-      { id: 'ai-model-metrics',  icon: Cpu,   trans_key: 'nav.ai_model_metrics',  default_label: 'Model Performance' },
-    ],
-  },
+
   {
     label_key: 'nav.grp_ops',
     label_default: 'Operations',

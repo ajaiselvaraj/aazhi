@@ -7,7 +7,7 @@
 
 import { Server as SocketIOServer } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
-import Redis from "ioredis";
+import { getRedisClient, isRedisEnabled } from "./config/redisClient.js";
 import logger from "./utils/logger.js";
 import { verifyToken } from "./services/jwt.service.js";
 import { isTokenBlacklisted } from "./middleware/tokenBlacklist.js";
@@ -33,11 +33,14 @@ export function initSocketIO(httpServer, allowedOrigins = []) {
 
     // ─── Redis Adapter setup for Horizontal Scaling ───
     try {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-        const pubClient = new Redis(redisUrl);
-        const subClient = pubClient.duplicate();
-        io.adapter(createAdapter(pubClient, subClient));
-        logger.info("[Socket.IO] Redis adapter connected successfully.");
+        const pubClient = getRedisClient();
+        if (pubClient && isRedisEnabled()) {
+            const subClient = pubClient.duplicate();
+            io.adapter(createAdapter(pubClient, subClient));
+            logger.info("[Socket.IO] Redis adapter connected successfully.");
+        } else {
+            logger.info("[Socket.IO] Redis adapter skipped (Redis disabled).");
+        }
     } catch (err) {
         logger.error(`[Socket.IO] Failed to connect Redis adapter: ${err.message}`);
     }

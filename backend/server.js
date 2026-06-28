@@ -27,6 +27,7 @@ import { initializeAuthTables } from "./utils/db-setup.js";
 import { pool } from "./config/db.js";
 import { sweepQueuedNotifications } from "./services/subscription.service.js";
 import { retryFailedNotification } from "./services/notification.service.js";
+import net from "net";
 
 
 
@@ -39,6 +40,24 @@ if (!fs.existsSync(logsDir)) {
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+    // Port Availability Check
+    await new Promise((resolve) => {
+        const tester = net.createServer()
+            .once('error', (err) => {
+                if (err.code === 'EADDRINUSE') {
+                    logger.error(`❌ Startup Error: Port ${PORT} is already in use.`);
+                    logger.error(`   Please stop the other process using this port and try again.`);
+                    process.exit(1);
+                } else {
+                    resolve();
+                }
+            })
+            .once('listening', () => {
+                tester.once('close', () => resolve()).close();
+            })
+            .listen(PORT, '0.0.0.0');
+    });
+
     // Test database connection with retry logic (5 attempts, exponential back-off)
     const dbConnected = await testConnection(5, 2000);
 

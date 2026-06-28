@@ -57,11 +57,8 @@ aiBreaker.on('halfOpen', () => logger.warn("[AI Circuit Breaker] Circuit is HALF
 aiBreaker.on('close', () => logger.info("[AI Circuit Breaker] Circuit is CLOSED. AI service restored."));
 
 
-import Redis from "ioredis";
+import { getRedisClient, isRedisEnabled } from "../config/redisClient.js";
 import crypto from "crypto";
-
-// Initialize Redis if configured
-const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 
 /**
  * @desc    Proxy to Gemini AI to prevent exposing API key on frontend
@@ -90,11 +87,12 @@ export const handleGeminiQuery = async (req, res, next) => {
         
         // Semantic Cache Check
         let cacheKey = null;
-        if (redis) {
+        if (isRedisEnabled()) {
+            const redisClient = getRedisClient();
             const promptHash = crypto.createHash("sha256").update(finalPrompt).digest("hex");
             cacheKey = `aazhi:ai:cache:${promptHash}`;
             try {
-                const cachedResponse = await redis.get(cacheKey);
+                const cachedResponse = await redisClient.get(cacheKey);
                 if (cachedResponse) {
                     logger.info(`[AI Cache] Hit for prompt hash: ${promptHash}`);
                     return success(res, "AI generated successfully (Cached).", { text: cachedResponse });
@@ -110,8 +108,8 @@ export const handleGeminiQuery = async (req, res, next) => {
         let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response from the AI.";
 
         // Cache the result for 24 hours
-        if (redis && cacheKey) {
-            redis.setex(cacheKey, 86400, answerText).catch(() => {});
+        if (isRedisEnabled() && cacheKey) {
+            getRedisClient().setex(cacheKey, 86400, answerText).catch(() => {});
         }
 
         return success(res, "AI generated successfully.", { text: answerText });

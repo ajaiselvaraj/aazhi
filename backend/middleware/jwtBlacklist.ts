@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import Redis from 'ioredis';
-
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+import { getRedisClient, isRedisEnabled } from '../config/redisClient.js';
 
 /**
  * Checks if the current token has been invalidated (e.g. after aggressive secure logout)
@@ -14,14 +12,20 @@ export const verifyTokenNotBlacklisted = async (req: Request, res: Response, nex
   }
 
   try {
-    const isBlacklisted = await redis.get(`bl_${token}`);
-    if (isBlacklisted) {
-      return res.status(401).json({ error: 'Session Terminated. Token Invalidated.' });
+    if (isRedisEnabled()) {
+      const redis = getRedisClient();
+      const isBlacklisted = await redis.get(`bl_${token}`);
+      if (isBlacklisted) {
+        return res.status(401).json({ error: 'Session Terminated. Token Invalidated.' });
+      }
     }
     
     // Attach logout helper method for the auth controller
     req.blacklistToken = async (expiresInSeconds: number = 3600) => {
-      await redis.set(`bl_${token}`, 'true', 'EX', expiresInSeconds);
+      if (isRedisEnabled()) {
+        const redis = getRedisClient();
+        await redis.set(`bl_${token}`, 'true', 'EX', expiresInSeconds);
+      }
     };
 
     next();
