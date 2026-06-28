@@ -366,7 +366,7 @@ const KioskShell: React.FC<KioskShellProps> = ({
 
                                 {/* Audio Guidance Button */}
                                 <div className={`${isVertical ? 'scale-110' : ''}`}>
-                                    <AudioGuidanceButton text={t(`guidance_${activeTab}`) || t('guidance_default') || "Welcome. Please follow the instructions on the screen."} className="bg-white border border-slate-200 w-12 h-12" />
+                                    <AudioGuidanceButton text={t(`guidance_${activeTab}`) || t('guidance_default') || "Welcome. Please follow the instructions on the screen."} className="w-12 h-12 shadow-sm" />
                                 </div>
 
                                 {/* Orientation Toggle */}

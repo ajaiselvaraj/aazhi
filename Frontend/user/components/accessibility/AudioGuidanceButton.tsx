@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
-import { Volume2 } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Language } from '../../types';
 
@@ -22,23 +22,20 @@ export const AudioGuidanceButton: React.FC<AudioGuidanceButtonProps> = ({ text, 
   const { i18n } = useTranslation();
   const currentLang = i18n.language;
   const currentLangCode = getLocaleForSpeech(currentLang);
+  const [isOn, setIsOn] = useState(() => localStorage.getItem('kiosk_a11y') === 'true');
 
-  const speak = useCallback((e: React.MouseEvent) => {
+  const toggle = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const nextState = !isOn;
+    setIsOn(nextState);
+    localStorage.setItem('kiosk_a11y', String(nextState));
+
     if (!('speechSynthesis' in window)) return;
 
-    // Prevent overlapping speech
     window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = currentLangCode;
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
-
-    window.speechSynthesis.speak(utterance);
-  }, [text, currentLangCode]);
+  }, [isOn]);
 
   // Cancel speech on unmount for performance and correctness
   useEffect(() => {
@@ -51,12 +48,12 @@ export const AudioGuidanceButton: React.FC<AudioGuidanceButtonProps> = ({ text, 
 
   return (
     <button
-      onClick={speak}
-      className={`flex items-center justify-center p-3 rounded-full bg-blue-100 text-blue-700 hover:bg-blue-200 hover:scale-105 transition-all shadow-sm ${className}`}
-      aria-label="Read page instructions aloud"
-      title="Read instructions"
+      onClick={toggle}
+      className={`flex items-center justify-center p-3 rounded-full ${isOn ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} hover:scale-105 transition-all shadow-sm ${className}`}
+      aria-label={isOn ? "Turn off audio guidance" : "Turn on audio guidance"}
+      title={isOn ? "Turn off audio guidance" : "Turn on audio guidance"}
     >
-      <Volume2 size={24} />
+      {isOn ? <Volume2 size={24} /> : <VolumeX size={24} />}
     </button>
   );
 };

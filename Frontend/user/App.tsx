@@ -65,6 +65,7 @@ const STATES = Object.keys(LOCATION_TO_LANGUAGE);
 import { startAlertPolling } from './services/civicAlertService';
 import { dynamicTranslationService } from './services/dynamicTranslationService';
 import { CityAlert } from './types';
+import { useTalkBack } from './hooks/useTalkBack';
 
 // ─────────────────────────────────────────────
 // Scrolling Alert Banner Component
@@ -243,6 +244,9 @@ const App: React.FC = () => {
   const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
   const [isElderlyMode, setIsElderlyMode] = useState(() => sessionStorage.getItem('elderlyMode') === 'true');
+
+  // Initialize TalkBack
+  useTalkBack();
 
   // ─── ROUTE PATH SYNCHRONIZATION ───
   useEffect(() => {

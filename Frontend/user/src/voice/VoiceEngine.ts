@@ -117,7 +117,8 @@ export class VoiceEngine {
         'Bengali': 'bn-IN',
         'Marathi': 'mr-IN',
         'Gujarati': 'gu-IN',
-        'Punjabi': 'pa-IN'
+        'Punjabi': 'pa-IN',
+        'Assamese': 'as-IN'
       };
       const newLang = langMap[langCode] || 'en-IN';
       if (this.recognition.lang !== newLang) {
@@ -175,7 +176,8 @@ export class VoiceEngine {
       'Bengali': 'bn-IN',
       'Marathi': 'mr-IN',
       'Gujarati': 'gu-IN',
-      'Punjabi': 'pa-IN'
+      'Punjabi': 'pa-IN',
+      'Assamese': 'as-IN'
     };
     utterance.lang = langMap[langCode] || 'en-IN';
     this.synthesis.speak(utterance);
