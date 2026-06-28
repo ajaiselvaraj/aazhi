@@ -174,21 +174,26 @@ export const getDashboardStats = async (req, res, next) => {
             return success(res, "Dashboard statistics (cached)", cache.dashboard.data);
         }
 
-        const [citizens, bills, complaints, serviceRequests, transactions] = await Promise.all([
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as active FROM citizens WHERE role = 'citizen'"),
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'pending') as pending, COUNT(*) FILTER (WHERE status = 'paid') as paid, COUNT(*) FILTER (WHERE status = 'overdue') as overdue, COALESCE(SUM(total_amount) FILTER (WHERE status = 'paid'), 0) as revenue FROM bills"),
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM complaints"),
-            pool.query("SELECT COUNT(*) as total, COUNT(*) FILTER (WHERE status = 'active') as active, COUNT(*) FILTER (WHERE status = 'resolved') as resolved, COUNT(*) FILTER (WHERE status = 'rejected') as rejected FROM service_requests"),
-            pool.query("SELECT COUNT(*) as total, COALESCE(SUM(amount) FILTER (WHERE payment_status = 'captured'), 0) as total_collected FROM transactions"),
-        ]);
-
-        const responseData = {
-            citizens: citizens.rows[0],
-            bills: bills.rows[0],
-            complaints: complaints.rows[0],
-            service_requests: serviceRequests.rows[0],
-            transactions: transactions.rows[0],
+        const stats = await pool.query("SELECT * FROM mv_dashboard_stats LIMIT 1");
+        
+        let responseData = {
+            citizens: { total: "0", active: "0" },
+            bills: { total: "0", pending: "0", paid: "0", overdue: "0", revenue: "0" },
+            complaints: { total: "0", active: "0", resolved: "0", rejected: "0" },
+            service_requests: { total: "0", active: "0", resolved: "0", rejected: "0" },
+            transactions: { total: "0", total_collected: "0" }
         };
+
+        if (stats.rows.length > 0) {
+            const row = stats.rows[0];
+            responseData = {
+                citizens: { total: row.citizens_total, active: row.citizens_active },
+                bills: { total: row.bills_total, pending: row.bills_pending, paid: row.bills_paid, overdue: row.bills_overdue, revenue: row.bills_revenue },
+                complaints: { total: row.complaints_total, active: row.complaints_active, resolved: row.complaints_resolved, rejected: row.complaints_rejected },
+                service_requests: { total: row.service_requests_total, active: row.service_requests_active, resolved: row.service_requests_resolved, rejected: row.service_requests_rejected },
+                transactions: { total: row.transactions_total, total_collected: row.transactions_revenue },
+            };
+        }
 
         cache.dashboard.data = responseData;
         cache.dashboard.timestamp = now;

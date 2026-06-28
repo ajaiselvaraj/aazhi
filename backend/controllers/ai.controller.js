@@ -1,5 +1,61 @@
 import { success, fail } from "../utils/response.js";
 import logger from "../utils/logger.js";
+import CircuitBreaker from "opossum";
+
+// ─── Circuit Breaker Configuration ───────────────────────────
+const breakerOptions = {
+    timeout: 5000,                // 5 seconds timeout for API response
+    errorThresholdPercentage: 50, // Open circuit if 50% of requests fail
+    resetTimeout: 30000           // Test recovery after 30 seconds
+};
+
+// ─── Core API Call Logic (Wrapped by Breaker) ────────────────
+const executeGeminiFetch = async (primaryModel, fallbackModel, apiKey, prompt) => {
+    let response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${primaryModel}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+
+    // If primary model fails due to load, immediately attempt the fallback model
+    if (!response.ok && (response.status === 503 || response.status === 404 || response.status === 429)) {
+        logger.warn(`[AI Controller] Primary model failed (${response.status}). Falling back to ${fallbackModel}.`);
+        response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${fallbackModel}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+    }
+
+    if (!response.ok) {
+        throw new Error(`Gemini API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (data.error) {
+        throw new Error(data.error.message || "Unknown API Error");
+    }
+    return data;
+};
+
+// ─── Global Circuit Breaker Instance ─────────────────────────
+const aiBreaker = new CircuitBreaker(executeGeminiFetch, breakerOptions);
+
+aiBreaker.fallback(() => {
+    logger.warn("[AI Circuit Breaker] Triggered Fallback. Returning simulated response.");
+    return {
+        candidates: [{
+            content: {
+                parts: [{ text: "The AI service is currently experiencing high load. Please use the main menu options to continue your request." }]
+            }
+        }]
+    };
+});
+
+aiBreaker.on('open', () => logger.error("[AI Circuit Breaker] Circuit is OPEN! API calls blocked."));
+aiBreaker.on('halfOpen', () => logger.warn("[AI Circuit Breaker] Circuit is HALF-OPEN. Testing recovery..."));
+aiBreaker.on('close', () => logger.info("[AI Circuit Breaker] Circuit is CLOSED. AI service restored."));
+
 
 /**
  * @desc    Proxy to Gemini AI to prevent exposing API key on frontend
@@ -21,43 +77,20 @@ export const handleGeminiQuery = async (req, res, next) => {
             });
         }
 
-        // Model Selection & Fallback Logic
         const primaryModel = 'gemini-3.5-flash';
         const fallbackModel = 'gemini-flash-lite-latest';
+        const defaultPrompt = `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}`;
+        const finalPrompt = systemPrompt ? `${systemPrompt}\n\n${query}` : defaultPrompt;
         
-        const fetchGemini = async (modelName) => {
-            const defaultPrompt = `You are AAZHI, a helpful municipal kiosk assistant. Answer the user's question concisely in 2-3 sentences. User question: ${query}`;
-            const finalPrompt = systemPrompt ? `${systemPrompt}\n\n${query}` : defaultPrompt;
-            
-            return await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: finalPrompt }] }]
-                })
-            });
-        };
-
-        let response = await fetchGemini(primaryModel);
-        let data = await response.json();
-
-        // If primary model fails due to high demand (503) or not found (404), fallback
-        if (!response.ok && (response.status === 503 || response.status === 404)) {
-            logger.warn(`[AI Controller] Primary model ${primaryModel} failed (${response.status}). Falling back to ${fallbackModel}.`);
-            response = await fetchGemini(fallbackModel);
-            data = await response.json();
-        }
-        
-        if (!response.ok || data.error) {
-            logger.error(`[AI Controller] Gemini Error: ${data.error?.message || response.statusText}`);
-            return fail(res, `AI Error: ${data.error?.message || "Unknown error"}.`, 502);
-        }
+        // Fire the circuit breaker
+        const data = await aiBreaker.fire(primaryModel, fallbackModel, API_KEY, finalPrompt);
 
         let answerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response from the AI.";
 
         return success(res, "AI generated successfully.", { text: answerText });
     } catch (error) {
         logger.error(`[AI Controller] Error: ${error.message}`);
-        next(error);
+        // Only triggered if Opossum framework completely crashes (fallback normally prevents throws)
+        return fail(res, "AI service temporarily unavailable.", 503);
     }
 };

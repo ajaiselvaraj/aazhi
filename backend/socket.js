@@ -6,6 +6,8 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { Server as SocketIOServer } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import Redis from "ioredis";
 import logger from "./utils/logger.js";
 import { verifyToken } from "./services/jwt.service.js";
 import { isTokenBlacklisted } from "./middleware/tokenBlacklist.js";
@@ -28,6 +30,17 @@ export function initSocketIO(httpServer, allowedOrigins = []) {
         },
         transports: ["websocket", "polling"],
     });
+
+    // ─── Redis Adapter setup for Horizontal Scaling ───
+    try {
+        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+        const pubClient = new Redis(redisUrl);
+        const subClient = pubClient.duplicate();
+        io.adapter(createAdapter(pubClient, subClient));
+        logger.info("[Socket.IO] Redis adapter connected successfully.");
+    } catch (err) {
+        logger.error(`[Socket.IO] Failed to connect Redis adapter: ${err.message}`);
+    }
 
     // ─── Socket.IO Authentication Middleware ───
     io.use(async (socket, next) => {

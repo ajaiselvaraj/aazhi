@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 // Initialize Redis client
 const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
@@ -117,12 +118,27 @@ export class SecurityEngine {
         });
       }
 
-      // 2. Identify Role & Set Tier
-      const userRole = (req as any).user?.role || 'PUBLIC';
+      // 2. Identify Role & Set Tier via JWT Sniffing
+      let userRole = 'PUBLIC';
+      let identifier = req.ip;
+
+      const authHeader = req.headers.authorization || req.headers.Authorization;
+      if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          if (process.env.JWT_SECRET) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+            userRole = (decoded.role || 'PUBLIC').toUpperCase();
+            identifier = decoded.id || req.ip;
+          }
+        } catch (e) {
+          // Token invalid/expired - fail open to PUBLIC tier for rate limiting
+        }
+      }
+
       const tier = RATE_LIMIT_TIERS[userRole as keyof typeof RATE_LIMIT_TIERS] || RATE_LIMIT_TIERS.PUBLIC;
       
       // 3. Define Limiter Identifier (IP or User ID)
-      const identifier = (req as any).user?.id || req.ip;
       const key = `rate_limit:${userRole}:${identifier}`;
       const now = Math.floor(Date.now() / 1000);
 

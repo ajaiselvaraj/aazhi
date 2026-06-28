@@ -53,12 +53,14 @@ async function migrate() {
         client = await connectWithRetry();
 
         const schemaPath = path.join(__dirname, "../models/schema.sql");
+        const mvPath = path.join(__dirname, "../models/materialized_views.sql");
 
         if (!fs.existsSync(schemaPath)) {
             throw new Error(`schema.sql not found at ${schemaPath}`);
         }
 
         const sql = fs.readFileSync(schemaPath, "utf-8");
+        const mvSql = fs.existsSync(mvPath) ? fs.readFileSync(mvPath, "utf-8") : "";
         const lines = sql.split("\n").filter((l) => l.trim().length > 0).length;
 
         console.log(`\n🔄 Running SUVIDHA database migration...`);
@@ -68,6 +70,10 @@ async function migrate() {
         const startTime = Date.now();
         await client.query("BEGIN");
         await client.query(sql);
+        if (mvSql) {
+            console.log(`\n🔄 Running Materialized Views migration...`);
+            await client.query(mvSql);
+        }
         await client.query("COMMIT");
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);

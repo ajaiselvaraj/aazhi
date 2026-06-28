@@ -80,6 +80,16 @@ async function startServer() {
         }
     });
 
+    // Refresh Analytics Materialized Views every 5 minutes
+    cron.schedule("*/5 * * * *", async () => {
+        try {
+            await pool.query("REFRESH MATERIALIZED VIEW CONCURRENTLY mv_dashboard_stats");
+            logger.info(`[CRON] Refreshed materialized view mv_dashboard_stats`);
+        } catch (err) {
+            logger.error(`[CRON] Failed to refresh materialized view: ${err.message}`);
+        }
+    });
+
     // ⭐ PLUG-IN: Create an explicit HTTP server so Socket.IO can share the port
     const httpServer = http.createServer(app);
     const allowedOrigins = (process.env.FRONTEND_URL ||
