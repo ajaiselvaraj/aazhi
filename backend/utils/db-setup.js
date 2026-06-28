@@ -192,14 +192,14 @@ export const initializeAuthTables = async () => {
             }
 
             // Seed default integrity officer in officer_accounts
-            const checkOfficer = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", ["integrity_admin"]);
+            const checkOfficer = await pool.query("SELECT * FROM officer_accounts WHERE username = $1", ["admin"]);
             if (checkOfficer.rows.length === 0) {
-                const passHash = bcrypt.hashSync("integrity_pass", 10);
+                const passHash = bcrypt.hashSync("123", 10);
                 await pool.query(`
                     INSERT INTO officer_accounts (username, password_hash, department, role)
                     VALUES ($1, $2, $3, $4)
-                `, ["integrity_admin", passHash, "Integrity Office", "integrity_officer"]);
-                logger.info("👤 Seeded default integrity officer (username: integrity_admin).");
+                `, ["admin", passHash, "Integrity Office", "integrity_officer"]);
+                logger.info("👤 Seeded default integrity officer (username: admin).");
             }
 
             const sqlV4Path = path.resolve(__dirname, "..", "models", "integrity_v4_schema.sql");

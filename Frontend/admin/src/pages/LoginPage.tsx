@@ -404,7 +404,7 @@ export default function LoginPage() {
                 id="admin-id"
                 type="text"
                 className="form-input"
-                placeholder="e.g. ADM-2024-001"
+                placeholder="e.g. admin"
                 value={adminId}
                 onChange={e => setAdminId(e.target.value)}
                 style={{ borderRadius: 10 }}
