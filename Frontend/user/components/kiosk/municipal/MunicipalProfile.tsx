@@ -4,6 +4,7 @@ import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
 import { useOrientation } from '../../../contexts/OrientationContext';
 import RazorpayCheckout from '../../RazorpayCheckout';
+import PaymentReceipt from '../PaymentReceipt';
 
 interface Props {
   onBack: () => void;
@@ -63,6 +64,8 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
   const [profileData] = useState(getInitialProfile);
   const [accounts, setAccounts] = useState(MOCK_MUNICIPAL_ACCOUNTS);
   const [activeAccountId, setActiveAccountId] = useState(MOCK_MUNICIPAL_ACCOUNTS[0].id);
+  const [paymentSuccessRef, setPaymentSuccessRef] = useState<string | null>(null);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
   
   const activeAccount = accounts.find(c => c.id === activeAccountId) || accounts[0] || MOCK_MUNICIPAL_ACCOUNTS[0];
 
@@ -95,11 +98,11 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
               <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 text-left space-y-3 mb-8">
                   <div className="flex justify-between">
                       <span className="text-xs font-bold text-slate-400 uppercase">Consumer No</span>
-                      <span className="text-sm font-black text-slate-900">{(activeConnection as any).id || (activeConnection as any).propertyId}</span>
+                      <span className="text-sm font-black text-slate-900">{(activeAccount as any).id || (activeAccount as any).propertyId}</span>
                   </div>
                   <div className="flex justify-between">
                       <span className="text-xs font-bold text-slate-400 uppercase">Amount Paid</span>
-                      <span className="text-sm font-black text-cyan-600">₹{Number(activeConnection.lastPayment?.amount || 0).toFixed(2)}</span>
+                      <span className="text-sm font-black text-cyan-600">₹{Number(activeAccount.lastPayment?.amount || 0).toFixed(2)}</span>
                   </div>
               </div>
 
@@ -117,12 +120,12 @@ const MunicipalProfile: React.FC<Props> = ({ onBack, language }) => {
                   data={{
                       serviceName: 'Municipal Property Tax',
                       serviceId: 'municipal',
-                      consumerId: (activeConnection as any).id || (activeConnection as any).propertyId,
+                      consumerId: (activeAccount as any).id || (activeAccount as any).propertyId,
                       consumerName: profileData?.name || 'Consumer',
-                      amount: (activeConnection.lastPayment?.amount || 0).toString(),
+                      amount: (activeAccount.lastPayment?.amount || 0).toString(),
                       txnId: paymentSuccessRef,
-                      date: activeConnection.lastPayment?.date || new Date().toISOString(),
-                      paymentMode: 'Online'
+                      date: activeAccount.lastPayment?.date || new Date().toISOString(),
+                      mode: 'Online'
                   }}
                   onClose={() => setShowReceiptPreview(false)}
               />

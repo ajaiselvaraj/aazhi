@@ -76,7 +76,7 @@ const VoiceNavigationOverlay: React.FC = () => {
   
   // Persisted settings
   const [isListening, setIsListening] = useState(() => localStorage.getItem('voiceNavigationEnabled') === 'true');
-  const [talkbackEnabled, setTalkbackEnabled] = useState(() => localStorage.getItem('talkbackEnabled') !== 'false');
+  const [talkbackEnabled, setTalkbackEnabled] = useState(() => localStorage.getItem('kiosk_a11y') === 'true');
   
   const [transcript, setTranscript] = useState('');
   
@@ -88,7 +88,7 @@ const VoiceNavigationOverlay: React.FC = () => {
   // Persistence
   useEffect(() => localStorage.setItem('voiceNavigationEnabled', isListening.toString()), [isListening]);
   useEffect(() => {
-    localStorage.setItem('talkbackEnabled', talkbackEnabled.toString());
+    localStorage.setItem('kiosk_a11y', talkbackEnabled.toString());
     if (!talkbackEnabled && 'speechSynthesis' in window) window.speechSynthesis.cancel();
   }, [talkbackEnabled]);
 
@@ -139,12 +139,22 @@ const VoiceNavigationOverlay: React.FC = () => {
       setTimeout(() => {
         if ('speechSynthesis' in window) {
           window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(currentSimpleLang === 'ta' ? 'குரல் இயக்கப்பட்டது' : currentSimpleLang === 'hi' ? 'आवाज़ सक्षम' : 'Voice feedback enabled');
+          const utterance = new SpeechSynthesisUtterance(currentSimpleLang === 'ta' ? 'குரல் இயக்கப்பட்டது' : currentSimpleLang === 'hi' ? 'आवाज़ सक्षम' : 'Accessibility mode enabled.');
           utterance.lang = currentLangCode;
           window.speechSynthesis.speak(utterance);
         }
       }, 100);
       return;
+    }
+
+    // Contextual Help Commands
+    if (command.includes('what can i do here') || command.includes('summarize this page') || command.includes('summary')) {
+       if (talkbackEnabled) {
+          window.dispatchEvent(new Event('force_summarize_page'));
+       } else {
+          announce('Please enable accessibility mode to use voice summaries.', true);
+       }
+       return;
     }
 
     // Single Navigation Trigger (3000ms Cooldown)

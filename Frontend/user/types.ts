@@ -42,10 +42,16 @@ export enum ViewState {
 
 export interface CityAlert {
   id: string;
-  type: 'Power' | 'Water' | 'Road' | 'Weather' | 'Civic';
-  severity: 'Critical' | 'Warning' | 'Info';
+  type: 'Power' | 'Water' | 'Road' | 'Weather' | 'Civic' | string;
+  severity?: 'Critical' | 'Warning' | 'Info' | 'Alert' | string;
+  title?: string;
   message: string;
-  ward: string;
+  ward?: string;
+  is_notice?: boolean;
+  priority?: number;
+  start_date?: string;
+  expires_at?: string | null;
+  category?: string;
 }
 
 

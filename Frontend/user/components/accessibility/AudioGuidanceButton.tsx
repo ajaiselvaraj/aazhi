@@ -33,9 +33,21 @@ export const AudioGuidanceButton: React.FC<AudioGuidanceButtonProps> = ({ text, 
     localStorage.setItem('kiosk_a11y', String(nextState));
 
     if (!('speechSynthesis' in window)) return;
-
     window.speechSynthesis.cancel();
-  }, [isOn]);
+
+    if (nextState) {
+        const utterance = new SpeechSynthesisUtterance("Accessibility mode enabled.");
+        utterance.lang = currentLangCode;
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
+        
+        utterance.onend = () => {
+             window.dispatchEvent(new Event('announce_current_page'));
+        };
+        
+        window.speechSynthesis.speak(utterance);
+    }
+  }, [isOn, currentLangCode]);
 
   // Cancel speech on unmount for performance and correctness
   useEffect(() => {

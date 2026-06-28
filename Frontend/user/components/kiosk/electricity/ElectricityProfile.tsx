@@ -154,7 +154,7 @@ const ElectricityProfile: React.FC<Props> = ({ onBack, language }) => {
                       amount: (activeConnection.lastPayment?.amount || 0).toString(),
                       txnId: paymentSuccessRef,
                       date: activeConnection.lastPayment?.date || new Date().toISOString(),
-                      paymentMode: 'Online'
+                      mode: 'Online'
                   }}
                   onClose={() => setShowReceiptPreview(false)}
               />

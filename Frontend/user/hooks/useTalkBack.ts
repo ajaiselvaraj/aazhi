@@ -19,6 +19,18 @@ const getRouteFriendlyName = (pathname: string): string => {
   return 'Page';
 };
 
+const getSmartPageSummary = (pathname: string): string => {
+  if (pathname === '/home' || pathname === '/') return 'You can view active complaints, notices, schemes and services.';
+  if (pathname === '/services') return 'You can browse and apply for government services and schemes.';
+  if (pathname === '/complaints' || pathname === '/municipal') return 'You can register a new complaint or track an existing complaint.';
+  if (pathname.includes('/track')) return 'You can check the real-time status of your registered complaints.';
+  if (pathname === '/pay-bills' || pathname === '/power' || pathname === '/gas') return 'You can pay your utility bills securely.';
+  if (pathname === '/assistant') return 'You can ask the AI assistant for help regarding any civic service.';
+  if (pathname === '/history' || pathname === '/status') return 'You can view the history of your past transactions and applications.';
+  if (pathname === '/elderly-home') return 'You can access simplified services designed for senior citizens.';
+  return 'Navigate using the tab key to explore this page.';
+};
+
 const getStatusExplanation = (status: string): string => {
   const lower = status.toLowerCase();
   if (lower.includes('forwarded to department')) {
@@ -68,13 +80,31 @@ export const useTalkBack = () => {
     }
   };
 
-  // Announce route changes
+  // Announce route changes and handle custom events
   useEffect(() => {
+    const announcePageContext = () => {
+       const friendlyName = getRouteFriendlyName(location.pathname);
+       const summary = getSmartPageSummary(location.pathname);
+       speak(`You are now on ${friendlyName}. ${summary}`);
+    };
+
     if (location.pathname !== lastPathnameRef.current) {
       lastPathnameRef.current = location.pathname;
-      const friendlyName = getRouteFriendlyName(location.pathname);
-      speak(`You are on the ${friendlyName} page.`);
+      announcePageContext();
     }
+    
+    const handleForceSummary = () => {
+       const summary = getSmartPageSummary(location.pathname);
+       speak(summary);
+    };
+
+    window.addEventListener('announce_current_page', announcePageContext);
+    window.addEventListener('force_summarize_page', handleForceSummary);
+
+    return () => {
+       window.removeEventListener('announce_current_page', announcePageContext);
+       window.removeEventListener('force_summarize_page', handleForceSummary);
+    };
   }, [location.pathname, i18n.language]);
 
   // Global focus listener
