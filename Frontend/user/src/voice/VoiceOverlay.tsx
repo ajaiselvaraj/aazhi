@@ -8,9 +8,9 @@ const VoiceOverlay: React.FC = () => {
 
   if (status === 'idle' && !error) return null;
 
-  // In vertical mode, center it at the top so it stays completely clear of the right-aligned mic button.
+  // Position the overlay directly below the microphone button on the right side
   return (
-    <div className={`fixed ${isVertical ? 'top-36 left-1/2 -translate-x-1/2' : 'top-24 right-32'} w-80 max-w-[calc(100vw-2rem)] z-50 pointer-events-none animate-in fade-in slide-in-from-top-5`}>
+    <div className={`fixed ${isVertical ? 'top-40 right-6' : 'top-24 right-8'} w-80 max-w-[calc(100vw-2rem)] z-50 pointer-events-none animate-in fade-in slide-in-from-top-5`}>
       <div className="bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-100 flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">

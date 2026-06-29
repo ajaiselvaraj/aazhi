@@ -98,29 +98,36 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
         const input = activeInputRef.current;
         if (!input) return;
 
+        const handle = activeKioskHandleRef.current;
+        if (handle) {
+            // KioskInputs have internal caps (e.g., formatConsumer limits to 12 digits, PIN to 6).
+            // We bypass the native maxLength check here because the DOM maxLength restricts the
+            // FORMATTED string length (including spaces), which would prematurely block input.
+            handle.injectKey(key);
+            return;
+        }
+
+        // Fallback for non-KioskInput
+        let start = input.value.length;
+        let end = input.value.length;
+        try {
+            // selectionStart throws an InvalidStateError on type="email" and type="number" in some browsers
+            start = input.selectionStart ?? input.value.length;
+            end = input.selectionEnd ?? input.value.length;
+        } catch (e) {
+            // Silently ignore unsupported selection state
+        }
+
         // Ensure we respect maxLength before inserting characters via virtual keyboard
-        if (input.maxLength && input.maxLength > 0) {
-            // Check if we're going to exceed maxLength
-            // We must allow replacing text if there's a selection
-            const start = input.selectionStart ?? input.value.length;
-            const end = input.selectionEnd ?? input.value.length;
+        // (Chrome defaults maxLength to 524288 if not set, Firefox to -1)
+        if (input.maxLength && input.maxLength > 0 && input.maxLength !== 524288) {
             const isReplacing = start !== end;
-            
             if (!isReplacing && input.value.length >= input.maxLength) {
                 // Ignore additional key presses after limit is reached
                 return;
             }
         }
 
-        const handle = activeKioskHandleRef.current;
-        if (handle) {
-            handle.injectKey(key);
-            return;
-        }
-        
-        // Fallback for non-KioskInput
-        const start = input.selectionStart ?? input.value.length;
-        const end = input.selectionEnd ?? input.value.length;
         const newVal = input.value.slice(0, start) + key + input.value.slice(end);
         mutateNativeDom(input, newVal, start + key.length);
     };

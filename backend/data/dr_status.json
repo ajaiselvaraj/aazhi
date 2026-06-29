@@ -1,10 +1,18 @@
 {
-  "lastBackupTime": "2026-06-29T07:15:00.317Z",
+  "lastBackupTime": "2026-06-29T07:30:00.336Z",
   "backupStatus": "Success",
   "replicationStatus": "Replicated to region ap-south-2 (Cross-Region Sync)",
-  "lastVerificationTime": "2026-06-29T07:15:00.317Z",
+  "lastVerificationTime": "2026-06-29T07:30:00.336Z",
   "verificationStatus": "Passed",
   "recoveryTestLogs": [
+    {
+      "timestamp": "2026-06-29T07:30:00.317Z",
+      "testType": "Automated RTO Verification Job",
+      "status": "Success",
+      "durationMs": 149,
+      "rtoAchieved": "269ms (Target: <1 Hour)",
+      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
+    },
     {
       "timestamp": "2026-06-29T06:30:00.271Z",
       "testType": "Automated RTO Verification Job",
@@ -75,14 +83,6 @@
       "status": "Success",
       "durationMs": 163,
       "rtoAchieved": "282ms (Target: <1 Hour)",
-      "notes": "Active standby DB replication verification passed. Primary node connection healthy."
-    },
-    {
-      "timestamp": "2026-06-27T16:30:00.279Z",
-      "testType": "Automated RTO Verification Job",
-      "status": "Success",
-      "durationMs": 168,
-      "rtoAchieved": "288ms (Target: <1 Hour)",
       "notes": "Active standby DB replication verification passed. Primary node connection healthy."
     }
   ]
