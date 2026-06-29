@@ -1,8 +1,4 @@
-// ═══════════════════════════════════════════════════════════════
-// ⭐ ADD-ON: Accountability Thread Component
-// Shows responsible officer card + full escalation timeline
-// Read-only for citizens — purely additive
-// ═══════════════════════════════════════════════════════════════
+
 import React, { useState, useEffect } from 'react';
 import { User, ArrowUpCircle, FileText, Building2, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
