@@ -241,8 +241,9 @@ const App: React.FC = () => {
   const [timer, setTimer] = useState(LOGOUT_TIME);
   const [isPrivacyShieldOn, setIsPrivacyShieldOn] = useState(false);
   const { isVertical, toggleOrientation } = useOrientation();
-  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>('home');
+  const [dashboardInitialTab, setDashboardInitialTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker' | 'eb'>('home');
   const [dashboardInitialAiQuery, setDashboardInitialAiQuery] = useState<string>('');
+  const [dashboardInitialSubView, setDashboardInitialSubView] = useState<string>('');
   const [isElderlyMode, setIsElderlyMode] = useState(() => sessionStorage.getItem('elderlyMode') === 'true');
 
   // Initialize TalkBack
@@ -297,6 +298,12 @@ const App: React.FC = () => {
         setDashboardInitialTab('ai');
       } else if (path === '/history') {
         setDashboardInitialTab('status');
+      } else if (path === '/power') {
+        setDashboardInitialTab('eb');
+      } else if (path === '/gas') {
+        setDashboardInitialTab('gas');
+      } else if (path === '/municipal') {
+        setDashboardInitialTab('municipal');
       } else if (path === '/power/track-request') {
         setDashboardInitialTab('power-tracker');
       } else if (path === '/gas/track-request') {
@@ -523,6 +530,31 @@ const App: React.FC = () => {
 
     window.addEventListener('VOICE_ACTION', handleVoiceAction);
     return () => window.removeEventListener('VOICE_ACTION', handleVoiceAction);
+  }, [view]);
+
+  // ── VOICE DEEP NAVIGATION LISTENER ──
+  // Handles sub-page routing: bypassing intermediate pages for 10 exact voice intents.
+  useEffect(() => {
+    const handleDeepNav = (e: Event) => {
+      const evt = e as CustomEvent;
+      const { action, targetTab, targetSubView } = evt.detail || {};
+      resetTimer();
+
+      if (targetTab) {
+        setView(ViewState.DASHBOARD);
+        setDashboardInitialTab(targetTab as any);
+        if (targetSubView) {
+          // Append timestamp to ensure React state updates even if it's the same string
+          setDashboardInitialSubView(`${targetSubView}|${Date.now()}`);
+        }
+      } else if (action) {
+        // Fallback: dispatch as a regular VOICE_ACTION
+        window.dispatchEvent(new CustomEvent('VOICE_ACTION', { detail: { action } }));
+      }
+    };
+
+    window.addEventListener('VOICE_DEEP_NAV', handleDeepNav);
+    return () => window.removeEventListener('VOICE_DEEP_NAV', handleDeepNav);
   }, [view]);
 
   // Logic for Login Navigation
@@ -1376,6 +1408,7 @@ const App: React.FC = () => {
                 onTogglePrivacy={() => setIsPrivacyShieldOn(!isPrivacyShieldOn)}
                 initialTab={dashboardInitialTab}
                 initialAiQuery={dashboardInitialAiQuery}
+                initialSubView={dashboardInitialSubView}
 
               />
             )}

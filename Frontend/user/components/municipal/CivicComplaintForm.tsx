@@ -66,7 +66,7 @@ const PRIORITY_KEYS: { key: string; value: Priority }[] = [
     { key: 'civic_critical', value: 'Critical' }
 ];
 
-export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean; language?: any; departmentId?: string }> = ({ onBack, isPrivacyOn, departmentId }) => {
+export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boolean; language?: any; departmentId?: string; initialCategory?: string }> = ({ onBack, isPrivacyOn, departmentId, initialCategory }) => {
     const { t, i18n } = useTranslation();
     const language = i18n.language as any;
     const { isVertical } = useOrientation();
@@ -88,6 +88,15 @@ export const CivicComplaintForm: React.FC<{ onBack: () => void; isPrivacyOn: boo
     useEffect(() => {
         debounceSaveForm('civic_form', { step, category, priority, desc, location });
     }, [step, category, priority, desc, location]);
+
+    // Voice deep-nav: auto-select category and skip to Step 2
+    useEffect(() => {
+        if (initialCategory && initialCategory.trim()) {
+            setCategory(initialCategory);
+            setStep(2);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialCategory]);
 
     const getLanguageName = () => {
         const config = LANGUAGES_CONFIG.find(l => l.code === language);

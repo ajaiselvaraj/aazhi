@@ -28,7 +28,6 @@ import ComplaintsModule from './kiosk/ComplaintsModule';
 import SecureAuth from './kiosk/SecureAuth';
 import { CivicComplaintForm } from './municipal/CivicComplaintForm';
 import { EmergencySOS } from './municipal/EmergencySOS';
-import { CertificateDownload } from './municipal/CertificateDownload';
 import { VendorLicenseFlow } from './municipal/VendorLicenseFlow';
 import { PropertyServices } from './municipal/PropertyServices';
 import { CitizenParticipation } from './municipal/CitizenParticipation';
@@ -49,8 +48,10 @@ interface Props {
   isPrivacyShield: boolean;
   timer: number;
   onTogglePrivacy?: () => void;
-  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker';
+  initialTab?: 'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker' | 'eb';
   initialAiQuery?: string;
+  /** Voice deep-nav: sub-view target (e.g. "LOGIN" for modules, "civic_garbage" for complaints) */
+  initialSubView?: string;
 }
 
 interface ChatMessage {
@@ -61,7 +62,7 @@ interface ChatMessage {
   menu?: AIMenu; // New: Structure Menu Data
 }
 
-const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '' }) => {
+const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShield, timer, onTogglePrivacy, initialTab = 'home', initialAiQuery = '', initialSubView = '' }) => {
   const { isVertical } = useOrientation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'home' | 'services' | 'complaints' | 'billing' | 'status' | 'ai' | 'tracker' | 'emergency' | 'certificates' | 'business' | 'property' | 'participation' | 'gas' | 'municipal' | 'eb' | 'power-tracker' | 'gas-tracker' | 'municipal-tracker'>(initialTab);
@@ -104,6 +105,28 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  // Consume initialSubView for direct navigation to sub-pages
+  useEffect(() => {
+    if (
+      initialSubView &&
+      initialSubView.trim() &&
+      consumedSubViewRef.current !== initialSubView
+    ) {
+      consumedSubViewRef.current = initialSubView;
+      const parsedSubView = initialSubView.split('|')[0];
+      if (parsedSubView) {
+        // Clear any cached form data so the new subView takes effect cleanly
+        try { sessionStorage.removeItem('aazhi_dashboard_state'); } catch (_) {}
+        setActiveSubView(parsedSubView);
+        
+        // If it's an AI query, trigger it automatically
+        if (activeTab === 'ai') {
+          setTimeout(() => handleAiSearch(parsedSubView), 300);
+        }
+      }
+    }
+  }, [initialSubView, activeTab]);
 
   const consumedQueryRef = useRef<string | null>(null);
 
@@ -171,6 +194,9 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
   const [isLoadingRequests, setIsLoadingRequests] = useState(true);
   const [userRequests, setUserRequests] = useState<ServiceRequest[]>([]);
   const [liveAlerts, setLiveAlerts] = useState<any[]>([]);
+  /** Voice deep-nav: active sub-view string */
+  const [activeSubView, setActiveSubView] = useState<string>('');
+  const consumedSubViewRef = useRef<string | null>(null);
 
   // ─── PERSISTENCE: Restore Tab & Steps ───
   useEffect(() => {
@@ -725,22 +751,7 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
             {submissionStep === 'auth' && selectedService && selectedDepartment && (
               <SecureAuth 
                 onSuccess={() => {
-                  if (sessionStorage.getItem('elderlyMode') === 'true') {
-                    setSubmissionStep('form');
-                  } else {
-                    setSubmissionStep('select');
-                    localStorage.setItem('aazhi_selected_department', selectedDepartment);
-                    if (selectedDepartment === 'eb') {
-                      setSelectedBillService({ id: 'elec', name: t('power') || 'Electricity', icon: Zap, color: 'amber', consumerLabel: t('consumerLabel') || 'Consumer Number', providerLabel: t('deptEB') || 'Electricity Board / DISCOM' } as any);
-                    } else if (selectedDepartment === 'gas') {
-                      setSelectedBillService({ id: 'gas', name: t('gas') || 'Gas', icon: Flame, color: 'orange', consumerLabel: t('customerId') || 'Customer ID', providerLabel: t('deptGas') || 'Gas Provider / PNG' } as any);
-                    } else {
-                      setSelectedBillService({ id: 'water', name: t('muniOtherServices') || 'Municipality / Other Services', icon: Droplets, color: 'blue', consumerLabel: t('connectionId') || 'Connection ID', providerLabel: t('deptMunicipal') || 'Municipality / Corp' } as any);
-                    }
-                    setBillingStep('form');
-                    setActiveTab('billing');
-                    navigate('/pay-bills');
-                  }
+                  setSubmissionStep('form');
                 }} 
                 onBack={() => setSubmissionStep('select')}
                 language={language} 
@@ -770,23 +781,26 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
 
         {/* VIEW: GAS MODULE */}
         {activeTab === 'gas' && <GasModule
-          onBack={() => { setActiveTab('services'); }}
+          onBack={() => { setActiveTab('billing'); }}
           language={language}
           onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+          initialSubView={(activeSubView as any) || "HOME"}
         />}
         
         {/* VIEW: MUNICIPAL MODULE */}
         {activeTab === 'municipal' && <MunicipalModule
-          onBack={() => setActiveTab('services')}
+          onBack={() => setActiveTab('billing')}
           language={language}
           onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+          initialSubView={(activeSubView as any) || "HOME"}
         />}
 
         {/* VIEW: ELECTRICITY MODULE */}
         {activeTab === 'eb' && <ElectricityModule
-          onBack={() => { setActiveTab('services'); }}
+          onBack={() => { setActiveTab('billing'); }}
           language={language}
           onGlobalNavigate={(tab) => setActiveTab(tab as any)}
+          initialSubView={(activeSubView as any) || "HOME"}
         />}
 
         {/* VIEW 3: BILLING */}
@@ -1215,15 +1229,17 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {/* VIEW 6: COMPLAINTS (Placeholder for now) */}
         {activeTab === 'complaints' && (
           <div className="h-full">
-            <CivicComplaintForm
+          <CivicComplaintForm
               onBack={() => {
                 // If specific dept was selected, go back to Services list, else Home
                 setActiveTab(selectedComplaintDept ? 'services' : 'home');
                 setSelectedComplaintDept(undefined);
+                setActiveSubView('');
               }}
               isPrivacyOn={isPrivacyShield}
               language={language}
               departmentId={selectedComplaintDept}
+              initialCategory={activeSubView || undefined}
             />
 
           </div>
@@ -1232,9 +1248,6 @@ const KioskUI: React.FC<Props> = ({ language, onNavigate, onLogout, isPrivacyShi
         {/* VIEW 7: NEW MODULES */}
         {activeTab === 'emergency' && (
           <EmergencySOS onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
-        )}
-        {activeTab === 'certificates' && (
-          <CertificateDownload onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />
         )}
         {activeTab === 'business' && (
           <VendorLicenseFlow onBack={() => setActiveTab('home')} isPrivacyOn={isPrivacyShield} />

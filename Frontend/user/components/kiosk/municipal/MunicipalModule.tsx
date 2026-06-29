@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Droplet, FileText, AlertCircle, User, ShieldCheck, CreditCard, Lock, ArrowRight, UserCog, Calculator, Smartphone, AlertTriangle, SearchCode, Building2 } from 'lucide-react';
 import { Language } from '../../../types';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,12 @@ const MunicipalModule: React.FC<Props> = ({ onBack, language, onGlobalNavigate, 
   const navigate = useNavigate();
   const isElderly = sessionStorage.getItem('elderlyMode') === 'true';
   const [view, setView] = useState<'HOME' | 'WATER' | 'COMPLAINTS' | 'WATER_COMPLAINTS' | 'PROFILE' | 'TAXES' | 'QUICK_PAY' | 'LOGIN' | 'TRACKER' | 'CALCULATOR' | 'TARIFF' | 'TRANSACTIONS' | 'PT_TARIFF' | 'PT_CALCULATOR' | 'MUNICIPAL_DASHBOARD'>(initialSubView ?? 'HOME');
+
+  useEffect(() => {
+    if (initialSubView && initialSubView !== view) {
+      setView(initialSubView as any);
+    }
+  }, [initialSubView]);
 
   const handleInternalBack = () => {
     setView('HOME');
