@@ -22,7 +22,7 @@ export class VoiceEngine {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         this.recognition = new SpeechRecognition();
-        this.recognition.continuous = false;
+        this.recognition.continuous = true;
         this.recognition.interimResults = true;
         this.recognition.maxAlternatives = 5;
         
@@ -62,18 +62,41 @@ export class VoiceEngine {
         };
 
         this.recognition.onerror = (event: any) => {
+          console.error("[VoiceEngine] Speech Recognition Error:", event.error);
           this.isListening = false;
-          let errorMessage = 'Recognition failed';
-          if (event.error === 'not-allowed') {
-            errorMessage = 'Microphone permission denied';
-          } else if (event.error === 'no-speech') {
-            errorMessage = 'No speech detected';
-          } else if (event.error === 'network') {
-            errorMessage = 'Network error';
+          
+          if (event.error === 'aborted') {
+            this.onStatusChange('idle');
+            return;
           }
+          
+          if (event.error === 'no-speech') {
+            this.onStatusChange('idle');
+            return;
+          }
+
+          let errorMessage = "Sorry, I didn't catch that. Please try again.";
+
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+            errorMessage = 'Microphone access is required for voice navigation.';
+          } else if (event.error === 'network') {
+            errorMessage = 'Voice service is temporarily unavailable.';
+          }
+
           this.onError(errorMessage);
           this.onStatusChange('error');
           
+          setTimeout(() => {
+            if (!this.isListening) {
+              this.onStatusChange('idle');
+            }
+          }, 3000);
+        };
+        
+        this.recognition.onnomatch = () => {
+          this.isListening = false;
+          this.onError("Sorry, I didn't catch that. Please try again.");
+          this.onStatusChange('error');
           setTimeout(() => {
             if (!this.isListening) {
               this.onStatusChange('idle');

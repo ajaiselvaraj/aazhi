@@ -95,14 +95,30 @@ const KioskKeyboardWrapper: React.FC<Props> = ({ children, language }) => {
 
     // ── Key press ─────────────────────────────────────────────────────────────
     const handleKeyPress = (key: string) => {
+        const input = activeInputRef.current;
+        if (!input) return;
+
+        // Ensure we respect maxLength before inserting characters via virtual keyboard
+        if (input.maxLength && input.maxLength > 0) {
+            // Check if we're going to exceed maxLength
+            // We must allow replacing text if there's a selection
+            const start = input.selectionStart ?? input.value.length;
+            const end = input.selectionEnd ?? input.value.length;
+            const isReplacing = start !== end;
+            
+            if (!isReplacing && input.value.length >= input.maxLength) {
+                // Ignore additional key presses after limit is reached
+                return;
+            }
+        }
+
         const handle = activeKioskHandleRef.current;
         if (handle) {
             handle.injectKey(key);
             return;
         }
+        
         // Fallback for non-KioskInput
-        const input = activeInputRef.current;
-        if (!input) return;
         const start = input.selectionStart ?? input.value.length;
         const end = input.selectionEnd ?? input.value.length;
         const newVal = input.value.slice(0, start) + key + input.value.slice(end);

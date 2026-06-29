@@ -98,6 +98,10 @@ export const VoiceProvider: React.FC<VoiceProviderProps> = ({ children, appLangu
             console.log(`[IntentMapper] ✅ Confirmed: ${confirmed.serviceName}`);
             speakFeedback(`Opening ${confirmed.serviceName}.`);
             voiceController.handleAction(confirmed.action, appLanguage);
+            
+            // Stop listening after successful confirmation
+            voiceEngine.stop();
+            
             console.timeEnd('Voice_Processing');
             return;
           } else if (isDenial(text)) {
@@ -139,6 +143,10 @@ export const VoiceProvider: React.FC<VoiceProviderProps> = ({ children, appLangu
               // No deep metadata — use the standard action channel
               voiceController.handleAction(intentResult.action, appLanguage);
             }
+            
+            // AUTOMATICALLY STOP LISTENING after a successful command to prevent the browser's 
+            // SpeechRecognition engine from entering a 'deaf' ghost state in production.
+            voiceEngine.stop();
             console.timeEnd('Voice_Processing');
             return;
 
